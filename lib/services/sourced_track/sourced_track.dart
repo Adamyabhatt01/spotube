@@ -23,6 +23,51 @@ final officialMusicRegex = RegExp(
   caseSensitive: false,
 );
 
+/// How long a cached source-match stays authoritative.
+///
+/// This TTL bounds only the cached match *identity* (which video belongs
+/// to a track). Stream URLs carry their own `expire` stamp and are
+/// refreshed reactively; manifests are re-resolved from the match on
+/// every hit. In-memory playback is therefore never invalidated by this
+/// TTL — at worst a track re-searches its match after 6h.
+const kSourceMatchCacheTtl = Duration(hours: 6);
+
+/// Verdict for a cached source_match row, pure for testability.
+enum SourceMatchCacheDecision {
+  /// Fresh, deserializable row: use without searching.
+  hit,
+
+  /// Stale row (or stale tombstone): delete and re-search.
+  refresh,
+
+  /// Fresh but undeserializable row: a previous search found nothing, so
+  /// fail without spending another search (negative cache).
+  negativeHit,
+}
+
+SourceMatchCacheDecision classifyCachedSourceMatch({
+  required String sourceInfo,
+  required DateTime createdAt,
+  DateTime? now,
+  Duration ttl = kSourceMatchCacheTtl,
+}) {
+  final expired = (now ?? DateTime.now()).difference(createdAt) > ttl;
+  var readable = false;
+  try {
+    final decoded = jsonDecode(sourceInfo);
+    if (decoded is Map<String, dynamic>) {
+      SpotubeAudioSourceMatchObject.fromJson(
+        Map<String, dynamic>.from(decoded),
+      );
+      readable = true;
+    }
+  } catch (_) {
+    readable = false;
+  }
+  if (readable) return expired ? SourceMatchCacheDecision.refresh : SourceMatchCacheDecision.hit;
+  return expired ? SourceMatchCacheDecision.refresh : SourceMatchCacheDecision.negativeHit;
+}
+
 class SourcedTrack extends BasicSourcedTrack {
   final Ref ref;
 
@@ -47,7 +92,7 @@ class SourcedTrack extends BasicSourcedTrack {
     }
 
     final database = ref.read(databaseProvider);
-    final cachedSource = await (database.select(database.sourceMatchTable)
+    var cachedSource = await (database.select(database.sourceMatchTable)
           ..where((s) =>
               s.trackId.equals(query.id) &
               s.sourceType.equals(audioSourceConfig.slug))
@@ -59,9 +104,38 @@ class SourcedTrack extends BasicSourcedTrack {
         .get()
         .then((s) => s.firstOrNull);
 
+    if (cachedSource != null) {
+      switch (classifyCachedSourceMatch(
+        sourceInfo: cachedSource.sourceInfo,
+        createdAt: cachedSource.createdAt,
+      )) {
+        case SourceMatchCacheDecision.hit:
+          break;
+        case SourceMatchCacheDecision.refresh:
+          // Stale identity (or stale tombstone): drop and re-search below.
+          await (database.sourceMatchTable.delete()
+                ..where((s) => s.id.equals(cachedSource!.id)))
+              .go();
+          cachedSource = null;
+        case SourceMatchCacheDecision.negativeHit:
+          // A recent search already found nothing: fail without
+          // spending another search.
+          throw TrackNotFoundError(query);
+      }
+    }
+
     if (cachedSource == null) {
       final siblings = await fetchSiblings(ref: ref, query: query);
       if (siblings.isEmpty) {
+        // Negative cache: remember the miss so near-future resolutions
+        // fail fast instead of re-searching. Expires via the same TTL.
+        await database.into(database.sourceMatchTable).insert(
+              SourceMatchTableCompanion.insert(
+                trackId: query.id,
+                sourceInfo: const Value('{}'),
+                sourceType: audioSourceConfig.slug,
+              ),
+            );
         throw TrackNotFoundError(query);
       }
 

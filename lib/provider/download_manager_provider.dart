@@ -25,6 +25,73 @@ enum DownloadStatus {
   canceled,
 }
 
+/// Delays between download attempts (3 attempts total). Downloads are
+/// long-lived transfers; short-aggressive retries would hammer struggling
+/// servers, so backoff is seconds-scale.
+const downloadRetryDelays = [
+  Duration(seconds: 2),
+  Duration(seconds: 6),
+];
+
+/// Whether a failed download attempt is worth retrying. Transient network
+/// conditions (timeouts, refused/reset connections, 5xx) are retried;
+/// permanent failures (cancellation, 4xx, missing URL, local file errors)
+/// fail fast instead of looping pointlessly.
+bool isRetryableDownloadError(Object error) {
+  if (error is DioException) {
+    switch (error.type) {
+      case DioExceptionType.cancel:
+        return false;
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+      case DioExceptionType.connectionError:
+      case DioExceptionType.unknown:
+        return true;
+      case DioExceptionType.badResponse:
+        final status = error.response?.statusCode ?? 0;
+        return status >= 500;
+      case DioExceptionType.badCertificate:
+        return false;
+    }
+  }
+  return false;
+}
+
+/// Whether [error] is an out-of-space filesystem failure (errno ENOSPC).
+/// Callers tag these reports so disk-full failures are distinguishable
+/// from network failures in logs.
+bool isNoSpaceError(Object error) {
+  if (error is FileSystemException) {
+    final code = error.osError?.errorCode;
+    if (code == 28) return true;
+    return error.message.toLowerCase().contains('no space left');
+  }
+  if (error is DioException) {
+    final underlying = error.error;
+    if (underlying != null) return isNoSpaceError(underlying);
+  }
+  return false;
+}
+
+/// Throttle rule for download progress events feeding the per-row
+/// StreamBuilder. Chunk callbacks arrive ~100/sec per connection; the UI
+/// only needs periodic updates. Always emits the terminal event
+/// ([count] >= [total] with a known total) so a throttled bar still
+/// lands exactly on 100% — completion is additionally signaled by the
+/// task status flip, which never throttles. Unknown totals (<= 0) only
+/// throttle; completion is status-driven there.
+bool shouldEmitDownloadProgress({
+  required int count,
+  required int total,
+  required DateTime now,
+  required DateTime lastEmit,
+  Duration interval = const Duration(milliseconds: 250),
+}) {
+  if (total > 0 && count >= total) return true;
+  return now.difference(lastEmit) >= interval;
+}
+
 class DownloadTask {
   final SpotubeFullTrackObject track;
   final DownloadStatus status;
@@ -188,12 +255,41 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     }
   }
 
+  /// Runs [operation] with bounded exponential retry for transient
+  /// download failures. Cancellation aborts immediately (no sleep, no
+  /// retry); permanent errors fail fast via [isRetryableDownloadError].
+  /// Returns only on success — failures propagate to [_downloadTrack]'s
+  /// catch, which marks the task failed exactly once.
+  Future<T> _chunkDownloadWithRetry<T>(
+    DownloadTask task,
+    Future<T> Function() operation,
+  ) async {
+    for (var attempt = 0; ; attempt++) {
+      if (task.cancelToken.isCancelled) {
+        throw DioException(
+          requestOptions: RequestOptions(path: ''),
+          type: DioExceptionType.cancel,
+        );
+      }
+      try {
+        return await operation();
+      } catch (e) {
+        if (!isRetryableDownloadError(e) ||
+            attempt >= downloadRetryDelays.length) {
+          rethrow;
+        }
+        await Future.delayed(downloadRetryDelays[attempt]);
+      }
+    }
+  }
+
   Future<void> _downloadTrack(DownloadTask task) async {
     try {
       _setStatus(task.track, DownloadStatus.downloading);
       final track = await ref.read(sourcedTrackProvider(task.track).future);
       if (task.cancelToken.isCancelled) {
         _setStatus(task.track, DownloadStatus.canceled);
+        return;
       }
       final presets = ref.read(audioSourcePresetsProvider);
       final container =
@@ -210,6 +306,13 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
         throw Exception("No download URL found for selected codec");
       }
 
+      // Best-effort preflight: the destination directory may not exist
+      // yet (fresh download location). Chunked transfers additionally
+      // need ~2x the final size transiently (temp parts + concatenation),
+      // which cannot be checked without a free-space API — ENOSPC during
+      // the transfer is caught below and tagged via [isNoSpaceError].
+      await Directory(downloadLocation).create(recursive: true);
+
       final savePath =
           _savePathFor(track.query, downloadLocation, container);
 
@@ -222,23 +325,40 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
         }
       }
 
-      final response = await dio.chunkDownload(
-        url,
-        savePath,
-        cancelToken: task.cancelToken,
-        onReceiveProgress: (count, total) {
-          if (task.totalSizeBytes == null) {
-            state = state.map((e) {
-              if (e.track.id == track.query.id) {
-                return e.copyWith(totalSizeBytes: total);
-              }
-              return e;
-            }).toList();
-          }
-          task._downloadedBytesStreamController.add(count);
-        },
-        deleteOnError: true,
-        fileAccessMode: FileAccessMode.write,
+      var lastProgressEmit = DateTime.fromMillisecondsSinceEpoch(0);
+      final response = await _chunkDownloadWithRetry(
+        task,
+        () => dio.chunkDownload(
+          url,
+          savePath,
+          cancelToken: task.cancelToken,
+          onReceiveProgress: (count, total) {
+            if (task.totalSizeBytes == null) {
+              state = state.map((e) {
+                if (e.track.id == track.query.id) {
+                  return e.copyWith(totalSizeBytes: total);
+                }
+                return e;
+              }).toList();
+            }
+            // Throttled: chunk callbacks arrive ~100/sec/connection and
+            // each event rebuilds the row. The terminal event always
+            // passes (see [shouldEmitDownloadProgress]).
+            final now = DateTime.now();
+            if (shouldEmitDownloadProgress(
+              count: count,
+              total: total,
+              now: now,
+              lastEmit: lastProgressEmit,
+            )) {
+              lastProgressEmit = now;
+              final controller = task._downloadedBytesStreamController;
+              if (!controller.isClosed) controller.add(count);
+            }
+          },
+          deleteOnError: true,
+          fileAccessMode: FileAccessMode.write,
+        ),
       );
       if (response.statusCode != null && response.statusCode! < 400) {
         _setStatus(track.query, DownloadStatus.completed);
@@ -263,8 +383,14 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
         ),
       );
     } catch (e, stack) {
-      if (e is! DioException || e.type != DioExceptionType.cancel) {
-        _setStatus(task.track, DownloadStatus.failed);
+      if (e is DioException && e.type == DioExceptionType.cancel) {
+        // Cancellation (including retry-loop abort) is not a failure.
+        return;
+      }
+      _setStatus(task.track, DownloadStatus.failed);
+      if (isNoSpaceError(e)) {
+        AppLogger.reportError('Download out of disk space: $e', stack);
+      } else {
         AppLogger.reportError(e, stack);
       }
     }
