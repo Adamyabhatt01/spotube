@@ -135,7 +135,11 @@ Do the following:
     dnf install mpv mpv-devel libappindicator-gtk3 libappindicator-gtk3-devel libsecret libsecret-devel jsoncpp jsoncpp-devel libnotify libnotify-devel avahi mdns-scan nss-mdns webkit2gtk4.1 webkit2gtk4.1-devel libsoup3 libsoup3-devel
     ```
 - Clone the Repo
-- Create a `.env` in root of the project following the `.env.example` template
+- Generate a `.env` in root of the project from the `.env.example` template (it holds `$PLACEHOLDERS`, so don't copy it directly):
+  ```bash
+  ENABLE_UPDATE_CHECK=1 LASTFM_API_KEY=xxx LASTFM_API_SECRET=xxx RELEASE_CHANNEL=nightly HIDE_DONATIONS=0 \
+    envsubst < .env.example > .env
+  ```
 - Now run the following to bootstrap the project
   ```bash
   fvm flutter pub get && fvm dart run build_runner build --delete-conflicting-outputs
