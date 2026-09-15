@@ -28,7 +28,7 @@ class L10n {
     const Locale('bn', 'BD'),
     const Locale('ca', 'AD'),
     const Locale('cs', 'CZ'),
-    const Locale('de', 'GE'),
+    const Locale('de', 'DE'),
     const Locale('es', 'ES'),
     const Locale('fa', 'IR'),
     const Locale('fi', 'FI'),

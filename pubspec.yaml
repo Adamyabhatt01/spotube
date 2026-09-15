@@ -25,12 +25,16 @@ dependencies:
   connectivity_plus: ^6.1.2
   desktop_webview_window:
     git:
+      # DEP.4: pinned to the tested resolution (was floating HEAD).
+      ref: f261ff20e310d05713249b21c199a9fe17a3de6f
       path: packages/desktop_webview_window
       url: https://github.com/KRTirtho/flutter-plugins.git
   device_info_plus: ^11.1.1
   dio: ^5.4.3+1
   disable_battery_optimization:
     git:
+      # DEP.4: pinned to the tested resolution (was floating HEAD).
+      ref: aa77a61946849fff495091fc13dcc390948cc60b
       url: https://github.com/KRTirtho/Disable-Battery-Optimizations.git
   draggable_scrollbar:
     git:
@@ -90,7 +94,8 @@ dependencies:
   riverpod: ^2.5.1
   scrobblenaut:
     git:
-      ref: dart-3-support
+      # DEP.4: pinned to the tested resolution (was branch dart-3-support).
+      ref: d90cb75d71737f3cfa2de4469d48080c0f3eedc2
       url: https://github.com/KRTirtho/scrobblenaut.git
   scroll_to_index: ^3.0.1
   shadcn_flutter: 0.0.47
@@ -124,6 +129,8 @@ dependencies:
       ref: 4e5310e14af74bdbb51e2a4766e66d6c6a2562a8
   flutter_new_pipe_extractor:
     git:
+      # DEP.4: pinned to the tested resolution (was floating HEAD).
+      ref: 41cbd821ce49b9343136f67d83d3117e582dad75
       url: https://github.com/KRTirtho/flutter_new_pipe_extractor
   http_parser: ^4.1.2
   # DEP.3: exact pin of the tested resolution (was `any` appeasement for the
@@ -135,15 +142,18 @@ dependencies:
   hetu_std:
     git:
       url: https://github.com/hetu-community/hetu_std.git
-      ref: main
+      # DEP.4: pinned to the tested resolution (was branch main).
+      ref: 401fde426339cf8f1e00dee22cc95f64c3e60053
   hetu_otp_util:
     git:
       url: https://github.com/hetu-community/hetu_otp_util.git
-      ref: main
+      # DEP.4: pinned to the tested resolution (was branch main).
+      ref: 7790606751828758769596e809ba6cbb756f9b9a
   hetu_spotube_plugin:
     git:
       url: https://github.com/KRTirtho/hetu_spotube_plugin.git
-      ref: main
+      # DEP.4: pinned to the tested resolution (was branch main).
+      ref: d85dd429241d464a8b5b0c2b3d870143eeba8b46
   get_it: ^8.0.3
   flutter_markdown_plus: ^1.0.3
   pub_semver: ^2.2.0
@@ -185,13 +195,38 @@ dev_dependencies:
   io: ^1.0.4
   drift_dev: ^2.21.0
   test: any
+  # Hermetic time-based tests (debounce/timeout/wave assertions).
+  fake_async: ^1.3.3
   auto_route_generator: ^9.0.0
 
 dependency_overrides:
   bonsoir_android:
     git:
       url: https://github.com/KRTirtho/Bonsoir.git
+      # DEP.4: pinned to the tested resolution (was floating HEAD).
+      ref: aa5604628ba41e3a7153769f4465a3d375488f2e
       path: packages/bonsoir_android
+  # DEP.4: force the pinned SHAs transitively too. hetu_spotube_plugin
+  # itself depends on hetu_std/hetu_otp_util at branch main,
+  # desktop_webview_window at HEAD and fk_user_agent at HEAD, which would
+  # otherwise conflict with (and float past) the direct pins above.
+  hetu_std:
+    git:
+      url: https://github.com/hetu-community/hetu_std.git
+      ref: 401fde426339cf8f1e00dee22cc95f64c3e60053
+  hetu_otp_util:
+    git:
+      url: https://github.com/hetu-community/hetu_otp_util.git
+      ref: 7790606751828758769596e809ba6cbb756f9b9a
+  desktop_webview_window:
+    git:
+      url: https://github.com/KRTirtho/flutter-plugins.git
+      ref: f261ff20e310d05713249b21c199a9fe17a3de6f
+      path: packages/desktop_webview_window
+  fk_user_agent:
+    git:
+      url: https://github.com/maeltoukap/fk_user_agent.git
+      ref: 458046cd9a88924e5074d96ba45397219d53b230
   meta: 1.16.0
   web: ^1.1.0
   flutter_svg: ^2.0.17

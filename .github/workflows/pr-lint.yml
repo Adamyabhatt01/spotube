@@ -16,6 +16,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
 
       - name: Dummy Envs
         run: |
@@ -59,6 +60,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
 
       - name: Dummy Envs
         run: |

@@ -14,7 +14,11 @@ class ISOLanguageName {
 }
 
 // Uncomment the languages as we add support for them
-// Currently supported: bn,en,fr,hi,zh
+// Currently supported (see L10n.all in lib/l10n/l10n.dart):
+// en, ar, bn, ca, cs, de, es, fa, fi, fr, ne, hi, id, it, ja, ka, ko,
+// nl, pl, pt, ru, tl, uk, th, ta, tr, zh (CN + TW), vi, eu
+// NOTE: lib/l10n/app_zh_TW.arb currently yields no generated output;
+// gen-l10n only emits app_localizations_zh.dart (see L10n.all).
 abstract class LanguageLocals {
   static final Map isoLangs = {
     // "ab": const ISOLanguageName(

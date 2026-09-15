@@ -111,14 +111,6 @@ class SettingsAppearanceSection extends HookConsumerWidget {
           }
         },
       ),
-      // ListTile(
-      //     leading: const Icon(SpotubeIcons.amoled),
-      //     title: Text(context.l10n.use_amoled_mode),
-      //     subtitle: Text(context.l10n.pitch_dark_theme),
-      //     trailing: Switch(
-      //       value: preferences.amoledDarkTheme,
-      //       onChanged: preferencesNotifier.setAmoledDarkTheme,
-      //     )),
       ListTile(
         leading: const Icon(SpotubeIcons.palette),
         title: Text(context.l10n.accent_color),
@@ -217,14 +209,6 @@ class SettingsAppearanceSection extends HookConsumerWidget {
           ],
         ),
       ),
-      // ListTile(
-      //     leading: const Icon(SpotubeIcons.colorSync),
-      //     title: Text(context.l10n.sync_album_color),
-      //     subtitle: Text(context.l10n.sync_album_color_description),
-      //     trailing: Switch(
-      //       value: preferences.albumColorSync,
-      //       onChanged: preferencesNotifier.setAlbumColorSync,
-      //     )),
     ];
 
     if (isGettingStarted) {
