@@ -9,6 +9,12 @@ import 'package:spotube/provider/user_preferences/user_preferences_provider.dart
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 
+/// The currently bound server across provider rebuilds. Lets a rebuild
+/// close the previous socket before rebinding (no "address already in
+/// use"), and lets dispose skip an already-closed server. Only ever
+/// touched from [serverProvider]'s build/dispose.
+HttpServer? _servingServer;
+
 final serverProvider = FutureProvider(
   (ref) async {
     final enabledRemoteConnect = ref.watch(
@@ -31,6 +37,20 @@ final serverProvider = FutureProvider(
       SpotubeMedia.serverPort = connectPort;
     }
 
+    // Close-before-rebind: a rebuild (e.g. toggling connect off/on on the
+    // same port) must free the previous socket BEFORE binding, or serve()
+    // fails with "address already in use". The onDispose close below is
+    // async and would otherwise lose that race.
+    final previous = _servingServer;
+    _servingServer = null;
+    if (previous != null) {
+      try {
+        await previous.close(force: true);
+      } catch (_) {
+        // Already closed (e.g. by dispose racing us here).
+      }
+    }
+
     final server = await serve(
       pipeline.addHandler(router.call),
       enabledRemoteConnect
@@ -38,13 +58,19 @@ final serverProvider = FutureProvider(
           : InternetAddress.loopbackIPv4,
       SpotubeMedia.serverPort,
     );
+    _servingServer = server;
 
     AppLogger.log.t(
       'Playback server at http://${server.address.host}:${server.port}',
     );
 
-    ref.onDispose(() {
-      server.close();
+    ref.onDispose(() async {
+      if (identical(_servingServer, server)) _servingServer = null;
+      try {
+        await server.close(force: true);
+      } catch (_) {
+        // Already closed by a rebuild racing dispose.
+      }
     });
 
     return (

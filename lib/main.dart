@@ -37,6 +37,7 @@ import 'package:spotube/modules/theme_surfaces/theme_surfaces_scope.dart';
 import 'package:spotube/provider/audio_player/audio_player_streams.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/glance/glance.dart';
+import 'package:spotube/provider/server/sourced_track_provider.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/updater/update_checker.dart';
 import 'package:spotube/provider/server/bonsoir.dart';
@@ -320,6 +321,10 @@ class Spotube extends HookConsumerWidget {
       (_, __) {},
       onError: logAsyncError,
     );
+    // Retains the active + next-up sourced-track manifests for the app
+    // lifetime (see sourcedTrackRetentionProvider); rebuilds only on
+    // queue structural changes.
+    ref.watch(sourcedTrackRetentionProvider);
 
     useFixWindowStretching();
     useDisableBatteryOptimizations();
