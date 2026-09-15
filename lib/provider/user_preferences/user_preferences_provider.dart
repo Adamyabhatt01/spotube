@@ -18,6 +18,23 @@ import 'package:open_file/open_file.dart';
 
 typedef UserPreferences = PreferencesTableData;
 
+/// Which platform side effects a preferences transition requires. Pure
+/// for testability: the `watchSingle` listener below applies it, so
+/// unrelated preference writes (accent, language, …) no longer trigger
+/// native calls on every change.
+({
+  bool titleBarStyle,
+  bool audioNormalization,
+}) preferencesSideEffects({
+  required PreferencesTableData previous,
+  required PreferencesTableData next,
+}) {
+  return (
+    titleBarStyle: next.systemTitleBar != previous.systemTitleBar,
+    audioNormalization: next.normalizeAudio != previous.normalizeAudio,
+  );
+}
+
 /// Initialization status of [userPreferencesProvider]. The provider keeps
 /// its sync API, but this companion makes the load outcome explicit so
 /// pre-load defaults are never mistaken for loaded state: `AsyncLoading`
@@ -66,17 +83,22 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
           .watchSingle()
           .listen((event) async {
         try {
+          final previous = state;
           state = event;
 
-          if (kIsDesktop) {
+          final effects =
+              preferencesSideEffects(previous: previous, next: event);
+          if (kIsDesktop && effects.titleBarStyle) {
             await windowManager.setTitleBarStyle(
-              state.systemTitleBar
+              event.systemTitleBar
                   ? TitleBarStyle.normal
                   : TitleBarStyle.hidden,
             );
           }
 
-          await audioPlayer.setAudioNormalization(state.normalizeAudio);
+          if (effects.audioNormalization) {
+            await audioPlayer.setAudioNormalization(event.normalizeAudio);
+          }
         } catch (e, stack) {
           AppLogger.reportError(e, stack);
         }
