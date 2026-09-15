@@ -38,7 +38,7 @@ class CaelestiaShellSource implements ThemeShellSource {
   }
 
   @override
-  ThemeDefinition? getTheme() =>
+  Future<ThemeDefinition?> getTheme() =>
       CaelestiaThemeSource(stateDir: stateDir).getTheme();
 
   /// Scheme file mtime: any Caelestia rewrite changes it, so a stale

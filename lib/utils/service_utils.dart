@@ -308,7 +308,7 @@ abstract class ServiceUtils {
 
       await for (final data in fileStream) {
         if (data is FileInfo) {
-          bytes.addAll(data.file.readAsBytesSync());
+          bytes.addAll(await data.file.readAsBytes());
           break;
         }
       }

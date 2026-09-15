@@ -62,37 +62,92 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:yt_dlp_dart/yt_dlp_dart.dart';
 import 'package:flutter_new_pipe_extractor/flutter_new_pipe_extractor.dart';
 
+/// Runs an optional startup step without ever failing startup.
+///
+/// Failures are reported (with [name] attribution, or via [onError] in
+/// tests) and swallowed: an unavailable yt-dlp binary, Discord RPC or
+/// notifier must degrade features, never prevent launch.
+Future<void> guardedStartupInit(
+  String name,
+  Future<void> Function() init, {
+  Future<void> Function(Object error, StackTrace stackTrace)? onError,
+}) async {
+  try {
+    await init();
+  } catch (e, stack) {
+    if (onError != null) {
+      await onError(e, stack);
+    } else {
+      await AppLogger.reportError(e, stack, name);
+    }
+  }
+}
+
+/// Pure startup-gate rule behind the splash poll below: the in-app splash
+/// hides as soon as a themed frame can paint, or when [cap] elapses —
+/// whichever comes first. Even a total theme failure resolves to the
+/// built-in fallback after the cap instead of hanging on black.
+bool startupGateAllowsApp({
+  required bool themeReady,
+  required Duration elapsed,
+  Duration cap = const Duration(seconds: 6),
+}) {
+  return themeReady || elapsed >= cap;
+}
+
+/// Fallback painted when a widget subtree throws during build. Plain
+/// widgets only (no providers/themes): the error may itself come from a
+/// broken theme or provider, so this must never depend on either.
+class _StartupErrorFallback extends StatelessWidget {
+  const _StartupErrorFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Directionality(
+      textDirection: TextDirection.ltr,
+      child: ColoredBox(
+        color: Color(0xFF000000),
+        child: Center(
+          child: Text(
+            'Something went wrong starting this view.\nPlease restart the app.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Color(0xFFFFFFFF)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Deferred service initializations that must not block the first frame.
 ///
 /// Runs once, right after first paint (still before any user interaction
 /// can reach playback/notifications). Keeps process-start → first-frame
 /// minimal so the pre-splash black window stays short.
 Future<void> _initDeferredServices() async {
-  try {
+  await guardedStartupInit('NewPipeExtractor.init', () async {
     if (kIsAndroid || kIsDesktop) {
       await NewPipeExtractor.init();
     }
-  } catch (_) {}
-  try {
+  });
+  await guardedStartupInit('YtDlp.setBinaryLocation', () async {
     if (kIsDesktop) {
-      await YtDlp.instance
-          .setBinaryLocation(
-            KVStoreService.getYoutubeEnginePath(YoutubeClientEngine.ytDlp) ??
-                "yt-dlp${kIsWindows ? '.exe' : ''}",
-          )
-          .catchError((e, stack) => null);
+      await YtDlp.instance.setBinaryLocation(
+        KVStoreService.getYoutubeEnginePath(YoutubeClientEngine.ytDlp) ??
+            "yt-dlp${kIsWindows ? '.exe' : ''}",
+      );
     }
-  } catch (_) {}
-  try {
+  });
+  await guardedStartupInit('FlutterDiscordRPC.initialize', () async {
     if (kIsDesktop) {
       await FlutterDiscordRPC.initialize(Env.discordAppId);
     }
-  } catch (_) {}
-  try {
+  });
+  await guardedStartupInit('localNotifier.setup', () async {
     if (kIsDesktop) {
       await localNotifier.setup(appName: "Spotube");
     }
-  } catch (_) {}
+  });
 }
 
 Future<void> main(List<String> rawArgs) async {
@@ -107,6 +162,10 @@ Future<void> main(List<String> rawArgs) async {
 
   AppLogger.runZoned(() async {
     final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+
+    // A failed widget build shows the fallback above instead of a red
+    // screen (debug) or a black hole (release splash path).
+    ErrorWidget.builder = (details) => const _StartupErrorFallback();
 
     HttpOverrides.global = BadCertificateAllowlistOverrides();
 
@@ -130,20 +189,33 @@ Future<void> main(List<String> rawArgs) async {
 
     await KVStoreService.initialize();
 
+    // Best-effort desktop integrations: a failure here must degrade the
+    // feature (tray/close-behavior/media keys), never abort launch.
     if (kIsDesktop) {
-      await windowManager.setPreventClose(true);
+      await guardedStartupInit('windowManager.setPreventClose', () async {
+        await windowManager.setPreventClose(true);
+      });
     }
 
     if (kIsWindows) {
-      await SMTCWindows.initialize();
+      await guardedStartupInit('SMTCWindows.initialize', () async {
+        await SMTCWindows.initialize();
+      });
     }
 
-    await EncryptedKvStoreService.initialize();
+    try {
+      await EncryptedKvStoreService.initialize();
+    } catch (e, stack) {
+      await AppLogger.reportError(
+          e, stack, 'EncryptedKvStoreService.initialize');
+    }
 
     final database = AppDatabase();
 
     if (kIsDesktop) {
-      await WindowManagerTools.initialize();
+      await guardedStartupInit('WindowManagerTools.initialize', () async {
+        await WindowManagerTools.initialize();
+      });
     }
 
     if (kIsIOS) {
@@ -292,7 +364,10 @@ class Spotube extends HookConsumerWidget {
         final elapsed = DateTime.now().difference(start);
         final themed = themeDefinition.asData?.value ??
             cachedThemeDefinition.asData?.value;
-        if (themed != null || elapsed >= const Duration(seconds: 6)) {
+        if (startupGateAllowsApp(
+          themeReady: themed != null,
+          elapsed: elapsed,
+        )) {
           splashReady.value = true;
         } else {
           timer = Timer(const Duration(milliseconds: 50), check);

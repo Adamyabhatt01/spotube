@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/services/logger/logger.dart';
 
 /// Stale-while-revalidate cache for the resolved theme.
 ///
@@ -87,7 +88,10 @@ final cachedThemeDefinitionProvider =
     final definition = json['definition'];
     if (definition is! Map) return null;
     return ThemeDefinition.fromJson(definition.cast<String, dynamic>());
-  } catch (_) {
+  } catch (e, stack) {
+    // Corrupt cache is a warm-start optimization loss, not fatal: fall
+    // back to live resolution, but leave a trace instead of silence.
+    AppLogger.reportError(e, stack, 'cachedThemeDefinitionProvider');
     return null;
   }
 });
