@@ -70,6 +70,13 @@ abstract class FamilyPaginatedAsyncNotifier<K, A>
     }
   }
 
+  /// Fetches every remaining page with a single state emission at the end
+  /// (instead of one rebuild per page) and linear-time merging via an
+  /// incremental key set. Pagination semantics are unchanged: the same
+  /// per-fetch limit fallback chain (100 → 50 → limit → delayed retry)
+  /// applies per page, and any unrecoverable page error is reported and
+  /// rethrown with state left at its pre-fetchAll value (all-or-nothing,
+  /// rather than the previous partial-progress state).
   Future<List<K>> fetchAll() async {
     if (_isFetching) return state.asData?.value.items.cast<K>() ?? [];
     if (state.value == null) return [];
@@ -77,36 +84,39 @@ abstract class FamilyPaginatedAsyncNotifier<K, A>
 
     _isFetching = true;
     try {
-      bool hasMore = true;
+      final allItems = state.value!.items.cast<K>().toList();
+      final seenKeys = allItems.map(_itemKey).toSet();
+      var hasMore = state.value!.hasMore;
+      var offset = state.value!.nextOffset!;
+      var limit = state.value!.limit;
+      var lastPage = state.value!;
+
       while (hasMore) {
-        final newState = await fetch(
-          state.value!.nextOffset!,
-          max(state.value!.limit, 100),
-        )
-            .catchError(
-              (e) =>
-                  fetch(state.value!.nextOffset!, max(state.value!.limit, 50)),
-            )
-            .catchError(
-              (e) => fetch(state.value!.nextOffset!, state.value!.limit),
-            )
-            .catchError(
-          (e) async {
-            await Future.delayed(const Duration(milliseconds: 500));
-            return fetch(state.value!.nextOffset!, state.value!.limit);
-          },
-        );
+        final newState = await fetch(offset, max(limit, 100))
+            .catchError((e) => fetch(offset, max(limit, 50)))
+            .catchError((e) => fetch(offset, limit))
+            .catchError((e) async {
+          await Future.delayed(const Duration(milliseconds: 500));
+          return fetch(offset, limit);
+        });
 
         hasMore = newState.hasMore;
+        // Mirrors the old per-iteration read of state.value!.nextOffset!:
+        // a null offset with more pages remaining is a contract violation
+        // that fails loudly instead of looping forever. Not read on the
+        // final page, where nextOffset is legitimately null.
+        if (hasMore) offset = newState.nextOffset!;
+        limit = newState.limit;
+        lastPage = newState;
 
-        final oldItems =
-            state.value!.items.isEmpty ? <K>[] : state.value!.items.cast<K>();
-        final items = newState.items.isEmpty ? <K>[] : newState.items.cast<K>();
-
-        state = AsyncData(
-          newState.copyWith(items: _mergeDeduped(oldItems, items)),
-        );
+        final items =
+            newState.items.isEmpty ? <K>[] : newState.items.cast<K>();
+        for (final item in items) {
+          if (seenKeys.add(_itemKey(item))) allItems.add(item);
+        }
       }
+
+      state = AsyncData(lastPage.copyWith(items: allItems));
     } catch (e, stack) {
       AppLogger.reportError(e, stack);
       rethrow;
@@ -183,6 +193,8 @@ abstract class AutoDisposeFamilyPaginatedAsyncNotifier<K, A>
     }
   }
 
+  /// Single-emission, linear-merge variant — see [fetchAll] above for the
+  /// contract (the auto-dispose twin shares it exactly).
   Future<List<K>> fetchAll() async {
     if (_isFetching) return state.asData?.value.items.cast<K>() ?? [];
     if (state.value == null) return [];
@@ -190,37 +202,35 @@ abstract class AutoDisposeFamilyPaginatedAsyncNotifier<K, A>
 
     _isFetching = true;
     try {
-      bool hasMore = true;
+      final allItems = state.value!.items.cast<K>().toList();
+      final seenKeys = allItems.map(_itemKey).toSet();
+      var hasMore = state.value!.hasMore;
+      var offset = state.value!.nextOffset!;
+      var limit = state.value!.limit;
+      var lastPage = state.value!;
+
       while (hasMore) {
-        final newState = await fetch(
-          state.value!.nextOffset!,
-          max(state.value!.limit, 100),
-        )
-            .catchError(
-              (e) =>
-                  fetch(state.value!.nextOffset!, max(state.value!.limit, 50)),
-            )
-            .catchError(
-              (e) => fetch(state.value!.nextOffset!, state.value!.limit),
-            )
-            .catchError(
-          (e) async {
-            await Future.delayed(const Duration(milliseconds: 500));
-            return fetch(state.value!.nextOffset!, state.value!.limit);
-          },
-        );
+        final newState = await fetch(offset, max(limit, 100))
+            .catchError((e) => fetch(offset, max(limit, 50)))
+            .catchError((e) => fetch(offset, limit))
+            .catchError((e) async {
+          await Future.delayed(const Duration(milliseconds: 500));
+          return fetch(offset, limit);
+        });
 
         hasMore = newState.hasMore;
+        if (hasMore) offset = newState.nextOffset!;
+        limit = newState.limit;
+        lastPage = newState;
 
-        state = AsyncData(
-          newState.copyWith(
-            items: _mergeDeduped(
-              state.value!.items.cast<K>(),
-              newState.items.cast<K>(),
-            ),
-          ),
-        );
+        final items =
+            newState.items.isEmpty ? <K>[] : newState.items.cast<K>();
+        for (final item in items) {
+          if (seenKeys.add(_itemKey(item))) allItems.add(item);
+        }
       }
+
+      state = AsyncData(lastPage.copyWith(items: allItems));
     } catch (e, stack) {
       AppLogger.reportError(e, stack);
       rethrow;

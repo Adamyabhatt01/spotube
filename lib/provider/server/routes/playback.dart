@@ -37,6 +37,32 @@ String? get _randomUserAgent => _deviceClients
     )
     .payload["context"]["client"]["userAgent"];
 
+/// Builds the cached-file download response WITHOUT loading the file
+/// into memory: the body is a lazily-read byte stream, so large cached
+/// tracks (FLAC) no longer spike the heap per request. Headers are kept
+/// byte-identical to the previous buffered response. The caller
+/// ([ServerPlaybackRoutes.getStreamTrackId]) forwards stream bodies
+/// directly to shelf, which serves them chunked with no re-buffering.
+dio_lib.Response<Stream<List<int>>> cachedFileStreamResponse({
+  required File file,
+  required int fileLength,
+  required String contentType,
+  required String requestPath,
+}) {
+  return dio_lib.Response<Stream<List<int>>>(
+    statusCode: 200,
+    headers: Headers.fromMap({
+      "content-type": [contentType],
+      "content-length": ["${fileLength - 1}"],
+      "accept-ranges": ["bytes"],
+      "content-range": ["bytes 0-${fileLength - 1}/$fileLength"],
+      "connection": ["close"],
+    }),
+    requestOptions: RequestOptions(path: requestPath),
+    data: file.openRead(),
+  );
+}
+
 class ServerPlaybackRoutes {
   final Ref ref;
   UserPreferences get userPreferences => ref.read(userPreferencesProvider);
@@ -166,22 +192,13 @@ class ServerPlaybackRoutes {
     final trackCacheFile = File(await _getTrackCacheFilePath(track));
 
     if (await trackCacheFile.exists() && userPreferences.cacheMusic) {
-      final bytes = await trackCacheFile.readAsBytes();
-      final cachedFileLength = bytes.length;
+      final cachedFileLength = await trackCacheFile.length();
 
-      return dio_lib.Response<Uint8List>(
-        statusCode: 200,
-        headers: Headers.fromMap({
-          "content-type": ["audio/${track.qualityPreset!.name}"],
-          "content-length": ["${cachedFileLength - 1}"],
-          "accept-ranges": ["bytes"],
-          "content-range": [
-            "bytes 0-${cachedFileLength - 1}/$cachedFileLength"
-          ],
-          "connection": ["close"],
-        }),
-        requestOptions: RequestOptions(path: request.requestedUri.toString()),
-        data: bytes,
+      return cachedFileStreamResponse(
+        file: trackCacheFile,
+        fileLength: cachedFileLength,
+        contentType: "audio/${track.qualityPreset!.name}",
+        requestPath: request.requestedUri.toString(),
       );
     }
 
@@ -342,6 +359,17 @@ class ServerPlaybackRoutes {
         return Response(
           res.statusCode!,
           body: (res.data as ResponseBody).stream,
+          headers: res.headers.map,
+        );
+      }
+
+      // Cached-file path: a lazily-read byte stream (see
+      // [cachedFileStreamResponse]). Forwarded as-is so shelf serves it
+      // chunked — it must never be collected back into memory here.
+      if (res.data is Stream<List<int>>) {
+        return Response(
+          res.statusCode!,
+          body: res.data as Stream<List<int>>,
           headers: res.headers.map,
         );
       }
