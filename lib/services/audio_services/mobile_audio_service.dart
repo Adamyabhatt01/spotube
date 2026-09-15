@@ -10,10 +10,12 @@ import 'package:media_kit/media_kit.dart' hide Track;
 import 'package:spotube/services/audio_player/playback_state.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/utils/platform.dart';
+import 'package:spotube/utils/position_tick_gate.dart';
 
 class MobileAudioService extends BaseAudioHandler {
   AudioSession? session;
   final AudioPlayerNotifier audioPlayerNotifier;
+  final positionGate = PositionTickGate();
 
   // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
   AudioPlayerState get playlist => audioPlayerNotifier.state;
@@ -67,6 +69,15 @@ class MobileAudioService extends BaseAudioHandler {
     });
 
     audioPlayer.positionStream.listen((pos) async {
+      // Whole-second granularity + guaranteed first update per track
+      // (see PositionTickGate); ~10 MediaSession updates/sec → ~1-2/sec.
+      // State-change handler above stays unthrottled.
+      if (!positionGate.shouldEmit(
+        trackId: playlist.activeTrack?.id,
+        position: pos,
+      )) {
+        return;
+      }
       playbackState.add(await _transformEvent());
     });
     audioPlayer.bufferedPositionStream.listen((pos) async {
