@@ -634,7 +634,7 @@ class $PreferencesTableTable extends PreferencesTable
               'close_behavior', aliasedName, false,
               type: DriftSqlType.string,
               requiredDuringInsert: false,
-              defaultValue: Constant(CloseBehavior.close.name))
+              defaultValue: const Constant("close"))
           .withConverter<CloseBehavior>(
               $PreferencesTableTable.$convertercloseBehavior);
   @override
@@ -651,7 +651,7 @@ class $PreferencesTableTable extends PreferencesTable
       GeneratedColumn<String>('layout_mode', aliasedName, false,
               type: DriftSqlType.string,
               requiredDuringInsert: false,
-              defaultValue: Constant(LayoutMode.adaptive.name))
+              defaultValue: const Constant("adaptive"))
           .withConverter<LayoutMode>(
               $PreferencesTableTable.$converterlayoutMode);
   @override
@@ -667,14 +667,14 @@ class $PreferencesTableTable extends PreferencesTable
       GeneratedColumn<String>('market', aliasedName, false,
               type: DriftSqlType.string,
               requiredDuringInsert: false,
-              defaultValue: Constant(Market.US.name))
+              defaultValue: const Constant("US"))
           .withConverter<Market>($PreferencesTableTable.$convertermarket);
   @override
   late final GeneratedColumnWithTypeConverter<SearchMode, String> searchMode =
       GeneratedColumn<String>('search_mode', aliasedName, false,
               type: DriftSqlType.string,
               requiredDuringInsert: false,
-              defaultValue: Constant(SearchMode.youtube.name))
+              defaultValue: const Constant("youtube"))
           .withConverter<SearchMode>(
               $PreferencesTableTable.$convertersearchMode);
   static const VerificationMeta _downloadLocationMeta =
@@ -699,7 +699,7 @@ class $PreferencesTableTable extends PreferencesTable
       GeneratedColumn<String>('theme_mode', aliasedName, false,
               type: DriftSqlType.string,
               requiredDuringInsert: false,
-              defaultValue: Constant(ThemeMode.system.name))
+              defaultValue: const Constant("system"))
           .withConverter<ThemeMode>($PreferencesTableTable.$converterthemeMode);
   static const VerificationMeta _audioSourceIdMeta =
       const VerificationMeta('audioSourceId');
@@ -713,7 +713,7 @@ class $PreferencesTableTable extends PreferencesTable
               'youtube_client_engine', aliasedName, false,
               type: DriftSqlType.string,
               requiredDuringInsert: false,
-              defaultValue: Constant(YoutubeClientEngine.youtubeExplode.name))
+              defaultValue: const Constant("youtubeExplode"))
           .withConverter<YoutubeClientEngine>(
               $PreferencesTableTable.$converteryoutubeClientEngine);
   static const VerificationMeta _discordPresenceMeta =
@@ -2591,6 +2591,360 @@ class SourceMatchTableCompanion extends UpdateCompanion<SourceMatchTableData> {
   }
 }
 
+class $SourceMatchQuarantineTableTable extends SourceMatchQuarantineTable
+    with
+        TableInfo<$SourceMatchQuarantineTableTable,
+            SourceMatchQuarantineTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SourceMatchQuarantineTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _trackIdMeta =
+      const VerificationMeta('trackId');
+  @override
+  late final GeneratedColumn<String> trackId = GeneratedColumn<String>(
+      'track_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _rawSourceIdMeta =
+      const VerificationMeta('rawSourceId');
+  @override
+  late final GeneratedColumn<String> rawSourceId = GeneratedColumn<String>(
+      'raw_source_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+      'reason', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _sourceTypeMeta =
+      const VerificationMeta('sourceType');
+  @override
+  late final GeneratedColumn<String> sourceType = GeneratedColumn<String>(
+      'source_type', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _quarantinedAtMsMeta =
+      const VerificationMeta('quarantinedAtMs');
+  @override
+  late final GeneratedColumn<int> quarantinedAtMs = GeneratedColumn<int>(
+      'quarantined_at_ms', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, trackId, rawSourceId, reason, sourceType, quarantinedAtMs];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'source_match_quarantine_table';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<SourceMatchQuarantineTableData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('track_id')) {
+      context.handle(_trackIdMeta,
+          trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta));
+    } else if (isInserting) {
+      context.missing(_trackIdMeta);
+    }
+    if (data.containsKey('raw_source_id')) {
+      context.handle(
+          _rawSourceIdMeta,
+          rawSourceId.isAcceptableOrUnknown(
+              data['raw_source_id']!, _rawSourceIdMeta));
+    } else if (isInserting) {
+      context.missing(_rawSourceIdMeta);
+    }
+    if (data.containsKey('reason')) {
+      context.handle(_reasonMeta,
+          reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta));
+    } else if (isInserting) {
+      context.missing(_reasonMeta);
+    }
+    if (data.containsKey('source_type')) {
+      context.handle(
+          _sourceTypeMeta,
+          sourceType.isAcceptableOrUnknown(
+              data['source_type']!, _sourceTypeMeta));
+    }
+    if (data.containsKey('quarantined_at_ms')) {
+      context.handle(
+          _quarantinedAtMsMeta,
+          quarantinedAtMs.isAcceptableOrUnknown(
+              data['quarantined_at_ms']!, _quarantinedAtMsMeta));
+    } else if (isInserting) {
+      context.missing(_quarantinedAtMsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SourceMatchQuarantineTableData map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SourceMatchQuarantineTableData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      trackId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}track_id'])!,
+      rawSourceId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}raw_source_id'])!,
+      reason: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}reason'])!,
+      sourceType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source_type']),
+      quarantinedAtMs: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}quarantined_at_ms'])!,
+    );
+  }
+
+  @override
+  $SourceMatchQuarantineTableTable createAlias(String alias) {
+    return $SourceMatchQuarantineTableTable(attachedDatabase, alias);
+  }
+}
+
+class SourceMatchQuarantineTableData extends DataClass
+    implements Insertable<SourceMatchQuarantineTableData> {
+  final int id;
+  final String trackId;
+  final String rawSourceId;
+  final String reason;
+  final String? sourceType;
+  final int quarantinedAtMs;
+  const SourceMatchQuarantineTableData(
+      {required this.id,
+      required this.trackId,
+      required this.rawSourceId,
+      required this.reason,
+      this.sourceType,
+      required this.quarantinedAtMs});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['track_id'] = Variable<String>(trackId);
+    map['raw_source_id'] = Variable<String>(rawSourceId);
+    map['reason'] = Variable<String>(reason);
+    if (!nullToAbsent || sourceType != null) {
+      map['source_type'] = Variable<String>(sourceType);
+    }
+    map['quarantined_at_ms'] = Variable<int>(quarantinedAtMs);
+    return map;
+  }
+
+  SourceMatchQuarantineTableCompanion toCompanion(bool nullToAbsent) {
+    return SourceMatchQuarantineTableCompanion(
+      id: Value(id),
+      trackId: Value(trackId),
+      rawSourceId: Value(rawSourceId),
+      reason: Value(reason),
+      sourceType: sourceType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceType),
+      quarantinedAtMs: Value(quarantinedAtMs),
+    );
+  }
+
+  factory SourceMatchQuarantineTableData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SourceMatchQuarantineTableData(
+      id: serializer.fromJson<int>(json['id']),
+      trackId: serializer.fromJson<String>(json['trackId']),
+      rawSourceId: serializer.fromJson<String>(json['rawSourceId']),
+      reason: serializer.fromJson<String>(json['reason']),
+      sourceType: serializer.fromJson<String?>(json['sourceType']),
+      quarantinedAtMs: serializer.fromJson<int>(json['quarantinedAtMs']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'trackId': serializer.toJson<String>(trackId),
+      'rawSourceId': serializer.toJson<String>(rawSourceId),
+      'reason': serializer.toJson<String>(reason),
+      'sourceType': serializer.toJson<String?>(sourceType),
+      'quarantinedAtMs': serializer.toJson<int>(quarantinedAtMs),
+    };
+  }
+
+  SourceMatchQuarantineTableData copyWith(
+          {int? id,
+          String? trackId,
+          String? rawSourceId,
+          String? reason,
+          Value<String?> sourceType = const Value.absent(),
+          int? quarantinedAtMs}) =>
+      SourceMatchQuarantineTableData(
+        id: id ?? this.id,
+        trackId: trackId ?? this.trackId,
+        rawSourceId: rawSourceId ?? this.rawSourceId,
+        reason: reason ?? this.reason,
+        sourceType: sourceType.present ? sourceType.value : this.sourceType,
+        quarantinedAtMs: quarantinedAtMs ?? this.quarantinedAtMs,
+      );
+  SourceMatchQuarantineTableData copyWithCompanion(
+      SourceMatchQuarantineTableCompanion data) {
+    return SourceMatchQuarantineTableData(
+      id: data.id.present ? data.id.value : this.id,
+      trackId: data.trackId.present ? data.trackId.value : this.trackId,
+      rawSourceId:
+          data.rawSourceId.present ? data.rawSourceId.value : this.rawSourceId,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      sourceType:
+          data.sourceType.present ? data.sourceType.value : this.sourceType,
+      quarantinedAtMs: data.quarantinedAtMs.present
+          ? data.quarantinedAtMs.value
+          : this.quarantinedAtMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SourceMatchQuarantineTableData(')
+          ..write('id: $id, ')
+          ..write('trackId: $trackId, ')
+          ..write('rawSourceId: $rawSourceId, ')
+          ..write('reason: $reason, ')
+          ..write('sourceType: $sourceType, ')
+          ..write('quarantinedAtMs: $quarantinedAtMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id, trackId, rawSourceId, reason, sourceType, quarantinedAtMs);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SourceMatchQuarantineTableData &&
+          other.id == this.id &&
+          other.trackId == this.trackId &&
+          other.rawSourceId == this.rawSourceId &&
+          other.reason == this.reason &&
+          other.sourceType == this.sourceType &&
+          other.quarantinedAtMs == this.quarantinedAtMs);
+}
+
+class SourceMatchQuarantineTableCompanion
+    extends UpdateCompanion<SourceMatchQuarantineTableData> {
+  final Value<int> id;
+  final Value<String> trackId;
+  final Value<String> rawSourceId;
+  final Value<String> reason;
+  final Value<String?> sourceType;
+  final Value<int> quarantinedAtMs;
+  const SourceMatchQuarantineTableCompanion({
+    this.id = const Value.absent(),
+    this.trackId = const Value.absent(),
+    this.rawSourceId = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.sourceType = const Value.absent(),
+    this.quarantinedAtMs = const Value.absent(),
+  });
+  SourceMatchQuarantineTableCompanion.insert({
+    this.id = const Value.absent(),
+    required String trackId,
+    required String rawSourceId,
+    required String reason,
+    this.sourceType = const Value.absent(),
+    required int quarantinedAtMs,
+  })  : trackId = Value(trackId),
+        rawSourceId = Value(rawSourceId),
+        reason = Value(reason),
+        quarantinedAtMs = Value(quarantinedAtMs);
+  static Insertable<SourceMatchQuarantineTableData> custom({
+    Expression<int>? id,
+    Expression<String>? trackId,
+    Expression<String>? rawSourceId,
+    Expression<String>? reason,
+    Expression<String>? sourceType,
+    Expression<int>? quarantinedAtMs,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (trackId != null) 'track_id': trackId,
+      if (rawSourceId != null) 'raw_source_id': rawSourceId,
+      if (reason != null) 'reason': reason,
+      if (sourceType != null) 'source_type': sourceType,
+      if (quarantinedAtMs != null) 'quarantined_at_ms': quarantinedAtMs,
+    });
+  }
+
+  SourceMatchQuarantineTableCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? trackId,
+      Value<String>? rawSourceId,
+      Value<String>? reason,
+      Value<String?>? sourceType,
+      Value<int>? quarantinedAtMs}) {
+    return SourceMatchQuarantineTableCompanion(
+      id: id ?? this.id,
+      trackId: trackId ?? this.trackId,
+      rawSourceId: rawSourceId ?? this.rawSourceId,
+      reason: reason ?? this.reason,
+      sourceType: sourceType ?? this.sourceType,
+      quarantinedAtMs: quarantinedAtMs ?? this.quarantinedAtMs,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (trackId.present) {
+      map['track_id'] = Variable<String>(trackId.value);
+    }
+    if (rawSourceId.present) {
+      map['raw_source_id'] = Variable<String>(rawSourceId.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (sourceType.present) {
+      map['source_type'] = Variable<String>(sourceType.value);
+    }
+    if (quarantinedAtMs.present) {
+      map['quarantined_at_ms'] = Variable<int>(quarantinedAtMs.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SourceMatchQuarantineTableCompanion(')
+          ..write('id: $id, ')
+          ..write('trackId: $trackId, ')
+          ..write('rawSourceId: $rawSourceId, ')
+          ..write('reason: $reason, ')
+          ..write('sourceType: $sourceType, ')
+          ..write('quarantinedAtMs: $quarantinedAtMs')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $AudioPlayerStateTableTable extends AudioPlayerStateTable
     with TableInfo<$AudioPlayerStateTableTable, AudioPlayerStateTableData> {
   @override
@@ -4180,6 +4534,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $SkipSegmentTableTable(this);
   late final $SourceMatchTableTable sourceMatchTable =
       $SourceMatchTableTable(this);
+  late final $SourceMatchQuarantineTableTable sourceMatchQuarantineTable =
+      $SourceMatchQuarantineTableTable(this);
   late final $AudioPlayerStateTableTable audioPlayerStateTable =
       $AudioPlayerStateTableTable(this);
   late final $HistoryTableTable historyTable = $HistoryTableTable(this);
@@ -4198,6 +4554,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         scrobblerTable,
         skipSegmentTable,
         sourceMatchTable,
+        sourceMatchQuarantineTable,
         audioPlayerStateTable,
         historyTable,
         lyricsTable,
@@ -5526,6 +5883,197 @@ typedef $$SourceMatchTableTableProcessedTableManager = ProcessedTableManager<
     ),
     SourceMatchTableData,
     PrefetchHooks Function()>;
+typedef $$SourceMatchQuarantineTableTableCreateCompanionBuilder
+    = SourceMatchQuarantineTableCompanion Function({
+  Value<int> id,
+  required String trackId,
+  required String rawSourceId,
+  required String reason,
+  Value<String?> sourceType,
+  required int quarantinedAtMs,
+});
+typedef $$SourceMatchQuarantineTableTableUpdateCompanionBuilder
+    = SourceMatchQuarantineTableCompanion Function({
+  Value<int> id,
+  Value<String> trackId,
+  Value<String> rawSourceId,
+  Value<String> reason,
+  Value<String?> sourceType,
+  Value<int> quarantinedAtMs,
+});
+
+class $$SourceMatchQuarantineTableTableFilterComposer
+    extends Composer<_$AppDatabase, $SourceMatchQuarantineTableTable> {
+  $$SourceMatchQuarantineTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get trackId => $composableBuilder(
+      column: $table.trackId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get rawSourceId => $composableBuilder(
+      column: $table.rawSourceId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get reason => $composableBuilder(
+      column: $table.reason, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceType => $composableBuilder(
+      column: $table.sourceType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get quarantinedAtMs => $composableBuilder(
+      column: $table.quarantinedAtMs,
+      builder: (column) => ColumnFilters(column));
+}
+
+class $$SourceMatchQuarantineTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $SourceMatchQuarantineTableTable> {
+  $$SourceMatchQuarantineTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get trackId => $composableBuilder(
+      column: $table.trackId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get rawSourceId => $composableBuilder(
+      column: $table.rawSourceId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+      column: $table.reason, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourceType => $composableBuilder(
+      column: $table.sourceType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get quarantinedAtMs => $composableBuilder(
+      column: $table.quarantinedAtMs,
+      builder: (column) => ColumnOrderings(column));
+}
+
+class $$SourceMatchQuarantineTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SourceMatchQuarantineTableTable> {
+  $$SourceMatchQuarantineTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get trackId =>
+      $composableBuilder(column: $table.trackId, builder: (column) => column);
+
+  GeneratedColumn<String> get rawSourceId => $composableBuilder(
+      column: $table.rawSourceId, builder: (column) => column);
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceType => $composableBuilder(
+      column: $table.sourceType, builder: (column) => column);
+
+  GeneratedColumn<int> get quarantinedAtMs => $composableBuilder(
+      column: $table.quarantinedAtMs, builder: (column) => column);
+}
+
+class $$SourceMatchQuarantineTableTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $SourceMatchQuarantineTableTable,
+    SourceMatchQuarantineTableData,
+    $$SourceMatchQuarantineTableTableFilterComposer,
+    $$SourceMatchQuarantineTableTableOrderingComposer,
+    $$SourceMatchQuarantineTableTableAnnotationComposer,
+    $$SourceMatchQuarantineTableTableCreateCompanionBuilder,
+    $$SourceMatchQuarantineTableTableUpdateCompanionBuilder,
+    (
+      SourceMatchQuarantineTableData,
+      BaseReferences<_$AppDatabase, $SourceMatchQuarantineTableTable,
+          SourceMatchQuarantineTableData>
+    ),
+    SourceMatchQuarantineTableData,
+    PrefetchHooks Function()> {
+  $$SourceMatchQuarantineTableTableTableManager(
+      _$AppDatabase db, $SourceMatchQuarantineTableTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SourceMatchQuarantineTableTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SourceMatchQuarantineTableTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SourceMatchQuarantineTableTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> trackId = const Value.absent(),
+            Value<String> rawSourceId = const Value.absent(),
+            Value<String> reason = const Value.absent(),
+            Value<String?> sourceType = const Value.absent(),
+            Value<int> quarantinedAtMs = const Value.absent(),
+          }) =>
+              SourceMatchQuarantineTableCompanion(
+            id: id,
+            trackId: trackId,
+            rawSourceId: rawSourceId,
+            reason: reason,
+            sourceType: sourceType,
+            quarantinedAtMs: quarantinedAtMs,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String trackId,
+            required String rawSourceId,
+            required String reason,
+            Value<String?> sourceType = const Value.absent(),
+            required int quarantinedAtMs,
+          }) =>
+              SourceMatchQuarantineTableCompanion.insert(
+            id: id,
+            trackId: trackId,
+            rawSourceId: rawSourceId,
+            reason: reason,
+            sourceType: sourceType,
+            quarantinedAtMs: quarantinedAtMs,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$SourceMatchQuarantineTableTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $SourceMatchQuarantineTableTable,
+        SourceMatchQuarantineTableData,
+        $$SourceMatchQuarantineTableTableFilterComposer,
+        $$SourceMatchQuarantineTableTableOrderingComposer,
+        $$SourceMatchQuarantineTableTableAnnotationComposer,
+        $$SourceMatchQuarantineTableTableCreateCompanionBuilder,
+        $$SourceMatchQuarantineTableTableUpdateCompanionBuilder,
+        (
+          SourceMatchQuarantineTableData,
+          BaseReferences<_$AppDatabase, $SourceMatchQuarantineTableTable,
+              SourceMatchQuarantineTableData>
+        ),
+        SourceMatchQuarantineTableData,
+        PrefetchHooks Function()>;
 typedef $$AudioPlayerStateTableTableCreateCompanionBuilder
     = AudioPlayerStateTableCompanion Function({
   Value<int> id,
@@ -6366,6 +6914,10 @@ class $AppDatabaseManager {
       $$SkipSegmentTableTableTableManager(_db, _db.skipSegmentTable);
   $$SourceMatchTableTableTableManager get sourceMatchTable =>
       $$SourceMatchTableTableTableManager(_db, _db.sourceMatchTable);
+  $$SourceMatchQuarantineTableTableTableManager
+      get sourceMatchQuarantineTable =>
+          $$SourceMatchQuarantineTableTableTableManager(
+              _db, _db.sourceMatchQuarantineTable);
   $$AudioPlayerStateTableTableTableManager get audioPlayerStateTable =>
       $$AudioPlayerStateTableTableTableManager(_db, _db.audioPlayerStateTable);
   $$HistoryTableTableTableManager get historyTable =>

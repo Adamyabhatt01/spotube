@@ -161,7 +161,7 @@
             "moor_type": "string",
             "nullable": false,
             "customConstraints": null,
-            "default_dart": "Constant(SourceQualities.high.name)",
+            "default_dart": "Constant('high')",
             "default_client_dart": null,
             "dsl_features": [],
             "type_converter": {
@@ -273,7 +273,7 @@
             "moor_type": "string",
             "nullable": false,
             "customConstraints": null,
-            "default_dart": "Constant(CloseBehavior.close.name)",
+            "default_dart": "Constant('close')",
             "default_client_dart": null,
             "dsl_features": [],
             "type_converter": {
@@ -301,7 +301,7 @@
             "moor_type": "string",
             "nullable": false,
             "customConstraints": null,
-            "default_dart": "Constant(LayoutMode.adaptive.name)",
+            "default_dart": "Constant('adaptive')",
             "default_client_dart": null,
             "dsl_features": [],
             "type_converter": {
@@ -329,7 +329,7 @@
             "moor_type": "string",
             "nullable": false,
             "customConstraints": null,
-            "default_dart": "Constant(Market.US.name)",
+            "default_dart": "Constant('US')",
             "default_client_dart": null,
             "dsl_features": [],
             "type_converter": {
@@ -343,7 +343,7 @@
             "moor_type": "string",
             "nullable": false,
             "customConstraints": null,
-            "default_dart": "Constant(SearchMode.youtube.name)",
+            "default_dart": "Constant('youtube')",
             "default_client_dart": null,
             "dsl_features": [],
             "type_converter": {
@@ -401,7 +401,7 @@
             "moor_type": "string",
             "nullable": false,
             "customConstraints": null,
-            "default_dart": "Constant(ThemeMode.system.name)",
+            "default_dart": "Constant('system')",
             "default_client_dart": null,
             "dsl_features": [],
             "type_converter": {
@@ -415,7 +415,7 @@
             "moor_type": "string",
             "nullable": false,
             "customConstraints": null,
-            "default_dart": "Constant(AudioSource.youtube.name)",
+            "default_dart": "Constant('youtube')",
             "default_client_dart": null,
             "dsl_features": [],
             "type_converter": {
@@ -429,7 +429,7 @@
             "moor_type": "string",
             "nullable": false,
             "customConstraints": null,
-            "default_dart": "Constant(YoutubeClientEngine.youtubeExplode.name)",
+            "default_dart": "Constant('youtubeExplode')",
             "default_client_dart": null,
             "dsl_features": [],
             "type_converter": {
@@ -443,7 +443,7 @@
             "moor_type": "string",
             "nullable": false,
             "customConstraints": null,
-            "default_dart": "Constant(SourceCodecs.weba.name)",
+            "default_dart": "Constant('weba')",
             "default_client_dart": null,
             "dsl_features": [],
             "type_converter": {
@@ -457,7 +457,7 @@
             "moor_type": "string",
             "nullable": false,
             "customConstraints": null,
-            "default_dart": "Constant(SourceCodecs.m4a.name)",
+            "default_dart": "Constant('m4a')",
             "default_client_dart": null,
             "dsl_features": [],
             "type_converter": {
@@ -715,7 +715,7 @@
             "moor_type": "string",
             "nullable": false,
             "customConstraints": null,
-            "default_dart": "Constant(SourceType.youtube.name)",
+            "default_dart": "Constant('youtube')",
             "default_client_dart": null,
             "dsl_features": [],
             "type_converter": {

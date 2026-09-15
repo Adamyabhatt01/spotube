@@ -1,14 +1,17 @@
-// Phase 3.2 item 1 regression test: v9 cached source_match rows must
-// migrate to readable v10 sourceInfo instead of the '{}' backfill default
-// (which crashes SpotubeAudioSourceMatchObject deserialization on the
-// cache-hit path).
+// PR3 regression test: v9 cached source_match rows must migrate to
+// readable v12 sourceInfo instead of the '{}' backfill default (which
+// crashes SpotubeAudioSourceMatchObject deserialization on the cache-hit
+// path).
 //
 // Representative historical shapes (from git history):
 //  - DAB era: sourceId = {"info": {...match...}, "sources": [...]}
 //  - invidious era: sourceId = raw video id string
 // Migratable rows keep a validated, re-encoded info object; anything else
-// is deleted (source_match is a pure performance cache: a dropped row is a
-// self-healing cache miss, a '{}' row is a crash).
+// is QUARANTINED (v9->v10 parks a marker in source_info because the
+// quarantine table only exists from v12; v11->v12 relocates markers into
+// source_match_quarantine_table with the raw payload + reason) instead of
+// being deleted. The live table stays a pure performance cache: a missing
+// row is a self-healing cache miss, a '{}' row is a crash.
 //
 // Runs against drift's isolated SchemaVerifier connections only — never the
 // real db.sqlite.
@@ -45,7 +48,7 @@ void main() {
     verifier = SchemaVerifier(GeneratedHelper());
   });
 
-  test('v9 rows migrate to readable sourceInfo or are dropped', () async {
+  test('v9 rows migrate to readable sourceInfo or quarantine', () async {
     final schema = await verifier.schemaAt(9);
     final setupConnection = schema.newConnection();
     final v9db = v9.DatabaseAtV9(setupConnection);
@@ -88,16 +91,25 @@ void main() {
     expect(parsed.title, migratable.title);
     expect(parsed.externalUri, migratable.externalUri);
 
-    // Raw-id row: dropped (cache miss, self-healing) instead of '{}' poison.
+    // Raw-id row: absent from live (cache miss, self-healing) and parked
+    // in quarantine with the raw payload + reason for diagnosis.
     expect(
       migrated.where((r) => r.trackId == 'track-raw-id'),
       isEmpty,
     );
+    final quarantined =
+        await appDb.select(appDb.sourceMatchQuarantineTable).get();
+    final rawQuarantine =
+        quarantined.where((r) => r.trackId == 'track-raw-id');
+    expect(rawQuarantine, hasLength(1));
+    expect(rawQuarantine.single.rawSourceId, 'youtube-video-xyz');
+    expect(rawQuarantine.single.reason, isNotEmpty);
+    expect(rawQuarantine.single.quarantinedAtMs, greaterThan(0));
 
     await appDb.close();
   });
 
-  test('v9->v10 completes the preferences/source_match transition', () async {
+  test('v9->v12 completes the preferences/source_match transition', () async {
     final schema = await verifier.schemaAt(9);
     final setupConnection = schema.newConnection();
     final v9db = v9.DatabaseAtV9(setupConnection);
@@ -140,6 +152,20 @@ void main() {
 
     // Deliberately removed (insert failures); must stay gone.
     expect(await indexes('source_match_table'), isNot(contains('uniq_track_match')));
+
+    // Quarantine table exists from v12 with the full diagnostic shape.
+    final quarantine = await columns('source_match_quarantine_table');
+    expect(
+      quarantine,
+      containsAll([
+        'id',
+        'track_id',
+        'raw_source_id',
+        'reason',
+        'source_type',
+        'quarantined_at_ms',
+      ]),
+    );
 
     await appDb.close();
   });
