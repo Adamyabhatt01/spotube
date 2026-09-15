@@ -3,6 +3,7 @@ import 'package:collection/collection.dart';
 import 'package:fuzzywuzzy/fuzzywuzzy.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/button/back_button.dart';
@@ -81,7 +82,8 @@ class BlackListPage extends HookConsumerWidget {
                     title: Text("${item.name} (${item.elementType.name})"),
                     subtitle: Text(item.elementId),
                     trailing: IconButton.ghost(
-                      icon: Icon(SpotubeIcons.trash, color: Colors.red[400]),
+                      icon: Icon(SpotubeIcons.trash,
+                          color: context.theme.colorScheme.destructive),
                       onPressed: () {
                         ref.read(blacklistProvider.notifier).remove(
                             filteredBlacklist.elementAt(index).elementId);

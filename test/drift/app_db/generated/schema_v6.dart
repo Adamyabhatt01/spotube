@@ -466,7 +466,7 @@ class PreferencesTable extends Table
       'audio_quality', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant(SourceQualities.high.name));
+      defaultValue: Constant('high'));
   late final GeneratedColumn<bool> albumColorSync = GeneratedColumn<bool>(
       'album_color_sync', aliasedName, false,
       type: DriftSqlType.bool,
@@ -520,7 +520,7 @@ class PreferencesTable extends Table
       'close_behavior', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant(CloseBehavior.close.name));
+      defaultValue: Constant('close'));
   late final GeneratedColumn<String> accentColorScheme =
       GeneratedColumn<String>('accent_color_scheme', aliasedName, false,
           type: DriftSqlType.string,
@@ -530,7 +530,7 @@ class PreferencesTable extends Table
       'layout_mode', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant(LayoutMode.adaptive.name));
+      defaultValue: Constant('adaptive'));
   late final GeneratedColumn<String> locale = GeneratedColumn<String>(
       'locale', aliasedName, false,
       type: DriftSqlType.string,
@@ -541,12 +541,12 @@ class PreferencesTable extends Table
       'market', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant(Market.US.name));
+      defaultValue: Constant('US'));
   late final GeneratedColumn<String> searchMode = GeneratedColumn<String>(
       'search_mode', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant(SearchMode.youtube.name));
+      defaultValue: Constant('youtube'));
   late final GeneratedColumn<String> downloadLocation = GeneratedColumn<String>(
       'download_location', aliasedName, false,
       type: DriftSqlType.string,
@@ -571,27 +571,27 @@ class PreferencesTable extends Table
       'theme_mode', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant(ThemeMode.system.name));
+      defaultValue: Constant('system'));
   late final GeneratedColumn<String> audioSource = GeneratedColumn<String>(
       'audio_source', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant(AudioSource.youtube.name));
+      defaultValue: Constant('youtube'));
   late final GeneratedColumn<String> youtubeClientEngine =
       GeneratedColumn<String>('youtube_client_engine', aliasedName, false,
           type: DriftSqlType.string,
           requiredDuringInsert: false,
-          defaultValue: Constant(YoutubeClientEngine.youtubeExplode.name));
+          defaultValue: Constant('youtubeExplode'));
   late final GeneratedColumn<String> streamMusicCodec = GeneratedColumn<String>(
       'stream_music_codec', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant(SourceCodecs.weba.name));
+      defaultValue: Constant('weba'));
   late final GeneratedColumn<String> downloadMusicCodec =
       GeneratedColumn<String>('download_music_codec', aliasedName, false,
           type: DriftSqlType.string,
           requiredDuringInsert: false,
-          defaultValue: Constant(SourceCodecs.m4a.name));
+          defaultValue: Constant('m4a'));
   late final GeneratedColumn<bool> discordPresence = GeneratedColumn<bool>(
       'discord_presence', aliasedName, false,
       type: DriftSqlType.bool,
@@ -2037,7 +2037,13 @@ class SourceMatchTable extends Table
       'source_type', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant(SourceType.youtube.name));
+      // Phase 3.1 snapshot repair: the v6-era default was
+      // `SourceType.youtube.name` (=="youtube"), but the SourceType enum was
+      // later removed from the codebase, leaving a dangling reference that
+      // broke compilation of the whole migration test file. The literal
+      // preserves the historical schema meaning exactly; the snapshot is
+      // otherwise untouched.
+      defaultValue: const Constant('youtube'));
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
       'created_at', aliasedName, false,
       type: DriftSqlType.dateTime,

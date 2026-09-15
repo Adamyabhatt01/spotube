@@ -1,3 +1,6 @@
+// ISO 3166-1 alpha-2 market codes must keep their canonical uppercase form,
+// so constant_identifier_names is suppressed for this file only.
+// ignore_for_file: constant_identifier_names
 enum Market {
   AD,
   AE,

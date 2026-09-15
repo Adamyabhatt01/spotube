@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
@@ -23,6 +24,27 @@ class UniversalImage extends HookWidget {
     super.key,
   });
 
+  /// Bounded LRU cache of decoded base64 image bytes. Local-track embedded
+  /// artwork can be full-resolution; decoding it on every widget build spikes
+  /// CPU and RAM when scrolling long local-track lists.
+  static final Map<String, Uint8List> _decodedMemoryCache = {};
+  static const int _maxDecodedEntries = 50;
+
+  static Uint8List _decodeMemory(String path) {
+    final cached = _decodedMemoryCache.remove(path);
+    if (cached != null) {
+      _decodedMemoryCache[path] = cached;
+      return cached;
+    }
+
+    final decoded = base64Decode(path);
+    _decodedMemoryCache[path] = decoded;
+    if (_decodedMemoryCache.length > _maxDecodedEntries) {
+      _decodedMemoryCache.remove(_decodedMemoryCache.keys.first);
+    }
+    return decoded;
+  }
+
   static ImageProvider imageProvider(
     String path, {
     final double? height,
@@ -42,7 +64,18 @@ class UniversalImage extends HookWidget {
     } else if (Uri.tryParse(path) != null) {
       return FileImage(File(path), scale: scale);
     }
-    return MemoryImage(base64Decode(path), scale: scale);
+    // Decode at display size instead of full embedded-art resolution.
+    final memoryImage = MemoryImage(_decodeMemory(path), scale: scale);
+    if (width == null && height == null) {
+      return memoryImage;
+    }
+    return ResizeImage(
+      memoryImage,
+      width: width?.toInt(),
+      height: height?.toInt(),
+      policy: ResizeImagePolicy.fit,
+      allowUpscaling: false,
+    );
   }
 
   @override
@@ -114,7 +147,7 @@ class UniversalImage extends HookWidget {
     }
 
     return Image.memory(
-      base64Decode(path),
+      _decodeMemory(path),
       width: width,
       height: height,
       cacheHeight: height?.toInt(),

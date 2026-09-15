@@ -579,6 +579,7 @@ const _$PluginAbilitiesEnumMap = {
   PluginAbilities.scrobbling: 'scrobbling',
   PluginAbilities.metadata: 'metadata',
   PluginAbilities.audioSource: 'audio-source',
+  PluginAbilities.theme: 'theme',
 };
 
 _$PluginUpdateAvailableImpl _$$PluginUpdateAvailableImplFromJson(Map json) =>
@@ -616,3 +617,157 @@ Map<String, dynamic> _$$MetadataPluginRepositoryImplToJson(
       'repoUrl': instance.repoUrl,
       'topics': instance.topics,
     };
+
+_$ThemeDefinitionImpl _$$ThemeDefinitionImplFromJson(Map json) =>
+    _$ThemeDefinitionImpl(
+      light:
+          ThemeColors.fromJson(Map<String, dynamic>.from(json['light'] as Map)),
+      dark:
+          ThemeColors.fromJson(Map<String, dynamic>.from(json['dark'] as Map)),
+      surfaces: json['surfaces'] == null
+          ? const ThemeSurfaces()
+          : ThemeSurfaces.fromJson(
+              Map<String, dynamic>.from(json['surfaces'] as Map)),
+      background: json['background'] == null
+          ? const ThemeBackground()
+          : ThemeBackground.fromJson(
+              Map<String, dynamic>.from(json['background'] as Map)),
+      radius: json['radius'] == null
+          ? const ThemeRadius()
+          : ThemeRadius.fromJson(
+              Map<String, dynamic>.from(json['radius'] as Map)),
+      density: (json['density'] as num?)?.toDouble() ?? 1.0,
+      dynamicTheme: json['dynamic'] == null
+          ? null
+          : DynamicTheme.fromJson(
+              Map<String, dynamic>.from(json['dynamic'] as Map)),
+    );
+
+Map<String, dynamic> _$$ThemeDefinitionImplToJson(
+        _$ThemeDefinitionImpl instance) =>
+    <String, dynamic>{
+      'light': instance.light.toJson(),
+      'dark': instance.dark.toJson(),
+      'surfaces': instance.surfaces.toJson(),
+      'background': instance.background.toJson(),
+      'radius': instance.radius.toJson(),
+      'density': instance.density,
+      'dynamic': instance.dynamicTheme?.toJson(),
+    };
+
+_$ThemeColorsImpl _$$ThemeColorsImplFromJson(Map json) => _$ThemeColorsImpl(
+      background: json['background'] as String,
+      foreground: json['foreground'] as String,
+      card: json['card'] as String,
+      cardForeground: json['cardForeground'] as String,
+      primary: json['primary'] as String,
+      primaryForeground: json['primaryForeground'] as String,
+      secondary: json['secondary'] as String,
+      secondaryForeground: json['secondaryForeground'] as String,
+      muted: json['muted'] as String,
+      mutedForeground: json['mutedForeground'] as String,
+      accent: json['accent'] as String,
+      accentForeground: json['accentForeground'] as String,
+      destructive: json['destructive'] as String,
+      destructiveForeground: json['destructiveForeground'] as String,
+      border: json['border'] as String,
+      input: json['input'] as String,
+      ring: json['ring'] as String,
+    );
+
+Map<String, dynamic> _$$ThemeColorsImplToJson(_$ThemeColorsImpl instance) =>
+    <String, dynamic>{
+      'background': instance.background,
+      'foreground': instance.foreground,
+      'card': instance.card,
+      'cardForeground': instance.cardForeground,
+      'primary': instance.primary,
+      'primaryForeground': instance.primaryForeground,
+      'secondary': instance.secondary,
+      'secondaryForeground': instance.secondaryForeground,
+      'muted': instance.muted,
+      'mutedForeground': instance.mutedForeground,
+      'accent': instance.accent,
+      'accentForeground': instance.accentForeground,
+      'destructive': instance.destructive,
+      'destructiveForeground': instance.destructiveForeground,
+      'border': instance.border,
+      'input': instance.input,
+      'ring': instance.ring,
+    };
+
+_$ThemeSurfacesImpl _$$ThemeSurfacesImplFromJson(Map json) =>
+    _$ThemeSurfacesImpl(
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 0.8,
+      blur: (json['blur'] as num?)?.toDouble() ?? 10.0,
+      tint: json['tint'] as String?,
+    );
+
+Map<String, dynamic> _$$ThemeSurfacesImplToJson(_$ThemeSurfacesImpl instance) =>
+    <String, dynamic>{
+      'opacity': instance.opacity,
+      'blur': instance.blur,
+      'tint': instance.tint,
+    };
+
+_$ThemeBackgroundImpl _$$ThemeBackgroundImplFromJson(Map json) =>
+    _$ThemeBackgroundImpl(
+      source:
+          $enumDecodeNullable(_$ThemeBackgroundSourceEnumMap, json['source']) ??
+              ThemeBackgroundSource.none,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 0.0,
+      blur: (json['blur'] as num?)?.toDouble() ?? 0.0,
+      overlay: json['overlay'] as String?,
+    );
+
+Map<String, dynamic> _$$ThemeBackgroundImplToJson(
+        _$ThemeBackgroundImpl instance) =>
+    <String, dynamic>{
+      'source': _$ThemeBackgroundSourceEnumMap[instance.source]!,
+      'opacity': instance.opacity,
+      'blur': instance.blur,
+      'overlay': instance.overlay,
+    };
+
+const _$ThemeBackgroundSourceEnumMap = {
+  ThemeBackgroundSource.none: 'none',
+  ThemeBackgroundSource.albumArt: 'albumArt',
+  ThemeBackgroundSource.shell: 'shell',
+};
+
+_$ThemeRadiusImpl _$$ThemeRadiusImplFromJson(Map json) => _$ThemeRadiusImpl(
+      small: (json['small'] as num?)?.toDouble() ?? 6.0,
+      medium: (json['medium'] as num?)?.toDouble() ?? 10.0,
+      large: (json['large'] as num?)?.toDouble() ?? 16.0,
+      pill: (json['pill'] as num?)?.toDouble() ?? 999.0,
+    );
+
+Map<String, dynamic> _$$ThemeRadiusImplToJson(_$ThemeRadiusImpl instance) =>
+    <String, dynamic>{
+      'small': instance.small,
+      'medium': instance.medium,
+      'large': instance.large,
+      'pill': instance.pill,
+    };
+
+_$DynamicThemeImpl _$$DynamicThemeImplFromJson(Map json) => _$DynamicThemeImpl(
+      source: $enumDecode(_$DynamicThemeSourceEnumMap, json['source']),
+      algorithm: $enumDecodeNullable(
+              _$DynamicThemeAlgorithmEnumMap, json['algorithm']) ??
+          DynamicThemeAlgorithm.material,
+    );
+
+Map<String, dynamic> _$$DynamicThemeImplToJson(_$DynamicThemeImpl instance) =>
+    <String, dynamic>{
+      'source': _$DynamicThemeSourceEnumMap[instance.source]!,
+      'algorithm': _$DynamicThemeAlgorithmEnumMap[instance.algorithm]!,
+    };
+
+const _$DynamicThemeSourceEnumMap = {
+  DynamicThemeSource.albumArt: 'albumArt',
+  DynamicThemeSource.shell: 'shell',
+};
+
+const _$DynamicThemeAlgorithmEnumMap = {
+  DynamicThemeAlgorithm.material: 'material',
+};

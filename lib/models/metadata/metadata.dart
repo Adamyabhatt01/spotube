@@ -30,3 +30,4 @@ part 'user.dart';
 
 part 'plugin.dart';
 part 'repository.dart';
+part 'theme.dart';

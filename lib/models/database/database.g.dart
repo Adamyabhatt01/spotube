@@ -3583,6 +3583,16 @@ class $PluginsTableTable extends PluginsTable
           defaultConstraints: GeneratedColumn.constraintIsAlways(
               'CHECK ("selected_for_audio_source" IN (0, 1))'),
           defaultValue: const Constant(false));
+  static const VerificationMeta _selectedForThemeMeta =
+      const VerificationMeta('selectedForTheme');
+  @override
+  late final GeneratedColumn<bool> selectedForTheme = GeneratedColumn<bool>(
+      'selected_for_theme', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("selected_for_theme" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _repositoryMeta =
       const VerificationMeta('repository');
   @override
@@ -3609,6 +3619,7 @@ class $PluginsTableTable extends PluginsTable
         abilities,
         selectedForMetadata,
         selectedForAudioSource,
+        selectedForTheme,
         repository,
         pluginApiVersion
       ];
@@ -3671,6 +3682,12 @@ class $PluginsTableTable extends PluginsTable
           selectedForAudioSource.isAcceptableOrUnknown(
               data['selected_for_audio_source']!, _selectedForAudioSourceMeta));
     }
+    if (data.containsKey('selected_for_theme')) {
+      context.handle(
+          _selectedForThemeMeta,
+          selectedForTheme.isAcceptableOrUnknown(
+              data['selected_for_theme']!, _selectedForThemeMeta));
+    }
     if (data.containsKey('repository')) {
       context.handle(
           _repositoryMeta,
@@ -3715,6 +3732,8 @@ class $PluginsTableTable extends PluginsTable
       selectedForAudioSource: attachedDatabase.typeMapping.read(
           DriftSqlType.bool,
           data['${effectivePrefix}selected_for_audio_source'])!,
+      selectedForTheme: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}selected_for_theme'])!,
       repository: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}repository']),
       pluginApiVersion: attachedDatabase.typeMapping.read(
@@ -3745,6 +3764,7 @@ class PluginsTableData extends DataClass
   final List<String> abilities;
   final bool selectedForMetadata;
   final bool selectedForAudioSource;
+  final bool selectedForTheme;
   final String? repository;
   final String pluginApiVersion;
   const PluginsTableData(
@@ -3758,6 +3778,7 @@ class PluginsTableData extends DataClass
       required this.abilities,
       required this.selectedForMetadata,
       required this.selectedForAudioSource,
+      required this.selectedForTheme,
       this.repository,
       required this.pluginApiVersion});
   @override
@@ -3779,6 +3800,7 @@ class PluginsTableData extends DataClass
     }
     map['selected_for_metadata'] = Variable<bool>(selectedForMetadata);
     map['selected_for_audio_source'] = Variable<bool>(selectedForAudioSource);
+    map['selected_for_theme'] = Variable<bool>(selectedForTheme);
     if (!nullToAbsent || repository != null) {
       map['repository'] = Variable<String>(repository);
     }
@@ -3798,6 +3820,7 @@ class PluginsTableData extends DataClass
       abilities: Value(abilities),
       selectedForMetadata: Value(selectedForMetadata),
       selectedForAudioSource: Value(selectedForAudioSource),
+      selectedForTheme: Value(selectedForTheme),
       repository: repository == null && nullToAbsent
           ? const Value.absent()
           : Value(repository),
@@ -3821,6 +3844,7 @@ class PluginsTableData extends DataClass
           serializer.fromJson<bool>(json['selectedForMetadata']),
       selectedForAudioSource:
           serializer.fromJson<bool>(json['selectedForAudioSource']),
+      selectedForTheme: serializer.fromJson<bool>(json['selectedForTheme']),
       repository: serializer.fromJson<String?>(json['repository']),
       pluginApiVersion: serializer.fromJson<String>(json['pluginApiVersion']),
     );
@@ -3839,6 +3863,7 @@ class PluginsTableData extends DataClass
       'abilities': serializer.toJson<List<String>>(abilities),
       'selectedForMetadata': serializer.toJson<bool>(selectedForMetadata),
       'selectedForAudioSource': serializer.toJson<bool>(selectedForAudioSource),
+      'selectedForTheme': serializer.toJson<bool>(selectedForTheme),
       'repository': serializer.toJson<String?>(repository),
       'pluginApiVersion': serializer.toJson<String>(pluginApiVersion),
     };
@@ -3855,6 +3880,7 @@ class PluginsTableData extends DataClass
           List<String>? abilities,
           bool? selectedForMetadata,
           bool? selectedForAudioSource,
+          bool? selectedForTheme,
           Value<String?> repository = const Value.absent(),
           String? pluginApiVersion}) =>
       PluginsTableData(
@@ -3869,6 +3895,7 @@ class PluginsTableData extends DataClass
         selectedForMetadata: selectedForMetadata ?? this.selectedForMetadata,
         selectedForAudioSource:
             selectedForAudioSource ?? this.selectedForAudioSource,
+        selectedForTheme: selectedForTheme ?? this.selectedForTheme,
         repository: repository.present ? repository.value : this.repository,
         pluginApiVersion: pluginApiVersion ?? this.pluginApiVersion,
       );
@@ -3890,6 +3917,9 @@ class PluginsTableData extends DataClass
       selectedForAudioSource: data.selectedForAudioSource.present
           ? data.selectedForAudioSource.value
           : this.selectedForAudioSource,
+      selectedForTheme: data.selectedForTheme.present
+          ? data.selectedForTheme.value
+          : this.selectedForTheme,
       repository:
           data.repository.present ? data.repository.value : this.repository,
       pluginApiVersion: data.pluginApiVersion.present
@@ -3911,6 +3941,7 @@ class PluginsTableData extends DataClass
           ..write('abilities: $abilities, ')
           ..write('selectedForMetadata: $selectedForMetadata, ')
           ..write('selectedForAudioSource: $selectedForAudioSource, ')
+          ..write('selectedForTheme: $selectedForTheme, ')
           ..write('repository: $repository, ')
           ..write('pluginApiVersion: $pluginApiVersion')
           ..write(')'))
@@ -3929,6 +3960,7 @@ class PluginsTableData extends DataClass
       abilities,
       selectedForMetadata,
       selectedForAudioSource,
+      selectedForTheme,
       repository,
       pluginApiVersion);
   @override
@@ -3945,6 +3977,7 @@ class PluginsTableData extends DataClass
           other.abilities == this.abilities &&
           other.selectedForMetadata == this.selectedForMetadata &&
           other.selectedForAudioSource == this.selectedForAudioSource &&
+          other.selectedForTheme == this.selectedForTheme &&
           other.repository == this.repository &&
           other.pluginApiVersion == this.pluginApiVersion);
 }
@@ -3960,6 +3993,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
   final Value<List<String>> abilities;
   final Value<bool> selectedForMetadata;
   final Value<bool> selectedForAudioSource;
+  final Value<bool> selectedForTheme;
   final Value<String?> repository;
   final Value<String> pluginApiVersion;
   const PluginsTableCompanion({
@@ -3973,6 +4007,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
     this.abilities = const Value.absent(),
     this.selectedForMetadata = const Value.absent(),
     this.selectedForAudioSource = const Value.absent(),
+    this.selectedForTheme = const Value.absent(),
     this.repository = const Value.absent(),
     this.pluginApiVersion = const Value.absent(),
   });
@@ -3987,6 +4022,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
     required List<String> abilities,
     this.selectedForMetadata = const Value.absent(),
     this.selectedForAudioSource = const Value.absent(),
+    this.selectedForTheme = const Value.absent(),
     this.repository = const Value.absent(),
     this.pluginApiVersion = const Value.absent(),
   })  : name = Value(name),
@@ -4007,6 +4043,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
     Expression<String>? abilities,
     Expression<bool>? selectedForMetadata,
     Expression<bool>? selectedForAudioSource,
+    Expression<bool>? selectedForTheme,
     Expression<String>? repository,
     Expression<String>? pluginApiVersion,
   }) {
@@ -4023,6 +4060,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
         'selected_for_metadata': selectedForMetadata,
       if (selectedForAudioSource != null)
         'selected_for_audio_source': selectedForAudioSource,
+      if (selectedForTheme != null) 'selected_for_theme': selectedForTheme,
       if (repository != null) 'repository': repository,
       if (pluginApiVersion != null) 'plugin_api_version': pluginApiVersion,
     });
@@ -4039,6 +4077,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
       Value<List<String>>? abilities,
       Value<bool>? selectedForMetadata,
       Value<bool>? selectedForAudioSource,
+      Value<bool>? selectedForTheme,
       Value<String?>? repository,
       Value<String>? pluginApiVersion}) {
     return PluginsTableCompanion(
@@ -4053,6 +4092,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
       selectedForMetadata: selectedForMetadata ?? this.selectedForMetadata,
       selectedForAudioSource:
           selectedForAudioSource ?? this.selectedForAudioSource,
+      selectedForTheme: selectedForTheme ?? this.selectedForTheme,
       repository: repository ?? this.repository,
       pluginApiVersion: pluginApiVersion ?? this.pluginApiVersion,
     );
@@ -4094,6 +4134,9 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
       map['selected_for_audio_source'] =
           Variable<bool>(selectedForAudioSource.value);
     }
+    if (selectedForTheme.present) {
+      map['selected_for_theme'] = Variable<bool>(selectedForTheme.value);
+    }
     if (repository.present) {
       map['repository'] = Variable<String>(repository.value);
     }
@@ -4116,6 +4159,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
           ..write('abilities: $abilities, ')
           ..write('selectedForMetadata: $selectedForMetadata, ')
           ..write('selectedForAudioSource: $selectedForAudioSource, ')
+          ..write('selectedForTheme: $selectedForTheme, ')
           ..write('repository: $repository, ')
           ..write('pluginApiVersion: $pluginApiVersion')
           ..write(')'))
@@ -6019,6 +6063,7 @@ typedef $$PluginsTableTableCreateCompanionBuilder = PluginsTableCompanion
   required List<String> abilities,
   Value<bool> selectedForMetadata,
   Value<bool> selectedForAudioSource,
+  Value<bool> selectedForTheme,
   Value<String?> repository,
   Value<String> pluginApiVersion,
 });
@@ -6034,6 +6079,7 @@ typedef $$PluginsTableTableUpdateCompanionBuilder = PluginsTableCompanion
   Value<List<String>> abilities,
   Value<bool> selectedForMetadata,
   Value<bool> selectedForAudioSource,
+  Value<bool> selectedForTheme,
   Value<String?> repository,
   Value<String> pluginApiVersion,
 });
@@ -6081,6 +6127,10 @@ class $$PluginsTableTableFilterComposer
 
   ColumnFilters<bool> get selectedForAudioSource => $composableBuilder(
       column: $table.selectedForAudioSource,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get selectedForTheme => $composableBuilder(
+      column: $table.selectedForTheme,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get repository => $composableBuilder(
@@ -6132,6 +6182,10 @@ class $$PluginsTableTableOrderingComposer
       column: $table.selectedForAudioSource,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get selectedForTheme => $composableBuilder(
+      column: $table.selectedForTheme,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get repository => $composableBuilder(
       column: $table.repository, builder: (column) => ColumnOrderings(column));
 
@@ -6179,6 +6233,9 @@ class $$PluginsTableTableAnnotationComposer
   GeneratedColumn<bool> get selectedForAudioSource => $composableBuilder(
       column: $table.selectedForAudioSource, builder: (column) => column);
 
+  GeneratedColumn<bool> get selectedForTheme => $composableBuilder(
+      column: $table.selectedForTheme, builder: (column) => column);
+
   GeneratedColumn<String> get repository => $composableBuilder(
       column: $table.repository, builder: (column) => column);
 
@@ -6222,6 +6279,7 @@ class $$PluginsTableTableTableManager extends RootTableManager<
             Value<List<String>> abilities = const Value.absent(),
             Value<bool> selectedForMetadata = const Value.absent(),
             Value<bool> selectedForAudioSource = const Value.absent(),
+            Value<bool> selectedForTheme = const Value.absent(),
             Value<String?> repository = const Value.absent(),
             Value<String> pluginApiVersion = const Value.absent(),
           }) =>
@@ -6236,6 +6294,7 @@ class $$PluginsTableTableTableManager extends RootTableManager<
             abilities: abilities,
             selectedForMetadata: selectedForMetadata,
             selectedForAudioSource: selectedForAudioSource,
+            selectedForTheme: selectedForTheme,
             repository: repository,
             pluginApiVersion: pluginApiVersion,
           ),
@@ -6250,6 +6309,7 @@ class $$PluginsTableTableTableManager extends RootTableManager<
             required List<String> abilities,
             Value<bool> selectedForMetadata = const Value.absent(),
             Value<bool> selectedForAudioSource = const Value.absent(),
+            Value<bool> selectedForTheme = const Value.absent(),
             Value<String?> repository = const Value.absent(),
             Value<String> pluginApiVersion = const Value.absent(),
           }) =>
@@ -6264,6 +6324,7 @@ class $$PluginsTableTableTableManager extends RootTableManager<
             abilities: abilities,
             selectedForMetadata: selectedForMetadata,
             selectedForAudioSource: selectedForAudioSource,
+            selectedForTheme: selectedForTheme,
             repository: repository,
             pluginApiVersion: pluginApiVersion,
           ),

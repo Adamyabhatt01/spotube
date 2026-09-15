@@ -1,7 +1,8 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart' hide Consumer;
+import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:spotube/collections/fake.dart';
 import 'package:spotube/collections/spotube_icons.dart';
@@ -87,7 +88,9 @@ class ArtistPageHeader extends HookConsumerWidget {
             child: IconButton(
               icon: Icon(
                 SpotubeIcons.userRemove,
-                color: !isBlackListed ? Colors.red[400] : null,
+                color: !isBlackListed
+                    ? context.theme.colorScheme.destructive
+                    : null,
               ),
               variance: isBlackListed
                   ? ButtonVariance.destructive

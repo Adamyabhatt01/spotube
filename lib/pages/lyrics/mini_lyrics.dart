@@ -2,7 +2,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:palette_generator/palette_generator.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart' hide Consumer;
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/collections/spotube_icons.dart';
@@ -168,21 +168,25 @@ class MiniLyricsPage extends HookConsumerWidget {
         child: Column(
           children: [
             if (playlistQueue.activeTrack != null)
-              Text(playlistQueue.activeTrack!.name!).semiBold(),
+              Text(playlistQueue.activeTrack!.name).semiBold(),
             if (showLyrics.value)
               Expanded(
                 child: IndexedStack(
                   index: index.value,
                   children: [
+                    // Mini window has no artwork backdrop (the passed
+                    // palette is a dummy); theme roles apply.
                     SyncedLyrics(
                       palette: PaletteColor(theme.colorScheme.background, 0),
                       isModal: true,
                       defaultTextZoom: 65,
+                      hasArtwork: false,
                     ),
                     PlainLyrics(
                       palette: PaletteColor(theme.colorScheme.background, 0),
                       isModal: true,
                       defaultTextZoom: 65,
+                      hasArtwork: false,
                     ),
                   ],
                 ),

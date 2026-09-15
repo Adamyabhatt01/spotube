@@ -939,6 +939,90 @@ abstract class AppLocalizations {
   /// **'Accent Color'**
   String get accent_color;
 
+  /// No description provided for @splash.
+  ///
+  /// In en, this message translates to:
+  /// **'Splash Screen'**
+  String get splash;
+
+  /// No description provided for @splash_animation.
+  ///
+  /// In en, this message translates to:
+  /// **'Animation'**
+  String get splash_animation;
+
+  /// No description provided for @splash_animation_none.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get splash_animation_none;
+
+  /// No description provided for @splash_animation_fade.
+  ///
+  /// In en, this message translates to:
+  /// **'Fade'**
+  String get splash_animation_fade;
+
+  /// No description provided for @splash_animation_scale.
+  ///
+  /// In en, this message translates to:
+  /// **'Scale'**
+  String get splash_animation_scale;
+
+  /// No description provided for @splash_animation_slide.
+  ///
+  /// In en, this message translates to:
+  /// **'Slide'**
+  String get splash_animation_slide;
+
+  /// No description provided for @splash_duration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get splash_duration;
+
+  /// No description provided for @splash_themed_background.
+  ///
+  /// In en, this message translates to:
+  /// **'Themed background'**
+  String get splash_themed_background;
+
+  /// No description provided for @splash_themed_background_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the active theme color behind the logo'**
+  String get splash_themed_background_description;
+
+  /// No description provided for @splash_custom_logo.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom logo'**
+  String get splash_custom_logo;
+
+  /// No description provided for @splash_custom_background.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom background'**
+  String get splash_custom_background;
+
+  /// No description provided for @splash_no_custom_file.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get splash_no_custom_file;
+
+  /// No description provided for @splash_pick_image.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick image'**
+  String get splash_pick_image;
+
+  /// No description provided for @splash_clear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get splash_clear;
+
   /// No description provided for @sync_album_color.
   ///
   /// In en, this message translates to:
@@ -2798,6 +2882,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Set default audio source'**
   String get set_default_audio_source;
+
+  /// No description provided for @default_theme.
+  ///
+  /// In en, this message translates to:
+  /// **'Default theme'**
+  String get default_theme;
+
+  /// No description provided for @set_default_theme.
+  ///
+  /// In en, this message translates to:
+  /// **'Set default theme'**
+  String get set_default_theme;
 
   /// No description provided for @set_default.
   ///

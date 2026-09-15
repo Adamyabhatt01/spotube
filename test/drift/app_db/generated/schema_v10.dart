@@ -515,7 +515,7 @@ class PreferencesTable extends Table
       'close_behavior', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant(CloseBehavior.close.name));
+      defaultValue: Constant('close'));
   late final GeneratedColumn<String> accentColorScheme =
       GeneratedColumn<String>('accent_color_scheme', aliasedName, false,
           type: DriftSqlType.string,
@@ -525,7 +525,7 @@ class PreferencesTable extends Table
       'layout_mode', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant(LayoutMode.adaptive.name));
+      defaultValue: Constant('adaptive'));
   late final GeneratedColumn<String> locale = GeneratedColumn<String>(
       'locale', aliasedName, false,
       type: DriftSqlType.string,
@@ -536,12 +536,12 @@ class PreferencesTable extends Table
       'market', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant(Market.US.name));
+      defaultValue: Constant('US'));
   late final GeneratedColumn<String> searchMode = GeneratedColumn<String>(
       'search_mode', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant(SearchMode.youtube.name));
+      defaultValue: Constant('youtube'));
   late final GeneratedColumn<String> downloadLocation = GeneratedColumn<String>(
       'download_location', aliasedName, false,
       type: DriftSqlType.string,
@@ -556,7 +556,7 @@ class PreferencesTable extends Table
       'theme_mode', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant(ThemeMode.system.name));
+      defaultValue: Constant('system'));
   late final GeneratedColumn<String> audioSourceId = GeneratedColumn<String>(
       'audio_source_id', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
@@ -564,7 +564,7 @@ class PreferencesTable extends Table
       GeneratedColumn<String>('youtube_client_engine', aliasedName, false,
           type: DriftSqlType.string,
           requiredDuringInsert: false,
-          defaultValue: Constant(YoutubeClientEngine.youtubeExplode.name));
+          defaultValue: Constant('youtubeExplode'));
   late final GeneratedColumn<bool> discordPresence = GeneratedColumn<bool>(
       'discord_presence', aliasedName, false,
       type: DriftSqlType.bool,
@@ -3382,8 +3382,12 @@ class DatabaseAtV10 extends GeneratedDatabase {
   late final PluginsTable pluginsTable = PluginsTable(this);
   late final Index uniqueBlacklist = Index('unique_blacklist',
       'CREATE UNIQUE INDEX unique_blacklist ON blacklist_table (element_type, element_id)');
-  late final Index uniqTrackMatch = Index('uniq_track_match',
-      'CREATE UNIQUE INDEX uniq_track_match ON source_match_table (track_id, source_info, source_type)');
+  // Phase 3.2 snapshot correction: uniq_track_match was deliberately removed
+  // in a012a8f3 ("fix unique index on source_match_table causing failure on
+  // insert") and the released 9->10 migration drops it. This snapshot was
+  // dumped before that removal, so the index definition and its
+  // allSchemaEntities entry are removed here to represent the intended v10
+  // schema. No migration operation corresponds to this edit.
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3399,8 +3403,7 @@ class DatabaseAtV10 extends GeneratedDatabase {
         historyTable,
         lyricsTable,
         pluginsTable,
-        uniqueBlacklist,
-        uniqTrackMatch
+        uniqueBlacklist
       ];
   @override
   int get schemaVersion => 10;

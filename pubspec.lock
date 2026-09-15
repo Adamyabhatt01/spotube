@@ -443,7 +443,7 @@ packages:
     source: hosted
     version: "0.3.4+2"
   crypto:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: crypto
       sha256: c8ea0233063ba03258fbcf2ca4d6dadfefe14f02fab57702265467a19f27fadf
@@ -1238,10 +1238,10 @@ packages:
     dependency: "direct main"
     description:
       name: http
-      sha256: bb2ce4590bc2667c96f318d68cac1b5a7987ec819351d32b1c987239a815e007
+      sha256: "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412"
       url: "https://pub.dev"
     source: hosted
-    version: "1.5.0"
+    version: "1.6.0"
   http_methods:
     dependency: transitive
     description:
@@ -1451,10 +1451,10 @@ packages:
     dependency: "direct main"
     description:
       name: logger
-      sha256: "55d6c23a6c15db14920e037fe7e0dc32e7cdaf3b64b4b25df2d541b5b6b81c0c"
+      sha256: "2a0dc097e7b01d942475bdd552356db2d0f768b05540bd4b2b53f1840f2239a7"
       url: "https://pub.dev"
     source: hosted
-    version: "2.6.1"
+    version: "2.8.0"
   logging:
     dependency: "direct main"
     description:
@@ -1499,7 +1499,7 @@ packages:
     dependency: "direct main"
     description:
       path: media_kit
-      ref: HEAD
+      ref: d310049f24196250d876efb02b9ff56fa9ef5068
       resolved-ref: d310049f24196250d876efb02b9ff56fa9ef5068
       url: "https://github.com/media-kit/media-kit"
     source: git
@@ -1508,7 +1508,7 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/android/media_kit_libs_android_audio"
-      ref: HEAD
+      ref: d310049f24196250d876efb02b9ff56fa9ef5068
       resolved-ref: d310049f24196250d876efb02b9ff56fa9ef5068
       url: "https://github.com/media-kit/media-kit"
     source: git
@@ -1517,7 +1517,7 @@ packages:
     dependency: "direct main"
     description:
       path: "libs/universal/media_kit_libs_audio"
-      ref: HEAD
+      ref: d310049f24196250d876efb02b9ff56fa9ef5068
       resolved-ref: d310049f24196250d876efb02b9ff56fa9ef5068
       url: "https://github.com/media-kit/media-kit"
     source: git
@@ -1526,7 +1526,7 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/ios/media_kit_libs_ios_audio"
-      ref: HEAD
+      ref: d310049f24196250d876efb02b9ff56fa9ef5068
       resolved-ref: d310049f24196250d876efb02b9ff56fa9ef5068
       url: "https://github.com/media-kit/media-kit"
     source: git
@@ -1535,7 +1535,7 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/linux/media_kit_libs_linux"
-      ref: HEAD
+      ref: d310049f24196250d876efb02b9ff56fa9ef5068
       resolved-ref: d310049f24196250d876efb02b9ff56fa9ef5068
       url: "https://github.com/media-kit/media-kit"
     source: git
@@ -1544,7 +1544,7 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/macos/media_kit_libs_macos_audio"
-      ref: HEAD
+      ref: d310049f24196250d876efb02b9ff56fa9ef5068
       resolved-ref: d310049f24196250d876efb02b9ff56fa9ef5068
       url: "https://github.com/media-kit/media-kit"
     source: git
@@ -1553,7 +1553,7 @@ packages:
     dependency: "direct overridden"
     description:
       path: "libs/windows/media_kit_libs_windows_audio"
-      ref: HEAD
+      ref: d310049f24196250d876efb02b9ff56fa9ef5068
       resolved-ref: d310049f24196250d876efb02b9ff56fa9ef5068
       url: "https://github.com/media-kit/media-kit"
     source: git
@@ -1586,10 +1586,10 @@ packages:
     dependency: "direct main"
     description:
       name: mime
-      sha256: "41a20518f0cb1256669420fdba0cd90d21561e560ac240f26ef8322e45bb7ed6"
+      sha256: bd47de35f07e27267e69c8c8b22edf9473bfee170a60d60fcc93730c5144b7f6
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.0"
+    version: "2.1.0"
   nm:
     dependency: transitive
     description:
@@ -2043,10 +2043,10 @@ packages:
     dependency: "direct main"
     description:
       name: shared_preferences
-      sha256: "6e8bf70b7fef813df4e9a36f658ac46d107db4b4cfe1048b477d4e453a8159f5"
+      sha256: c3025c5534b01739267eb7d76959bbc25a6d10f6988e1c2a3036940133dd10bf
       url: "https://pub.dev"
     source: hosted
-    version: "2.5.3"
+    version: "2.5.5"
   shared_preferences_android:
     dependency: transitive
     description:
@@ -2376,26 +2376,26 @@ packages:
     dependency: "direct dev"
     description:
       name: test
-      sha256: "75906bf273541b676716d1ca7627a17e4c4070a3a16272b7a3dc7da3b9f3f6b7"
+      sha256: "65e29d831719be0591f7b3b1a32a3cda258ec98c58c7b25f7b84241bc31215bb"
       url: "https://pub.dev"
     source: hosted
-    version: "1.26.3"
+    version: "1.26.2"
   test_api:
     dependency: transitive
     description:
       name: test_api
-      sha256: ab2726c1a94d3176a45960b6234466ec367179b87dd74f1611adb1f3b5fb9d55
+      sha256: "522f00f556e73044315fa4585ec3270f1808a4b186c936e612cab0b565ff1e00"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.7"
+    version: "0.7.6"
   test_core:
     dependency: transitive
     description:
       name: test_core
-      sha256: "0cc24b5ff94b38d2ae73e1eb43cc302b77964fbf67abad1e296025b78deb53d0"
+      sha256: "80bf5a02b60af04b09e14f6fe68b921aad119493e26e490deaca5993fef1b05a"
       url: "https://pub.dev"
     source: hosted
-    version: "0.6.12"
+    version: "0.6.11"
   time:
     dependency: transitive
     description:
@@ -2743,4 +2743,4 @@ packages:
     version: "1.0.0"
 sdks:
   dart: ">=3.9.0 <4.0.0"
-  flutter: ">=3.32.3"
+  flutter: ">=3.35.0"

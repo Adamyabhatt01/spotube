@@ -1,30 +1,42 @@
-// This is a basic Flutter widget test.
+// Spotube widget smoke test (Phase 1A harness repair).
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility that Flutter provides. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// NOTE: the full `Spotube` widget is intentionally NOT pumped here.
+// It requires async native initialization performed in `main()` before
+// `runApp` (KVStoreService, EncryptedKvStoreService, AppDatabase,
+// MediaKit.ensureInitialized, window_manager, etc.) plus live providers
+// (theme definition, metadata plugins, local server, tray manager).
+// Pumping it under `flutter_test` without those bindings hits
+// missing-plugin channels and makes the test platform-dependent. A
+// full-app test belongs in `integration_test/` with real bindings,
+// not here.
+//
+// What this file does verify:
+// 1. The `Spotube` widget still exists with its current architecture
+//    (`HookConsumerWidget`, const-constructible).
+// 2. The app's `rootNavigatorKey` is initialized.
+// 3. The `flutter_test` + `hooks_riverpod` harness itself works.
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:spotube/collections/spotube_icons.dart';
-
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:spotube/collections/routes.dart';
 import 'package:spotube/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const Spotube());
+  test('Spotube widget keeps its HookConsumerWidget architecture', () {
+    const widget = Spotube();
+    expect(widget, isA<HookConsumerWidget>());
+    expect(widget.key, isNull);
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  test('root navigator key is initialized', () {
+    expect(rootNavigatorKey, isA<GlobalKey<NavigatorState>>());
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(SpotubeIcons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('ProviderScope test harness pumps', (WidgetTester tester) async {
+    await tester.pumpWidget(
+      const ProviderScope(child: MaterialApp(home: SizedBox())),
+    );
+    expect(find.byType(SizedBox), findsOneWidget);
   });
 }

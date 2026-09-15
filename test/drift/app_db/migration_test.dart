@@ -1,3 +1,9 @@
+// Phase 1A note: the `Database(...)` / `openTestedDatabase` harness problems
+// documented here were repaired in Phase 3.1 (AppDatabase.forTesting).
+// Remaining Phase 3 debt: real migration coverage (v5/v8/v9/v10 -> current
+// with representative data) and the v6 snapshot SourceType reference.
+// Drift generated files under `generated/` stay untouched in Phase 1A.
+// (Phase 3.1: v6 snapshot + v11 snapshot repair happens alongside, not here.)
 // ignore_for_file: unused_local_variable, unused_import
 import 'package:drift/drift.dart';
 import 'package:drift_dev/api/migrations.dart';
@@ -26,7 +32,7 @@ void main() {
         for (final toVersion in versions.skip(i + 1)) {
           test('to $toVersion', () async {
             final schema = await verifier.schemaAt(fromVersion);
-            final db = Database(schema.newConnection());
+            final db = AppDatabase.forTesting(schema.newConnection());
             await verifier.migrateAndValidate(db, toVersion);
             await db.close();
           });
@@ -84,7 +90,9 @@ void main() {
       newVersion: 2,
       createOld: v1.DatabaseAtV1.new,
       createNew: v2.DatabaseAtV2.new,
-      openTestedDatabase: (x) => AppDatabase(),
+      // Phase 3.1: use the supplied test connection. The previous
+      // `(x) => AppDatabase()` ignored it and opened the real on-disk DB.
+      openTestedDatabase: AppDatabase.forTesting,
       createItems: (batch, oldDb) {
         batch.insertAll(oldDb.authenticationTable, oldAuthenticationTableData);
         batch.insertAll(oldDb.blacklistTable, oldBlacklistTableData);

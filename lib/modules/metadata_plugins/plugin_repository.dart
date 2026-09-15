@@ -14,6 +14,7 @@ import 'package:change_case/change_case.dart';
 final validTopics = {
   "spotube-metadata-plugin": ("Metadata", SpotubeIcons.album),
   "spotube-audio-source-plugin": ("Audio Source", SpotubeIcons.music),
+  "spotube-theme-plugin": ("Theme", SpotubeIcons.palette),
 };
 
 class MetadataPluginRepositoryItem extends HookConsumerWidget {

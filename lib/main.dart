@@ -27,7 +27,13 @@ import 'package:spotube/hooks/configurators/use_fix_window_stretching.dart';
 import 'package:spotube/hooks/configurators/use_get_storage_perms.dart';
 import 'package:spotube/hooks/configurators/use_has_touch.dart';
 import 'package:spotube/models/database/database.dart';
+import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/settings/color_scheme_picker_dialog.dart';
+import 'package:spotube/modules/theme_background/theme_background_scope.dart';
+import 'package:spotube/modules/theme_background/theme_definition_cache.dart';
+import 'package:spotube/modules/splash/splash_screen.dart';
+import 'package:spotube/modules/splash/splash_prefs.dart';
+import 'package:spotube/modules/theme_surfaces/theme_surfaces_scope.dart';
 import 'package:spotube/provider/audio_player/audio_player_streams.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/glance/glance.dart';
@@ -47,6 +53,7 @@ import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/wm_tools/wm_tools.dart';
 import 'package:spotube/utils/migrations/sandbox.dart';
 import 'package:spotube/utils/platform.dart';
+import 'package:spotube/utils/theme_converter.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -54,6 +61,39 @@ import 'package:window_manager/window_manager.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:yt_dlp_dart/yt_dlp_dart.dart';
 import 'package:flutter_new_pipe_extractor/flutter_new_pipe_extractor.dart';
+
+/// Deferred service initializations that must not block the first frame.
+///
+/// Runs once, right after first paint (still before any user interaction
+/// can reach playback/notifications). Keeps process-start → first-frame
+/// minimal so the pre-splash black window stays short.
+Future<void> _initDeferredServices() async {
+  try {
+    if (kIsAndroid || kIsDesktop) {
+      await NewPipeExtractor.init();
+    }
+  } catch (_) {}
+  try {
+    if (kIsDesktop) {
+      await YtDlp.instance
+          .setBinaryLocation(
+            KVStoreService.getYoutubeEnginePath(YoutubeClientEngine.ytDlp) ??
+                "yt-dlp${kIsWindows ? '.exe' : ''}",
+          )
+          .catchError((e, stack) => null);
+    }
+  } catch (_) {}
+  try {
+    if (kIsDesktop) {
+      await FlutterDiscordRPC.initialize(Env.discordAppId);
+    }
+  } catch (_) {}
+  try {
+    if (kIsDesktop) {
+      await localNotifier.setup(appName: "Spotube");
+    }
+  } catch (_) {}
+}
 
 Future<void> main(List<String> rawArgs) async {
   if (rawArgs.contains("web_view_title_bar")) {
@@ -84,10 +124,6 @@ Future<void> main(List<String> rawArgs) async {
     if (kIsAndroid) {
       await FlutterDisplayMode.setHighRefreshRate();
     }
-    if (kIsAndroid || kIsDesktop) {
-      await NewPipeExtractor.init();
-    }
-
     if (!kIsWeb) {
       MetadataGod.initialize();
     }
@@ -96,13 +132,6 @@ Future<void> main(List<String> rawArgs) async {
 
     if (kIsDesktop) {
       await windowManager.setPreventClose(true);
-      await YtDlp.instance
-          .setBinaryLocation(
-            KVStoreService.getYoutubeEnginePath(YoutubeClientEngine.ytDlp) ??
-                "yt-dlp${kIsWindows ? '.exe' : ''}",
-          )
-          .catchError((e, stack) => null);
-      await FlutterDiscordRPC.initialize(Env.discordAppId);
     }
 
     if (kIsWindows) {
@@ -114,7 +143,6 @@ Future<void> main(List<String> rawArgs) async {
     final database = AppDatabase();
 
     if (kIsDesktop) {
-      await localNotifier.setup(appName: "Spotube");
       await WindowManagerTools.initialize();
     }
 
@@ -136,6 +164,21 @@ Future<void> main(List<String> rawArgs) async {
   });
 }
 
+ColorScheme _resolveColorScheme(
+  ThemeColors colors, {
+  required Brightness brightness,
+  required ColorScheme fallback,
+}) {
+  try {
+    return ThemeConverter.toColorScheme(
+      colors,
+      brightness: brightness,
+    );
+  } catch (_) {
+    return fallback;
+  }
+}
+
 class Spotube extends HookConsumerWidget {
   const Spotube({super.key});
 
@@ -146,19 +189,68 @@ class Spotube extends HookConsumerWidget {
     final locale = ref.watch(userPreferencesProvider.select((s) => s.locale));
     final accentMaterialColor =
         ref.watch(userPreferencesProvider.select((s) => s.accentColorScheme));
+    final themeDefinition = ref.watch(themeDefinitionProvider);
+    final cachedThemeDefinition = ref.watch(cachedThemeDefinitionProvider);
     final router = useMemoized(() => AppRouter(ref), []);
     final hasTouchSupport = useHasTouch();
 
+    // Eagerly initialize background services and keep them alive for the
+    // app lifetime. The listener bodies are intentionally empty.
+    // onError note (1A.3 audit): `ref.listen` without `onError` rethrows an
+    // async provider's error into the zone. These providers have real,
+    // expected failure modes (port bind, mDNS, discovery, plugin I/O,
+    // update-check network) with no internal try/catch, so route them to
+    // the logger with attribution instead of generic zone errors.
+    // The two sync providers below (audioPlayerStreamListeners, trayManager)
+    // deliberately have NO onError: sync providers never enter an error
+    // state, so it would be dead code. (Tray's fire-and-forget
+    // `SystemTrayManager.initialize()` is a separate latent issue, out of
+    // 1A scope — see tray_manager.dart.)
+    void logAsyncError(Object e, StackTrace st) =>
+        AppLogger.reportError(e, st);
+
     ref.listen(audioPlayerStreamListenersProvider, (_, __) {});
-    ref.listen(bonsoirProvider, (_, __) {});
-    ref.listen(connectClientsProvider, (_, __) {});
-    ref.listen(serverProvider, (_, __) {});
+    ref.listen(
+      bonsoirProvider,
+      (_, __) {},
+      onError: logAsyncError,
+    );
+    ref.listen(
+      connectClientsProvider,
+      (_, __) {},
+      onError: logAsyncError,
+    );
+    ref.listen(
+      serverProvider,
+      (_, __) {},
+      onError: logAsyncError,
+    );
     ref.listen(trayManagerProvider, (_, __) {});
-    ref.listen(metadataPluginsProvider, (_, __) {});
-    ref.listen(metadataPluginProvider, (_, __) {});
-    ref.listen(audioSourcePluginProvider, (_, __) {});
-    ref.listen(metadataPluginUpdateCheckerProvider, (_, __) {});
-    ref.listen(audioSourcePluginUpdateCheckerProvider, (_, __) {});
+    ref.listen(
+      metadataPluginsProvider,
+      (_, __) {},
+      onError: logAsyncError,
+    );
+    ref.listen(
+      metadataPluginProvider,
+      (_, __) {},
+      onError: logAsyncError,
+    );
+    ref.listen(
+      audioSourcePluginProvider,
+      (_, __) {},
+      onError: logAsyncError,
+    );
+    ref.listen(
+      metadataPluginUpdateCheckerProvider,
+      (_, __) {},
+      onError: logAsyncError,
+    );
+    ref.listen(
+      audioSourcePluginUpdateCheckerProvider,
+      (_, __) {},
+      onError: logAsyncError,
+    );
 
     useFixWindowStretching();
     useDisableBatteryOptimizations();
@@ -167,7 +259,16 @@ class Spotube extends HookConsumerWidget {
     useGetStoragePermissions(ref);
 
     useEffect(() {
+      // First frame is already themed via the cached theme (whenever
+      // one exists), so the splash leaves immediately instead of
+      // holding a black window while live resolution runs behind it.
       FlutterNativeSplash.remove();
+
+      // Deferred service inits (moved out of the pre-runApp path):
+      // still before any user interaction, but after first paint.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_initDeferredServices());
+      });
 
       if (kIsMobile) {
         HomeWidget.registerInteractivityCallback(glanceBackgroundCallback);
@@ -179,6 +280,78 @@ class Spotube extends HookConsumerWidget {
         audioPlayer.dispose();
       };
     }, []);
+    // Branded in-app splash: hidden the moment a themed frame is
+    // ready (cached theme makes this near-instant on warm starts),
+    // with a safety cap so startup never hangs on theme resolution.
+    final splashReady = useState(false);
+    useEffect(() {
+      if (splashReady.value) return null;
+      final start = DateTime.now();
+      Timer? timer;
+      void check() {
+        final elapsed = DateTime.now().difference(start);
+        final themed = themeDefinition.asData?.value ??
+            cachedThemeDefinition.asData?.value;
+        if (themed != null || elapsed >= const Duration(seconds: 6)) {
+          splashReady.value = true;
+        } else {
+          timer = Timer(const Duration(milliseconds: 50), check);
+        }
+      }
+
+      timer = Timer(const Duration(milliseconds: 50), check);
+      return () => timer?.cancel();
+    }, [themeDefinition, cachedThemeDefinition, splashReady.value]);
+
+    final builtInLightScheme =
+        colorSchemeMap[accentMaterialColor.name]?.call(ThemeMode.light) ??
+            LegacyColorSchemes.lightSlate();
+
+    final builtInDarkScheme =
+        colorSchemeMap[accentMaterialColor.name]?.call(ThemeMode.dark) ??
+            LegacyColorSchemes.darkSlate();
+
+    // Live theme wins; cached theme seeds the first paint instantly
+    // and is silently replaced when live resolves. Built-in otherwise.
+    final pluginTheme =
+        themeDefinition.asData?.value ?? cachedThemeDefinition.asData?.value;
+
+    final lightColorScheme = pluginTheme == null
+        ? builtInLightScheme
+        : _resolveColorScheme(
+            pluginTheme.light,
+            brightness: Brightness.light,
+            fallback: builtInLightScheme,
+          );
+
+    final darkColorScheme = pluginTheme == null
+        ? builtInDarkScheme
+        : _resolveColorScheme(
+            pluginTheme.dark,
+            brightness: Brightness.dark,
+            fallback: builtInDarkScheme,
+          );
+
+    // v2 contract wiring: surfaces carry translucency into ThemeData,
+    // ThemeBackgroundScope/ThemeSurfacesScope render background/tint.
+    // density and the full radius scale stay parsed-but-unrendered.
+    // Interim radius mapping: shadcn takes a single radius multiplier
+    // (default 0.5), so scale medium proportionally against its default
+    // of 10.0 until small/medium/large/pill are wired to components.
+    final pluginRadius =
+        pluginTheme == null ? .5 : pluginTheme.radius.medium / 20;
+
+    if (!splashReady.value) {
+      final prefs = ref.watch(splashPrefsProvider).asData?.value;
+      return SplashScreen(
+        theme: pluginTheme,
+        animation: prefs?.animation ?? SplashAnimation.fade,
+        duration: prefs?.duration ?? const Duration(milliseconds: 900),
+        useThemedBackground: prefs?.useThemedBackground ?? true,
+        logoPath: prefs?.logoPath,
+        backgroundPath: prefs?.backgroundPath,
+      );
+    }
 
     return ShadcnApp.router(
       supportedLocales: L10n.all,
@@ -213,26 +386,24 @@ class Spotube extends HookConsumerWidget {
           );
         }
 
-        return child;
+        return ThemeBackgroundScope(
+          child: ThemeSurfacesScope(child: child),
+        );
       },
       scaling: const AdaptiveScaling(1),
       theme: ThemeData(
-        radius: .5,
+        radius: pluginRadius,
         iconTheme: const IconThemeProperties(),
-        colorScheme:
-            colorSchemeMap[accentMaterialColor.name]?.call(ThemeMode.light) ??
-                LegacyColorSchemes.lightSlate(),
-        surfaceOpacity: .8,
-        surfaceBlur: 10,
+        colorScheme: lightColorScheme,
+        surfaceOpacity: pluginTheme?.surfaces.opacity ?? .8,
+        surfaceBlur: pluginTheme?.surfaces.blur ?? 10,
       ),
       darkTheme: ThemeData(
-        radius: .5,
+        radius: pluginRadius,
         iconTheme: const IconThemeProperties(),
-        colorScheme:
-            colorSchemeMap[accentMaterialColor.name]?.call(ThemeMode.dark) ??
-                LegacyColorSchemes.darkSlate(),
-        surfaceOpacity: .8,
-        surfaceBlur: 10,
+        colorScheme: darkColorScheme,
+        surfaceOpacity: pluginTheme?.surfaces.opacity ?? .8,
+        surfaceBlur: pluginTheme?.surfaces.blur ?? 10,
       ),
       materialTheme: material.ThemeData(
         brightness: switch (themeMode) {

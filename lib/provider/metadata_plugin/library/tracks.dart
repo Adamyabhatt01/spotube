@@ -82,15 +82,32 @@ final metadataPluginSavedTracksProvider = AutoDisposeAsyncNotifierProvider<
   () => MetadataPluginSavedTracksNotifier(),
 );
 
-final metadataPluginIsSavedTrackProvider =
-    FutureProvider.autoDispose.family<bool, String>(
-  (ref, trackId) async {
+/// Fetches the full set of saved-track IDs once and shares it across every
+/// per-track lookup. Previously each track's heart-button lookup could trigger
+/// its own whole-library `fetchAll()` loop — multiple concurrent loops on the
+/// same notifier interleaved state appends and blew up memory on large
+/// libraries. Riverpod deduplicates all family instances watching this
+/// provider into a single fetch.
+final metadataPluginSavedTrackIdsProvider =
+    FutureProvider.autoDispose<Set<String>>(
+  (ref) async {
     final savedTracks =
         await ref.watch(metadataPluginSavedTracksProvider.future);
+
     final allSavedTracks = savedTracks.hasMore
         ? await ref.read(metadataPluginSavedTracksProvider.notifier).fetchAll()
         : savedTracks.items;
 
-    return allSavedTracks.any((track) => track.id == trackId);
+    return allSavedTracks.map((track) => track.id).toSet();
+  },
+);
+
+final metadataPluginIsSavedTrackProvider =
+    FutureProvider.autoDispose.family<bool, String>(
+  (ref, trackId) async {
+    final allSavedTrackIds =
+        await ref.watch(metadataPluginSavedTrackIdsProvider.future);
+
+    return allSavedTrackIds.contains(trackId);
   },
 );

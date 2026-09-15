@@ -20,6 +20,11 @@ class Waypoint extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
+    // One-trigger-per-load-cycle: suppresses repeated edge callbacks while a
+    // single onTouchEdge invocation is still in flight. The notifier itself
+    // also enforces single-flight fetching; this is redundant suppression.
+    final isTriggering = useRef(false);
+
     useEffect(() {
       if (isGrid) {
         return null;
@@ -30,8 +35,15 @@ class Waypoint extends HookWidget {
 
         // scrollController fetches the next paginated data when the current
         // position of the user on the screen has surpassed
-        if (controller.position.pixels >= nextPageTrigger && context.mounted) {
-          await onTouchEdge?.call();
+        if (!isTriggering.value &&
+            controller.position.pixels >= nextPageTrigger &&
+            context.mounted) {
+          isTriggering.value = true;
+          try {
+            await onTouchEdge?.call();
+          } finally {
+            isTriggering.value = false;
+          }
         }
       }
 
@@ -47,9 +59,16 @@ class Waypoint extends HookWidget {
     if (isGrid) {
       return VisibilityDetector(
         key: const Key("waypoint"),
-        onVisibilityChanged: (info) {
-          if (info.visibleFraction > 0) {
-            onTouchEdge?.call();
+        onVisibilityChanged: (info) async {
+          if (info.visibleFraction > 0 &&
+              !isTriggering.value &&
+              context.mounted) {
+            isTriggering.value = true;
+            try {
+              await onTouchEdge?.call();
+            } finally {
+              isTriggering.value = false;
+            }
           }
         },
         child: child ?? Container(),

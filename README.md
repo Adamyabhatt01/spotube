@@ -1,3 +1,7 @@
+> 🍴 **Fork:** [`Adamyabhatt01/spotube`](https://github.com/Adamyabhatt01/spotube) — adds **theme plugins**, a **concurrent bulk-download pool**, **playback hardening** and a **quick setup guide** on top of upstream [`KRTirtho/spotube`](https://github.com/KRTirtho/spotube).
+>
+> ⬇️ New here? Jump to [🚀 Quick setup](#-quick-setup-run-from-source).
+
 <div align="center">
   <img width="600" src="assets/branding/spotube_banner.png" alt="Spotube Logo">
 
@@ -23,6 +27,56 @@ Btw it's not just another Electron app 😉
 ![Spotube Mobile](assets/branding/mobile-screenshots/combined.jpg)
 
 </div>
+
+## ✨ What's New in this fork
+
+### 🎨 Theme plugins
+- Plugins can now ship a full theme via `metadataPlugin.theme.getTheme()` — 17-role light/dark colors, glass surfaces (opacity/blur/tint), album-art or shell backgrounds with veil overlay, corner radius, density and dynamic Material theming.
+- Untrusted plugin values are sanitized (clamped to render-safe ranges); malformed themes fall back gracefully instead of crashing.
+- **Caelestia shell sync (Linux):** reads `$XDG_STATE_HOME/caelestia/scheme.json` and follows your shell's active scheme, mode-aware with built-in fallbacks for the inactive mode.
+- Pick a **Default theme** under Settings → Metadata plugins (stored in DB v11 `pluginsTable.selectedForTheme`).
+
+### ⬇️ Bulk download pool
+- Up to **3 tracks download concurrently** (each already fans out internally, so the limit stays conservative).
+- Adding a playlist first **batch-checks what already exists on disk** — one replace/skip decision instead of a dialog per track — and duplicate queue entries targeting the same file are folded automatically.
+
+### 🛡️ Playback reliability
+- Stream candidates are validated in bounded parallel waves (4 at a time, 30s timeout each) with original-order selection preserved.
+- Expired signed stream URLs are detected from their `expire` stamp and refreshed instead of stalling; URLs without expiry info keep the old reactive path.
+
+### 👋 Custom splash screen
+- Settings → Appearance: animation (none/fade/scale/slide), duration, themed background, plus custom logo/background images.
+
+### 📌 Reproducible deps & ✅ tests
+- Pinned `intl 0.20.2`, `collection 1.19.1`, `media_kit d310049` (all platform libs track the same commit).
+- 9 new regression tests: download pool, stream validation/expiry, proxy refresh, track presets, debounced writes, image sizing, player/track-option selection, drift v11 migration proof.
+
+## 🚀 Quick setup (run from source)
+
+```bash
+# 1. Prerequisites: git + Flutter 3.35.2 via FVM (see .fvmrc)
+#    Debian/Ubuntu system deps:
+sudo apt-get install mpv libmpv-dev libappindicator3-1 gir1.2-appindicator3-0.1 libappindicator3-dev libsecret-1-0 libjsoncpp25 libsecret-1-dev libjsoncpp-dev libnotify-bin libnotify-dev avahi-daemon avahi-discover avahi-utils libnss-mdns mdns-scan libwebkit2gtk-4.1-0 libwebkit2gtk-4.1-dev libsoup-3.0-0 libsoup-3.0-dev
+#    Arch: yay -S mpv libappindicator-gtk3 libsecret jsoncpp libnotify avahi nss-mdns mdns-scan webkit2gtk-4.1 libsoup3
+
+# 2. Clone + environment
+git clone https://github.com/Adamyabhatt01/spotube.git
+cd spotube
+cp .env.example .env   # fill in keys (Last.fm etc.) — flags are 0/1
+
+# 3. Install + codegen
+fvm flutter pub get
+fvm dart run build_runner build --delete-conflicting-outputs
+
+# 4. Run
+fvm flutter run -d linux   # or: windows | macos | <android-device-id>
+
+# 5. Verify
+fvm flutter test
+```
+
+> Full contributor flow (translations, PRs against `dev`, …) lives in [`CONTRIBUTION.md`](CONTRIBUTION.md).
+> Caelestia theme sync needs the Caelestia shell installed — the app picks up `~/.local/state/caelestia/scheme.json` automatically.
 
 ## 🌃 Features
 

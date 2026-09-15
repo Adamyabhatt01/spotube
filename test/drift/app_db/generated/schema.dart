@@ -13,6 +13,10 @@ import 'schema_v7.dart' as v7;
 import 'schema_v8.dart' as v8;
 import 'schema_v9.dart' as v9;
 import 'schema_v10.dart' as v10;
+// Phase 3.1: v11 snapshot added (generated from drift_schemas/app_db/
+// drift_schema_v11.json with the repo's pinned drift_dev) so the 10->11
+// step can be exercised. v1-v10 snapshots intentionally untouched.
+import 'schema_v11.dart' as v11;
 
 class GeneratedHelper implements SchemaInstantiationHelper {
   @override
@@ -38,10 +42,12 @@ class GeneratedHelper implements SchemaInstantiationHelper {
         return v9.DatabaseAtV9(db);
       case 10:
         return v10.DatabaseAtV10(db);
+      case 11:
+        return v11.DatabaseAtV11(db);
       default:
         throw MissingSchemaException(version, versions);
     }
   }
 
-  static const versions = const [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  static const versions = const [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 }

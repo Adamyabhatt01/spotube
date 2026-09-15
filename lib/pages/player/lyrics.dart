@@ -53,8 +53,11 @@ class PlayerLyricsPage extends HookConsumerWidget {
       child: IndexedStack(
         index: selectedIndex.value,
         children: [
-          SyncedLyrics(palette: palette, isModal: false),
-          PlainLyrics(palette: palette, isModal: false),
+          // No artwork backdrop on this page by design: palette text
+          // over a plain surface risks unreadable contrast, so theme
+          // roles apply unconditionally here.
+          SyncedLyrics(palette: palette, isModal: false, hasArtwork: false),
+          PlainLyrics(palette: palette, isModal: false, hasArtwork: false),
         ],
       ),
     );

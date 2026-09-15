@@ -1,8 +1,8 @@
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:flutter/foundation.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/collections/formatters.dart';
+import 'package:spotube/utils/theme_converter.dart';
 
 class SummaryCard extends StatelessWidget {
   final String title;
@@ -10,7 +10,8 @@ class SummaryCard extends StatelessWidget {
   final String description;
   final VoidCallback? onTap;
 
-  final ColorShades color;
+  /// Categorical color from [ThemeConverter.chartPalette].
+  final Color color;
 
   SummaryCard({
     super.key,
@@ -35,9 +36,11 @@ class SummaryCard extends StatelessWidget {
     final ThemeData(:typography, :brightness) = Theme.of(context);
 
     final descriptionNewLines = description.split("").where((s) => s == "\n");
+    final fill = ThemeConverter.chartCardFill(color, brightness);
+    final ink = ThemeConverter.chartCardText(color);
 
     return Card(
-      fillColor: brightness == Brightness.dark ? color.shade100 : color.shade50,
+      fillColor: fill,
       filled: true,
       borderColor: color,
       padding: EdgeInsets.zero,
@@ -57,13 +60,13 @@ class SummaryCard extends StatelessWidget {
                     TextSpan(
                       text: title,
                       style: typography.h2.copyWith(
-                        color: color.shade900,
+                        color: ink,
                       ),
                     ),
                     TextSpan(
                       text: " $unit",
                       style: typography.semiBold.copyWith(
-                        color: color.shade900,
+                        color: ink,
                       ),
                     ),
                   ],
@@ -78,7 +81,7 @@ class SummaryCard extends StatelessWidget {
                     : 1,
                 minFontSize: 9,
                 style: typography.small.copyWith(
-                  color: color.shade900,
+                  color: ink,
                 ),
               ),
             ],

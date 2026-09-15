@@ -23,8 +23,14 @@ class SyncedLyrics extends HookConsumerWidget {
   final bool? isModal;
   final int defaultTextZoom;
 
+  /// Whether an artwork backdrop sits behind the lyrics. Palette text
+  /// is only used over real artwork; otherwise theme roles apply so
+  /// text stays readable on plain surfaces.
+  final bool hasArtwork;
+
   const SyncedLyrics({
     required this.palette,
+    required this.hasArtwork,
     this.isModal,
     this.defaultTextZoom = 100,
     super.key,
@@ -71,11 +77,13 @@ class SyncedLyrics extends HookConsumerWidget {
             ? typography.h3
             : typography.h4.copyWith(fontSize: 25))
         .copyWith(
-      color: palette.titleTextColor,
+      color: hasArtwork ? palette.titleTextColor : theme.colorScheme.foreground,
     );
 
     final bodyTextTheme = typography.large.copyWith(
-      color: palette.bodyTextColor,
+      color: hasArtwork
+          ? palette.bodyTextColor
+          : theme.colorScheme.mutedForeground,
     );
 
     useEffect(() {
@@ -225,7 +233,9 @@ class SyncedLyrics extends HookConsumerWidget {
                         TextSpan(
                           text: " ${context.l10n.plain_lyrics} ",
                           style: typography.large.copyWith(
-                            color: palette.bodyTextColor,
+                            color: hasArtwork
+                                ? palette.bodyTextColor
+                                : theme.colorScheme.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
