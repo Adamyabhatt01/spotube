@@ -50,9 +50,15 @@ class AudioPlayerState with _$AudioPlayerState {
     return tracks[currentIndex];
   }
 
-  bool containsTrack(SpotubeTrackObject track) {
-    return tracks.isNotEmpty &&
-        tracks.any(
+  /// Pure list predicates so UI can `select` a field (e.g. `tracks`) and
+  /// still reuse the exact queue-membership semantics below without
+  /// watching the whole state.
+  static bool listContainsTrack(
+    List<SpotubeTrackObject> haystack,
+    SpotubeTrackObject track,
+  ) {
+    return haystack.isNotEmpty &&
+        haystack.any(
           (t) =>
               t is SpotubeLocalTrackObject && track is SpotubeLocalTrackObject
                   ? t.path == track.path
@@ -60,8 +66,20 @@ class AudioPlayerState with _$AudioPlayerState {
         );
   }
 
+  static bool listContainsTracks(
+    List<SpotubeTrackObject> haystack,
+    List<SpotubeTrackObject> tracks,
+  ) {
+    return haystack.isNotEmpty &&
+        tracks.every((track) => listContainsTrack(haystack, track));
+  }
+
+  bool containsTrack(SpotubeTrackObject track) {
+    return listContainsTrack(tracks, track);
+  }
+
   bool containsTracks(List<SpotubeTrackObject> tracks) {
-    return this.tracks.isNotEmpty && tracks.every(containsTrack);
+    return listContainsTracks(tracks, tracks);
   }
 
   bool containsCollection(String collectionId) {

@@ -23,7 +23,10 @@ class SearchTracksSection extends HookConsumerWidget {
     final search = ref.watch(metadataPluginSearchAllProvider(searchTerm));
     final tracks = search.asData?.value.tracks ?? [];
     final playlistNotifier = ref.watch(audioPlayerProvider.notifier);
-    final playlist = ref.watch(audioPlayerProvider);
+    // Perf: tile highlight needs only the active id; queue-length checks
+    // below read fresh state at tap time.
+    final activeTrackId =
+        ref.watch(audioPlayerProvider.select((s) => s.activeTrack?.id));
     final theme = Theme.of(context);
 
     return Column(
@@ -45,7 +48,7 @@ class SearchTracksSection extends HookConsumerWidget {
             return TrackTile(
               index: i,
               track: track,
-              playlist: playlist,
+              isPlaying: activeTrackId == track.id,
               onTap: () async {
                 final isRemoteDevice =
                     await showSelectDeviceDialog(context, ref);
@@ -60,14 +63,16 @@ class SearchTracksSection extends HookConsumerWidget {
                       remotePlaylist.activeTrack?.id == track.id;
 
                   if (!isTrackPlaying && context.mounted) {
-                    final shouldPlay = (playlist.tracks.length) > 20
+                    final queueLength =
+                        ref.read(audioPlayerProvider).tracks.length;
+                    final shouldPlay = queueLength > 20
                         ? await showPromptDialog(
                             context: context,
                             title: context.l10n.playing_track(
                               track.name,
                             ),
                             message: context.l10n.queue_clear_alert(
-                              playlist.tracks.length,
+                              queueLength,
                             ),
                           )
                         : true;
@@ -81,16 +86,17 @@ class SearchTracksSection extends HookConsumerWidget {
                     }
                   }
                 } else {
-                  final isTrackPlaying = playlist.activeTrack?.id == track.id;
+                  final queue = ref.read(audioPlayerProvider);
+                  final isTrackPlaying = queue.activeTrack?.id == track.id;
                   if (!isTrackPlaying && context.mounted) {
-                    final shouldPlay = (playlist.tracks.length) > 20
+                    final shouldPlay = (queue.tracks.length) > 20
                         ? await showPromptDialog(
                             context: context,
                             title: context.l10n.playing_track(
                               track.name,
                             ),
                             message: context.l10n.queue_clear_alert(
-                              playlist.tracks.length,
+                              queue.tracks.length,
                             ),
                           )
                         : true;

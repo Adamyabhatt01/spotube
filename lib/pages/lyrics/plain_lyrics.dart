@@ -34,8 +34,9 @@ class PlainLyrics extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, ref) {
-    final playlist = ref.watch(audioPlayerProvider);
-    final lyricsQuery = ref.watch(syncedLyricsProvider(playlist.activeTrack));
+    final activeTrack =
+        ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
+    final lyricsQuery = ref.watch(syncedLyricsProvider(activeTrack));
     final mediaQuery = MediaQuery.of(context);
     final typography = Theme.of(context).typography;
     final colorScheme = Theme.of(context).colorScheme;
@@ -50,7 +51,7 @@ class PlainLyrics extends HookConsumerWidget {
             if (isModal != true) ...[
               Center(
                 child: Text(
-                  playlist.activeTrack?.name ?? "",
+                  activeTrack?.name ?? "",
                   style: mediaQuery.mdAndUp
                       ? typography.h3
                       : typography.h4.copyWith(
@@ -62,7 +63,7 @@ class PlainLyrics extends HookConsumerWidget {
               ),
               Center(
                 child: Text(
-                  playlist.activeTrack?.artists.asString() ?? "",
+                  activeTrack?.artists.asString() ?? "",
                   style: (mediaQuery.mdAndUp ? typography.h4 : typography.large)
                       .copyWith(
                     color: hasArtwork
@@ -131,7 +132,7 @@ class PlainLyrics extends HookConsumerWidget {
                                     : 2,
                           ),
                           child: SelectableText(
-                            lyrics == null && playlist.activeTrack == null
+                            lyrics == null && activeTrack == null
                                 ? context.l10n.no_tracks_playing
                                 : lyrics ?? "",
                             textAlign: TextAlign.center,

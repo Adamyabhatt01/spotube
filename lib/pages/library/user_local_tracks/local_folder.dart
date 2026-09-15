@@ -29,6 +29,7 @@ import 'package:spotube/components/track_tile/track_tile.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/provider/local_tracks/local_tracks_provider.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/state.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/utils/service_utils.dart';
 import 'package:auto_route/auto_route.dart';
@@ -105,13 +106,18 @@ class LocalLibraryPage extends HookConsumerWidget {
     final scale = context.theme.scaling;
 
     final sortBy = useState<SortBy>(SortBy.none);
-    final playlist = ref.watch(audioPlayerProvider);
+    // Perf: queue-membership + highlight only.
+    final queueTracks =
+        ref.watch(audioPlayerProvider.select((s) => s.tracks));
+    final activeTrackId =
+        ref.watch(audioPlayerProvider.select((s) => s.activeTrack?.id));
     final trackSnapshot = ref.watch(localTracksProvider);
     final isPlaylistPlaying = useMemoized(
-      () => playlist.containsTracks(
+      () => AudioPlayerState.listContainsTracks(
+        queueTracks,
         trackSnapshot.asData?.value[location] ?? [],
       ),
-      [playlist, trackSnapshot, location],
+      [queueTracks, trackSnapshot, location],
     );
 
     final searchController = useShadcnTextEditingController();
@@ -446,19 +452,21 @@ class LocalLibraryPage extends HookConsumerWidget {
                                       ? 5
                                       : filteredTracks.length,
                                   itemBuilder: (context, index) {
-                                    if (trackSnapshot.isLoading) {
-                                      return TrackTile(
-                                        playlist: playlist,
-                                        track: FakeData.track,
-                                        index: index,
-                                      );
-                                    }
+                                      if (trackSnapshot.isLoading) {
+                                        return TrackTile(
+                                          isPlaying: activeTrackId ==
+                                              FakeData.track.id,
+                                          track: FakeData.track,
+                                          index: index,
+                                        );
+                                      }
 
-                                    final track = filteredTracks[index];
-                                    return TrackTile(
-                                      index: index,
-                                      playlist: playlist,
-                                      track: track,
+                                      final track = filteredTracks[index];
+                                      return TrackTile(
+                                        index: index,
+                                        isPlaying:
+                                            activeTrackId == track.id,
+                                        track: track,
                                       userPlaylist: false,
                                       onTap: () async {
                                         await playLocalTracks(
@@ -486,7 +494,8 @@ class LocalLibraryPage extends HookConsumerWidget {
                         itemBuilder: (context, index) => TrackTile(
                           track: FakeData.track,
                           index: index,
-                          playlist: playlist,
+                          isPlaying:
+                              activeTrackId == FakeData.track.id,
                         ),
                       ),
                     ),

@@ -37,10 +37,15 @@ class TrackPage extends HookConsumerWidget {
     final ThemeData(:typography, :colorScheme) = Theme.of(context);
     final mediaQuery = MediaQuery.of(context);
 
-    final playlist = ref.watch(audioPlayerProvider);
+    // Perf: active highlight + queue-membership only — not
+    // playing/loop/shuffle toggles.
+    final activeTrackId =
+        ref.watch(audioPlayerProvider.select((s) => s.activeTrack?.id));
+    final queueTracks =
+        ref.watch(audioPlayerProvider.select((s) => s.tracks));
     final playlistNotifier = ref.watch(audioPlayerProvider.notifier);
 
-    final isActive = playlist.activeTrack?.id == trackId;
+    final isActive = activeTrackId == trackId;
 
     final trackQuery = ref.watch(metadataPluginTrackProvider(trackId));
 
@@ -179,7 +184,7 @@ class TrackPage extends HookConsumerWidget {
                                     children: [
                                       const Gap(5),
                                       if (!isActive &&
-                                          !playlist.tracks
+                                          !queueTracks
                                               .containsBy(track, (t) => t.id))
                                         Button.outline(
                                           leading:
@@ -191,7 +196,7 @@ class TrackPage extends HookConsumerWidget {
                                         ),
                                       const Gap(5),
                                       if (!isActive &&
-                                          !playlist.tracks
+                                          !queueTracks
                                               .containsBy(track, (t) => t.id))
                                         Tooltip(
                                           tooltip: TooltipContainer(

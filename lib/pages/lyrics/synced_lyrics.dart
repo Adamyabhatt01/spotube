@@ -41,19 +41,20 @@ class SyncedLyrics extends HookConsumerWidget {
     final mediaQuery = MediaQuery.sizeOf(context);
     final theme = Theme.of(context);
 
-    final playlist = ref.watch(audioPlayerProvider);
+    final activeTrack =
+        ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
 
     final controller = useAutoScrollController();
 
     final delay = ref.watch(syncedLyricsDelayProvider);
 
     final timedLyricsQuery =
-        ref.watch(syncedLyricsProvider(playlist.activeTrack));
+        ref.watch(syncedLyricsProvider(activeTrack));
 
     final lyricValue = timedLyricsQuery.asData?.value;
 
     final lyricsState = ref.watch(
-      syncedLyricsMapProvider(playlist.activeTrack),
+      syncedLyricsMapProvider(activeTrack),
     );
     final currentTime =
         useSyncedLyrics(ref, lyricsState.asData?.value.lyricsMap ?? {}, delay);
@@ -117,13 +118,13 @@ class SyncedLyrics extends HookConsumerWidget {
                 backgroundColor: Colors.transparent,
                 centerTitle: true,
                 title: Text(
-                  playlist.activeTrack?.name ?? context.l10n.not_playing,
+                  activeTrack?.name ?? context.l10n.not_playing,
                   style: headlineTextStyle,
                 ),
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(40),
                   child: Text(
-                    playlist.activeTrack?.artists.asString() ?? "",
+                    activeTrack?.artists.asString() ?? "",
                     style:
                         mediaQuery.mdAndUp ? typography.h4 : typography.x2Large,
                   ),
@@ -199,10 +200,10 @@ class SyncedLyrics extends HookConsumerWidget {
                   );
                 },
               ),
-            if (playlist.activeTrack != null &&
+            if (activeTrack != null &&
                 (timedLyricsQuery.isLoading || timedLyricsQuery.isRefreshing))
               const SliverToBoxAdapter(child: ShimmerLyrics())
-            else if (playlist.activeTrack != null &&
+            else if (activeTrack != null &&
                 (timedLyricsQuery.hasError)) ...[
               SliverToBoxAdapter(
                 child: Container(
