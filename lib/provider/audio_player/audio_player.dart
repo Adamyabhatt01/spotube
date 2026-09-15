@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:collection/collection.dart';
 import 'package:drift/drift.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
@@ -44,6 +43,53 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       tracks is SpotubeFullTrackObject || tracks is SpotubeLocalTrackObject,
       'Track must be either SpotubeFullTrackObject or SpotubeLocalTrackObject',
     );
+  }
+
+  /// Backend seam for playlist mutation. media_kit exposes only single
+  /// add/insert/remove calls (no bulk API), so bulk methods must loop —
+  /// but through these methods, which tests override with a recording
+  /// fake to verify call counts, order and backend/state consistency.
+  /// Production implementations delegate straight to [audioPlayer].
+  Future<void> addMediaToBackend(SpotubeMedia media) =>
+      audioPlayer.addTrack(media);
+
+  Future<void> insertMediaIntoBackend(SpotubeMedia media, int index) =>
+      audioPlayer.addTrackAt(media, index);
+
+  Future<void> removeMediaFromBackend(int index) =>
+      audioPlayer.removeTrack(index);
+
+  int get backendCurrentIndex => audioPlayer.currentIndex;
+
+  /// Depth of in-progress bulk native-queue mutations. While > 0, the
+  /// playlistStream listener skips its state+DB sync: the native queue is
+  /// transiently inconsistent mid-loop, and each event would otherwise
+  /// trigger a rebuild plus a Drift write per track (N+1 writes and
+  /// flicker for an N-track bulk op). Bulk methods perform exactly one
+  /// final sync via [_persistQueueState].
+  int _bulkMutationDepth = 0;
+
+  /// Single persistence point for queue/index changes: one Drift
+  /// transaction per logical mutation. The index is read back from the
+  /// backend (native truth — e.g. removals ahead of the cursor shift it)
+  /// and clamped, so a track ending mid-bulk cannot leave a stale index.
+  Future<void> _persistQueueState() async {
+    final database = ref.read(databaseProvider);
+    final nativeIndex = backendCurrentIndex;
+    final clamped = state.tracks.isEmpty
+        ? 0
+        : nativeIndex.clamp(0, state.tracks.length - 1);
+    if (state.currentIndex != clamped) {
+      state = state.copyWith(currentIndex: clamped);
+    }
+    await database.transaction(() async {
+      await _updatePlayerState(
+        AudioPlayerStateTableCompanion(
+          tracks: Value(state.tracks),
+          currentIndex: Value(state.currentIndex),
+        ),
+      );
+    });
   }
 
   Future<void> _syncSavedState() async {
@@ -161,6 +207,10 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       }),
       audioPlayer.playlistStream.listen((playlist) async {
         try {
+          // Skipped inside bulk mutations (see [_bulkMutationDepth]): the
+          // native queue is mid-loop and each event would otherwise cause
+          // a rebuild + DB write per track. Bulk methods sync once after.
+          if (_bulkMutationDepth > 0) return;
           final tracks =
               playlist.medias.map((e) => SpotubeMedia.media(e).track).toList();
 
@@ -255,26 +305,27 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
               !state.tracks.any((element) => _compareTracks(element, track)),
         )
         .toList();
+    if (addableTracks.isEmpty) return;
 
     state = state.copyWith(
       tracks: [...addableTracks, ...state.tracks],
     );
 
-    for (int i = 0; i < addableTracks.length; i++) {
-      final track = addableTracks.elementAt(i);
+    _bulkMutationDepth++;
+    try {
+      for (int i = 0; i < addableTracks.length; i++) {
+        final track = addableTracks.elementAt(i);
 
-      await audioPlayer.addTrackAt(
-        SpotubeMedia(track),
-        max(state.currentIndex, 0) + i + 1,
-      );
+        await insertMediaIntoBackend(
+          SpotubeMedia(track),
+          max(state.currentIndex, 0) + i + 1,
+        );
+      }
+    } finally {
+      _bulkMutationDepth--;
     }
 
-    await _updatePlayerState(
-      AudioPlayerStateTableCompanion(
-        tracks: Value(state.tracks),
-        currentIndex: Value(max(state.currentIndex, 0)),
-      ),
-    );
+    await _persistQueueState();
   }
 
   Future<void> addTrack(SpotubeTrackObject track) async {
@@ -300,21 +351,25 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   Future<void> addTracks(Iterable<SpotubeTrackObject> tracks) async {
     _assertAllowedTracks(tracks);
 
-    tracks = _blacklist.filter(tracks).toList();
+    // Note: unlike addTrack/addTracksAtFirst, duplicates are intentionally
+    // allowed here (long-standing behavior); only the blacklist filters.
+    final addableTracks = _blacklist.filter(tracks).toList();
+    if (addableTracks.isEmpty) return;
+
     state = state.copyWith(
-      tracks: [...state.tracks, ...tracks],
+      tracks: [...state.tracks, ...addableTracks],
     );
 
-    for (final track in tracks) {
-      await audioPlayer.addTrack(SpotubeMedia(track));
+    _bulkMutationDepth++;
+    try {
+      for (final track in addableTracks) {
+        await addMediaToBackend(SpotubeMedia(track));
+      }
+    } finally {
+      _bulkMutationDepth--;
     }
 
-    await _updatePlayerState(
-      AudioPlayerStateTableCompanion(
-        tracks: Value(state.tracks),
-        currentIndex: Value(max(state.currentIndex, 0)),
-      ),
-    );
+    await _persistQueueState();
   }
 
   Future<void> removeTrack(String trackId) async {
@@ -337,28 +392,33 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   }
 
   Future<void> removeTracks(Iterable<String> trackIds) async {
-    final trackIndexes = state.tracks
-        .where((element) => trackIds.any((trackId) => trackId == element.id))
-        .mapIndexed((index, element) => index);
+    final ids = trackIds.toSet();
+    if (ids.isEmpty) return;
 
-    final tracks = state.tracks.where(
-      (element) => !trackIds.contains(element.id),
-    );
+    // Indexes are computed against the FULL pre-mutation queue (the old
+    // code indexed the filtered subset, removing the wrong native tracks)
+    // and applied highest-first so earlier removals never shift later ones.
+    final indexesToRemove = state.tracks.indexed
+        .where((entry) => ids.contains(entry.$2.id))
+        .map((entry) => entry.$1)
+        .toList()
+      ..sort((a, b) => b.compareTo(a));
+    if (indexesToRemove.isEmpty) return;
 
     state = state.copyWith(
-      tracks: tracks.toList(),
+      tracks: state.tracks.where((element) => !ids.contains(element.id)).toList(),
     );
 
-    for (final index in trackIndexes) {
-      await audioPlayer.removeTrack(index);
+    _bulkMutationDepth++;
+    try {
+      for (final index in indexesToRemove) {
+        await removeMediaFromBackend(index);
+      }
+    } finally {
+      _bulkMutationDepth--;
     }
 
-    await _updatePlayerState(
-      AudioPlayerStateTableCompanion(
-        tracks: Value(state.tracks),
-        currentIndex: Value(max(state.currentIndex, 0)),
-      ),
-    );
+    await _persistQueueState();
   }
 
   bool _compareTracks(SpotubeTrackObject a, SpotubeTrackObject b) {
