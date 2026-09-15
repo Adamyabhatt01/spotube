@@ -107,7 +107,13 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
 
     final subscription = database.pluginsTable.select().watch().listen(
       (event) async {
-        state = AsyncValue.data(await toStatePlugins(event));
+        try {
+          state = AsyncValue.data(await toStatePlugins(event));
+        } catch (e, stack) {
+          // Keep serving the last good state; the failure is reported,
+          // never silent.
+          AppLogger.reportError(e, stack);
+        }
       },
     );
 
@@ -464,7 +470,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
   Future<void> removePlugin(PluginConfiguration plugin) async {
     final pluginExtractionDir = await _getPluginExtractionDir(plugin);
 
-    if (pluginExtractionDir.existsSync()) {
+    if (await pluginExtractionDir.exists()) {
       await pluginExtractionDir.delete(recursive: true);
     }
     await database.pluginsTable.deleteWhere((tbl) =>
@@ -630,7 +636,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
 
     final libraryFile = File(join(pluginExtractionDirPath.path, "plugin.out"));
 
-    if (!libraryFile.existsSync()) {
+    if (!await libraryFile.exists()) {
       throw MetadataPluginException.pluginByteCodeFileNotFound();
     }
 
@@ -642,7 +648,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
 
     final logoFile = File(join(pluginExtractionDirPath.path, "logo.png"));
 
-    if (!logoFile.existsSync()) {
+    if (!await logoFile.exists()) {
       return null;
     }
 
@@ -745,7 +751,7 @@ final themeDefinitionProvider = FutureProvider<ThemeDefinition?>(
       // supplies the palette; everything else stays plugin-owned.
       // NOTE: ref.read (not watch) is required here — this runs after
       // awaits. Reactivity comes from shellThemeSignalProvider above.
-      final resolved = resolveThemeDefinition(
+      final resolved = await resolveThemeDefinition(
         definition,
         readShellTheme: () => ref.read(themeShellSourceProvider).getTheme(),
       );

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -16,14 +18,35 @@ import 'package:open_file/open_file.dart';
 
 typedef UserPreferences = PreferencesTableData;
 
+/// Initialization status of [userPreferencesProvider]. The provider keeps
+/// its sync API, but this companion makes the load outcome explicit so
+/// pre-load defaults are never mistaken for loaded state: `AsyncLoading`
+/// while [UserPreferencesNotifier.loadPreferences] runs, `AsyncData` when
+/// the row is live, `AsyncError` when loading failed (degraded — the app
+/// stays usable on defaults, and the error is reported, never silent).
+final userPreferencesStatusProvider =
+    StateProvider<AsyncValue<void>>((_) => const AsyncLoading());
+
 class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
   @override
   build() {
-    final db = ref.watch(databaseProvider);
+    ref.watch(databaseProvider);
+    unawaited(loadPreferences());
+    return PreferencesTable.defaults();
+  }
 
-    (db.select(db.preferencesTable)..where((tbl) => tbl.id.equals(0)))
-        .getSingleOrNull()
-        .then((result) async {
+  /// Loads (or seeds) the preferences row and subscribes to updates.
+  /// Public so tests can drive the real init path against a stub
+  /// database. Failures are reported and published as degraded status
+  /// instead of leaving permanent silent defaults.
+  Future<void> loadPreferences() async {
+    final status = ref.read(userPreferencesStatusProvider.notifier);
+    try {
+      final db = ref.read(databaseProvider);
+
+      var result = await (db.select(db.preferencesTable)
+            ..where((tbl) => tbl.id.equals(0)))
+          .getSingleOrNull();
       if (result == null) {
         await db.into(db.preferencesTable).insert(
               PreferencesTableCompanion.insert(
@@ -31,11 +54,12 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
                 downloadLocation: Value(await _getDefaultDownloadDirectory()),
               ),
             );
+        result = await (db.select(db.preferencesTable)
+              ..where((tbl) => tbl.id.equals(0)))
+            .getSingle();
       }
 
-      state = await (db.select(db.preferencesTable)
-            ..where((tbl) => tbl.id.equals(0)))
-          .getSingle();
+      state = result;
 
       final subscription = (db.select(db.preferencesTable)
             ..where((tbl) => tbl.id.equals(0)))
@@ -61,9 +85,16 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
       ref.onDispose(() {
         subscription.cancel();
       });
-    });
 
-    return PreferencesTable.defaults();
+      status.state = const AsyncData(null);
+    } catch (e, stack) {
+      AppLogger.reportError(e, stack);
+      try {
+        status.state = AsyncError(e, stack);
+      } catch (_) {
+        // Provider already disposed; the report above is the record.
+      }
+    }
   }
 
   Future<String> _getDefaultDownloadDirectory() async {

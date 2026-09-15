@@ -20,7 +20,8 @@ abstract class ThemeShellSource {
   /// Returns null when the shell has no theme state to offer. The
   /// caller (eventually `themeDefinitionProvider`) fills shell-owned
   /// pieces of the plugin's declarative [ThemeDefinition] from this.
-  ThemeDefinition? getTheme();
+  /// Async: shell state lives on disk and must not block the event loop.
+  Future<ThemeDefinition?> getTheme();
 
   /// Opaque key identifying current shell theme state for cache
   /// validation (e.g. a scheme file mtime). Null means "no signal":
@@ -58,13 +59,13 @@ ThemeDefinition mergeShellPalette({
 /// shell lookup). When the plugin declares `dynamic.source == shell`,
 /// the shell palette is merged in; an unavailable shell falls back to
 /// the plugin definition.
-ThemeDefinition? resolveThemeDefinition(
+Future<ThemeDefinition?> resolveThemeDefinition(
   ThemeDefinition? plugin, {
-  required ThemeDefinition? Function() readShellTheme,
-}) {
+  required Future<ThemeDefinition?> Function() readShellTheme,
+}) async {
   if (plugin == null) return null;
   if (plugin.dynamicTheme?.source != DynamicThemeSource.shell) return plugin;
-  final shell = readShellTheme();
+  final shell = await readShellTheme();
   if (shell == null) return plugin;
   return mergeShellPalette(plugin: plugin, shell: shell);
 }

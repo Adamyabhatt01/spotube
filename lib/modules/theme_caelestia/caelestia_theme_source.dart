@@ -13,6 +13,9 @@ import 'package:spotube/utils/built_in_theme_colors.dart';
 /// mode-aware: the active side gets Caelestia colors, the opposite side
 /// gets Spotube's built-in palette. Missing or malformed state yields
 /// null rather than a partially valid theme.
+///
+/// Async by design: file content is read off the event loop instead of
+/// blocking it during theme resolution (startup / shell-change path).
 class CaelestiaThemeSource {
   /// Override for tests. Defaults to [caelestiaStateDir].
   final String? stateDir;
@@ -21,13 +24,13 @@ class CaelestiaThemeSource {
 
   static final _hexPattern = RegExp(r'^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$');
 
-  ThemeDefinition? getTheme() {
+  Future<ThemeDefinition?> getTheme() async {
     try {
       final stateDir = caelestiaStateDir(this.stateDir);
       if (stateDir == null) return null;
-      final raw = File(
+      final raw = await File(
         p.join(stateDir, 'scheme.json'),
-      ).readAsStringSync();
+      ).readAsString();
       final json = jsonDecode(raw);
       if (json is! Map<String, dynamic>) return null;
 

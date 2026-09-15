@@ -71,9 +71,9 @@ class SplashPrefs {
   static Future<SplashPrefs> load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      String? validPath(String? path) {
+      Future<String?> validPath(String? path) async {
         if (path == null) return null;
-        return File(path).existsSync() ? path : null;
+        return await File(path).exists() ? path : null;
       }
 
       return SplashPrefs(
@@ -82,8 +82,9 @@ class SplashPrefs {
           milliseconds: prefs.getInt('$_prefix.durationMs') ?? 900,
         ),
         useThemedBackground: prefs.getBool('$_prefix.themedBackground') ?? true,
-        logoPath: validPath(prefs.getString('$_prefix.logoPath')),
-        backgroundPath: validPath(prefs.getString('$_prefix.backgroundPath')),
+        logoPath: await validPath(prefs.getString('$_prefix.logoPath')),
+        backgroundPath:
+            await validPath(prefs.getString('$_prefix.backgroundPath')),
       );
     } catch (_) {
       return const SplashPrefs();

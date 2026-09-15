@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:drift/drift.dart';
@@ -14,6 +15,14 @@ import 'package:spotube/provider/server/sourced_track_provider.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/utils/debounced_writer.dart';
+
+/// Initialization status of [audioPlayerProvider]'s saved-state restore.
+/// `AsyncLoading` while [AudioPlayerNotifier.syncSavedState] runs,
+/// `AsyncData` once the queue is restored (or confirmed empty),
+/// `AsyncError` when restore failed (degraded — playback starts with an
+/// empty queue instead of crashing; the error is reported, never silent).
+final audioPlayerInitStatusProvider =
+    StateProvider<AsyncValue<void>>((_) => const AsyncLoading());
 
 class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   BlackListNotifier get _blacklist => ref.read(blacklistProvider.notifier);
@@ -92,58 +101,75 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     });
   }
 
-  Future<void> _syncSavedState() async {
-    final database = ref.read(databaseProvider);
+  /// Restores the persisted queue/index into state and the backend.
+  /// Public so tests can drive the real restore path against a stub
+  /// database. A failed restore marks degraded status and leaves an
+  /// empty, usable queue instead of failing the provider build.
+  Future<void> syncSavedState() async {
+    final status = ref.read(audioPlayerInitStatusProvider.notifier);
+    try {
+      final database = ref.read(databaseProvider);
 
-    var playerState =
-        await database.select(database.audioPlayerStateTable).getSingleOrNull();
+      var playerState = await database
+          .select(database.audioPlayerStateTable)
+          .getSingleOrNull();
 
-    if (playerState == null) {
-      await database.into(database.audioPlayerStateTable).insert(
-            AudioPlayerStateTableCompanion.insert(
-              playing: audioPlayer.isPlaying,
-              loopMode: audioPlayer.loopMode,
-              shuffled: audioPlayer.isShuffled,
-              collections: <String>[],
-              tracks: const Value(<SpotubeTrackObject>[]),
-              currentIndex: const Value(0),
-              id: const Value(0),
-            ),
-          );
+      if (playerState == null) {
+        await database.into(database.audioPlayerStateTable).insert(
+              AudioPlayerStateTableCompanion.insert(
+                playing: audioPlayer.isPlaying,
+                loopMode: audioPlayer.loopMode,
+                shuffled: audioPlayer.isShuffled,
+                collections: <String>[],
+                tracks: const Value(<SpotubeTrackObject>[]),
+                currentIndex: const Value(0),
+                id: const Value(0),
+              ),
+            );
 
-      playerState =
-          await database.select(database.audioPlayerStateTable).getSingle();
-    } else {
-      await audioPlayer.setLoopMode(playerState.loopMode);
-      await audioPlayer.setShuffle(playerState.shuffled);
-    }
+        playerState =
+            await database.select(database.audioPlayerStateTable).getSingle();
+      } else {
+        await audioPlayer.setLoopMode(playerState.loopMode);
+        await audioPlayer.setShuffle(playerState.shuffled);
+      }
 
-    final tracks = playerState.tracks;
-    final currentIndex = playerState.currentIndex;
+      final tracks = playerState.tracks;
+      final currentIndex = playerState.currentIndex;
 
-    if (tracks.isEmpty && state.tracks.isNotEmpty) {
-      await _updatePlayerState(
-        AudioPlayerStateTableCompanion(
-          tracks: Value(state.tracks),
-          currentIndex: Value(currentIndex),
-        ),
-      );
-    } else if (tracks.isNotEmpty) {
-      state = state.copyWith(
-        tracks: tracks,
-        currentIndex: currentIndex,
-      );
-      await audioPlayer.openPlaylist(
-        tracks.asMediaList(),
-        initialIndex: currentIndex,
-        autoPlay: false,
-      );
-    }
+      if (tracks.isEmpty && state.tracks.isNotEmpty) {
+        await _updatePlayerState(
+          AudioPlayerStateTableCompanion(
+            tracks: Value(state.tracks),
+            currentIndex: Value(currentIndex),
+          ),
+        );
+      } else if (tracks.isNotEmpty) {
+        state = state.copyWith(
+          tracks: tracks,
+          currentIndex: currentIndex,
+        );
+        await audioPlayer.openPlaylist(
+          tracks.asMediaList(),
+          initialIndex: currentIndex,
+          autoPlay: false,
+        );
+      }
 
-    if (playerState.collections.isNotEmpty) {
-      state = state.copyWith(
-        collections: playerState.collections,
-      );
+      if (playerState.collections.isNotEmpty) {
+        state = state.copyWith(
+          collections: playerState.collections,
+        );
+      }
+
+      status.state = const AsyncData(null);
+    } catch (e, stack) {
+      AppLogger.reportError(e, stack);
+      try {
+        status.state = AsyncError(e, stack);
+      } catch (_) {
+        // Provider already disposed; the report above is the record.
+      }
     }
   }
 
@@ -231,7 +257,9 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       }),
     ];
 
-    _syncSavedState();
+    // Fire-and-forget by design (see syncSavedState docs): restore must
+    // not block provider creation, and failures degrade explicitly.
+    unawaited(syncSavedState());
 
     ref.onDispose(() {
       for (final subscription in subscriptions) {
