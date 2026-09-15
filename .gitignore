@@ -65,6 +65,11 @@ installer.exe
 
 /choco-struct/tools/*.exe
 
+# Stale l10n output (pre-generated-dir era). The live generated copy in
+# lib/l10n/generated/ (see l10n.yaml output-dir) stays tracked.
+# `*` does not cross `/`, so this cannot match generated/.
+lib/l10n/app_localizations*.dart
+
 # secrets
 *.env
 lib/collections/env.g.dart

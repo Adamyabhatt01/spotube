@@ -59,10 +59,11 @@ Btw it's not just another Electron app 😉
 sudo apt-get install mpv libmpv-dev libappindicator3-1 gir1.2-appindicator3-0.1 libappindicator3-dev libsecret-1-0 libjsoncpp25 libsecret-1-dev libjsoncpp-dev libnotify-bin libnotify-dev avahi-daemon avahi-discover avahi-utils libnss-mdns mdns-scan libwebkit2gtk-4.1-0 libwebkit2gtk-4.1-dev libsoup-3.0-0 libsoup-3.0-dev
 #    Arch: yay -S mpv libappindicator-gtk3 libsecret jsoncpp libnotify avahi nss-mdns mdns-scan webkit2gtk-4.1 libsoup3
 
-# 2. Clone + environment
+# 2. Clone + environment (.env.example holds $PLACEHOLDERS, so generate — don't copy)
 git clone https://github.com/Adamyabhatt01/spotube.git
 cd spotube
-cp .env.example .env   # fill in keys (Last.fm etc.) — flags are 0/1
+ENABLE_UPDATE_CHECK=1 LASTFM_API_KEY=xxx LASTFM_API_SECRET=xxx RELEASE_CHANNEL=nightly HIDE_DONATIONS=0 \
+  envsubst < .env.example > .env   # fill in real keys later; flags are 0/1
 
 # 3. Install + codegen
 fvm flutter pub get
