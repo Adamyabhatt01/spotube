@@ -169,8 +169,6 @@ Future<void> main(List<String> rawArgs) async {
 
     HttpOverrides.global = BadCertificateAllowlistOverrides();
 
-    // await registerWindowsScheme("spotify");
-
     tz.initializeTimeZones();
 
     FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
@@ -278,8 +276,7 @@ class Spotube extends HookConsumerWidget {
     // state, so it would be dead code. (Tray's fire-and-forget
     // `SystemTrayManager.initialize()` is a separate latent issue, out of
     // 1A scope — see tray_manager.dart.)
-    void logAsyncError(Object e, StackTrace st) =>
-        AppLogger.reportError(e, st);
+    void logAsyncError(Object e, StackTrace st) => AppLogger.reportError(e, st);
 
     ref.listen(audioPlayerStreamListenersProvider, (_, __) {});
     ref.listen(

@@ -8,44 +8,53 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:spotube/services/sourced_track/validation.dart';
 
 void main() {
-  test('concurrency cap: 8 candidates peak at 4 simultaneous', () async {
-    var inFlight = 0;
-    var maxObserved = 0;
+  test('concurrency cap: 8 candidates peak at 4 simultaneous', () {
+    fakeAsync((async) {
+      var inFlight = 0;
+      var maxObserved = 0;
 
-    final result = await filterValidBounded(
-      List.generate(8, (i) => i),
-      (candidate) async {
-        inFlight++;
-        maxObserved = max(maxObserved, inFlight);
-        await Future<void>.delayed(const Duration(milliseconds: 30));
-        inFlight--;
-        return 200;
-      },
-    );
+      List<int>? result;
+      filterValidBounded(
+        List.generate(8, (i) => i),
+        (candidate) async {
+          inFlight++;
+          maxObserved = max(maxObserved, inFlight);
+          await Future<void>.delayed(const Duration(milliseconds: 30));
+          inFlight--;
+          return 200;
+        },
+      ).then((value) => result = value);
+      async.elapse(const Duration(seconds: 5));
 
-    expect(result, List.generate(8, (i) => i));
-    expect(maxObserved, lessThanOrEqualTo(4));
-    expect(maxObserved, greaterThan(1));
+      expect(result, List.generate(8, (i) => i));
+      expect(maxObserved, lessThanOrEqualTo(4));
+      expect(maxObserved, greaterThan(1));
+    });
   });
 
-  test('order preserved when candidates complete out of order', () async {
-    final result = await filterValidBounded(
-      List.generate(6, (i) => 'candidate-$i'),
-      (candidate) async {
-        final index = int.parse(candidate.split('-').last);
-        // Later candidates finish first.
-        await Future<void>.delayed(
-          Duration(milliseconds: 10 * (6 - index)),
-        );
-        return 200;
-      },
-    );
+  test('order preserved when candidates complete out of order', () {
+    fakeAsync((async) {
+      List<String>? result;
+      filterValidBounded(
+        List.generate(6, (i) => 'candidate-$i'),
+        (candidate) async {
+          final index = int.parse(candidate.split('-').last);
+          // Later candidates finish first.
+          await Future<void>.delayed(
+            Duration(milliseconds: 10 * (6 - index)),
+          );
+          return 200;
+        },
+      ).then((value) => result = value);
+      async.elapse(const Duration(seconds: 5));
 
-    expect(result, List.generate(6, (i) => 'candidate-$i'));
+      expect(result, List.generate(6, (i) => 'candidate-$i'));
+    });
   });
 
   test('all-valid matches serial result', () async {
@@ -68,41 +77,39 @@ void main() {
     expect(result, ['c0', 'c2', 'c4']);
   });
 
-  test('throw aborts without partial results', () async {
-    Object? caught;
-    try {
-      await filterValidBounded(
+  test('throw aborts without partial results', () {
+    fakeAsync((async) {
+      Object? caught;
+      filterValidBounded(
         ['ok-1', 'boom', 'ok-2'],
         (candidate) async {
           await Future<void>.delayed(const Duration(milliseconds: 10));
           if (candidate == 'boom') throw StateError('sick mirror');
           return 200;
         },
-      );
-    } catch (e) {
-      caught = e;
-    }
+      ).then<void>((_) {}, onError: (Object e) {
+        caught = e;
+      });
+      async.elapse(const Duration(seconds: 5));
 
-    expect(caught, isStateError);
+      expect(caught, isStateError);
+    });
   });
 
-  test('hung candidate terminates at the timeout ceiling', () async {
-    final stopwatch = Stopwatch()..start();
-    Object? caught;
-    try {
-      await filterValidBounded(
+  test('hung candidate terminates at the timeout ceiling', () {
+    fakeAsync((async) {
+      Object? caught;
+      filterValidBounded(
         ['hung'],
         (_) => Completer<int?>().future,
         timeout: const Duration(milliseconds: 100),
-      );
-    } catch (e) {
-      caught = e;
-    } finally {
-      stopwatch.stop();
-    }
+      ).then<void>((_) {}, onError: (Object e) {
+        caught = e;
+      });
+      async.elapse(const Duration(milliseconds: 100));
 
-    expect(caught, isA<TimeoutException>());
-    expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
+      expect(caught, isA<TimeoutException>());
+    });
   });
 
   test('empty and all-invalid inputs preserve existing behavior', () async {
@@ -119,21 +126,24 @@ void main() {
     );
   });
 
-  test('latency is wave-bound, not serial', () async {
-    const perRequest = Duration(milliseconds: 100);
-    final stopwatch = Stopwatch()..start();
-    final result = await filterValidBounded(
-      List.generate(8, (i) => i),
-      (_) async {
-        await Future<void>.delayed(perRequest);
-        return 200;
-      },
-    );
-    stopwatch.stop();
+  test('latency is wave-bound, not serial', () {
+    fakeAsync((async) {
+      const perRequest = Duration(milliseconds: 100);
+      List<int>? result;
+      filterValidBounded(
+        List.generate(8, (i) => i),
+        (_) async {
+          await Future<void>.delayed(perRequest);
+          return 200;
+        },
+      ).then((value) => result = value);
 
-    expect(result, hasLength(8));
-    // Serial would take ~800ms; 2 waves of 4 take ~200ms. Generous ceiling
-    // keeps this robust on loaded CI while still refuting serial behavior.
-    expect(stopwatch.elapsed, lessThan(const Duration(milliseconds: 700)));
+      // Two waves of 4 complete at exactly t=200ms; serial would need
+      // 800ms. Virtual time makes this exact instead of ceiling-based.
+      async.elapse(const Duration(milliseconds: 199));
+      expect(result, isNull);
+      async.elapse(const Duration(milliseconds: 1));
+      expect(result, hasLength(8));
+    });
   });
 }

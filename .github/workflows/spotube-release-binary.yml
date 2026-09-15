@@ -21,7 +21,9 @@ on:
 
 env:
   FLUTTER_VERSION: 3.35.2
-  FLUTTER_CHANNEL: master
+  # Stable matches local FVM (.fvmrc) and PR CI; master previously caused
+  # channel skew against the pinned stable version.
+  FLUTTER_CHANNEL: stable
 
 permissions:
   contents: write

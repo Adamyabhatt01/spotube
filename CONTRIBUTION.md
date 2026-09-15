@@ -120,6 +120,10 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/KRTirt
 Do the following:
 
 - Install [Dart](https://dart.dev/get-dart) and [fvm](https://fvm.app/documentation/getting-started/installation)
+- Install the pinned Flutter SDK (see `.fvmrc`, currently 3.35.2):
+  ```bash
+  fvm install
+  ```
 - Install Development dependencies in linux
   - Debian (>=12/Bookworm)/Ubuntu
     ```bash
@@ -143,6 +147,11 @@ Do the following:
 - Now run the following to bootstrap the project
   ```bash
   fvm flutter pub get && fvm dart run build_runner build --delete-conflicting-outputs
+  ```
+- Verify with analysis and tests before submitting:
+  ```bash
+  fvm dart analyze
+  fvm flutter test
   ```
 - Finally run these following commands in the root of the project to start the Spotube Locally
   ```bash

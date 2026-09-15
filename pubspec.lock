@@ -173,7 +173,7 @@ packages:
     dependency: "direct overridden"
     description:
       path: "packages/bonsoir_android"
-      ref: HEAD
+      ref: aa5604628ba41e3a7153769f4465a3d375488f2e
       resolved-ref: aa5604628ba41e3a7153769f4465a3d375488f2e
       url: "https://github.com/KRTirtho/Bonsoir.git"
     source: git
@@ -502,7 +502,7 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/desktop_webview_window"
-      ref: HEAD
+      ref: f261ff20e310d05713249b21c199a9fe17a3de6f
       resolved-ref: f261ff20e310d05713249b21c199a9fe17a3de6f
       url: "https://github.com/KRTirtho/flutter-plugins.git"
     source: git
@@ -543,7 +543,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
+      ref: aa77a61946849fff495091fc13dcc390948cc60b
       resolved-ref: aa77a61946849fff495091fc13dcc390948cc60b
       url: "https://github.com/KRTirtho/Disable-Battery-Optimizations.git"
     source: git
@@ -630,7 +630,7 @@ packages:
     source: hosted
     version: "0.2.5+2"
   fake_async:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: fake_async
       sha256: "5368f224a74523e8d2e7399ea1638b37aecfca824a3cc4dfdf77bf1fa905ac44"
@@ -742,10 +742,10 @@ packages:
     source: hosted
     version: "1.1.1"
   fk_user_agent:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       path: "."
-      ref: HEAD
+      ref: "458046cd9a88924e5074d96ba45397219d53b230"
       resolved-ref: "458046cd9a88924e5074d96ba45397219d53b230"
       url: "https://github.com/maeltoukap/fk_user_agent.git"
     source: git
@@ -946,7 +946,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: HEAD
+      ref: "41cbd821ce49b9343136f67d83d3117e582dad75"
       resolved-ref: "41cbd821ce49b9343136f67d83d3117e582dad75"
       url: "https://github.com/KRTirtho/flutter_new_pipe_extractor"
     source: git
@@ -1171,7 +1171,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: main
+      ref: "7790606751828758769596e809ba6cbb756f9b9a"
       resolved-ref: "7790606751828758769596e809ba6cbb756f9b9a"
       url: "https://github.com/hetu-community/hetu_otp_util.git"
     source: git
@@ -1188,7 +1188,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: main
+      ref: d85dd429241d464a8b5b0c2b3d870143eeba8b46
       resolved-ref: d85dd429241d464a8b5b0c2b3d870143eeba8b46
       url: "https://github.com/KRTirtho/hetu_spotube_plugin.git"
     source: git
@@ -1197,7 +1197,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: main
+      ref: "401fde426339cf8f1e00dee22cc95f64c3e60053"
       resolved-ref: "401fde426339cf8f1e00dee22cc95f64c3e60053"
       url: "https://github.com/hetu-community/hetu_std.git"
     source: git
@@ -2018,7 +2018,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: dart-3-support
+      ref: d90cb75d71737f3cfa2de4469d48080c0f3eedc2
       resolved-ref: d90cb75d71737f3cfa2de4469d48080c0f3eedc2
       url: "https://github.com/KRTirtho/scrobblenaut.git"
     source: git
