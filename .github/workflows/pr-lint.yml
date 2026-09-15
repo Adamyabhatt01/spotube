@@ -45,12 +45,10 @@ jobs:
           flutter gen-l10n
           git diff --exit-code -- lib/l10n/generated untranslated_messages.json
 
-      # TODO(PR3 migration hardening): re-add drift guard
-      #   dart run drift_dev make-migrations
-      #   git diff --exit-code -- drift_schemas lib/models/database test/drift
-      # Currently omitted: test/drift snapshots are stale vs the model
-      # (accent_color_scheme default Orange vs Slate) and make-migrations
-      # needs a full local run to regenerate them first.
+      - name: Verify drift migrations are current
+        run: |
+          dart run drift_dev make-migrations
+          git diff --exit-code -- drift_schemas lib/models/database test/drift
 
   test:
     runs-on: ubuntu-latest
@@ -77,10 +75,6 @@ jobs:
           flutter pub get
           dart run build_runner build --delete-conflicting-outputs
 
-      # TODO(PR3 migration hardening): run the full suite including
-      # test/drift once snapshots are regenerated (currently stale:
-      # accent_color_scheme default Orange vs Slate, 45 pre-existing
-      # migration_test failures on master).
       - name: Run tests
         run: |
-          flutter test --coverage $(git ls-files 'test/*_test.dart' | grep -v 'test/drift/')
+          flutter test --coverage
