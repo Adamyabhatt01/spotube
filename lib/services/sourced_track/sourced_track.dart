@@ -15,6 +15,7 @@ import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 
 import 'package:spotube/services/sourced_track/exceptions.dart';
+import 'package:spotube/services/sourced_track/validation.dart';
 import 'package:spotube/utils/service_utils.dart';
 
 final officialMusicRegex = RegExp(
@@ -262,21 +263,37 @@ class SourcedTrack extends BasicSourcedTrack {
     List<SpotubeAudioSourceStreamObject> validStreams = [];
 
     final stringBuffer = StringBuffer();
-    for (final source in sources) {
-      final res = await globalDio.head(
-        source.url,
-        options:
-            Options(validateStatus: (status) => status != null && status < 500),
-      );
 
-      stringBuffer.writeln(
-        "[${query.id}] ${res.statusCode} ${source.container} ${source.codec} ${source.bitrate}",
-      );
+    // Phase 2 perf (2.4): validate candidates in bounded concurrent waves
+    // (max 4 in flight) instead of one HEAD at a time. Order-preserving and
+    // abort-on-throw, matching the old serial loop; per-request timeouts
+    // bound hangs that previously stalled the whole sequence indefinitely.
+    final validSources = await filterValidBounded(
+      sources,
+      (source) async {
+        final res = await globalDio.head(
+          source.url,
+          options: Options(
+            validateStatus: (status) =>
+                status != null && status < 500,
+            // Abort the socket itself on stall. Note: Dio 5 only allows
+            // connectTimeout on BaseOptions, so the connect phase is bounded
+            // by the helper-level timeout in filterValidBounded; this
+            // receiveTimeout aborts the underlying request (30s matches the
+            // plugin-download precedent).
+            receiveTimeout: const Duration(seconds: 30),
+          ),
+        );
+        return res.statusCode;
+      },
+      onValidated: (source, statusCode) {
+        stringBuffer.writeln(
+          "[${query.id}] $statusCode ${source.container} ${source.codec} ${source.bitrate}",
+        );
+      },
+    );
 
-      if (res.statusCode! < 400) {
-        validStreams.add(source);
-      }
-    }
+    validStreams = validSources;
 
     AppLogger.log.d(stringBuffer.toString());
 

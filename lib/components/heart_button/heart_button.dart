@@ -1,5 +1,6 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 
 import 'package:spotube/components/heart_button/use_track_toggle_like.dart';
 import 'package:spotube/extensions/context.dart';
@@ -55,7 +56,8 @@ class HeartButton extends HookConsumerWidget {
                     ? Icons.favorite_rounded
                     : Icons.favorite_outline_rounded),
             key: ValueKey(isLiked),
-            color: color ?? (isLiked ? color ?? Colors.red : null),
+            color: color ??
+                (isLiked ? context.theme.colorScheme.destructive : null),
           ),
         ),
         onPressed: onPressed,

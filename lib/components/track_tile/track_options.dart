@@ -143,9 +143,9 @@ class TrackOptions extends HookConsumerWidget {
               onTapItem?.call();
             },
             leading: isLiked
-                ? const Icon(
+                ? Icon(
                     SpotubeIcons.heartFilled,
-                    color: Colors.pink,
+                    color: context.theme.colorScheme.destructive,
                   )
                 : const Icon(SpotubeIcons.heart),
             title: Text(
@@ -238,14 +238,18 @@ class TrackOptions extends HookConsumerWidget {
             },
             leading: Icon(
               SpotubeIcons.playlistRemove,
-              color: isBlacklisted != true ? Colors.red[400] : null,
+              color: isBlacklisted != true
+                  ? context.theme.colorScheme.destructive
+                  : null,
             ),
             title: Text(
               isBlacklisted == true
                   ? context.l10n.remove_from_blacklist
                   : context.l10n.add_to_blacklist,
               style: TextStyle(
-                color: isBlacklisted != true ? Colors.red[400] : null,
+                color: isBlacklisted != true
+                    ? context.theme.colorScheme.destructive
+                    : null,
               ),
             ),
           ),

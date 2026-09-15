@@ -1,5 +1,6 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/links/artist_link.dart';
 import 'package:spotube/components/links/hyper_link.dart';
@@ -27,7 +28,7 @@ class TrackDetailsDialog extends HookConsumerWidget {
       context.l10n.artist: ArtistLink(
         artists: track.artists,
         mainAxisAlignment: WrapAlignment.start,
-        textStyle: const TextStyle(color: Colors.blue),
+        textStyle: TextStyle(color: context.theme.colorScheme.primary),
         hideOverflowArtist: false,
       ),
       // context.l10n.album: LinkText(

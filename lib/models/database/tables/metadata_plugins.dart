@@ -13,6 +13,8 @@ class PluginsTable extends Table {
       boolean().withDefault(const Constant(false))();
   BoolColumn get selectedForAudioSource =>
       boolean().withDefault(const Constant(false))();
+  BoolColumn get selectedForTheme =>
+      boolean().withDefault(const Constant(false))();
   TextColumn get repository => text().nullable()();
   TextColumn get pluginApiVersion =>
       text().withDefault(const Constant('2.0.0'))();

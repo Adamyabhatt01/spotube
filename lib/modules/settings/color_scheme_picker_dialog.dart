@@ -26,18 +26,18 @@ class SpotubeColor extends Color {
 }
 
 final Set<SpotubeColor> colorsMap = {
-  SpotubeColor(Colors.slate.value, name: "slate"),
-  SpotubeColor(Colors.gray.value, name: "gray"),
-  SpotubeColor(Colors.zinc.value, name: "zinc"),
-  SpotubeColor(Colors.neutral.value, name: "neutral"),
-  SpotubeColor(Colors.stone.value, name: "stone"),
-  SpotubeColor(Colors.red.value, name: "red"),
-  SpotubeColor(Colors.orange.value, name: "orange"),
-  SpotubeColor(Colors.yellow.value, name: "yellow"),
-  SpotubeColor(Colors.green.value, name: "green"),
-  SpotubeColor(Colors.blue.value, name: "blue"),
-  SpotubeColor(Colors.violet.value, name: "violet"),
-  SpotubeColor(Colors.rose.value, name: "rose"),
+  SpotubeColor(Colors.slate.toARGB32(), name: "slate"),
+  SpotubeColor(Colors.gray.toARGB32(), name: "gray"),
+  SpotubeColor(Colors.zinc.toARGB32(), name: "zinc"),
+  SpotubeColor(Colors.neutral.toARGB32(), name: "neutral"),
+  SpotubeColor(Colors.stone.toARGB32(), name: "stone"),
+  SpotubeColor(Colors.red.toARGB32(), name: "red"),
+  SpotubeColor(Colors.orange.toARGB32(), name: "orange"),
+  SpotubeColor(Colors.yellow.toARGB32(), name: "yellow"),
+  SpotubeColor(Colors.green.toARGB32(), name: "green"),
+  SpotubeColor(Colors.blue.toARGB32(), name: "blue"),
+  SpotubeColor(Colors.violet.toARGB32(), name: "violet"),
+  SpotubeColor(Colors.rose.toARGB32(), name: "rose"),
 };
 
 final colorSchemeMap = {

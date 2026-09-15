@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:url_launcher/url_launcher_string.dart';
@@ -30,7 +31,7 @@ class LinkOpenPermissionDialog extends StatelessWidget {
               if (href != null)
                 TextSpan(
                   text: "$href\n\n",
-                  style: const TextStyle(color: Colors.blue),
+                  style: TextStyle(color: context.theme.colorScheme.primary),
                 ),
               TextSpan(text: context.l10n.unsafe_url_warning),
             ],

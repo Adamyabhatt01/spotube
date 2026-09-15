@@ -434,6 +434,49 @@ class AppLocalizationsKo extends AppLocalizations {
   String get accent_color => '보조색';
 
   @override
+  String get splash => 'Splash Screen';
+
+  @override
+  String get splash_animation => 'Animation';
+
+  @override
+  String get splash_animation_none => 'None';
+
+  @override
+  String get splash_animation_fade => 'Fade';
+
+  @override
+  String get splash_animation_scale => 'Scale';
+
+  @override
+  String get splash_animation_slide => 'Slide';
+
+  @override
+  String get splash_duration => 'Duration';
+
+  @override
+  String get splash_themed_background => 'Themed background';
+
+  @override
+  String get splash_themed_background_description =>
+      'Use the active theme color behind the logo';
+
+  @override
+  String get splash_custom_logo => 'Custom logo';
+
+  @override
+  String get splash_custom_background => 'Custom background';
+
+  @override
+  String get splash_no_custom_file => 'Default';
+
+  @override
+  String get splash_pick_image => 'Pick image';
+
+  @override
+  String get splash_clear => 'Clear';
+
+  @override
   String get sync_album_color => '앨범 색상';
 
   @override
@@ -1437,6 +1480,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get set_default_audio_source => '기본 오디오 소스 설정';
+
+  @override
+  String get default_theme => 'Default theme';
+
+  @override
+  String get set_default_theme => 'Set default theme';
 
   @override
   String get set_default => '기본값으로 설정';

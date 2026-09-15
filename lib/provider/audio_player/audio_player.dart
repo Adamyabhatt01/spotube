@@ -14,9 +14,20 @@ import 'package:spotube/provider/discord_provider.dart';
 import 'package:spotube/provider/server/sourced_track_provider.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
+import 'package:spotube/utils/debounced_writer.dart';
 
 class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   BlackListNotifier get _blacklist => ref.read(blacklistProvider.notifier);
+
+  /// Phase 2 perf: collapses flap-prone flag persistence (playing/loop/
+  /// shuffle — e.g. buffering toggles playing false->true per stall) into a
+  /// single trailing-edge write. UI `state` still updates synchronously at
+  /// each event; only the Drift UPDATE is deferred. Queue/index writes stay
+  /// immediate for resume accuracy. Flushed on dispose (see [build]).
+  late final _flagPersistDebouncer = DebouncedWriter(
+    const Duration(milliseconds: 400),
+    (e, stack) => AppLogger.reportError(e, stack),
+  );
 
   void _assertAllowedTracks(Iterable<SpotubeTrackObject> tracks) {
     assert(
@@ -107,9 +118,11 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
         try {
           state = state.copyWith(playing: playing);
 
-          await _updatePlayerState(
-            AudioPlayerStateTableCompanion(
-              playing: Value(playing),
+          _flagPersistDebouncer(
+            () => _updatePlayerState(
+              AudioPlayerStateTableCompanion(
+                playing: Value(playing),
+              ),
             ),
           );
         } catch (e, stack) {
@@ -120,9 +133,11 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
         try {
           state = state.copyWith(loopMode: loopMode);
 
-          await _updatePlayerState(
-            AudioPlayerStateTableCompanion(
-              loopMode: Value(loopMode),
+          _flagPersistDebouncer(
+            () => _updatePlayerState(
+              AudioPlayerStateTableCompanion(
+                loopMode: Value(loopMode),
+              ),
             ),
           );
         } catch (e, stack) {
@@ -133,9 +148,11 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
         try {
           state = state.copyWith(shuffled: shuffled);
 
-          await _updatePlayerState(
-            AudioPlayerStateTableCompanion(
-              shuffled: Value(shuffled),
+          _flagPersistDebouncer(
+            () => _updatePlayerState(
+              AudioPlayerStateTableCompanion(
+                shuffled: Value(shuffled),
+              ),
             ),
           );
         } catch (e, stack) {
@@ -170,6 +187,10 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       for (final subscription in subscriptions) {
         subscription.cancel();
       }
+      // Persist the latest debounced flag value. Dispose is synchronous so
+      // this is fire-and-forget; failures route to AppLogger via the
+      // debouncer's onError instead of the zone.
+      _flagPersistDebouncer.flush();
     });
 
     return AudioPlayerState(

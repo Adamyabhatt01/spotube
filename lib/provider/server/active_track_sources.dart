@@ -8,36 +8,45 @@ final activeTrackSourcesProvider = FutureProvider<
     ({
       SourcedTrack? source,
       SourcedTrackNotifier? notifier,
-      SpotubeTrackObject track,
-    })?>((ref) async {
-  final audioPlayerState = ref.watch(audioPlayerProvider);
+    SpotubeTrackObject track,
+  })?>((ref) async {
+  // Phase 2 perf (W.2): only activeTrack is consumed here. Selecting it
+  // avoids rebuilding on playing/loop/shuffle/queue edits that leave the
+  // active track unchanged. See test/player_active_track_select_test.dart.
+  final activeTrack =
+      ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
 
-  if (audioPlayerState.activeTrack == null) {
+  if (activeTrack == null) {
     return null;
   }
 
-  if (audioPlayerState.activeTrack is SpotubeLocalTrackObject) {
+  if (activeTrack is SpotubeLocalTrackObject) {
     return (
       source: null,
       notifier: null,
-      track: audioPlayerState.activeTrack!,
+      track: activeTrack,
     );
   }
 
   final sourcedTrack = await ref.watch(
     sourcedTrackProvider(
-      audioPlayerState.activeTrack! as SpotubeFullTrackObject,
+      // ignore: unnecessary_cast — removal is a compile error
+      // (argument_type_not_assignable); the analyzer mis-fires here because
+      // SpotubeTrackObject is a freezed union and promotion does not narrow
+      // past the local-track early return above.
+      activeTrack as SpotubeFullTrackObject,
     ).future,
   );
   final sourcedTrackNotifier = ref.watch(
     sourcedTrackProvider(
-      audioPlayerState.activeTrack! as SpotubeFullTrackObject,
+      // ignore: unnecessary_cast — see above.
+      activeTrack as SpotubeFullTrackObject,
     ).notifier,
   );
 
   return (
     source: sourcedTrack,
-    track: audioPlayerState.activeTrack!,
+    track: activeTrack,
     notifier: sourcedTrackNotifier,
   );
 });

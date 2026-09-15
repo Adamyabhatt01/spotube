@@ -77,8 +77,12 @@ class TrackTile extends HookConsumerWidget {
     final isSelected = isPlaying || isLoading.value;
 
     final imageProvider = useMemoized(
+      // Phase 2 perf (IMG.2): decode at 2x the 40x40 display size instead of
+      // full resolution. Sizes are literals so the memo key stays stable.
       () => UniversalImage.imageProvider(
         (track.album.images).smallest(ImagePlaceholder.albumArt),
+        height: 80,
+        width: 80,
       ),
       [track.album.images],
     );

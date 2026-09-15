@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
@@ -10,6 +10,8 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/theme_background/theme_definition_cache.dart';
+import 'package:spotube/modules/theme_background/theme_shell_source.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/youtube_engine/youtube_engine.dart';
 import 'package:spotube/services/dio/dio.dart';
@@ -28,11 +30,13 @@ class MetadataPluginState {
   final List<PluginConfiguration> plugins;
   final int defaultMetadataPlugin;
   final int defaultAudioSourcePlugin;
+  final int defaultThemePlugin;
 
   const MetadataPluginState({
     this.plugins = const [],
     this.defaultMetadataPlugin = -1,
     this.defaultAudioSourcePlugin = -1,
+    this.defaultThemePlugin = -1,
   });
 
   PluginConfiguration? get defaultMetadataPluginConfig {
@@ -50,6 +54,13 @@ class MetadataPluginState {
     return plugins[defaultAudioSourcePlugin];
   }
 
+  PluginConfiguration? get defaultThemePluginConfig {
+    if (defaultThemePlugin < 0 || defaultThemePlugin >= plugins.length) {
+      return null;
+    }
+    return plugins[defaultThemePlugin];
+  }
+
   factory MetadataPluginState.fromJson(Map<String, dynamic> json) {
     return MetadataPluginState(
       plugins: (json["plugins"] as List<dynamic>)
@@ -57,6 +68,7 @@ class MetadataPluginState {
           .toList(),
       defaultMetadataPlugin: json["default_metadata_plugin"] ?? -1,
       defaultAudioSourcePlugin: json['default_audio_source_plugin'],
+      defaultThemePlugin: json["default_theme_plugin"] ?? -1,
     );
   }
 
@@ -64,7 +76,8 @@ class MetadataPluginState {
     return {
       "plugins": plugins.map((e) => e.toJson()).toList(),
       "default_metadata_plugin": defaultMetadataPlugin,
-      "default_audio_source_plugin": defaultAudioSourcePlugin
+      "default_audio_source_plugin": defaultAudioSourcePlugin,
+      "default_theme_plugin": defaultThemePlugin,
     };
   }
 
@@ -72,6 +85,7 @@ class MetadataPluginState {
     List<PluginConfiguration>? plugins,
     int? defaultMetadataPlugin,
     int? defaultAudioSourcePlugin,
+    int? defaultThemePlugin,
   }) {
     return MetadataPluginState(
       plugins: plugins ?? this.plugins,
@@ -79,6 +93,7 @@ class MetadataPluginState {
           defaultMetadataPlugin ?? this.defaultMetadataPlugin,
       defaultAudioSourcePlugin:
           defaultAudioSourcePlugin ?? this.defaultAudioSourcePlugin,
+      defaultThemePlugin: defaultThemePlugin ?? this.defaultThemePlugin,
     );
   }
 }
@@ -114,6 +129,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
   ) async {
     int defaultMetadataPlugin = -1;
     int defaultAudioSourcePlugin = -1;
+    int defaultThemePlugin = -1;
     final pluginConfigs = <PluginConfiguration>[];
 
     for (int i = 0; i < plugins.length; i++) {
@@ -167,12 +183,16 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
       if (plugin.selectedForAudioSource) {
         defaultAudioSourcePlugin = pluginConfigs.length - 1;
       }
+      if (plugin.selectedForTheme) {
+        defaultThemePlugin = pluginConfigs.length - 1;
+      }
     }
 
     return MetadataPluginState(
       plugins: pluginConfigs,
       defaultMetadataPlugin: defaultMetadataPlugin,
       defaultAudioSourcePlugin: defaultAudioSourcePlugin,
+      defaultThemePlugin: defaultThemePlugin,
     );
   }
 
@@ -200,6 +220,8 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
               oldConfig == pluginState.defaultMetadataPluginConfig;
           final isDefaultAudioSource =
               oldConfig == pluginState.defaultAudioSourcePluginConfig;
+          final isDefaultTheme =
+              oldConfig == pluginState.defaultThemePluginConfig;
 
           await removePlugin(pluginConfig);
           await addPlugin(pluginConfig);
@@ -209,6 +231,9 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
           }
           if (isDefaultAudioSource) {
             await setDefaultAudioSourcePlugin(pluginConfig);
+          }
+          if (isDefaultTheme) {
+            await setDefaultThemePlugin(pluginConfig);
           }
         }
       }
@@ -445,6 +470,13 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     await database.pluginsTable.deleteWhere((tbl) =>
         tbl.name.equals(plugin.name) & tbl.author.equals(plugin.author));
 
+    // The removed plugin can no longer seed the startup cache. Clear
+    // before the promotion blocks below: a promoted replacement
+    // re-records its own identity via setDefaultThemePlugin.
+    if (state.valueOrNull?.defaultThemePluginConfig == plugin) {
+      await writeThemePluginKey(null);
+    }
+
     // Same here, if the removed plugin is the default plugin
     // set the first available plugin as the default plugin
     // only when there is 1 remaining plugin
@@ -468,6 +500,16 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
           [];
       if (remainingPlugins.length == 1) {
         await setDefaultAudioSourcePlugin(remainingPlugins.first);
+      }
+    }
+
+    if (state.valueOrNull?.defaultThemePluginConfig == plugin) {
+      final remainingPlugins = state.valueOrNull?.plugins.where(
+            (p) => p != plugin && p.abilities.contains(PluginAbilities.theme),
+          ) ??
+          [];
+      if (remainingPlugins.length == 1) {
+        await setDefaultThemePlugin(remainingPlugins.first);
       }
     }
   }
@@ -556,6 +598,33 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     );
   }
 
+  Future<void> setDefaultThemePlugin(PluginConfiguration plugin) async {
+    assert(
+      plugin.abilities.contains(PluginAbilities.theme),
+      'Plugin does not have the theme ability',
+    );
+
+    await database.pluginsTable.update().write(
+          const PluginsTableCompanion(
+            selectedForTheme: Value(false),
+          ),
+        );
+
+    await (database.pluginsTable.update()
+          ..where(
+            (tbl) =>
+                tbl.name.equals(plugin.name) & tbl.author.equals(plugin.author),
+          ))
+        .write(
+      const PluginsTableCompanion(
+        selectedForTheme: Value(true),
+      ),
+    );
+
+    // Identity for the startup theme cache (DB-free validation).
+    await writeThemePluginKey(themePluginKey(plugin));
+  }
+
   Future<Uint8List> getPluginByteCode(PluginConfiguration plugin) async {
     final pluginExtractionDirPath = await _getPluginExtractionDir(plugin);
 
@@ -578,6 +647,14 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     }
 
     return logoFile;
+  }
+
+  /// Re-evaluates the active theme (e.g. after shell scheme changes).
+  ///
+  /// Manual v1 refresh path alongside the automatic file-watch signals:
+  /// `themeDefinitionProvider` recomputes, `ThemeData` rebuilds.
+  void refreshThemeDefinition() {
+    ref.invalidate(themeDefinitionProvider);
   }
 }
 
@@ -631,5 +708,63 @@ final audioSourcePluginProvider = FutureProvider<MetadataPlugin?>(
       defaultPlugin,
       pluginByteCode,
     );
+  },
+);
+
+final themeDefinitionProvider = FutureProvider<ThemeDefinition?>(
+  (ref) async {
+    try {
+      // Recomputes when the shell reports a possible palette change.
+      // Unconditional by design: shell involvement is only known after
+      // the plugin theme loads, and scheme changes are rare.
+      ref.watch(shellThemeSignalProvider);
+
+      final defaultPlugin = await ref.watch(
+        metadataPluginsProvider
+            .selectAsync((data) => data.defaultThemePluginConfig),
+      );
+
+      if (defaultPlugin == null) return null;
+
+      final pluginsNotifier = ref.read(metadataPluginsProvider.notifier);
+      final pluginByteCode =
+          await pluginsNotifier.getPluginByteCode(defaultPlugin);
+
+      final youtubeEngine = ref.read(youtubeEngineProvider);
+
+      final plugin = await MetadataPlugin.create(
+        youtubeEngine,
+        defaultPlugin,
+        pluginByteCode,
+      );
+
+      final definition = await plugin.theme.getTheme();
+
+      // Generic shell handoff: no shell names or paths here. When the
+      // plugin declares `dynamic.source == shell`, the host shell source
+      // supplies the palette; everything else stays plugin-owned.
+      // NOTE: ref.read (not watch) is required here — this runs after
+      // awaits. Reactivity comes from shellThemeSignalProvider above.
+      final resolved = resolveThemeDefinition(
+        definition,
+        readShellTheme: () => ref.read(themeShellSourceProvider).getTheme(),
+      );
+
+      // Cache only successful resolutions for instant warm startup.
+      // Null (failure) outcomes never touch the cache.
+      if (resolved != null) {
+        unawaited(
+          writeThemeCache(
+            pluginKey: themePluginKey(defaultPlugin),
+            shellKey: ref.read(themeShellSourceProvider).cacheKey,
+            definition: resolved,
+          ),
+        );
+      }
+      return resolved;
+    } catch (e, stackTrace) {
+      AppLogger.reportError(e, stackTrace, 'themeDefinitionProvider');
+      return null;
+    }
   },
 );

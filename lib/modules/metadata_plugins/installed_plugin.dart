@@ -16,17 +16,20 @@ import 'package:url_launcher/url_launcher.dart';
 final validAbilities = {
   PluginAbilities.metadata: ("Metadata", SpotubeIcons.album),
   PluginAbilities.audioSource: ("Audio Source", SpotubeIcons.music),
+  PluginAbilities.theme: ("Theme", SpotubeIcons.palette),
 };
 
 class MetadataInstalledPluginItem extends HookConsumerWidget {
   final PluginConfiguration plugin;
   final bool isDefaultMetadata;
   final bool isDefaultAudioSource;
+  final bool isDefaultTheme;
   const MetadataInstalledPluginItem({
     super.key,
     required this.plugin,
     required this.isDefaultMetadata,
     required this.isDefaultAudioSource,
+    this.isDefaultTheme = false,
   });
 
   @override
@@ -180,9 +183,9 @@ class MetadataInstalledPluginItem extends HookConsumerWidget {
                   onPressed: () async {
                     await pluginsNotifier.removePlugin(plugin);
                   },
-                  icon: const Icon(
+                  icon: Icon(
                     SpotubeIcons.trash,
-                    color: Colors.red,
+                    color: context.theme.colorScheme.destructive,
                   ),
                 ),
               );
@@ -276,6 +279,18 @@ class MetadataInstalledPluginItem extends HookConsumerWidget {
                         isDefaultAudioSource
                             ? context.l10n.default_audio_source
                             : context.l10n.set_default_audio_source,
+                      ),
+                    ),
+                  if (plugin.abilities.contains(PluginAbilities.theme))
+                    Button.secondary(
+                      enabled: !isDefaultTheme,
+                      onPressed: () async {
+                        await pluginsNotifier.setDefaultThemePlugin(plugin);
+                      },
+                      child: Text(
+                        isDefaultTheme
+                            ? context.l10n.default_theme
+                            : context.l10n.set_default_theme,
                       ),
                     ),
                 ],

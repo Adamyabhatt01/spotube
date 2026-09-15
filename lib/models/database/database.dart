@@ -65,8 +65,15 @@ part 'typeconverters/subtitle.dart';
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
+  /// Test-only constructor: uses the supplied executor instead of the real
+  /// on-disk database (Phase 3.1). Lets drift migration tests run against
+  /// the connection handed out by the SchemaVerifier instead of touching
+  /// the user's db.sqlite. Production code must keep using [AppDatabase.new].
+  @visibleForTesting
+  AppDatabase.forTesting(super.executor);
+
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration {
@@ -225,16 +232,87 @@ class AppDatabase extends _$AppDatabase {
           await m
               .dropColumn(schema.preferencesTable, "invidious_instance")
               .catchError((e, stack) => AppLogger.reportError(e, stack));
+          // Phase 3.2 (item 2): complete the 9->10 preferences transition
+          // started in 99a84aa6. audioSourceId was added to the model without
+          // a migration step (nullable: no backfill concerns). The four
+          // audio-quality/codec columns were removed from the model in the
+          // same commit ("move away from track source query and preferences
+          // audio quality and codec") and are genuinely obsolete: no code
+          // references them (analyzer-clean), so dropping is safe cleanup
+          // required for schema parity.
+          await m
+              .addColumn(
+                schema.preferencesTable,
+                preferencesTable.audioSourceId,
+              )
+              .catchError((e, stack) => AppLogger.reportError(e, stack));
+          for (final obsoleteColumn in const [
+            "audio_quality",
+            "audio_source",
+            "stream_music_codec",
+            "download_music_codec",
+          ]) {
+            await m
+                .dropColumn(schema.preferencesTable, obsoleteColumn)
+                .catchError((e, stack) => AppLogger.reportError(e, stack));
+          }
           await m
               .addColumn(
                 schema.sourceMatchTable,
                 sourceMatchTable.sourceInfo,
               )
               .catchError((e, stack) => AppLogger.reportError(e, stack));
+          // Phase 3.2 (item 1): backfill sourceInfo for pre-v10 cached rows.
+          // Historical rows store either {"info": {...}, "sources": [...]}
+          // JSON (DAB era) or a raw video id (invidious era) in source_id.
+          // Only the former can be losslessly upgraded: the embedded info
+          // object is validated and re-encoded in the current shape, so the
+          // cache-hit path can read the migrated row. Anything else is
+          // deleted — source_match is a pure performance cache, so a dropped
+          // row degrades to a cache miss (fresh search, self-healing) while
+          // a '{}' row crashes deserialization (proven in
+          // test/drift/app_db/source_match_migration_proof_test.dart).
+          // Per-row failures invalidate just that row; structural failures
+          // keep the pre-existing behavior below.
+          try {
+            final rows = await customSelect(
+              'SELECT id, source_id FROM source_match_table',
+            ).get();
+            for (final row in rows) {
+              final id = row.read<int>('id');
+              try {
+                final decoded = jsonDecode(row.read<String>('source_id'));
+                final info = (decoded as Map<String, dynamic>)['info']
+                    as Map<String, dynamic>;
+                final match = SpotubeAudioSourceMatchObject.fromJson(
+                  Map<String, dynamic>.from(info),
+                );
+                await customStatement(
+                  'UPDATE source_match_table SET source_info = ? WHERE id = ?',
+                  [jsonEncode(match.toJson()), id],
+                );
+              } catch (_) {
+                await customStatement(
+                  'DELETE FROM source_match_table WHERE id = ?',
+                  [id],
+                );
+              }
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+          }
           await customStatement("DROP INDEX IF EXISTS uniq_track_match;")
               .catchError((e, stack) => AppLogger.reportError(e, stack));
           await m
               .dropColumn(schema.sourceMatchTable, "source_id")
+              .catchError((e, stack) => AppLogger.reportError(e, stack));
+        },
+        from10To11: (m, schema) async {
+          await m
+              .addColumn(
+                schema.pluginsTable,
+                schema.pluginsTable.selectedForTheme,
+              )
               .catchError((e, stack) => AppLogger.reportError(e, stack));
         },
       ),

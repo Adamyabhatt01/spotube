@@ -6772,3 +6772,1674 @@ abstract class _MetadataPluginRepository implements MetadataPluginRepository {
   _$$MetadataPluginRepositoryImplCopyWith<_$MetadataPluginRepositoryImpl>
       get copyWith => throw _privateConstructorUsedError;
 }
+
+ThemeDefinition _$ThemeDefinitionFromJson(Map<String, dynamic> json) {
+  return _ThemeDefinition.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ThemeDefinition {
+  ThemeColors get light => throw _privateConstructorUsedError;
+  ThemeColors get dark => throw _privateConstructorUsedError;
+  ThemeSurfaces get surfaces => throw _privateConstructorUsedError;
+  ThemeBackground get background => throw _privateConstructorUsedError;
+  ThemeRadius get radius => throw _privateConstructorUsedError;
+  double get density => throw _privateConstructorUsedError;
+  @JsonKey(name: 'dynamic')
+  DynamicTheme? get dynamicTheme => throw _privateConstructorUsedError;
+
+  /// Serializes this ThemeDefinition to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ThemeDefinition
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ThemeDefinitionCopyWith<ThemeDefinition> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ThemeDefinitionCopyWith<$Res> {
+  factory $ThemeDefinitionCopyWith(
+          ThemeDefinition value, $Res Function(ThemeDefinition) then) =
+      _$ThemeDefinitionCopyWithImpl<$Res, ThemeDefinition>;
+  @useResult
+  $Res call(
+      {ThemeColors light,
+      ThemeColors dark,
+      ThemeSurfaces surfaces,
+      ThemeBackground background,
+      ThemeRadius radius,
+      double density,
+      @JsonKey(name: 'dynamic') DynamicTheme? dynamicTheme});
+
+  $ThemeColorsCopyWith<$Res> get light;
+  $ThemeColorsCopyWith<$Res> get dark;
+  $ThemeSurfacesCopyWith<$Res> get surfaces;
+  $ThemeBackgroundCopyWith<$Res> get background;
+  $ThemeRadiusCopyWith<$Res> get radius;
+  $DynamicThemeCopyWith<$Res>? get dynamicTheme;
+}
+
+/// @nodoc
+class _$ThemeDefinitionCopyWithImpl<$Res, $Val extends ThemeDefinition>
+    implements $ThemeDefinitionCopyWith<$Res> {
+  _$ThemeDefinitionCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ThemeDefinition
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? light = null,
+    Object? dark = null,
+    Object? surfaces = null,
+    Object? background = null,
+    Object? radius = null,
+    Object? density = null,
+    Object? dynamicTheme = freezed,
+  }) {
+    return _then(_value.copyWith(
+      light: null == light
+          ? _value.light
+          : light // ignore: cast_nullable_to_non_nullable
+              as ThemeColors,
+      dark: null == dark
+          ? _value.dark
+          : dark // ignore: cast_nullable_to_non_nullable
+              as ThemeColors,
+      surfaces: null == surfaces
+          ? _value.surfaces
+          : surfaces // ignore: cast_nullable_to_non_nullable
+              as ThemeSurfaces,
+      background: null == background
+          ? _value.background
+          : background // ignore: cast_nullable_to_non_nullable
+              as ThemeBackground,
+      radius: null == radius
+          ? _value.radius
+          : radius // ignore: cast_nullable_to_non_nullable
+              as ThemeRadius,
+      density: null == density
+          ? _value.density
+          : density // ignore: cast_nullable_to_non_nullable
+              as double,
+      dynamicTheme: freezed == dynamicTheme
+          ? _value.dynamicTheme
+          : dynamicTheme // ignore: cast_nullable_to_non_nullable
+              as DynamicTheme?,
+    ) as $Val);
+  }
+
+  /// Create a copy of ThemeDefinition
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ThemeColorsCopyWith<$Res> get light {
+    return $ThemeColorsCopyWith<$Res>(_value.light, (value) {
+      return _then(_value.copyWith(light: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ThemeDefinition
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ThemeColorsCopyWith<$Res> get dark {
+    return $ThemeColorsCopyWith<$Res>(_value.dark, (value) {
+      return _then(_value.copyWith(dark: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ThemeDefinition
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ThemeSurfacesCopyWith<$Res> get surfaces {
+    return $ThemeSurfacesCopyWith<$Res>(_value.surfaces, (value) {
+      return _then(_value.copyWith(surfaces: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ThemeDefinition
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ThemeBackgroundCopyWith<$Res> get background {
+    return $ThemeBackgroundCopyWith<$Res>(_value.background, (value) {
+      return _then(_value.copyWith(background: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ThemeDefinition
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ThemeRadiusCopyWith<$Res> get radius {
+    return $ThemeRadiusCopyWith<$Res>(_value.radius, (value) {
+      return _then(_value.copyWith(radius: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ThemeDefinition
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $DynamicThemeCopyWith<$Res>? get dynamicTheme {
+    if (_value.dynamicTheme == null) {
+      return null;
+    }
+
+    return $DynamicThemeCopyWith<$Res>(_value.dynamicTheme!, (value) {
+      return _then(_value.copyWith(dynamicTheme: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$ThemeDefinitionImplCopyWith<$Res>
+    implements $ThemeDefinitionCopyWith<$Res> {
+  factory _$$ThemeDefinitionImplCopyWith(_$ThemeDefinitionImpl value,
+          $Res Function(_$ThemeDefinitionImpl) then) =
+      __$$ThemeDefinitionImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {ThemeColors light,
+      ThemeColors dark,
+      ThemeSurfaces surfaces,
+      ThemeBackground background,
+      ThemeRadius radius,
+      double density,
+      @JsonKey(name: 'dynamic') DynamicTheme? dynamicTheme});
+
+  @override
+  $ThemeColorsCopyWith<$Res> get light;
+  @override
+  $ThemeColorsCopyWith<$Res> get dark;
+  @override
+  $ThemeSurfacesCopyWith<$Res> get surfaces;
+  @override
+  $ThemeBackgroundCopyWith<$Res> get background;
+  @override
+  $ThemeRadiusCopyWith<$Res> get radius;
+  @override
+  $DynamicThemeCopyWith<$Res>? get dynamicTheme;
+}
+
+/// @nodoc
+class __$$ThemeDefinitionImplCopyWithImpl<$Res>
+    extends _$ThemeDefinitionCopyWithImpl<$Res, _$ThemeDefinitionImpl>
+    implements _$$ThemeDefinitionImplCopyWith<$Res> {
+  __$$ThemeDefinitionImplCopyWithImpl(
+      _$ThemeDefinitionImpl _value, $Res Function(_$ThemeDefinitionImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ThemeDefinition
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? light = null,
+    Object? dark = null,
+    Object? surfaces = null,
+    Object? background = null,
+    Object? radius = null,
+    Object? density = null,
+    Object? dynamicTheme = freezed,
+  }) {
+    return _then(_$ThemeDefinitionImpl(
+      light: null == light
+          ? _value.light
+          : light // ignore: cast_nullable_to_non_nullable
+              as ThemeColors,
+      dark: null == dark
+          ? _value.dark
+          : dark // ignore: cast_nullable_to_non_nullable
+              as ThemeColors,
+      surfaces: null == surfaces
+          ? _value.surfaces
+          : surfaces // ignore: cast_nullable_to_non_nullable
+              as ThemeSurfaces,
+      background: null == background
+          ? _value.background
+          : background // ignore: cast_nullable_to_non_nullable
+              as ThemeBackground,
+      radius: null == radius
+          ? _value.radius
+          : radius // ignore: cast_nullable_to_non_nullable
+              as ThemeRadius,
+      density: null == density
+          ? _value.density
+          : density // ignore: cast_nullable_to_non_nullable
+              as double,
+      dynamicTheme: freezed == dynamicTheme
+          ? _value.dynamicTheme
+          : dynamicTheme // ignore: cast_nullable_to_non_nullable
+              as DynamicTheme?,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ThemeDefinitionImpl implements _ThemeDefinition {
+  const _$ThemeDefinitionImpl(
+      {required this.light,
+      required this.dark,
+      this.surfaces = const ThemeSurfaces(),
+      this.background = const ThemeBackground(),
+      this.radius = const ThemeRadius(),
+      this.density = 1.0,
+      @JsonKey(name: 'dynamic') this.dynamicTheme});
+
+  factory _$ThemeDefinitionImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ThemeDefinitionImplFromJson(json);
+
+  @override
+  final ThemeColors light;
+  @override
+  final ThemeColors dark;
+  @override
+  @JsonKey()
+  final ThemeSurfaces surfaces;
+  @override
+  @JsonKey()
+  final ThemeBackground background;
+  @override
+  @JsonKey()
+  final ThemeRadius radius;
+  @override
+  @JsonKey()
+  final double density;
+  @override
+  @JsonKey(name: 'dynamic')
+  final DynamicTheme? dynamicTheme;
+
+  @override
+  String toString() {
+    return 'ThemeDefinition(light: $light, dark: $dark, surfaces: $surfaces, background: $background, radius: $radius, density: $density, dynamicTheme: $dynamicTheme)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ThemeDefinitionImpl &&
+            (identical(other.light, light) || other.light == light) &&
+            (identical(other.dark, dark) || other.dark == dark) &&
+            (identical(other.surfaces, surfaces) ||
+                other.surfaces == surfaces) &&
+            (identical(other.background, background) ||
+                other.background == background) &&
+            (identical(other.radius, radius) || other.radius == radius) &&
+            (identical(other.density, density) || other.density == density) &&
+            (identical(other.dynamicTheme, dynamicTheme) ||
+                other.dynamicTheme == dynamicTheme));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, light, dark, surfaces,
+      background, radius, density, dynamicTheme);
+
+  /// Create a copy of ThemeDefinition
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ThemeDefinitionImplCopyWith<_$ThemeDefinitionImpl> get copyWith =>
+      __$$ThemeDefinitionImplCopyWithImpl<_$ThemeDefinitionImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ThemeDefinitionImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ThemeDefinition implements ThemeDefinition {
+  const factory _ThemeDefinition(
+          {required final ThemeColors light,
+          required final ThemeColors dark,
+          final ThemeSurfaces surfaces,
+          final ThemeBackground background,
+          final ThemeRadius radius,
+          final double density,
+          @JsonKey(name: 'dynamic') final DynamicTheme? dynamicTheme}) =
+      _$ThemeDefinitionImpl;
+
+  factory _ThemeDefinition.fromJson(Map<String, dynamic> json) =
+      _$ThemeDefinitionImpl.fromJson;
+
+  @override
+  ThemeColors get light;
+  @override
+  ThemeColors get dark;
+  @override
+  ThemeSurfaces get surfaces;
+  @override
+  ThemeBackground get background;
+  @override
+  ThemeRadius get radius;
+  @override
+  double get density;
+  @override
+  @JsonKey(name: 'dynamic')
+  DynamicTheme? get dynamicTheme;
+
+  /// Create a copy of ThemeDefinition
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ThemeDefinitionImplCopyWith<_$ThemeDefinitionImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ThemeColors _$ThemeColorsFromJson(Map<String, dynamic> json) {
+  return _ThemeColors.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ThemeColors {
+  String get background => throw _privateConstructorUsedError;
+  String get foreground => throw _privateConstructorUsedError;
+  String get card => throw _privateConstructorUsedError;
+  String get cardForeground => throw _privateConstructorUsedError;
+  String get primary => throw _privateConstructorUsedError;
+  String get primaryForeground => throw _privateConstructorUsedError;
+  String get secondary => throw _privateConstructorUsedError;
+  String get secondaryForeground => throw _privateConstructorUsedError;
+  String get muted => throw _privateConstructorUsedError;
+  String get mutedForeground => throw _privateConstructorUsedError;
+  String get accent => throw _privateConstructorUsedError;
+  String get accentForeground => throw _privateConstructorUsedError;
+  String get destructive => throw _privateConstructorUsedError;
+  String get destructiveForeground => throw _privateConstructorUsedError;
+  String get border => throw _privateConstructorUsedError;
+  String get input => throw _privateConstructorUsedError;
+  String get ring => throw _privateConstructorUsedError;
+
+  /// Serializes this ThemeColors to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ThemeColors
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ThemeColorsCopyWith<ThemeColors> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ThemeColorsCopyWith<$Res> {
+  factory $ThemeColorsCopyWith(
+          ThemeColors value, $Res Function(ThemeColors) then) =
+      _$ThemeColorsCopyWithImpl<$Res, ThemeColors>;
+  @useResult
+  $Res call(
+      {String background,
+      String foreground,
+      String card,
+      String cardForeground,
+      String primary,
+      String primaryForeground,
+      String secondary,
+      String secondaryForeground,
+      String muted,
+      String mutedForeground,
+      String accent,
+      String accentForeground,
+      String destructive,
+      String destructiveForeground,
+      String border,
+      String input,
+      String ring});
+}
+
+/// @nodoc
+class _$ThemeColorsCopyWithImpl<$Res, $Val extends ThemeColors>
+    implements $ThemeColorsCopyWith<$Res> {
+  _$ThemeColorsCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ThemeColors
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? background = null,
+    Object? foreground = null,
+    Object? card = null,
+    Object? cardForeground = null,
+    Object? primary = null,
+    Object? primaryForeground = null,
+    Object? secondary = null,
+    Object? secondaryForeground = null,
+    Object? muted = null,
+    Object? mutedForeground = null,
+    Object? accent = null,
+    Object? accentForeground = null,
+    Object? destructive = null,
+    Object? destructiveForeground = null,
+    Object? border = null,
+    Object? input = null,
+    Object? ring = null,
+  }) {
+    return _then(_value.copyWith(
+      background: null == background
+          ? _value.background
+          : background // ignore: cast_nullable_to_non_nullable
+              as String,
+      foreground: null == foreground
+          ? _value.foreground
+          : foreground // ignore: cast_nullable_to_non_nullable
+              as String,
+      card: null == card
+          ? _value.card
+          : card // ignore: cast_nullable_to_non_nullable
+              as String,
+      cardForeground: null == cardForeground
+          ? _value.cardForeground
+          : cardForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      primary: null == primary
+          ? _value.primary
+          : primary // ignore: cast_nullable_to_non_nullable
+              as String,
+      primaryForeground: null == primaryForeground
+          ? _value.primaryForeground
+          : primaryForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      secondary: null == secondary
+          ? _value.secondary
+          : secondary // ignore: cast_nullable_to_non_nullable
+              as String,
+      secondaryForeground: null == secondaryForeground
+          ? _value.secondaryForeground
+          : secondaryForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      muted: null == muted
+          ? _value.muted
+          : muted // ignore: cast_nullable_to_non_nullable
+              as String,
+      mutedForeground: null == mutedForeground
+          ? _value.mutedForeground
+          : mutedForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      accent: null == accent
+          ? _value.accent
+          : accent // ignore: cast_nullable_to_non_nullable
+              as String,
+      accentForeground: null == accentForeground
+          ? _value.accentForeground
+          : accentForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      destructive: null == destructive
+          ? _value.destructive
+          : destructive // ignore: cast_nullable_to_non_nullable
+              as String,
+      destructiveForeground: null == destructiveForeground
+          ? _value.destructiveForeground
+          : destructiveForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      border: null == border
+          ? _value.border
+          : border // ignore: cast_nullable_to_non_nullable
+              as String,
+      input: null == input
+          ? _value.input
+          : input // ignore: cast_nullable_to_non_nullable
+              as String,
+      ring: null == ring
+          ? _value.ring
+          : ring // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ThemeColorsImplCopyWith<$Res>
+    implements $ThemeColorsCopyWith<$Res> {
+  factory _$$ThemeColorsImplCopyWith(
+          _$ThemeColorsImpl value, $Res Function(_$ThemeColorsImpl) then) =
+      __$$ThemeColorsImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String background,
+      String foreground,
+      String card,
+      String cardForeground,
+      String primary,
+      String primaryForeground,
+      String secondary,
+      String secondaryForeground,
+      String muted,
+      String mutedForeground,
+      String accent,
+      String accentForeground,
+      String destructive,
+      String destructiveForeground,
+      String border,
+      String input,
+      String ring});
+}
+
+/// @nodoc
+class __$$ThemeColorsImplCopyWithImpl<$Res>
+    extends _$ThemeColorsCopyWithImpl<$Res, _$ThemeColorsImpl>
+    implements _$$ThemeColorsImplCopyWith<$Res> {
+  __$$ThemeColorsImplCopyWithImpl(
+      _$ThemeColorsImpl _value, $Res Function(_$ThemeColorsImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ThemeColors
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? background = null,
+    Object? foreground = null,
+    Object? card = null,
+    Object? cardForeground = null,
+    Object? primary = null,
+    Object? primaryForeground = null,
+    Object? secondary = null,
+    Object? secondaryForeground = null,
+    Object? muted = null,
+    Object? mutedForeground = null,
+    Object? accent = null,
+    Object? accentForeground = null,
+    Object? destructive = null,
+    Object? destructiveForeground = null,
+    Object? border = null,
+    Object? input = null,
+    Object? ring = null,
+  }) {
+    return _then(_$ThemeColorsImpl(
+      background: null == background
+          ? _value.background
+          : background // ignore: cast_nullable_to_non_nullable
+              as String,
+      foreground: null == foreground
+          ? _value.foreground
+          : foreground // ignore: cast_nullable_to_non_nullable
+              as String,
+      card: null == card
+          ? _value.card
+          : card // ignore: cast_nullable_to_non_nullable
+              as String,
+      cardForeground: null == cardForeground
+          ? _value.cardForeground
+          : cardForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      primary: null == primary
+          ? _value.primary
+          : primary // ignore: cast_nullable_to_non_nullable
+              as String,
+      primaryForeground: null == primaryForeground
+          ? _value.primaryForeground
+          : primaryForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      secondary: null == secondary
+          ? _value.secondary
+          : secondary // ignore: cast_nullable_to_non_nullable
+              as String,
+      secondaryForeground: null == secondaryForeground
+          ? _value.secondaryForeground
+          : secondaryForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      muted: null == muted
+          ? _value.muted
+          : muted // ignore: cast_nullable_to_non_nullable
+              as String,
+      mutedForeground: null == mutedForeground
+          ? _value.mutedForeground
+          : mutedForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      accent: null == accent
+          ? _value.accent
+          : accent // ignore: cast_nullable_to_non_nullable
+              as String,
+      accentForeground: null == accentForeground
+          ? _value.accentForeground
+          : accentForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      destructive: null == destructive
+          ? _value.destructive
+          : destructive // ignore: cast_nullable_to_non_nullable
+              as String,
+      destructiveForeground: null == destructiveForeground
+          ? _value.destructiveForeground
+          : destructiveForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      border: null == border
+          ? _value.border
+          : border // ignore: cast_nullable_to_non_nullable
+              as String,
+      input: null == input
+          ? _value.input
+          : input // ignore: cast_nullable_to_non_nullable
+              as String,
+      ring: null == ring
+          ? _value.ring
+          : ring // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ThemeColorsImpl implements _ThemeColors {
+  const _$ThemeColorsImpl(
+      {required this.background,
+      required this.foreground,
+      required this.card,
+      required this.cardForeground,
+      required this.primary,
+      required this.primaryForeground,
+      required this.secondary,
+      required this.secondaryForeground,
+      required this.muted,
+      required this.mutedForeground,
+      required this.accent,
+      required this.accentForeground,
+      required this.destructive,
+      required this.destructiveForeground,
+      required this.border,
+      required this.input,
+      required this.ring});
+
+  factory _$ThemeColorsImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ThemeColorsImplFromJson(json);
+
+  @override
+  final String background;
+  @override
+  final String foreground;
+  @override
+  final String card;
+  @override
+  final String cardForeground;
+  @override
+  final String primary;
+  @override
+  final String primaryForeground;
+  @override
+  final String secondary;
+  @override
+  final String secondaryForeground;
+  @override
+  final String muted;
+  @override
+  final String mutedForeground;
+  @override
+  final String accent;
+  @override
+  final String accentForeground;
+  @override
+  final String destructive;
+  @override
+  final String destructiveForeground;
+  @override
+  final String border;
+  @override
+  final String input;
+  @override
+  final String ring;
+
+  @override
+  String toString() {
+    return 'ThemeColors(background: $background, foreground: $foreground, card: $card, cardForeground: $cardForeground, primary: $primary, primaryForeground: $primaryForeground, secondary: $secondary, secondaryForeground: $secondaryForeground, muted: $muted, mutedForeground: $mutedForeground, accent: $accent, accentForeground: $accentForeground, destructive: $destructive, destructiveForeground: $destructiveForeground, border: $border, input: $input, ring: $ring)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ThemeColorsImpl &&
+            (identical(other.background, background) ||
+                other.background == background) &&
+            (identical(other.foreground, foreground) ||
+                other.foreground == foreground) &&
+            (identical(other.card, card) || other.card == card) &&
+            (identical(other.cardForeground, cardForeground) ||
+                other.cardForeground == cardForeground) &&
+            (identical(other.primary, primary) || other.primary == primary) &&
+            (identical(other.primaryForeground, primaryForeground) ||
+                other.primaryForeground == primaryForeground) &&
+            (identical(other.secondary, secondary) ||
+                other.secondary == secondary) &&
+            (identical(other.secondaryForeground, secondaryForeground) ||
+                other.secondaryForeground == secondaryForeground) &&
+            (identical(other.muted, muted) || other.muted == muted) &&
+            (identical(other.mutedForeground, mutedForeground) ||
+                other.mutedForeground == mutedForeground) &&
+            (identical(other.accent, accent) || other.accent == accent) &&
+            (identical(other.accentForeground, accentForeground) ||
+                other.accentForeground == accentForeground) &&
+            (identical(other.destructive, destructive) ||
+                other.destructive == destructive) &&
+            (identical(other.destructiveForeground, destructiveForeground) ||
+                other.destructiveForeground == destructiveForeground) &&
+            (identical(other.border, border) || other.border == border) &&
+            (identical(other.input, input) || other.input == input) &&
+            (identical(other.ring, ring) || other.ring == ring));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      background,
+      foreground,
+      card,
+      cardForeground,
+      primary,
+      primaryForeground,
+      secondary,
+      secondaryForeground,
+      muted,
+      mutedForeground,
+      accent,
+      accentForeground,
+      destructive,
+      destructiveForeground,
+      border,
+      input,
+      ring);
+
+  /// Create a copy of ThemeColors
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ThemeColorsImplCopyWith<_$ThemeColorsImpl> get copyWith =>
+      __$$ThemeColorsImplCopyWithImpl<_$ThemeColorsImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ThemeColorsImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ThemeColors implements ThemeColors {
+  const factory _ThemeColors(
+      {required final String background,
+      required final String foreground,
+      required final String card,
+      required final String cardForeground,
+      required final String primary,
+      required final String primaryForeground,
+      required final String secondary,
+      required final String secondaryForeground,
+      required final String muted,
+      required final String mutedForeground,
+      required final String accent,
+      required final String accentForeground,
+      required final String destructive,
+      required final String destructiveForeground,
+      required final String border,
+      required final String input,
+      required final String ring}) = _$ThemeColorsImpl;
+
+  factory _ThemeColors.fromJson(Map<String, dynamic> json) =
+      _$ThemeColorsImpl.fromJson;
+
+  @override
+  String get background;
+  @override
+  String get foreground;
+  @override
+  String get card;
+  @override
+  String get cardForeground;
+  @override
+  String get primary;
+  @override
+  String get primaryForeground;
+  @override
+  String get secondary;
+  @override
+  String get secondaryForeground;
+  @override
+  String get muted;
+  @override
+  String get mutedForeground;
+  @override
+  String get accent;
+  @override
+  String get accentForeground;
+  @override
+  String get destructive;
+  @override
+  String get destructiveForeground;
+  @override
+  String get border;
+  @override
+  String get input;
+  @override
+  String get ring;
+
+  /// Create a copy of ThemeColors
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ThemeColorsImplCopyWith<_$ThemeColorsImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ThemeSurfaces _$ThemeSurfacesFromJson(Map<String, dynamic> json) {
+  return _ThemeSurfaces.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ThemeSurfaces {
+  double get opacity => throw _privateConstructorUsedError;
+  double get blur => throw _privateConstructorUsedError;
+
+  /// Optional surface tint as `#RRGGBB` or Flutter-native `#AARRGGBB`.
+  String? get tint => throw _privateConstructorUsedError;
+
+  /// Serializes this ThemeSurfaces to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ThemeSurfaces
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ThemeSurfacesCopyWith<ThemeSurfaces> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ThemeSurfacesCopyWith<$Res> {
+  factory $ThemeSurfacesCopyWith(
+          ThemeSurfaces value, $Res Function(ThemeSurfaces) then) =
+      _$ThemeSurfacesCopyWithImpl<$Res, ThemeSurfaces>;
+  @useResult
+  $Res call({double opacity, double blur, String? tint});
+}
+
+/// @nodoc
+class _$ThemeSurfacesCopyWithImpl<$Res, $Val extends ThemeSurfaces>
+    implements $ThemeSurfacesCopyWith<$Res> {
+  _$ThemeSurfacesCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ThemeSurfaces
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? opacity = null,
+    Object? blur = null,
+    Object? tint = freezed,
+  }) {
+    return _then(_value.copyWith(
+      opacity: null == opacity
+          ? _value.opacity
+          : opacity // ignore: cast_nullable_to_non_nullable
+              as double,
+      blur: null == blur
+          ? _value.blur
+          : blur // ignore: cast_nullable_to_non_nullable
+              as double,
+      tint: freezed == tint
+          ? _value.tint
+          : tint // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ThemeSurfacesImplCopyWith<$Res>
+    implements $ThemeSurfacesCopyWith<$Res> {
+  factory _$$ThemeSurfacesImplCopyWith(
+          _$ThemeSurfacesImpl value, $Res Function(_$ThemeSurfacesImpl) then) =
+      __$$ThemeSurfacesImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({double opacity, double blur, String? tint});
+}
+
+/// @nodoc
+class __$$ThemeSurfacesImplCopyWithImpl<$Res>
+    extends _$ThemeSurfacesCopyWithImpl<$Res, _$ThemeSurfacesImpl>
+    implements _$$ThemeSurfacesImplCopyWith<$Res> {
+  __$$ThemeSurfacesImplCopyWithImpl(
+      _$ThemeSurfacesImpl _value, $Res Function(_$ThemeSurfacesImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ThemeSurfaces
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? opacity = null,
+    Object? blur = null,
+    Object? tint = freezed,
+  }) {
+    return _then(_$ThemeSurfacesImpl(
+      opacity: null == opacity
+          ? _value.opacity
+          : opacity // ignore: cast_nullable_to_non_nullable
+              as double,
+      blur: null == blur
+          ? _value.blur
+          : blur // ignore: cast_nullable_to_non_nullable
+              as double,
+      tint: freezed == tint
+          ? _value.tint
+          : tint // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ThemeSurfacesImpl implements _ThemeSurfaces {
+  const _$ThemeSurfacesImpl({this.opacity = 0.8, this.blur = 10.0, this.tint});
+
+  factory _$ThemeSurfacesImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ThemeSurfacesImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final double opacity;
+  @override
+  @JsonKey()
+  final double blur;
+
+  /// Optional surface tint as `#RRGGBB` or Flutter-native `#AARRGGBB`.
+  @override
+  final String? tint;
+
+  @override
+  String toString() {
+    return 'ThemeSurfaces(opacity: $opacity, blur: $blur, tint: $tint)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ThemeSurfacesImpl &&
+            (identical(other.opacity, opacity) || other.opacity == opacity) &&
+            (identical(other.blur, blur) || other.blur == blur) &&
+            (identical(other.tint, tint) || other.tint == tint));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, opacity, blur, tint);
+
+  /// Create a copy of ThemeSurfaces
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ThemeSurfacesImplCopyWith<_$ThemeSurfacesImpl> get copyWith =>
+      __$$ThemeSurfacesImplCopyWithImpl<_$ThemeSurfacesImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ThemeSurfacesImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ThemeSurfaces implements ThemeSurfaces {
+  const factory _ThemeSurfaces(
+      {final double opacity,
+      final double blur,
+      final String? tint}) = _$ThemeSurfacesImpl;
+
+  factory _ThemeSurfaces.fromJson(Map<String, dynamic> json) =
+      _$ThemeSurfacesImpl.fromJson;
+
+  @override
+  double get opacity;
+  @override
+  double get blur;
+
+  /// Optional surface tint as `#RRGGBB` or Flutter-native `#AARRGGBB`.
+  @override
+  String? get tint;
+
+  /// Create a copy of ThemeSurfaces
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ThemeSurfacesImplCopyWith<_$ThemeSurfacesImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ThemeBackground _$ThemeBackgroundFromJson(Map<String, dynamic> json) {
+  return _ThemeBackground.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ThemeBackground {
+  ThemeBackgroundSource get source => throw _privateConstructorUsedError;
+  double get opacity => throw _privateConstructorUsedError;
+  double get blur => throw _privateConstructorUsedError;
+
+  /// Optional veil over the background image as `#RRGGBB` or
+  /// Flutter-native `#AARRGGBB` (alpha honored, e.g. `#80000000`
+  /// is 50% black). Brightness-adapted by the host layer.
+  String? get overlay => throw _privateConstructorUsedError;
+
+  /// Serializes this ThemeBackground to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ThemeBackground
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ThemeBackgroundCopyWith<ThemeBackground> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ThemeBackgroundCopyWith<$Res> {
+  factory $ThemeBackgroundCopyWith(
+          ThemeBackground value, $Res Function(ThemeBackground) then) =
+      _$ThemeBackgroundCopyWithImpl<$Res, ThemeBackground>;
+  @useResult
+  $Res call(
+      {ThemeBackgroundSource source,
+      double opacity,
+      double blur,
+      String? overlay});
+}
+
+/// @nodoc
+class _$ThemeBackgroundCopyWithImpl<$Res, $Val extends ThemeBackground>
+    implements $ThemeBackgroundCopyWith<$Res> {
+  _$ThemeBackgroundCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ThemeBackground
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? source = null,
+    Object? opacity = null,
+    Object? blur = null,
+    Object? overlay = freezed,
+  }) {
+    return _then(_value.copyWith(
+      source: null == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as ThemeBackgroundSource,
+      opacity: null == opacity
+          ? _value.opacity
+          : opacity // ignore: cast_nullable_to_non_nullable
+              as double,
+      blur: null == blur
+          ? _value.blur
+          : blur // ignore: cast_nullable_to_non_nullable
+              as double,
+      overlay: freezed == overlay
+          ? _value.overlay
+          : overlay // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ThemeBackgroundImplCopyWith<$Res>
+    implements $ThemeBackgroundCopyWith<$Res> {
+  factory _$$ThemeBackgroundImplCopyWith(_$ThemeBackgroundImpl value,
+          $Res Function(_$ThemeBackgroundImpl) then) =
+      __$$ThemeBackgroundImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {ThemeBackgroundSource source,
+      double opacity,
+      double blur,
+      String? overlay});
+}
+
+/// @nodoc
+class __$$ThemeBackgroundImplCopyWithImpl<$Res>
+    extends _$ThemeBackgroundCopyWithImpl<$Res, _$ThemeBackgroundImpl>
+    implements _$$ThemeBackgroundImplCopyWith<$Res> {
+  __$$ThemeBackgroundImplCopyWithImpl(
+      _$ThemeBackgroundImpl _value, $Res Function(_$ThemeBackgroundImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ThemeBackground
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? source = null,
+    Object? opacity = null,
+    Object? blur = null,
+    Object? overlay = freezed,
+  }) {
+    return _then(_$ThemeBackgroundImpl(
+      source: null == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as ThemeBackgroundSource,
+      opacity: null == opacity
+          ? _value.opacity
+          : opacity // ignore: cast_nullable_to_non_nullable
+              as double,
+      blur: null == blur
+          ? _value.blur
+          : blur // ignore: cast_nullable_to_non_nullable
+              as double,
+      overlay: freezed == overlay
+          ? _value.overlay
+          : overlay // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ThemeBackgroundImpl implements _ThemeBackground {
+  const _$ThemeBackgroundImpl(
+      {this.source = ThemeBackgroundSource.none,
+      this.opacity = 0.0,
+      this.blur = 0.0,
+      this.overlay});
+
+  factory _$ThemeBackgroundImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ThemeBackgroundImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final ThemeBackgroundSource source;
+  @override
+  @JsonKey()
+  final double opacity;
+  @override
+  @JsonKey()
+  final double blur;
+
+  /// Optional veil over the background image as `#RRGGBB` or
+  /// Flutter-native `#AARRGGBB` (alpha honored, e.g. `#80000000`
+  /// is 50% black). Brightness-adapted by the host layer.
+  @override
+  final String? overlay;
+
+  @override
+  String toString() {
+    return 'ThemeBackground(source: $source, opacity: $opacity, blur: $blur, overlay: $overlay)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ThemeBackgroundImpl &&
+            (identical(other.source, source) || other.source == source) &&
+            (identical(other.opacity, opacity) || other.opacity == opacity) &&
+            (identical(other.blur, blur) || other.blur == blur) &&
+            (identical(other.overlay, overlay) || other.overlay == overlay));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, source, opacity, blur, overlay);
+
+  /// Create a copy of ThemeBackground
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ThemeBackgroundImplCopyWith<_$ThemeBackgroundImpl> get copyWith =>
+      __$$ThemeBackgroundImplCopyWithImpl<_$ThemeBackgroundImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ThemeBackgroundImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ThemeBackground implements ThemeBackground {
+  const factory _ThemeBackground(
+      {final ThemeBackgroundSource source,
+      final double opacity,
+      final double blur,
+      final String? overlay}) = _$ThemeBackgroundImpl;
+
+  factory _ThemeBackground.fromJson(Map<String, dynamic> json) =
+      _$ThemeBackgroundImpl.fromJson;
+
+  @override
+  ThemeBackgroundSource get source;
+  @override
+  double get opacity;
+  @override
+  double get blur;
+
+  /// Optional veil over the background image as `#RRGGBB` or
+  /// Flutter-native `#AARRGGBB` (alpha honored, e.g. `#80000000`
+  /// is 50% black). Brightness-adapted by the host layer.
+  @override
+  String? get overlay;
+
+  /// Create a copy of ThemeBackground
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ThemeBackgroundImplCopyWith<_$ThemeBackgroundImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ThemeRadius _$ThemeRadiusFromJson(Map<String, dynamic> json) {
+  return _ThemeRadius.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ThemeRadius {
+  double get small => throw _privateConstructorUsedError;
+  double get medium => throw _privateConstructorUsedError;
+  double get large => throw _privateConstructorUsedError;
+  double get pill => throw _privateConstructorUsedError;
+
+  /// Serializes this ThemeRadius to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ThemeRadius
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ThemeRadiusCopyWith<ThemeRadius> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ThemeRadiusCopyWith<$Res> {
+  factory $ThemeRadiusCopyWith(
+          ThemeRadius value, $Res Function(ThemeRadius) then) =
+      _$ThemeRadiusCopyWithImpl<$Res, ThemeRadius>;
+  @useResult
+  $Res call({double small, double medium, double large, double pill});
+}
+
+/// @nodoc
+class _$ThemeRadiusCopyWithImpl<$Res, $Val extends ThemeRadius>
+    implements $ThemeRadiusCopyWith<$Res> {
+  _$ThemeRadiusCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ThemeRadius
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? small = null,
+    Object? medium = null,
+    Object? large = null,
+    Object? pill = null,
+  }) {
+    return _then(_value.copyWith(
+      small: null == small
+          ? _value.small
+          : small // ignore: cast_nullable_to_non_nullable
+              as double,
+      medium: null == medium
+          ? _value.medium
+          : medium // ignore: cast_nullable_to_non_nullable
+              as double,
+      large: null == large
+          ? _value.large
+          : large // ignore: cast_nullable_to_non_nullable
+              as double,
+      pill: null == pill
+          ? _value.pill
+          : pill // ignore: cast_nullable_to_non_nullable
+              as double,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ThemeRadiusImplCopyWith<$Res>
+    implements $ThemeRadiusCopyWith<$Res> {
+  factory _$$ThemeRadiusImplCopyWith(
+          _$ThemeRadiusImpl value, $Res Function(_$ThemeRadiusImpl) then) =
+      __$$ThemeRadiusImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({double small, double medium, double large, double pill});
+}
+
+/// @nodoc
+class __$$ThemeRadiusImplCopyWithImpl<$Res>
+    extends _$ThemeRadiusCopyWithImpl<$Res, _$ThemeRadiusImpl>
+    implements _$$ThemeRadiusImplCopyWith<$Res> {
+  __$$ThemeRadiusImplCopyWithImpl(
+      _$ThemeRadiusImpl _value, $Res Function(_$ThemeRadiusImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ThemeRadius
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? small = null,
+    Object? medium = null,
+    Object? large = null,
+    Object? pill = null,
+  }) {
+    return _then(_$ThemeRadiusImpl(
+      small: null == small
+          ? _value.small
+          : small // ignore: cast_nullable_to_non_nullable
+              as double,
+      medium: null == medium
+          ? _value.medium
+          : medium // ignore: cast_nullable_to_non_nullable
+              as double,
+      large: null == large
+          ? _value.large
+          : large // ignore: cast_nullable_to_non_nullable
+              as double,
+      pill: null == pill
+          ? _value.pill
+          : pill // ignore: cast_nullable_to_non_nullable
+              as double,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ThemeRadiusImpl implements _ThemeRadius {
+  const _$ThemeRadiusImpl(
+      {this.small = 6.0,
+      this.medium = 10.0,
+      this.large = 16.0,
+      this.pill = 999.0});
+
+  factory _$ThemeRadiusImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ThemeRadiusImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final double small;
+  @override
+  @JsonKey()
+  final double medium;
+  @override
+  @JsonKey()
+  final double large;
+  @override
+  @JsonKey()
+  final double pill;
+
+  @override
+  String toString() {
+    return 'ThemeRadius(small: $small, medium: $medium, large: $large, pill: $pill)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ThemeRadiusImpl &&
+            (identical(other.small, small) || other.small == small) &&
+            (identical(other.medium, medium) || other.medium == medium) &&
+            (identical(other.large, large) || other.large == large) &&
+            (identical(other.pill, pill) || other.pill == pill));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, small, medium, large, pill);
+
+  /// Create a copy of ThemeRadius
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ThemeRadiusImplCopyWith<_$ThemeRadiusImpl> get copyWith =>
+      __$$ThemeRadiusImplCopyWithImpl<_$ThemeRadiusImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ThemeRadiusImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ThemeRadius implements ThemeRadius {
+  const factory _ThemeRadius(
+      {final double small,
+      final double medium,
+      final double large,
+      final double pill}) = _$ThemeRadiusImpl;
+
+  factory _ThemeRadius.fromJson(Map<String, dynamic> json) =
+      _$ThemeRadiusImpl.fromJson;
+
+  @override
+  double get small;
+  @override
+  double get medium;
+  @override
+  double get large;
+  @override
+  double get pill;
+
+  /// Create a copy of ThemeRadius
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ThemeRadiusImplCopyWith<_$ThemeRadiusImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+DynamicTheme _$DynamicThemeFromJson(Map<String, dynamic> json) {
+  return _DynamicTheme.fromJson(json);
+}
+
+/// @nodoc
+mixin _$DynamicTheme {
+  DynamicThemeSource get source => throw _privateConstructorUsedError;
+  DynamicThemeAlgorithm get algorithm => throw _privateConstructorUsedError;
+
+  /// Serializes this DynamicTheme to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of DynamicTheme
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $DynamicThemeCopyWith<DynamicTheme> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $DynamicThemeCopyWith<$Res> {
+  factory $DynamicThemeCopyWith(
+          DynamicTheme value, $Res Function(DynamicTheme) then) =
+      _$DynamicThemeCopyWithImpl<$Res, DynamicTheme>;
+  @useResult
+  $Res call({DynamicThemeSource source, DynamicThemeAlgorithm algorithm});
+}
+
+/// @nodoc
+class _$DynamicThemeCopyWithImpl<$Res, $Val extends DynamicTheme>
+    implements $DynamicThemeCopyWith<$Res> {
+  _$DynamicThemeCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of DynamicTheme
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? source = null,
+    Object? algorithm = null,
+  }) {
+    return _then(_value.copyWith(
+      source: null == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as DynamicThemeSource,
+      algorithm: null == algorithm
+          ? _value.algorithm
+          : algorithm // ignore: cast_nullable_to_non_nullable
+              as DynamicThemeAlgorithm,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$DynamicThemeImplCopyWith<$Res>
+    implements $DynamicThemeCopyWith<$Res> {
+  factory _$$DynamicThemeImplCopyWith(
+          _$DynamicThemeImpl value, $Res Function(_$DynamicThemeImpl) then) =
+      __$$DynamicThemeImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({DynamicThemeSource source, DynamicThemeAlgorithm algorithm});
+}
+
+/// @nodoc
+class __$$DynamicThemeImplCopyWithImpl<$Res>
+    extends _$DynamicThemeCopyWithImpl<$Res, _$DynamicThemeImpl>
+    implements _$$DynamicThemeImplCopyWith<$Res> {
+  __$$DynamicThemeImplCopyWithImpl(
+      _$DynamicThemeImpl _value, $Res Function(_$DynamicThemeImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of DynamicTheme
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? source = null,
+    Object? algorithm = null,
+  }) {
+    return _then(_$DynamicThemeImpl(
+      source: null == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as DynamicThemeSource,
+      algorithm: null == algorithm
+          ? _value.algorithm
+          : algorithm // ignore: cast_nullable_to_non_nullable
+              as DynamicThemeAlgorithm,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$DynamicThemeImpl implements _DynamicTheme {
+  const _$DynamicThemeImpl(
+      {required this.source, this.algorithm = DynamicThemeAlgorithm.material});
+
+  factory _$DynamicThemeImpl.fromJson(Map<String, dynamic> json) =>
+      _$$DynamicThemeImplFromJson(json);
+
+  @override
+  final DynamicThemeSource source;
+  @override
+  @JsonKey()
+  final DynamicThemeAlgorithm algorithm;
+
+  @override
+  String toString() {
+    return 'DynamicTheme(source: $source, algorithm: $algorithm)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$DynamicThemeImpl &&
+            (identical(other.source, source) || other.source == source) &&
+            (identical(other.algorithm, algorithm) ||
+                other.algorithm == algorithm));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, source, algorithm);
+
+  /// Create a copy of DynamicTheme
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$DynamicThemeImplCopyWith<_$DynamicThemeImpl> get copyWith =>
+      __$$DynamicThemeImplCopyWithImpl<_$DynamicThemeImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$DynamicThemeImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _DynamicTheme implements DynamicTheme {
+  const factory _DynamicTheme(
+      {required final DynamicThemeSource source,
+      final DynamicThemeAlgorithm algorithm}) = _$DynamicThemeImpl;
+
+  factory _DynamicTheme.fromJson(Map<String, dynamic> json) =
+      _$DynamicThemeImpl.fromJson;
+
+  @override
+  DynamicThemeSource get source;
+  @override
+  DynamicThemeAlgorithm get algorithm;
+
+  /// Create a copy of DynamicTheme
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$DynamicThemeImplCopyWith<_$DynamicThemeImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}

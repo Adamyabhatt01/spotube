@@ -21,6 +21,7 @@ import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/sourced_track/sourced_track.dart';
 import 'package:spotube/utils/service_utils.dart';
+import 'package:spotube/utils/stream_url_expiry.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 final _deviceClients = Set.unmodifiable({
@@ -53,8 +54,40 @@ class ServerPlaybackRoutes {
     );
   }
 
-  Future<SourcedTrack?> _getSourcedTrack(
-    Request request,
+  /// Selects the stream URL to serve for [track], proactively refreshing
+  /// once when the selected URL's `expire` timestamp is already past.
+  ///
+  /// Phase 2 perf: without this, the first request after URL expiry pays a
+  /// failed proxied HEAD plus a full refresh before audio starts. URLs with
+  /// unknown expiry (missing/malformed/non-positive `expire`) take the
+  /// existing path unchanged. Any refresh failure falls back to the stale
+  /// URL so the existing reactive HEAD-failure path keeps working — worst
+  /// case is today's behavior, never a new retry loop.
+  Future<String> resolveServingUrl(SourcedTrack track) async {
+    String url = track.url ??
+        await ref
+            .read(sourcedTrackProvider(track.query).notifier)
+            .swapWithNextSibling()
+            .then((track) => track.url!);
+
+    if (isStreamUrlExpired(url)) {
+      try {
+        final refreshed = await ref
+            .read(sourcedTrackProvider(track.query).notifier)
+            .refreshStreamingUrl();
+        final freshUrl = refreshed.url;
+        if (freshUrl != null) {
+          url = freshUrl;
+        }
+      } catch (e, stack) {
+        AppLogger.reportError(e, stack);
+      }
+    }
+
+    return url;
+  }
+
+  Future<SourcedTrack?> _getSourcedTrack(   Request request,
     String trackId,
   ) async {
     final track =
@@ -103,11 +136,7 @@ class ServerPlaybackRoutes {
       );
     }
 
-    String url = track.url ??
-        await ref
-            .read(sourcedTrackProvider(track.query).notifier)
-            .swapWithNextSibling()
-            .then((track) => track.url!);
+    String url = await resolveServingUrl(track);
 
     final options = Options(
       headers: {
@@ -156,11 +185,7 @@ class ServerPlaybackRoutes {
       );
     }
 
-    String url = track.url ??
-        await ref
-            .read(sourcedTrackProvider(track.query).notifier)
-            .swapWithNextSibling()
-            .then((track) => track.url!);
+    String url = await resolveServingUrl(track);
 
     final options = Options(
       headers: {

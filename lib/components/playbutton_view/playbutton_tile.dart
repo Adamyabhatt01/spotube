@@ -48,7 +48,13 @@ class PlaybuttonTile extends StatelessWidget {
               decoration: BoxDecoration(
                 borderRadius: context.theme.borderRadiusMd,
                 image: DecorationImage(
-                  image: UniversalImage.imageProvider(imageUrl!),
+                  // Phase 2 perf (IMG.2): decode at 2x the 50x50 display
+                  // size instead of full resolution.
+                  image: UniversalImage.imageProvider(
+                    imageUrl!,
+                    height: 100 * scale,
+                    width: 100 * scale,
+                  ),
                   fit: BoxFit.cover,
                 ),
               ),

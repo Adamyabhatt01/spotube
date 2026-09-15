@@ -19,9 +19,12 @@ class ArtistCard extends HookConsumerWidget {
   Widget build(BuildContext context, ref) {
     final theme = Theme.of(context);
     final backgroundImage = UniversalImage.imageProvider(
+      // Phase 2 perf (IMG.2): decode at 2x the 130px avatar display size.
       artist.images.asUrlString(
         placeholder: ImagePlaceholder.artist,
       ),
+      height: 260,
+      width: 260,
     );
     final isBlackListed = ref.watch(
       blacklistProvider.select(

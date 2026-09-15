@@ -18,8 +18,15 @@ class PlainLyrics extends HookConsumerWidget {
   final PaletteColor palette;
   final bool? isModal;
   final int defaultTextZoom;
+
+  /// Whether an artwork backdrop sits behind the lyrics. Palette text
+  /// is only used over real artwork; otherwise theme roles apply so
+  /// text stays readable on plain surfaces.
+  final bool hasArtwork;
+
   const PlainLyrics({
     required this.palette,
+    required this.hasArtwork,
     this.isModal,
     this.defaultTextZoom = 100,
     super.key,
@@ -31,6 +38,7 @@ class PlainLyrics extends HookConsumerWidget {
     final lyricsQuery = ref.watch(syncedLyricsProvider(playlist.activeTrack));
     final mediaQuery = MediaQuery.of(context);
     final typography = Theme.of(context).typography;
+    final colorScheme = Theme.of(context).colorScheme;
 
     final textZoomLevel = useState<int>(defaultTextZoom);
 
@@ -46,7 +54,9 @@ class PlainLyrics extends HookConsumerWidget {
                   style: mediaQuery.mdAndUp
                       ? typography.h3
                       : typography.h4.copyWith(
-                          color: palette.titleTextColor,
+                          color: hasArtwork
+                              ? palette.titleTextColor
+                              : colorScheme.foreground,
                         ),
                 ),
               ),
@@ -55,7 +65,9 @@ class PlainLyrics extends HookConsumerWidget {
                   playlist.activeTrack?.artists.asString() ?? "",
                   style: (mediaQuery.mdAndUp ? typography.h4 : typography.large)
                       .copyWith(
-                    color: palette.bodyTextColor,
+                    color: hasArtwork
+                        ? palette.bodyTextColor
+                        : colorScheme.mutedForeground,
                   ),
                 ),
               )
@@ -79,7 +91,9 @@ class PlainLyrics extends HookConsumerWidget {
                                 Text(
                                   context.l10n.no_lyrics_available,
                                   style: typography.large.copyWith(
-                                    color: palette.bodyTextColor,
+                                    color: hasArtwork
+                                        ? palette.bodyTextColor
+                                        : colorScheme.mutedForeground,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -106,7 +120,7 @@ class PlainLyrics extends HookConsumerWidget {
                         return AnimatedDefaultTextStyle(
                           duration: const Duration(milliseconds: 200),
                           style: TextStyle(
-                            color: isModal == true
+                            color: isModal == true || !hasArtwork
                                 ? context.theme.colorScheme.foreground
                                 : palette.bodyTextColor,
                             fontSize: 24 * textZoomLevel.value / 100,

@@ -1,4 +1,5 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/components/links/anchor_button.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -33,7 +34,7 @@ class Hyperlink extends StatelessWidget {
       key: key,
       overflow: overflow,
       maxLines: maxLines,
-      style: style.copyWith(color: Colors.blue),
+      style: style.copyWith(color: context.theme.colorScheme.primary),
       textAlign: textAlign,
     );
   }

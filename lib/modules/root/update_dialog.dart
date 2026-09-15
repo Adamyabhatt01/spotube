@@ -1,4 +1,5 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/components/links/anchor_button.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:spotube/extensions/context.dart';
@@ -42,7 +43,7 @@ class RootAppUpdateDialog extends StatelessWidget {
                 Text(context.l10n.read_the_latest),
                 AnchorButton(
                   context.l10n.release_notes,
-                  style: const TextStyle(color: Colors.blue),
+                  style: TextStyle(color: context.theme.colorScheme.primary),
                   onTap: () => launchUrlString(
                     url,
                     mode: LaunchMode.externalApplication,

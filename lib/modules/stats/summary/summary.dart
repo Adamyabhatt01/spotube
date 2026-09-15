@@ -9,6 +9,7 @@ import 'package:spotube/modules/stats/summary/summary_card.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/provider/history/summary.dart';
+import 'package:spotube/utils/theme_converter.dart';
 
 class StatsPageSummarySection extends HookConsumerWidget {
   const StatsPageSummarySection({super.key});
@@ -17,6 +18,17 @@ class StatsPageSummarySection extends HookConsumerWidget {
   Widget build(BuildContext context, ref) {
     final summary = ref.watch(playbackHistorySummaryProvider);
     final summaryData = summary.asData?.value ?? FakeData.historySummary;
+
+    // Categorical colors derived from the live scheme (plugin or
+    // built-in): minutes/songs/fees/artists/albums/playlists.
+    final scheme = Theme.of(context).colorScheme;
+    final palette = ThemeConverter.chartPalette(
+      primary: scheme.primary,
+      secondary: scheme.secondary,
+      accent: scheme.accent,
+      destructive: scheme.destructive,
+      brightness: scheme.brightness,
+    );
 
     return Skeletonizer.sliver(
       enabled: summary.isLoading,
@@ -43,7 +55,7 @@ class StatsPageSummarySection extends HookConsumerWidget {
                 title: summaryData.duration.inMinutes.toDouble(),
                 unit: context.l10n.summary_minutes,
                 description: context.l10n.summary_listened_to_music,
-                color: Colors.indigo,
+                color: palette[0],
                 onTap: () {
                   context.navigateTo(const StatsMinutesRoute());
                 },
@@ -52,7 +64,7 @@ class StatsPageSummarySection extends HookConsumerWidget {
                 title: summaryData.tracks.toDouble(),
                 unit: context.l10n.summary_songs,
                 description: context.l10n.summary_streamed_overall,
-                color: Colors.blue,
+                color: palette[1],
                 onTap: () {
                   context.navigateTo(const StatsStreamsRoute());
                 },
@@ -61,7 +73,7 @@ class StatsPageSummarySection extends HookConsumerWidget {
                 title: usdFormatter.format(summaryData.fees.toDouble()),
                 unit: "",
                 description: context.l10n.summary_owed_to_artists,
-                color: Colors.green,
+                color: palette[2],
                 onTap: () {
                   context.navigateTo(const StatsStreamFeesRoute());
                 },
@@ -70,7 +82,7 @@ class StatsPageSummarySection extends HookConsumerWidget {
                 title: summaryData.artists.toDouble(),
                 unit: context.l10n.summary_artists,
                 description: context.l10n.summary_music_reached_you,
-                color: Colors.yellow,
+                color: palette[3],
                 onTap: () {
                   context.navigateTo(const StatsArtistsRoute());
                 },
@@ -79,7 +91,7 @@ class StatsPageSummarySection extends HookConsumerWidget {
                 title: summaryData.albums.toDouble(),
                 unit: context.l10n.summary_full_albums,
                 description: context.l10n.summary_got_your_love,
-                color: Colors.pink,
+                color: palette[4],
                 onTap: () {
                   context.navigateTo(const StatsAlbumsRoute());
                 },
@@ -88,7 +100,7 @@ class StatsPageSummarySection extends HookConsumerWidget {
                 title: summaryData.playlists.toDouble(),
                 unit: context.l10n.summary_playlists,
                 description: context.l10n.summary_were_on_repeat,
-                color: Colors.teal,
+                color: palette[5],
                 onTap: () {
                   context.navigateTo(const StatsPlaylistsRoute());
                 },

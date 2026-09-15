@@ -7,6 +7,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/form/text_form_field.dart';
@@ -55,13 +56,15 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
             .toList();
 
         if (tabState.value != 0) {
-          // metadata only plugins
+          // metadata, audio-source & theme plugins
           return availablePlugins.where(
             (d) {
               return d.topics.contains(
                 tabState.value == 1
                     ? "spotube-metadata-plugin"
-                    : "spotube-audio-source-plugin",
+                    : tabState.value == 2
+                        ? "spotube-audio-source-plugin"
+                        : "spotube-theme-plugin",
               );
             },
           ).toList();
@@ -83,7 +86,9 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
         return d.abilities.contains(
           tabState.value == 1
               ? PluginAbilities.metadata
-              : PluginAbilities.audioSource,
+              : tabState.value == 2
+                  ? PluginAbilities.audioSource
+                  : PluginAbilities.theme,
         );
       }).toList();
     }, [tabState.value, plugins.asData?.value]);
@@ -160,9 +165,10 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
                                   builder: (context, overlay) {
                                     return SurfaceCard(
                                       child: Basic(
-                                        leading: const Icon(
+                                        leading: Icon(
                                           SpotubeIcons.error,
-                                          color: Colors.red,
+                                          color: context
+                                              .theme.colorScheme.destructive,
                                         ),
                                         title: Text(
                                           context.l10n
@@ -235,6 +241,7 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
                     TabItem(child: Text("All")),
                     TabItem(child: Text("Metadata")),
                     TabItem(child: Text("Audio Source")),
+                    TabItem(child: Text("Theme")),
                   ],
                 ),
               ),
@@ -263,10 +270,14 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
                   final isDefaultAudioSource = plugins
                           .asData!.value.defaultAudioSourcePluginConfig?.slug ==
                       plugin.slug;
+                  final isDefaultTheme =
+                      plugins.asData!.value.defaultThemePluginConfig?.slug ==
+                          plugin.slug;
                   return MetadataInstalledPluginItem(
                     plugin: plugin,
                     isDefaultMetadata: isDefaultMetadata,
                     isDefaultAudioSource: isDefaultAudioSource,
+                    isDefaultTheme: isDefaultTheme,
                   );
                 },
               ),

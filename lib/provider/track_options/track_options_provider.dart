@@ -276,18 +276,25 @@ final trackOptionsStateProvider =
   ref.watch(downloadManagerProvider);
   ref.watch(blacklistProvider);
 
-  final playlist = ref.watch(audioPlayerProvider);
+  // Phase 2 perf (W.4): subscribe to the consumed audio-player slices only.
+  // Flag (playing/loop/shuffle/collections) changes keep both references
+  // identical, so menu instances no longer rebuild on flag flaps. Queue
+  // mutations and active-track changes still rebuild as before.
+  // See test/track_options_select_test.dart.
+  final activeTrack =
+      ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
+  final queueTracks = ref.watch(audioPlayerProvider.select((s) => s.tracks));
   final authenticated = ref.watch(metadataPluginAuthenticatedProvider);
   final downloadManager = ref.watch(downloadManagerProvider.notifier);
   final blacklist = ref.watch(blacklistProvider.notifier);
   final isBlacklisted = blacklist.contains(track);
   final isSavedTrack = ref.watch(metadataPluginIsSavedTrackProvider(track.id));
 
-  final downloadTask = playlist.activeTrack?.id == null
+  final downloadTask = activeTrack?.id == null
       ? null
-      : downloadManager.getTaskByTrackId(playlist.activeTrack!.id);
-  final isInDownloadQueue = playlist.activeTrack == null ||
-          playlist.activeTrack! is SpotubeLocalTrackObject
+      : downloadManager.getTaskByTrackId(activeTrack!.id);
+  final isInDownloadQueue = activeTrack == null ||
+          activeTrack is SpotubeLocalTrackObject
       ? false
       : const [
           DownloadStatus.queued,
@@ -295,10 +302,17 @@ final trackOptionsStateProvider =
         ].contains(downloadTask?.status);
 
   return (
-    isInQueue: playlist.containsTrack(track),
+    // Mirrors AudioPlayerState.containsTrack(track); kept inline so this
+    // provider subscribes to `tracks` only instead of the full player state.
+    isInQueue: queueTracks.isNotEmpty &&
+        queueTracks.any(
+          (t) => t is SpotubeLocalTrackObject && track is SpotubeLocalTrackObject
+              ? t.path == track.path
+              : t.id == track.id,
+        ),
     isBlacklisted: isBlacklisted,
     isInDownloadQueue: isInDownloadQueue,
-    isActiveTrack: playlist.activeTrack?.id == track.id,
+    isActiveTrack: activeTrack?.id == track.id,
     isAuthenticated: authenticated.asData?.value ?? false,
     isLiked: isSavedTrack.asData?.value ?? false,
     downloadTask: downloadTask,

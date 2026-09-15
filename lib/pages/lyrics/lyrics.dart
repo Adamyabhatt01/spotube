@@ -1,6 +1,6 @@
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart' hide Consumer;
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 
 import 'package:spotube/components/titlebar/titlebar.dart';
@@ -24,6 +24,8 @@ class LyricsPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, ref) {
     final playlist = ref.watch(audioPlayerProvider);
+    final images = playlist.activeTrack?.album.images;
+    final hasArtwork = images != null && images.isNotEmpty;
     String albumArt = useMemoized(
       () => (playlist.activeTrack?.album.images).asUrlString(
         index: (playlist.activeTrack?.album.images.length ?? 1) - 1,
@@ -88,10 +90,12 @@ class LyricsPage extends HookConsumerWidget {
         child: Container(
           clipBehavior: Clip.hardEdge,
           decoration: BoxDecoration(
-            image: DecorationImage(
-              image: UniversalImage.imageProvider(albumArt),
-              fit: BoxFit.cover,
-            ),
+            image: hasArtwork
+                ? DecorationImage(
+                    image: UniversalImage.imageProvider(albumArt),
+                    fit: BoxFit.cover,
+                  )
+                : null,
           ),
           margin: const EdgeInsets.only(bottom: 10),
           child: SurfaceCard(
@@ -101,13 +105,23 @@ class LyricsPage extends HookConsumerWidget {
             borderRadius: BorderRadius.zero,
             borderWidth: 0,
             child: ColoredBox(
-              color: palette.color.withValues(alpha: .7),
+              color: hasArtwork
+                  ? palette.color.withValues(alpha: .7)
+                  : Colors.transparent,
               child: SafeArea(
                 child: IndexedStack(
                   index: selectedIndex.value,
                   children: [
-                    SyncedLyrics(palette: palette, isModal: false),
-                    PlainLyrics(palette: palette, isModal: false),
+                    SyncedLyrics(
+                      palette: palette,
+                      isModal: false,
+                      hasArtwork: hasArtwork,
+                    ),
+                    PlainLyrics(
+                      palette: palette,
+                      isModal: false,
+                      hasArtwork: hasArtwork,
+                    ),
                   ],
                 ),
               ),

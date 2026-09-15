@@ -55,8 +55,12 @@ class TrackOptionsButton extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, ref) {
     final imageProvider = useMemoized(
+      // Phase 2 perf (IMG.2): decode at 2x the 40x40 dialog-header display
+      // size. Literal sizes keep the memo key stable.
       () => UniversalImage.imageProvider(
         (track.album.images).smallest(ImagePlaceholder.albumArt),
+        height: 80,
+        width: 80,
       ),
       [track.album.images],
     );
