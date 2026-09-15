@@ -468,95 +468,95 @@ class PreferencesTable extends Table
       requiredDuringInsert: false,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("album_color_sync" IN (0, 1))'),
-      defaultValue: const Constant(true));
+      defaultValue: const CustomExpression('1'));
   late final GeneratedColumn<bool> amoledDarkTheme = GeneratedColumn<bool>(
       'amoled_dark_theme', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("amoled_dark_theme" IN (0, 1))'),
-      defaultValue: const Constant(false));
+      defaultValue: const CustomExpression('0'));
   late final GeneratedColumn<bool> checkUpdate = GeneratedColumn<bool>(
       'check_update', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("check_update" IN (0, 1))'),
-      defaultValue: const Constant(true));
+      defaultValue: const CustomExpression('1'));
   late final GeneratedColumn<bool> normalizeAudio = GeneratedColumn<bool>(
       'normalize_audio', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("normalize_audio" IN (0, 1))'),
-      defaultValue: const Constant(false));
+      defaultValue: const CustomExpression('0'));
   late final GeneratedColumn<bool> showSystemTrayIcon = GeneratedColumn<bool>(
       'show_system_tray_icon', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("show_system_tray_icon" IN (0, 1))'),
-      defaultValue: const Constant(false));
+      defaultValue: const CustomExpression('0'));
   late final GeneratedColumn<bool> systemTitleBar = GeneratedColumn<bool>(
       'system_title_bar', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("system_title_bar" IN (0, 1))'),
-      defaultValue: const Constant(false));
+      defaultValue: const CustomExpression('0'));
   late final GeneratedColumn<bool> skipNonMusic = GeneratedColumn<bool>(
       'skip_non_music', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("skip_non_music" IN (0, 1))'),
-      defaultValue: const Constant(false));
+      defaultValue: const CustomExpression('0'));
   late final GeneratedColumn<String> closeBehavior = GeneratedColumn<String>(
       'close_behavior', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant('close'));
+      defaultValue: const CustomExpression('\'close\''));
   late final GeneratedColumn<String> accentColorScheme =
       GeneratedColumn<String>('accent_color_scheme', aliasedName, false,
           type: DriftSqlType.string,
           requiredDuringInsert: false,
-          defaultValue: const Constant("Slate:0xff64748b"));
+          defaultValue: const CustomExpression('\'Slate:0xff64748b\''));
   late final GeneratedColumn<String> layoutMode = GeneratedColumn<String>(
       'layout_mode', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant('adaptive'));
+      defaultValue: const CustomExpression('\'adaptive\''));
   late final GeneratedColumn<String> locale = GeneratedColumn<String>(
       'locale', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue:
-          const Constant('{"languageCode":"system","countryCode":"system"}'));
+      defaultValue: const CustomExpression(
+          '\'{"languageCode":"system","countryCode":"system"}\''));
   late final GeneratedColumn<String> market = GeneratedColumn<String>(
       'market', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant('US'));
+      defaultValue: const CustomExpression('\'US\''));
   late final GeneratedColumn<String> searchMode = GeneratedColumn<String>(
       'search_mode', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant('youtube'));
+      defaultValue: const CustomExpression('\'youtube\''));
   late final GeneratedColumn<String> downloadLocation = GeneratedColumn<String>(
       'download_location', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: const Constant(""));
+      defaultValue: const CustomExpression('\'\''));
   late final GeneratedColumn<String> localLibraryLocation =
       GeneratedColumn<String>('local_library_location', aliasedName, false,
           type: DriftSqlType.string,
           requiredDuringInsert: false,
-          defaultValue: const Constant(""));
+          defaultValue: const CustomExpression('\'\''));
   late final GeneratedColumn<String> themeMode = GeneratedColumn<String>(
       'theme_mode', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: Constant('system'));
+      defaultValue: const CustomExpression('\'system\''));
   late final GeneratedColumn<String> audioSourceId = GeneratedColumn<String>(
       'audio_source_id', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
@@ -564,40 +564,40 @@ class PreferencesTable extends Table
       GeneratedColumn<String>('youtube_client_engine', aliasedName, false,
           type: DriftSqlType.string,
           requiredDuringInsert: false,
-          defaultValue: Constant('youtubeExplode'));
+          defaultValue: const CustomExpression('\'youtubeExplode\''));
   late final GeneratedColumn<bool> discordPresence = GeneratedColumn<bool>(
       'discord_presence', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("discord_presence" IN (0, 1))'),
-      defaultValue: const Constant(true));
+      defaultValue: const CustomExpression('1'));
   late final GeneratedColumn<bool> endlessPlayback = GeneratedColumn<bool>(
       'endless_playback', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("endless_playback" IN (0, 1))'),
-      defaultValue: const Constant(true));
+      defaultValue: const CustomExpression('1'));
   late final GeneratedColumn<bool> enableConnect = GeneratedColumn<bool>(
       'enable_connect', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("enable_connect" IN (0, 1))'),
-      defaultValue: const Constant(false));
+      defaultValue: const CustomExpression('0'));
   late final GeneratedColumn<int> connectPort = GeneratedColumn<int>(
       'connect_port', aliasedName, false,
       type: DriftSqlType.int,
       requiredDuringInsert: false,
-      defaultValue: const Constant(-1));
+      defaultValue: const CustomExpression('-1'));
   late final GeneratedColumn<bool> cacheMusic = GeneratedColumn<bool>(
       'cache_music', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("cache_music" IN (0, 1))'),
-      defaultValue: const Constant(true));
+      defaultValue: const CustomExpression('1'));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -1392,7 +1392,8 @@ class ScrobblerTable extends Table
       'created_at', aliasedName, false,
       type: DriftSqlType.dateTime,
       requiredDuringInsert: false,
-      defaultValue: currentDateAndTime);
+      defaultValue: const CustomExpression(
+          'CAST(strftime(\'%s\', CURRENT_TIMESTAMP) AS INTEGER)'));
   late final GeneratedColumn<String> username = GeneratedColumn<String>(
       'username', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
@@ -1626,7 +1627,8 @@ class SkipSegmentTable extends Table
       'created_at', aliasedName, false,
       type: DriftSqlType.dateTime,
       requiredDuringInsert: false,
-      defaultValue: currentDateAndTime);
+      defaultValue: const CustomExpression(
+          'CAST(strftime(\'%s\', CURRENT_TIMESTAMP) AS INTEGER)'));
   @override
   List<GeneratedColumn> get $columns => [id, start, end, trackId, createdAt];
   @override
@@ -1871,7 +1873,7 @@ class SourceMatchTable extends Table
       'source_info', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: const Constant("{}"));
+      defaultValue: const CustomExpression('\'{}\''));
   late final GeneratedColumn<String> sourceType = GeneratedColumn<String>(
       'source_type', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
@@ -1879,7 +1881,8 @@ class SourceMatchTable extends Table
       'created_at', aliasedName, false,
       type: DriftSqlType.dateTime,
       requiredDuringInsert: false,
-      defaultValue: currentDateAndTime);
+      defaultValue: const CustomExpression(
+          'CAST(strftime(\'%s\', CURRENT_TIMESTAMP) AS INTEGER)'));
   @override
   List<GeneratedColumn> get $columns =>
       [id, trackId, sourceInfo, sourceType, createdAt];
@@ -2107,6 +2110,296 @@ class SourceMatchTableCompanion extends UpdateCompanion<SourceMatchTableData> {
   }
 }
 
+class SourceMatchQuarantineTable extends Table
+    with TableInfo<SourceMatchQuarantineTable, SourceMatchQuarantineTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  SourceMatchQuarantineTable(this.attachedDatabase, [this._alias]);
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  late final GeneratedColumn<String> trackId = GeneratedColumn<String>(
+      'track_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  late final GeneratedColumn<String> rawSourceId = GeneratedColumn<String>(
+      'raw_source_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+      'reason', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  late final GeneratedColumn<String> sourceType = GeneratedColumn<String>(
+      'source_type', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  late final GeneratedColumn<int> quarantinedAtMs = GeneratedColumn<int>(
+      'quarantined_at_ms', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, trackId, rawSourceId, reason, sourceType, quarantinedAtMs];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'source_match_quarantine_table';
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SourceMatchQuarantineTableData map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SourceMatchQuarantineTableData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      trackId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}track_id'])!,
+      rawSourceId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}raw_source_id'])!,
+      reason: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}reason'])!,
+      sourceType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source_type']),
+      quarantinedAtMs: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}quarantined_at_ms'])!,
+    );
+  }
+
+  @override
+  SourceMatchQuarantineTable createAlias(String alias) {
+    return SourceMatchQuarantineTable(attachedDatabase, alias);
+  }
+}
+
+class SourceMatchQuarantineTableData extends DataClass
+    implements Insertable<SourceMatchQuarantineTableData> {
+  final int id;
+  final String trackId;
+  final String rawSourceId;
+  final String reason;
+  final String? sourceType;
+  final int quarantinedAtMs;
+  const SourceMatchQuarantineTableData(
+      {required this.id,
+      required this.trackId,
+      required this.rawSourceId,
+      required this.reason,
+      this.sourceType,
+      required this.quarantinedAtMs});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['track_id'] = Variable<String>(trackId);
+    map['raw_source_id'] = Variable<String>(rawSourceId);
+    map['reason'] = Variable<String>(reason);
+    if (!nullToAbsent || sourceType != null) {
+      map['source_type'] = Variable<String>(sourceType);
+    }
+    map['quarantined_at_ms'] = Variable<int>(quarantinedAtMs);
+    return map;
+  }
+
+  SourceMatchQuarantineTableCompanion toCompanion(bool nullToAbsent) {
+    return SourceMatchQuarantineTableCompanion(
+      id: Value(id),
+      trackId: Value(trackId),
+      rawSourceId: Value(rawSourceId),
+      reason: Value(reason),
+      sourceType: sourceType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceType),
+      quarantinedAtMs: Value(quarantinedAtMs),
+    );
+  }
+
+  factory SourceMatchQuarantineTableData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SourceMatchQuarantineTableData(
+      id: serializer.fromJson<int>(json['id']),
+      trackId: serializer.fromJson<String>(json['trackId']),
+      rawSourceId: serializer.fromJson<String>(json['rawSourceId']),
+      reason: serializer.fromJson<String>(json['reason']),
+      sourceType: serializer.fromJson<String?>(json['sourceType']),
+      quarantinedAtMs: serializer.fromJson<int>(json['quarantinedAtMs']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'trackId': serializer.toJson<String>(trackId),
+      'rawSourceId': serializer.toJson<String>(rawSourceId),
+      'reason': serializer.toJson<String>(reason),
+      'sourceType': serializer.toJson<String?>(sourceType),
+      'quarantinedAtMs': serializer.toJson<int>(quarantinedAtMs),
+    };
+  }
+
+  SourceMatchQuarantineTableData copyWith(
+          {int? id,
+          String? trackId,
+          String? rawSourceId,
+          String? reason,
+          Value<String?> sourceType = const Value.absent(),
+          int? quarantinedAtMs}) =>
+      SourceMatchQuarantineTableData(
+        id: id ?? this.id,
+        trackId: trackId ?? this.trackId,
+        rawSourceId: rawSourceId ?? this.rawSourceId,
+        reason: reason ?? this.reason,
+        sourceType: sourceType.present ? sourceType.value : this.sourceType,
+        quarantinedAtMs: quarantinedAtMs ?? this.quarantinedAtMs,
+      );
+  SourceMatchQuarantineTableData copyWithCompanion(
+      SourceMatchQuarantineTableCompanion data) {
+    return SourceMatchQuarantineTableData(
+      id: data.id.present ? data.id.value : this.id,
+      trackId: data.trackId.present ? data.trackId.value : this.trackId,
+      rawSourceId:
+          data.rawSourceId.present ? data.rawSourceId.value : this.rawSourceId,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      sourceType:
+          data.sourceType.present ? data.sourceType.value : this.sourceType,
+      quarantinedAtMs: data.quarantinedAtMs.present
+          ? data.quarantinedAtMs.value
+          : this.quarantinedAtMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SourceMatchQuarantineTableData(')
+          ..write('id: $id, ')
+          ..write('trackId: $trackId, ')
+          ..write('rawSourceId: $rawSourceId, ')
+          ..write('reason: $reason, ')
+          ..write('sourceType: $sourceType, ')
+          ..write('quarantinedAtMs: $quarantinedAtMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id, trackId, rawSourceId, reason, sourceType, quarantinedAtMs);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SourceMatchQuarantineTableData &&
+          other.id == this.id &&
+          other.trackId == this.trackId &&
+          other.rawSourceId == this.rawSourceId &&
+          other.reason == this.reason &&
+          other.sourceType == this.sourceType &&
+          other.quarantinedAtMs == this.quarantinedAtMs);
+}
+
+class SourceMatchQuarantineTableCompanion
+    extends UpdateCompanion<SourceMatchQuarantineTableData> {
+  final Value<int> id;
+  final Value<String> trackId;
+  final Value<String> rawSourceId;
+  final Value<String> reason;
+  final Value<String?> sourceType;
+  final Value<int> quarantinedAtMs;
+  const SourceMatchQuarantineTableCompanion({
+    this.id = const Value.absent(),
+    this.trackId = const Value.absent(),
+    this.rawSourceId = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.sourceType = const Value.absent(),
+    this.quarantinedAtMs = const Value.absent(),
+  });
+  SourceMatchQuarantineTableCompanion.insert({
+    this.id = const Value.absent(),
+    required String trackId,
+    required String rawSourceId,
+    required String reason,
+    this.sourceType = const Value.absent(),
+    required int quarantinedAtMs,
+  })  : trackId = Value(trackId),
+        rawSourceId = Value(rawSourceId),
+        reason = Value(reason),
+        quarantinedAtMs = Value(quarantinedAtMs);
+  static Insertable<SourceMatchQuarantineTableData> custom({
+    Expression<int>? id,
+    Expression<String>? trackId,
+    Expression<String>? rawSourceId,
+    Expression<String>? reason,
+    Expression<String>? sourceType,
+    Expression<int>? quarantinedAtMs,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (trackId != null) 'track_id': trackId,
+      if (rawSourceId != null) 'raw_source_id': rawSourceId,
+      if (reason != null) 'reason': reason,
+      if (sourceType != null) 'source_type': sourceType,
+      if (quarantinedAtMs != null) 'quarantined_at_ms': quarantinedAtMs,
+    });
+  }
+
+  SourceMatchQuarantineTableCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? trackId,
+      Value<String>? rawSourceId,
+      Value<String>? reason,
+      Value<String?>? sourceType,
+      Value<int>? quarantinedAtMs}) {
+    return SourceMatchQuarantineTableCompanion(
+      id: id ?? this.id,
+      trackId: trackId ?? this.trackId,
+      rawSourceId: rawSourceId ?? this.rawSourceId,
+      reason: reason ?? this.reason,
+      sourceType: sourceType ?? this.sourceType,
+      quarantinedAtMs: quarantinedAtMs ?? this.quarantinedAtMs,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (trackId.present) {
+      map['track_id'] = Variable<String>(trackId.value);
+    }
+    if (rawSourceId.present) {
+      map['raw_source_id'] = Variable<String>(rawSourceId.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (sourceType.present) {
+      map['source_type'] = Variable<String>(sourceType.value);
+    }
+    if (quarantinedAtMs.present) {
+      map['quarantined_at_ms'] = Variable<int>(quarantinedAtMs.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SourceMatchQuarantineTableCompanion(')
+          ..write('id: $id, ')
+          ..write('trackId: $trackId, ')
+          ..write('rawSourceId: $rawSourceId, ')
+          ..write('reason: $reason, ')
+          ..write('sourceType: $sourceType, ')
+          ..write('quarantinedAtMs: $quarantinedAtMs')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class AudioPlayerStateTable extends Table
     with TableInfo<AudioPlayerStateTable, AudioPlayerStateTableData> {
   @override
@@ -2142,12 +2435,12 @@ class AudioPlayerStateTable extends Table
       'tracks', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: const Constant("[]"));
+      defaultValue: const CustomExpression('\'[]\''));
   late final GeneratedColumn<int> currentIndex = GeneratedColumn<int>(
       'current_index', aliasedName, false,
       type: DriftSqlType.int,
       requiredDuringInsert: false,
-      defaultValue: const Constant(0));
+      defaultValue: const CustomExpression('0'));
   @override
   List<GeneratedColumn> get $columns =>
       [id, playing, loopMode, shuffled, collections, tracks, currentIndex];
@@ -2446,7 +2739,8 @@ class HistoryTable extends Table
       'created_at', aliasedName, false,
       type: DriftSqlType.dateTime,
       requiredDuringInsert: false,
-      defaultValue: currentDateAndTime);
+      defaultValue: const CustomExpression(
+          'CAST(strftime(\'%s\', CURRENT_TIMESTAMP) AS INTEGER)'));
   late final GeneratedColumn<String> type = GeneratedColumn<String>(
       'type', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
@@ -2908,21 +3202,21 @@ class PluginsTable extends Table
       requiredDuringInsert: false,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("selected_for_metadata" IN (0, 1))'),
-      defaultValue: const Constant(false));
+      defaultValue: const CustomExpression('0'));
   late final GeneratedColumn<bool> selectedForAudioSource =
       GeneratedColumn<bool>('selected_for_audio_source', aliasedName, false,
           type: DriftSqlType.bool,
           requiredDuringInsert: false,
           defaultConstraints: GeneratedColumn.constraintIsAlways(
               'CHECK ("selected_for_audio_source" IN (0, 1))'),
-          defaultValue: const Constant(false));
+          defaultValue: const CustomExpression('0'));
   late final GeneratedColumn<bool> selectedForTheme = GeneratedColumn<bool>(
       'selected_for_theme', aliasedName, false,
       type: DriftSqlType.bool,
       requiredDuringInsert: false,
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("selected_for_theme" IN (0, 1))'),
-      defaultValue: const Constant(false));
+      defaultValue: const CustomExpression('0'));
   late final GeneratedColumn<String> repository = GeneratedColumn<String>(
       'repository', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
@@ -2930,7 +3224,7 @@ class PluginsTable extends Table
       'plugin_api_version', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: const Constant('2.0.0'));
+      defaultValue: const CustomExpression('\'2.0.0\''));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -3401,8 +3695,8 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
   }
 }
 
-class DatabaseAtV11 extends GeneratedDatabase {
-  DatabaseAtV11(QueryExecutor e) : super(e);
+class DatabaseAtV12 extends GeneratedDatabase {
+  DatabaseAtV12(QueryExecutor e) : super(e);
   late final AuthenticationTable authenticationTable =
       AuthenticationTable(this);
   late final BlacklistTable blacklistTable = BlacklistTable(this);
@@ -3410,6 +3704,8 @@ class DatabaseAtV11 extends GeneratedDatabase {
   late final ScrobblerTable scrobblerTable = ScrobblerTable(this);
   late final SkipSegmentTable skipSegmentTable = SkipSegmentTable(this);
   late final SourceMatchTable sourceMatchTable = SourceMatchTable(this);
+  late final SourceMatchQuarantineTable sourceMatchQuarantineTable =
+      SourceMatchQuarantineTable(this);
   late final AudioPlayerStateTable audioPlayerStateTable =
       AudioPlayerStateTable(this);
   late final HistoryTable historyTable = HistoryTable(this);
@@ -3428,6 +3724,7 @@ class DatabaseAtV11 extends GeneratedDatabase {
         scrobblerTable,
         skipSegmentTable,
         sourceMatchTable,
+        sourceMatchQuarantineTable,
         audioPlayerStateTable,
         historyTable,
         lyricsTable,
@@ -3435,5 +3732,5 @@ class DatabaseAtV11 extends GeneratedDatabase {
         uniqueBlacklist
       ];
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 }

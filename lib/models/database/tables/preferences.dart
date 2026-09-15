@@ -57,30 +57,35 @@ class PreferencesTable extends Table {
   BoolColumn get systemTitleBar =>
       boolean().withDefault(const Constant(false))();
   BoolColumn get skipNonMusic => boolean().withDefault(const Constant(false))();
+  // NOTE: enum defaults are spelled as string literals (not `X.y.name`)
+  // on purpose. drift's schema exporter falls back to static analysis for
+  // this database (the model transitively imports dart:ui), and the
+  // fallback stringifies `.name` expressions without their imports,
+  // producing uncompilable snapshots. Literals keep codegen reproducible.
   TextColumn get closeBehavior => textEnum<CloseBehavior>()
-      .withDefault(Constant(CloseBehavior.close.name))();
+      .withDefault(const Constant("close"))();
   TextColumn get accentColorScheme => text()
       .withDefault(const Constant("Slate:0xff64748b"))
       .map(const SpotubeColorConverter())();
   TextColumn get layoutMode =>
-      textEnum<LayoutMode>().withDefault(Constant(LayoutMode.adaptive.name))();
+      textEnum<LayoutMode>().withDefault(const Constant("adaptive"))();
   TextColumn get locale => text()
       .withDefault(
         const Constant('{"languageCode":"system","countryCode":"system"}'),
       )
       .map(const LocaleConverter())();
   TextColumn get market =>
-      textEnum<Market>().withDefault(Constant(Market.US.name))();
+      textEnum<Market>().withDefault(const Constant("US"))();
   TextColumn get searchMode =>
-      textEnum<SearchMode>().withDefault(Constant(SearchMode.youtube.name))();
+      textEnum<SearchMode>().withDefault(const Constant("youtube"))();
   TextColumn get downloadLocation => text().withDefault(const Constant(""))();
   TextColumn get localLibraryLocation =>
       text().withDefault(const Constant("")).map(const StringListConverter())();
   TextColumn get themeMode =>
-      textEnum<ThemeMode>().withDefault(Constant(ThemeMode.system.name))();
+      textEnum<ThemeMode>().withDefault(const Constant("system"))();
   TextColumn get audioSourceId => text().nullable()();
   TextColumn get youtubeClientEngine => textEnum<YoutubeClientEngine>()
-      .withDefault(Constant(YoutubeClientEngine.youtubeExplode.name))();
+      .withDefault(const Constant("youtubeExplode"))();
   BoolColumn get discordPresence =>
       boolean().withDefault(const Constant(true))();
   BoolColumn get endlessPlayback =>

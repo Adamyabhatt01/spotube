@@ -56,6 +56,7 @@ part 'typeconverters/subtitle.dart';
     ScrobblerTable,
     SkipSegmentTable,
     SourceMatchTable,
+    SourceMatchQuarantineTable,
     AudioPlayerStateTable,
     HistoryTable,
     LyricsTable,
@@ -73,7 +74,224 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
+
+  /// Raw DDL for the quarantine table, kept as a constant so the v11->v12
+  /// step can create it idempotently (`IF NOT EXISTS`) without depending
+  /// on versioned-schema views. Must stay in sync with
+  /// [SourceMatchQuarantineTable]; drift's schema validation proves it.
+  static const quarantineTableDdl =
+      'CREATE TABLE IF NOT EXISTS source_match_quarantine_table ('
+      'id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, '
+      'track_id TEXT NOT NULL, '
+      'raw_source_id TEXT NOT NULL, '
+      'reason TEXT NOT NULL, '
+      'source_type TEXT NULL, '
+      'quarantined_at_ms INTEGER NOT NULL)';
+
+  /// Marker key parking unmigratable rows inside `source_info` during
+  /// v9->v10 (the quarantine table only exists from v12, so the payload
+  /// cannot move there yet). v11->v12 relocates marked rows. Data-only:
+  /// schema validation is unaffected.
+  static const quarantineMarkerKey = 'quarantine';
+
+  Future<bool> _tableExists(String table) async {
+    final rows = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = '$table'",
+    ).get();
+    return rows.isNotEmpty;
+  }
+
+  Future<Set<String>> _tableColumns(String table) async {
+    final rows = await customSelect('PRAGMA table_info($table)').get();
+    return {for (final row in rows) row.read<String>('name')};
+  }
+
+  Future<String?> _tableDdl(String table) async {
+    final rows = await customSelect(
+      "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = '$table'",
+    ).get();
+    if (rows.isEmpty) return null;
+    return rows.single.read<String>('sql');
+  }
+
+  /// Rebuilds [table] with DDL transformed by [patchDdl] (which returns
+  /// null when no rebuild is needed), preserving all rows positionally.
+  /// Used where SQLite offers no ALTER for the change (adding/changing a
+  /// column DEFAULT). The legacy copy is dropped only after the copy
+  /// succeeds, and a best-effort rename-back precedes any rethrow.
+  Future<void> _rebuildTablePreservingData(
+    String table,
+    String? Function(String ddl) patchDdl,
+  ) async {
+    final ddl = await _tableDdl(table);
+    if (ddl == null) {
+      throw StateError('$table does not exist during migration');
+    }
+    final patched = patchDdl(ddl);
+    if (patched == null) return; // Already correct (idempotent re-run).
+    final legacy = '${table}_legacy';
+    await customStatement('ALTER TABLE $table RENAME TO $legacy');
+    try {
+      // [patched] still names the original table (DDL was read before the
+      // rename), so executing it recreates the table, then data is copied.
+      await customStatement(patched);
+      await customStatement(
+        'INSERT INTO "$table" SELECT * FROM "$legacy"',
+      );
+      await customStatement('DROP TABLE "$legacy"');
+    } catch (e) {
+      try {
+        await customStatement('ALTER TABLE "$legacy" RENAME TO "$table"');
+      } catch (_) {
+        // Original error below is what matters.
+      }
+      rethrow;
+    }
+  }
+
+  /// Ensures `plugin_api_version` carries the given `DEFAULT` (v8 wants
+  /// `'1.0.0'`, v9+ wants `'2.0.0'`). The column predates both defaults,
+  /// and SQLite has no `ALTER COLUMN ... SET DEFAULT`, so the table is
+  /// rebuilt with patched DDL when the default differs. Without this,
+  /// inserts relying on the default fail NOT NULL and validation fails.
+  Future<void> _ensurePluginApiVersionDefault(
+    String table,
+    String wantedDefault,
+  ) async {
+    await _rebuildTablePreservingData(table, (ddl) {
+      final clause =
+          RegExp('"plugin_api_version"[^,)]*').firstMatch(ddl)?.group(0);
+      if (clause == null) {
+        throw StateError(
+            'plugin_api_version missing in $table during migration');
+      }
+      if (clause.contains("DEFAULT '$wantedDefault'")) return null;
+      final patchedClause = clause.contains('DEFAULT')
+          ? clause.replaceFirst(
+              RegExp("DEFAULT '[^']*'"), "DEFAULT '$wantedDefault'")
+          : "$clause DEFAULT '$wantedDefault'";
+      return ddl.replaceFirst(clause, patchedClause);
+    });
+  }
+
+  /// Drops the stale `DEFAULT 'youtube'` from
+  /// `source_match_table.source_type`. The default existed in v9 but the
+  /// v10+ contract (and fresh installs) carry none; the 9->10 step never
+  /// removed it, so upgraded databases diverge from the snapshot without
+  /// this normalization. Data preserved.
+  Future<void> _dropSourceTypeDefault() async {
+    await _rebuildTablePreservingData('source_match_table', (ddl) {
+      final clause =
+          RegExp('"source_type"[^,)]*').firstMatch(ddl)?.group(0);
+      if (clause == null) {
+        throw StateError(
+            'source_type missing in source_match_table during migration');
+      }
+      if (!clause.contains('DEFAULT')) return null;
+      return ddl.replaceFirst(
+        clause,
+        clause.replaceFirst(RegExp(r"\s+DEFAULT\s+'[^']*'"), ''),
+      );
+    });
+  }
+
+  /// Moves v9->v10 quarantine markers from the live table into the
+  /// quarantine table. Ordered INSERT-then-DELETE per row: a quarantine
+  /// write failure throws BEFORE the live row is touched, so corruption
+  /// is never lost silently. Idempotent: re-running moves zero rows.
+  @visibleForTesting
+  static Future<int> moveQuarantineMarkersToTable(AppDatabase db) async {
+    final rows = await db.customSelect(
+      'SELECT id, track_id, source_info, source_type FROM source_match_table',
+    ).get();
+    var moved = 0;
+    for (final row in rows) {
+      Map<String, dynamic>? marker;
+      try {
+        final decoded = jsonDecode(row.read<String>('source_info'));
+        if (decoded is Map<String, dynamic> &&
+            decoded[quarantineMarkerKey] == true) {
+          marker = decoded;
+        }
+      } catch (_) {
+        continue; // Not a marker (app data or legacy '{}'): leave alone.
+      }
+      if (marker == null) continue;
+      final id = row.read<int>('id');
+      String? sourceType;
+      try {
+        sourceType = row.read<String>('source_type');
+      } catch (_) {
+        sourceType = null;
+      }
+      // Live row is deleted ONLY after this insert succeeds.
+      await db.customStatement(
+        'INSERT INTO source_match_quarantine_table '
+        '(track_id, raw_source_id, reason, source_type, quarantined_at_ms) '
+        'VALUES (?, ?, ?, ?, ?)',
+        [
+          row.read<String>('track_id'),
+          marker['rawSourceId'] as String? ?? '',
+          marker['reason'] as String? ?? 'unknown',
+          sourceType,
+          DateTime.now().millisecondsSinceEpoch,
+        ],
+      );
+      await db.customStatement(
+        'DELETE FROM source_match_table WHERE id = ?',
+        [id],
+      );
+      moved++;
+    }
+    return moved;
+  }
+
+  /// Backfills source_info for pre-v10 cached rows.
+  ///
+  /// Historical rows store either {"info": {...}, "sources": [...]} JSON
+  /// (DAB era) or a raw video id (invidious era) in source_id. Only the
+  /// former upgrades losslessly: the embedded info object is validated
+  /// and re-encoded, so the cache-hit path reads the migrated row.
+  /// Anything else is parked as a [quarantineMarkerKey] marker (raw
+  /// payload + reason preserved) instead of being deleted — the real
+  /// quarantine table only exists from v12, so v11->v12 relocates these
+  /// markers. Structural failures (unreadable table) propagate to the
+  /// caller, which fails the migration loudly.
+  Future<void> _backfillSourceInfoWithQuarantineMarkers() async {
+    final rows = await customSelect(
+      'SELECT id, source_id FROM source_match_table',
+    ).get();
+    for (final row in rows) {
+      final id = row.read<int>('id');
+      final raw = row.read<String>('source_id');
+      String? reencoded;
+      String? failure;
+      try {
+        final decoded = jsonDecode(raw);
+        final info = (decoded as Map<String, dynamic>)['info']
+            as Map<String, dynamic>;
+        final match = SpotubeAudioSourceMatchObject.fromJson(
+          Map<String, dynamic>.from(info),
+        );
+        reencoded = jsonEncode(match.toJson());
+      } catch (e) {
+        failure = e.toString();
+      }
+      await customStatement(
+        'UPDATE source_match_table SET source_info = ? WHERE id = ?',
+        [
+          reencoded ??
+              jsonEncode({
+                quarantineMarkerKey: true,
+                'rawSourceId': raw,
+                'reason': 'v9->v10 sourceInfo backfill: $failure',
+              }),
+          id,
+        ],
+      );
+    }
+  }
 
   @override
   MigrationStrategy get migration {
@@ -151,169 +369,166 @@ class AppDatabase extends _$AppDatabase {
           );
         },
         from7To8: (m, schema) async {
-          await m
-              .addColumn(
-            schema.metadataPluginsTable,
-            schema.metadataPluginsTable.entryPoint,
-          )
-              .catchError((error, stackTrace) {
-            // If the column already exists, ignore the error
-            if (!error.toString().contains('duplicate column name')) {
-              throw error;
+          try {
+            // Columns added in v8; guarded by existence checks instead of
+            // string-matching catchError, so unexpected failures surface.
+            final pluginColumns = {
+              schema.metadataPluginsTable.entryPoint.name: schema
+                  .metadataPluginsTable.entryPoint,
+              schema.metadataPluginsTable.apis.name:
+                  schema.metadataPluginsTable.apis,
+              schema.metadataPluginsTable.abilities.name:
+                  schema.metadataPluginsTable.abilities,
+              schema.metadataPluginsTable.repository.name:
+                  schema.metadataPluginsTable.repository,
+              schema.metadataPluginsTable.pluginApiVersion.name:
+                  schema.metadataPluginsTable.pluginApiVersion,
+            };
+            for (final entry in pluginColumns.entries) {
+              if (!(await _tableColumns('metadata_plugins_table'))
+                  .contains(entry.key)) {
+                await m.addColumn(schema.metadataPluginsTable, entry.value);
+              }
             }
-          });
-          await m
-              .addColumn(
-            schema.metadataPluginsTable,
-            schema.metadataPluginsTable.apis,
-          )
-              .catchError((error, stackTrace) {
-            // If the column already exists, ignore the error
-            if (!error.toString().contains('duplicate column name')) {
-              throw error;
-            }
-          });
-          await m
-              .addColumn(
-            schema.metadataPluginsTable,
-            schema.metadataPluginsTable.abilities,
-          )
-              .catchError((error, stackTrace) {
-            // If the column already exists, ignore the error
-            if (!error.toString().contains('duplicate column name')) {
-              throw error;
-            }
-          });
-          await m
-              .addColumn(
-            schema.metadataPluginsTable,
-            schema.metadataPluginsTable.repository,
-          )
-              .catchError((error, stackTrace) {
-            // If the column already exists, ignore the error
-            if (!error.toString().contains('duplicate column name')) {
-              throw error;
-            }
-          });
-          await m
-              .addColumn(
-            schema.metadataPluginsTable,
-            schema.metadataPluginsTable.pluginApiVersion,
-          )
-              .catchError((error, stackTrace) {
-            // If the column already exists, ignore the error
-            if (!error.toString().contains('duplicate column name')) {
-              throw error;
-            }
-          });
+            // plugin_api_version existed since v7 WITHOUT a DB default;
+            // v8 requires DEFAULT '1.0.0'. SQLite cannot ADD DEFAULT to
+            // an existing column, so rebuild the table (data preserved)
+            // when the default is missing. Without this, inserts relying
+            // on the default fail NOT NULL, and schema validation fails.
+            // v8 contract for the default (see helper docs).
+            await _ensurePluginApiVersionDefault(
+              'metadata_plugins_table',
+              '1.0.0',
+            );
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
         },
         from8To9: (m, schema) async {
-          await m
-              .renameTable(schema.pluginsTable, "metadata_plugins_table")
-              .catchError((e, stack) => AppLogger.reportError(e, stack));
-          await m
-              .renameColumn(
+          // v8: metadata_plugins_table(selected, ...) ->
+          // v9: plugins_table(selected_for_metadata,
+          //                    selected_for_audio_source, ...).
+          // NOTE: the pre-hardening code called
+          // renameTable(schema.pluginsTable, "metadata_plugins_table"),
+          // which renames the WRONG way (v9 view is already named
+          // plugins_table) and only passed by swallowing the error.
+          try {
+            final hasNewTable = await _tableExists('plugins_table');
+            final newColumns = hasNewTable
+                ? await _tableColumns('plugins_table')
+                : const <String>{};
+            if (hasNewTable &&
+                newColumns.contains('selected_for_metadata') &&
+                newColumns.contains('selected_for_audio_source')) {
+              return; // Already migrated (idempotent re-run).
+            }
+            if (!hasNewTable &&
+                await _tableExists('metadata_plugins_table')) {
+              await customStatement(
+                'ALTER TABLE metadata_plugins_table RENAME TO plugins_table',
+              );
+            }
+            final columns = await _tableColumns('plugins_table');
+            if (columns.contains('selected') &&
+                !columns.contains('selected_for_metadata')) {
+              await customStatement(
+                'ALTER TABLE plugins_table '
+                'RENAME COLUMN selected TO selected_for_metadata',
+              );
+            }
+            if (!(await _tableColumns('plugins_table'))
+                .contains('selected_for_audio_source')) {
+              await m.addColumn(
                 schema.pluginsTable,
-                "selected",
-                pluginsTable.selectedForMetadata,
-              )
-              .catchError((e, stack) => AppLogger.reportError(e, stack));
-          await m
-              .addColumn(
-                schema.pluginsTable,
-                pluginsTable.selectedForAudioSource,
-              )
-              .catchError((e, stack) => AppLogger.reportError(e, stack));
+                schema.pluginsTable.selectedForAudioSource,
+              );
+            }
+            // The model default moved 1.0.0 -> 2.0.0 with no dedicated
+            // step; v9+ schemas require DEFAULT '2.0.0'.
+            await _ensurePluginApiVersionDefault('plugins_table', '2.0.0');
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
         },
         from9To10: (m, schema) async {
-          await m
-              .dropColumn(schema.preferencesTable, "piped_instance")
-              .catchError((e, stack) => AppLogger.reportError(e, stack));
-          await m
-              .dropColumn(schema.preferencesTable, "invidious_instance")
-              .catchError((e, stack) => AppLogger.reportError(e, stack));
-          // Phase 3.2 (item 2): complete the 9->10 preferences transition
-          // started in 99a84aa6. audioSourceId was added to the model without
-          // a migration step (nullable: no backfill concerns). The four
-          // audio-quality/codec columns were removed from the model in the
-          // same commit ("move away from track source query and preferences
-          // audio quality and codec") and are genuinely obsolete: no code
-          // references them (analyzer-clean), so dropping is safe cleanup
-          // required for schema parity.
-          await m
-              .addColumn(
+          try {
+            // Drop columns removed from the model in 99a84aa6 ("move away
+            // from track source query and preferences audio quality and
+            // codec") plus the dead piped/invidious instances. Each drop
+            // is guarded by an existence check instead of
+            // catchError-and-continue, so a half-migrated preferences
+            // table fails loudly instead of looking handled.
+            for (final obsoleteColumn in const [
+              "piped_instance",
+              "invidious_instance",
+              "audio_quality",
+              "audio_source",
+              "stream_music_codec",
+              "download_music_codec",
+            ]) {
+              if ((await _tableColumns('preferences_table'))
+                  .contains(obsoleteColumn)) {
+                await m.dropColumn(schema.preferencesTable, obsoleteColumn);
+              }
+            }
+            if (!(await _tableColumns('preferences_table'))
+                .contains('audio_source_id')) {
+              await m.addColumn(
                 schema.preferencesTable,
                 preferencesTable.audioSourceId,
-              )
-              .catchError((e, stack) => AppLogger.reportError(e, stack));
-          for (final obsoleteColumn in const [
-            "audio_quality",
-            "audio_source",
-            "stream_music_codec",
-            "download_music_codec",
-          ]) {
-            await m
-                .dropColumn(schema.preferencesTable, obsoleteColumn)
-                .catchError((e, stack) => AppLogger.reportError(e, stack));
-          }
-          await m
-              .addColumn(
+              );
+            }
+            if (!(await _tableColumns('source_match_table'))
+                .contains('source_info')) {
+              await m.addColumn(
                 schema.sourceMatchTable,
                 sourceMatchTable.sourceInfo,
-              )
-              .catchError((e, stack) => AppLogger.reportError(e, stack));
-          // Phase 3.2 (item 1): backfill sourceInfo for pre-v10 cached rows.
-          // Historical rows store either {"info": {...}, "sources": [...]}
-          // JSON (DAB era) or a raw video id (invidious era) in source_id.
-          // Only the former can be losslessly upgraded: the embedded info
-          // object is validated and re-encoded in the current shape, so the
-          // cache-hit path can read the migrated row. Anything else is
-          // deleted — source_match is a pure performance cache, so a dropped
-          // row degrades to a cache miss (fresh search, self-healing) while
-          // a '{}' row crashes deserialization (proven in
-          // test/drift/app_db/source_match_migration_proof_test.dart).
-          // Per-row failures invalidate just that row; structural failures
-          // keep the pre-existing behavior below.
-          try {
-            final rows = await customSelect(
-              'SELECT id, source_id FROM source_match_table',
-            ).get();
-            for (final row in rows) {
-              final id = row.read<int>('id');
-              try {
-                final decoded = jsonDecode(row.read<String>('source_id'));
-                final info = (decoded as Map<String, dynamic>)['info']
-                    as Map<String, dynamic>;
-                final match = SpotubeAudioSourceMatchObject.fromJson(
-                  Map<String, dynamic>.from(info),
-                );
-                await customStatement(
-                  'UPDATE source_match_table SET source_info = ? WHERE id = ?',
-                  [jsonEncode(match.toJson()), id],
-                );
-              } catch (_) {
-                await customStatement(
-                  'DELETE FROM source_match_table WHERE id = ?',
-                  [id],
-                );
-              }
+              );
+            }
+            await _backfillSourceInfoWithQuarantineMarkers();
+            await customStatement("DROP INDEX IF EXISTS uniq_track_match;");
+            // v9 carried DEFAULT 'youtube' on source_type; v10+ (and fresh
+            // installs) carry none. Normalize so upgraded databases match
+            // the snapshot instead of diverging silently.
+            await _dropSourceTypeDefault();
+            if ((await _tableColumns('source_match_table'))
+                .contains('source_id')) {
+              await m.dropColumn(schema.sourceMatchTable, "source_id");
             }
           } catch (e, stack) {
             AppLogger.reportError(e, stack);
+            rethrow;
           }
-          await customStatement("DROP INDEX IF EXISTS uniq_track_match;")
-              .catchError((e, stack) => AppLogger.reportError(e, stack));
-          await m
-              .dropColumn(schema.sourceMatchTable, "source_id")
-              .catchError((e, stack) => AppLogger.reportError(e, stack));
         },
         from10To11: (m, schema) async {
-          await m
-              .addColumn(
+          try {
+            if (!(await _tableColumns('plugins_table'))
+                .contains('selected_for_theme')) {
+              await m.addColumn(
                 schema.pluginsTable,
                 schema.pluginsTable.selectedForTheme,
-              )
-              .catchError((e, stack) => AppLogger.reportError(e, stack));
+              );
+            }
+            // Databases that started at v10 may still carry the index
+            // dropped in 9->10 (stale v10 snapshot era); ensure it is gone.
+            await customStatement("DROP INDEX IF EXISTS uniq_track_match;");
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from11To12: (m, schema) async {
+          try {
+            await customStatement(quarantineTableDdl);
+            // Same stale-index belt-and-braces as 10->11.
+            await customStatement("DROP INDEX IF EXISTS uniq_track_match;");
+            await moveQuarantineMarkersToTable(this);
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
         },
       ),
     );

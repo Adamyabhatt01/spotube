@@ -3382,12 +3382,6 @@ class DatabaseAtV10 extends GeneratedDatabase {
   late final PluginsTable pluginsTable = PluginsTable(this);
   late final Index uniqueBlacklist = Index('unique_blacklist',
       'CREATE UNIQUE INDEX unique_blacklist ON blacklist_table (element_type, element_id)');
-  // Phase 3.2 snapshot correction: uniq_track_match was deliberately removed
-  // in a012a8f3 ("fix unique index on source_match_table causing failure on
-  // insert") and the released 9->10 migration drops it. This snapshot was
-  // dumped before that removal, so the index definition and its
-  // allSchemaEntities entry are removed here to represent the intended v10
-  // schema. No migration operation corresponds to this edit.
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();

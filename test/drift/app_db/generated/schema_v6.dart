@@ -525,7 +525,7 @@ class PreferencesTable extends Table
       GeneratedColumn<String>('accent_color_scheme', aliasedName, false,
           type: DriftSqlType.string,
           requiredDuringInsert: false,
-          defaultValue: const Constant("Orange:0xFFf97315"));
+          defaultValue: const Constant("Slate:0xff64748b"));
   late final GeneratedColumn<String> layoutMode = GeneratedColumn<String>(
       'layout_mode', aliasedName, false,
       type: DriftSqlType.string,
@@ -2037,13 +2037,7 @@ class SourceMatchTable extends Table
       'source_type', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      // Phase 3.1 snapshot repair: the v6-era default was
-      // `SourceType.youtube.name` (=="youtube"), but the SourceType enum was
-      // later removed from the codebase, leaving a dangling reference that
-      // broke compilation of the whole migration test file. The literal
-      // preserves the historical schema meaning exactly; the snapshot is
-      // otherwise untouched.
-      defaultValue: const Constant('youtube'));
+      defaultValue: Constant('youtube'));
   late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
       'created_at', aliasedName, false,
       type: DriftSqlType.dateTime,
