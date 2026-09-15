@@ -19,7 +19,6 @@ import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/duration.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/audio_player/querying_track_info.dart';
-import 'package:spotube/provider/audio_player/state.dart';
 import 'package:spotube/provider/blacklist_provider.dart';
 import 'package:spotube/utils/platform.dart';
 
@@ -45,7 +44,13 @@ class TrackTile extends HookConsumerWidget {
   final VoidCallback? onLongPress;
   final bool userPlaylist;
   final String? playlistId;
-  final AudioPlayerState playlist;
+
+  /// Whether this tile's track is the active player track. Parents must
+  /// pass a narrowly-selected bool (e.g. via
+  /// `audioPlayerProvider.select((s) => s.activeTrack?.id)`) instead of
+  /// the whole [AudioPlayerState], so list rows don't rebuild on
+  /// playing/loop/shuffle/queue edits.
+  final bool isPlaying;
 
   final List<Widget>? leadingActions;
 
@@ -55,7 +60,7 @@ class TrackTile extends HookConsumerWidget {
     required this.track,
     this.selected = false,
     this.selectionMode = false,
-    required this.playlist,
+    required this.isPlaying,
     this.onTap,
     this.onLongPress,
     this.onChanged,
@@ -71,8 +76,6 @@ class TrackTile extends HookConsumerWidget {
     final isBlackListed = ref.watch(isBlacklistedProvider(track));
 
     final isLoading = useState(false);
-
-    final isPlaying = playlist.activeTrack?.id == track.id;
 
     final isSelected = isPlaying || isLoading.value;
 

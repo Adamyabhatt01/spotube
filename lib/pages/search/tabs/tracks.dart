@@ -29,7 +29,10 @@ class SearchPageTracksTab extends HookConsumerWidget {
     final searchTracks =
         searchTracksSnapshot.asData?.value.items ?? [FakeData.track];
 
-    final playlist = ref.watch(audioPlayerProvider);
+    // Perf: tile highlight needs only the active id; queue-length checks
+    // below read fresh state at tap time.
+    final activeTrackId =
+        ref.watch(audioPlayerProvider.select((s) => s.activeTrack?.id));
     final playlistNotifier = ref.watch(audioPlayerProvider.notifier);
 
     if (searchTracksSnapshot.hasError) {
@@ -51,7 +54,8 @@ class SearchPageTracksTab extends HookConsumerWidget {
         loadingBuilder: (context) {
           return Skeletonizer(
             enabled: true,
-            child: TrackTile(track: FakeData.track, playlist: playlist),
+            child: TrackTile(
+                track: FakeData.track, isPlaying: activeTrackId == FakeData.track.id),
           );
         },
         onFetchData: () {
@@ -62,7 +66,7 @@ class SearchPageTracksTab extends HookConsumerWidget {
 
           return TrackTile(
             track: track,
-            playlist: playlist,
+            isPlaying: activeTrackId == track.id,
             index: index,
             onTap: () async {
               final isRemoteDevice = await showSelectDeviceDialog(context, ref);
@@ -77,14 +81,16 @@ class SearchPageTracksTab extends HookConsumerWidget {
                     remotePlaylist.activeTrack?.id == track.id;
 
                 if (!isTrackPlaying && context.mounted) {
-                  final shouldPlay = (playlist.tracks.length) > 20
+                  final queueLength =
+                      ref.read(audioPlayerProvider).tracks.length;
+                  final shouldPlay = queueLength > 20
                       ? await showPromptDialog(
                           context: context,
                           title: context.l10n.playing_track(
                             track.name,
                           ),
                           message: context.l10n.queue_clear_alert(
-                            playlist.tracks.length,
+                            queueLength,
                           ),
                         )
                       : true;
@@ -98,16 +104,17 @@ class SearchPageTracksTab extends HookConsumerWidget {
                   }
                 }
               } else {
-                final isTrackPlaying = playlist.activeTrack?.id == track.id;
+                final queue = ref.read(audioPlayerProvider);
+                final isTrackPlaying = queue.activeTrack?.id == track.id;
                 if (!isTrackPlaying && context.mounted) {
-                  final shouldPlay = (playlist.tracks.length) > 20
+                  final shouldPlay = (queue.tracks.length) > 20
                       ? await showPromptDialog(
                           context: context,
                           title: context.l10n.playing_track(
                             track.name,
                           ),
                           message: context.l10n.queue_clear_alert(
-                            playlist.tracks.length,
+                            queue.tracks.length,
                           ),
                         )
                       : true;

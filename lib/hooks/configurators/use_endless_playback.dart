@@ -8,7 +8,12 @@ import 'package:spotube/services/audio_player/audio_player.dart';
 
 void useEndlessPlayback(WidgetRef ref) {
   final playback = ref.watch(audioPlayerProvider.notifier);
-  final audioPlayerState = ref.watch(audioPlayerProvider);
+  // Perf: the effect only depends on queue shape + position, not on
+  // playing/loop/shuffle toggles.
+  final queueTracks =
+      ref.watch(audioPlayerProvider.select((s) => s.tracks));
+  final currentIndex =
+      ref.watch(audioPlayerProvider.select((s) => s.currentIndex));
   final endlessPlayback =
       ref.watch(userPreferencesProvider.select((s) => s.endlessPlayback));
   final metadataPlugin = ref.watch(metadataPluginProvider.future);
@@ -44,9 +49,9 @@ void useEndlessPlayback(WidgetRef ref) {
       // Sometimes user can change settings for which the currentIndexChanged
       // might not be called. So we need to check if the current track is the
       // last track and if it is then we need to call the listener manually.
-      if (audioPlayerState.currentIndex == audioPlayerState.tracks.length - 1 &&
+      if (currentIndex == queueTracks.length - 1 &&
           audioPlayer.isPlaying) {
-        listener(audioPlayerState.currentIndex);
+        listener(currentIndex);
       }
 
       final subscription =
@@ -57,8 +62,8 @@ void useEndlessPlayback(WidgetRef ref) {
     [
       metadataPlugin,
       playback,
-      audioPlayerState.tracks,
-      audioPlayerState.currentIndex,
+      queueTracks,
+      currentIndex,
       endlessPlayback,
     ],
   );

@@ -19,8 +19,9 @@ class PlayerOverlayCollapsedSection extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, ref) {
-    final playlist = ref.watch(audioPlayerProvider);
-    final canShow = playlist.activeTrack != null;
+    final activeTrack =
+        ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
+    final canShow = activeTrack != null;
 
     final isFetchingActiveTrack = ref.watch(queryingTrackInfoProvider);
     final playing =
@@ -60,7 +61,7 @@ class PlayerOverlayCollapsedSection extends HookConsumerWidget {
                                 width: double.infinity,
                                 color: Colors.transparent,
                                 child: PlayerTrackDetails(
-                                  track: playlist.activeTrack,
+                                  track: activeTrack,
                                   color: theme.colorScheme.foreground,
                                 ),
                               ),

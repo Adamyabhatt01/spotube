@@ -35,7 +35,9 @@ class AlbumCard extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, ref) {
-    final playlist = ref.watch(audioPlayerProvider);
+    // Perf: only collection membership is consumed (isPlaylistPlaying).
+    final playlistCollections =
+        ref.watch(audioPlayerProvider.select((s) => s.collections));
     final playing =
         useStream(audioPlayer.playingStream).data ?? audioPlayer.isPlaying;
     final playlistNotifier = ref.watch(audioPlayerProvider.notifier);
@@ -43,8 +45,8 @@ class AlbumCard extends HookConsumerWidget {
     final isFetchingActiveTrack = ref.watch(queryingTrackInfoProvider);
 
     final isPlaylistPlaying = useMemoized<bool>(
-      () => playlist.containsCollection(album.id),
-      [playlist, album.id],
+      () => playlistCollections.contains(album.id),
+      [playlistCollections, album.id],
     );
 
     final updating = useState(false);

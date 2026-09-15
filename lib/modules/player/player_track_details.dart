@@ -21,11 +21,12 @@ class PlayerTrackDetails extends HookConsumerWidget {
   Widget build(BuildContext context, ref) {
     final theme = Theme.of(context);
     final mediaQuery = MediaQuery.of(context);
-    final playback = ref.watch(audioPlayerProvider);
+    final activeTrack =
+        ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
 
     return Row(
       children: [
-        if (playback.activeTrack != null)
+        if (activeTrack != null)
           Container(
             padding: const EdgeInsets.all(6),
             constraints: const BoxConstraints(
@@ -48,14 +49,14 @@ class PlayerTrackDetails extends HookConsumerWidget {
               children: [
                 const SizedBox(height: 4),
                 Text(
-                  playback.activeTrack?.name ?? "",
+                  activeTrack?.name ?? "",
                   overflow: TextOverflow.ellipsis,
                   style: theme.typography.normal.copyWith(
                     color: color,
                   ),
                 ),
                 Text(
-                  playback.activeTrack?.artists.asString() ?? "",
+                  activeTrack?.artists.asString() ?? "",
                   overflow: TextOverflow.ellipsis,
                   style: theme.typography.small.copyWith(color: color),
                 )
@@ -68,14 +69,14 @@ class PlayerTrackDetails extends HookConsumerWidget {
             child: Column(
               children: [
                 LinkText(
-                  playback.activeTrack?.name ?? "",
-                  TrackRoute(trackId: playback.activeTrack?.id ?? ""),
+                  activeTrack?.name ?? "",
+                  TrackRoute(trackId: activeTrack?.id ?? ""),
                   push: true,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontWeight: FontWeight.bold, color: color),
                 ),
                 ArtistLink(
-                  artists: playback.activeTrack?.artists ?? [],
+                  artists: activeTrack?.artists ?? [],
                   onRouteChange: (route) {
                     context.router.navigateNamed(route);
                   },

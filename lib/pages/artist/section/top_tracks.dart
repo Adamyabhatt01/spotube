@@ -12,6 +12,7 @@ import 'package:spotube/models/connect/connect.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/connect/connect.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/state.dart';
 import 'package:spotube/provider/metadata_plugin/artist/top_tracks.dart';
 
 class ArtistPageTopTracks extends HookConsumerWidget {
@@ -23,12 +24,18 @@ class ArtistPageTopTracks extends HookConsumerWidget {
     final theme = Theme.of(context);
     final isLoading = useState(false);
 
-    final playlist = ref.watch(audioPlayerProvider);
+    // Perf: queue-membership + highlight only. Rebuilds on queue/active-
+    // track changes, not on playing/loop/shuffle toggles.
+    final queueTracks =
+        ref.watch(audioPlayerProvider.select((s) => s.tracks));
+    final activeTrackId =
+        ref.watch(audioPlayerProvider.select((s) => s.activeTrack?.id));
     final playlistNotifier = ref.watch(audioPlayerProvider.notifier);
     final topTracksQuery =
         ref.watch(metadataPluginArtistTopTracksProvider(artistId));
 
-    final isPlaylistPlaying = playlist.containsTracks(
+    final isPlaylistPlaying = AudioPlayerState.listContainsTracks(
+      queueTracks,
       topTracksQuery.asData?.value.items ?? <SpotubeTrackObject>[],
     );
 
@@ -72,7 +79,7 @@ class ArtistPageTopTracks extends HookConsumerWidget {
             );
           } else if (isPlaylistPlaying &&
               currentTrack.id != remotePlaylist.activeTrack?.id) {
-            final index = playlist.tracks
+            final index = queueTracks
                 .toList()
                 .indexWhere((s) => s.id == currentTrack!.id);
             await remotePlayback.jumpTo(index);
@@ -85,7 +92,7 @@ class ArtistPageTopTracks extends HookConsumerWidget {
               autoPlay: true,
             );
           } else if (isPlaylistPlaying &&
-              currentTrack.id != playlist.activeTrack?.id) {
+              currentTrack.id != activeTrackId) {
             await playlistNotifier.jumpToTrack(currentTrack);
           }
         }
@@ -156,7 +163,7 @@ class ArtistPageTopTracks extends HookConsumerWidget {
             final track = topTracks.elementAt(index);
             return TrackTile(
               index: index,
-              playlist: playlist,
+              isPlaying: activeTrackId == track.id,
               track: track,
               onTap: () async {
                 playPlaylist(

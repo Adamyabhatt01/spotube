@@ -28,20 +28,21 @@ class BottomPlayer extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, ref) {
-    final playlist = ref.watch(audioPlayerProvider);
+    final activeTrack =
+        ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
     final layoutMode =
         ref.watch(userPreferencesProvider.select((s) => s.layoutMode));
 
     final mediaQuery = MediaQuery.of(context);
 
     String albumArt = useMemoized(
-      () => playlist.activeTrack?.album.images.isNotEmpty == true
-          ? (playlist.activeTrack?.album.images).asUrlString(
-              index: (playlist.activeTrack?.album.images.length ?? 1) - 1,
+      () => activeTrack?.album.images.isNotEmpty == true
+          ? (activeTrack?.album.images).asUrlString(
+              index: (activeTrack?.album.images.length ?? 1) - 1,
               placeholder: ImagePlaceholder.albumArt,
             )
           : Assets.images.albumPlaceholder.path,
-      [playlist.activeTrack?.album.images],
+      [activeTrack?.album.images],
     );
 
     // returning an empty non spacious Container as the overlay will take
@@ -58,7 +59,7 @@ class BottomPlayer extends HookConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
-            child: PlayerTrackDetails(track: playlist.activeTrack),
+            child: PlayerTrackDetails(track: activeTrack),
           ),
           // controls
           const Flexible(

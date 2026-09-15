@@ -21,8 +21,9 @@ class PlayerOverlay extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, ref) {
-    final playlist = ref.watch(audioPlayerProvider);
-    final canShow = playlist.activeTrack != null;
+    final activeTrack =
+        ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
+    final canShow = activeTrack != null;
 
     final screenSize = MediaQuery.sizeOf(context);
 

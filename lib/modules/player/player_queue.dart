@@ -305,7 +305,8 @@ class PlayerQueue extends HookConsumerWidget {
                                 controller: controller,
                                 index: i,
                                 child: TrackTile(
-                                  playlist: playlist,
+                                  isPlaying:
+                                      playlist.activeTrack?.id == track.id,
                                   index: i,
                                   track: track,
                                   selectionMode: selectionMode.value,

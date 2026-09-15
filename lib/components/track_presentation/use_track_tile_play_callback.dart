@@ -18,13 +18,15 @@ Future<void> Function(SpotubeTrackObject track, int index)
 ) {
   final context = useContext();
   final options = TrackPresentationOptions.of(context);
-  final playlist = ref.watch(audioPlayerProvider);
+  // Perf: only the collection membership drives the memoized callback.
+  final playlistCollections =
+      ref.watch(audioPlayerProvider.select((s) => s.collections));
   final playlistNotifier = ref.watch(audioPlayerProvider.notifier);
   final historyNotifier = ref.watch(playbackHistoryActionsProvider);
 
   final isActive = useMemoized(
-    () => playlist.collections.contains(options.collectionId),
-    [playlist.collections, options.collectionId],
+    () => playlistCollections.contains(options.collectionId),
+    [playlistCollections, options.collectionId],
   );
 
   final onTapTrackTile =
@@ -68,7 +70,9 @@ Future<void> Function(SpotubeTrackObject track, int index)
         );
       }
     } else {
-      if (isActive || playlist.tracks.containsBy(track, (a) => a.id)) {
+      // Read fresh queue state at tap time instead of watching it.
+      final queueTracks = ref.read(audioPlayerProvider.select((s) => s.tracks));
+      if (isActive || queueTracks.containsBy(track, (a) => a.id)) {
         await playlistNotifier.jumpToTrack(track);
       } else {
         final tracks = await options.pagination.onFetchAll();
@@ -87,7 +91,7 @@ Future<void> Function(SpotubeTrackObject track, int index)
         }
       }
     }
-  }, [isActive, playlist, options, playlistNotifier, historyNotifier]);
+  }, [isActive, options, playlistNotifier, historyNotifier]);
 
   return onTapTrackTile;
 }

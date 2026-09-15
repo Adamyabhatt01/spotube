@@ -30,7 +30,10 @@ class MiniLyricsPage extends HookConsumerWidget {
     final update = useForceUpdate();
     final wasMaximized = useRef<bool>(false);
 
-    final playlistQueue = ref.watch(audioPlayerProvider);
+    // Perf: only the active track is consumed here (the drawer queue
+    // below keeps its own subscription via PlayerQueue).
+    final activeTrack =
+        ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
 
     final index = useState(0);
 
@@ -167,8 +170,8 @@ class MiniLyricsPage extends HookConsumerWidget {
         ],
         child: Column(
           children: [
-            if (playlistQueue.activeTrack != null)
-              Text(playlistQueue.activeTrack!.name).semiBold(),
+            if (activeTrack != null)
+              Text(activeTrack.name).semiBold(),
             if (showLyrics.value)
               Expanded(
                 child: IndexedStack(
@@ -207,7 +210,7 @@ class MiniLyricsPage extends HookConsumerWidget {
                     ).call,
                     child: IconButton.ghost(
                       icon: const Icon(SpotubeIcons.queue),
-                      onPressed: playlistQueue.activeTrack != null
+                      onPressed: activeTrack != null
                           ? () {
                               openDrawer(
                                 context: context,

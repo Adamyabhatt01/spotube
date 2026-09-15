@@ -22,7 +22,10 @@ class PresentationListSection extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, ref) {
     final options = TrackPresentationOptions.of(context);
-    final playlist = ref.watch(audioPlayerProvider);
+    // Perf: highlight-only subscription — rebuilds when the active track
+    // id changes, not on playing/loop/shuffle/queue edits.
+    final activeTrackId =
+        ref.watch(audioPlayerProvider.select((s) => s.activeTrack?.id));
     final state = ref.watch(presentationStateProvider(options.collection));
     final notifier =
         ref.read(presentationStateProvider(options.collection).notifier);
@@ -77,7 +80,7 @@ class PresentationListSection extends HookConsumerWidget {
           enabled: true,
           child: TrackTile(
             index: 0,
-            playlist: playlist,
+            isPlaying: activeTrackId == FakeData.track.id,
             track: FakeData.track,
           ),
         );
@@ -90,7 +93,7 @@ class PresentationListSection extends HookConsumerWidget {
             (index) => TrackTile(
               track: FakeData.track,
               index: index,
-              playlist: playlist,
+              isPlaying: activeTrackId == FakeData.track.id,
             ),
           ),
         ),
@@ -105,7 +108,7 @@ class PresentationListSection extends HookConsumerWidget {
           userPlaylist: isUserPlaylist,
           playlistId: options.collectionId,
           index: index,
-          playlist: playlist,
+          isPlaying: activeTrackId == track.id,
           track: track,
           selected: isSelected,
           onTap: () => onTileTap(track, index),
