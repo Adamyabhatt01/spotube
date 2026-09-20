@@ -1311,6 +1311,20 @@ class AppLocalizationsHi extends AppLocalizations {
   String get cache_music => 'संगीत को कैश करें';
 
   @override
+  String get auto_download_quality => 'Auto download quality';
+
+  @override
+  String get auto_download_quality_description =>
+      'When enabled, downloads use the best available quality instead of requiring the selected format/quality.';
+
+  @override
+  String get source_priority => 'Source priority';
+
+  @override
+  String get source_priority_description =>
+      'Order determines which audio source (engine or plugin) is tried first. Reorder to change priority; empty entries fall back to defaults.';
+
+  @override
   String get open => 'खोलें';
 
   @override

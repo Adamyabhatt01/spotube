@@ -2541,6 +2541,30 @@ abstract class AppLocalizations {
   /// **'Cache music'**
   String get cache_music;
 
+  /// No description provided for @auto_download_quality.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto download quality'**
+  String get auto_download_quality;
+
+  /// No description provided for @auto_download_quality_description.
+  ///
+  /// In en, this message translates to:
+  /// **'When enabled, downloads use the best available quality instead of requiring the selected format/quality.'**
+  String get auto_download_quality_description;
+
+  /// No description provided for @source_priority.
+  ///
+  /// In en, this message translates to:
+  /// **'Source priority'**
+  String get source_priority;
+
+  /// No description provided for @source_priority_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Order determines which audio source (engine or plugin) is tried first. Reorder to change priority; empty entries fall back to defaults.'**
+  String get source_priority_description;
+
   /// No description provided for @open.
   ///
   /// In en, this message translates to:
