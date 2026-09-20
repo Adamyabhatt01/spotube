@@ -21,7 +21,7 @@ class MetadataPluginSavedArtistNotifier
   @override
   build() async {
     await ref.watch(metadataPluginAuthenticatedProvider.future);
-    return await fetch(0, 20);
+    return await fetchWithRateLimitRetry(() => fetch(0, 20));
   }
 
   Future<void> addFavorite(List<SpotubeFullArtistObject> artists) async {
@@ -77,18 +77,30 @@ final metadataPluginSavedArtistsProvider = AsyncNotifierProvider<
   () => MetadataPluginSavedArtistNotifier(),
 );
 
+/// Fetches the full set of saved-artist IDs once and shares it across every
+/// per-artist lookup (same shape as `metadataPluginSavedTrackIdsProvider`).
+/// Previously each per-id family instance ran its own whole-library
+/// `fetchAll()` loop, multiplying Spotify requests — a direct cause of 429s.
+final metadataPluginSavedArtistIdsProvider =
+    FutureProvider.autoDispose<Set<String>>(
+  (ref) async {
+    final savedArtists =
+        await ref.watch(metadataPluginSavedArtistsProvider.future);
+
+    final allSavedArtists = savedArtists.hasMore
+        ? await ref.read(metadataPluginSavedArtistsProvider.notifier).fetchAll()
+        : savedArtists.items;
+
+    return allSavedArtists.map((artist) => artist.id).toSet();
+  },
+);
+
 final metadataPluginIsSavedArtistProvider =
     FutureProvider.autoDispose.family<bool, String>(
   (ref, artistId) async {
-    final savedArtists =
-        await ref.watch(metadataPluginSavedArtistsProvider.future);
-    final savedArtistsNotifier =
-        ref.read(metadataPluginSavedArtistsProvider.notifier);
+    final allSavedArtistIds =
+        await ref.watch(metadataPluginSavedArtistIdsProvider.future);
 
-    final allSavedArtists = savedArtists.hasMore
-        ? await savedArtistsNotifier.fetchAll()
-        : savedArtists.items;
-
-    return allSavedArtists.any((element) => element.id == artistId);
+    return allSavedArtistIds.contains(artistId);
   },
 );

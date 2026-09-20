@@ -24,7 +24,7 @@ class MetadataPluginSavedPlaylistsNotifier
   build() async {
     await ref.watch(metadataPluginAuthenticatedProvider.future);
 
-    final playlists = await fetch(0, 20);
+    final playlists = await fetchWithRateLimitRetry(() => fetch(0, 20));
 
     return playlists;
   }

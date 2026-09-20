@@ -23,7 +23,7 @@ class MetadataPluginSavedTracksNotifier
     ref.cacheFor();
 
     await ref.watch(metadataPluginAuthenticatedProvider.future);
-    return await fetch(0, 20);
+    return await fetchWithRateLimitRetry(() => fetch(0, 20));
   }
 
   Future<void> addFavorite(List<SpotubeTrackObject> tracks) async {

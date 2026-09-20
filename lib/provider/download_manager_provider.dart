@@ -36,9 +36,9 @@ const downloadRetryDelays = [
 ];
 
 /// Whether a failed download attempt is worth retrying. Transient network
-/// conditions (timeouts, refused/reset connections, 5xx) are retried;
-/// permanent failures (cancellation, 4xx, missing URL, local file errors)
-/// fail fast instead of looping pointlessly.
+/// conditions (timeouts, refused/reset connections, 5xx, 429) are retried;
+/// permanent failures (cancellation, other 4xx, missing URL, local file
+/// errors) fail fast instead of looping pointlessly.
 bool isRetryableDownloadError(Object error) {
   if (error is DioException) {
     switch (error.type) {
@@ -52,7 +52,8 @@ bool isRetryableDownloadError(Object error) {
         return true;
       case DioExceptionType.badResponse:
         final status = error.response?.statusCode ?? 0;
-        return status >= 500;
+        // 429 is transient by definition (quota window), like 5xx.
+        return status >= 500 || status == 429;
       case DioExceptionType.badCertificate:
         return false;
     }

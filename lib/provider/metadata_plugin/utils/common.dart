@@ -7,6 +7,7 @@ import 'package:spotube/models/metadata/metadata.dart';
 
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
+import 'package:spotube/services/metadata/errors/rate_limit.dart';
 import 'package:spotube/services/metadata/metadata.dart';
 
 extension PaginationExtension<T> on AsyncValue<T> {
@@ -24,6 +25,25 @@ mixin MetadataPluginMixin<K>
     }
 
     return plugin;
+  }
+
+  /// Runs [request], absorbing transient Spotify 429 rate limits with a
+  /// bounded cooldown-retry. Any other error (or persistent throttling)
+  /// rethrows so the provider surfaces it as AsyncError.
+  Future<T> fetchWithRateLimitRetry<T>(
+    Future<T> Function() request, {
+    Duration cooldown = rateLimitRetryCooldown,
+  }) async {
+    var attempt = 0;
+    while (true) {
+      try {
+        return await request();
+      } catch (e) {
+        if (!shouldRetryAfterRateLimit(e, attempt)) rethrow;
+        ++attempt;
+        await Future.delayed(cooldown);
+      }
+    }
   }
 }
 
