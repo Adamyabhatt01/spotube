@@ -20,7 +20,10 @@ dependencies:
   audio_session: ^0.1.19
   auto_route: ^9.3.0+1
   auto_size_text: ^3.0.0
-  bonsoir: ^5.1.10
+  # bonsoir >=6.1.0 pulls bonsoir_darwin >=6.1.0 which requires Dart >=3.11
+  # (toolchain here is 3.9). 6.0.3 still contains the bonsoir_linux "remove
+  # -rc from avahi versions" fix (6.0.2).
+  bonsoir: ">=6.0.2 <6.1.0"
   cached_network_image: ^3.3.1
   connectivity_plus: ^6.1.2
   desktop_webview_window:
@@ -154,7 +157,6 @@ dependencies:
       url: https://github.com/KRTirtho/hetu_spotube_plugin.git
       # DEP.4: pinned to the tested resolution (was branch main).
       ref: d85dd429241d464a8b5b0c2b3d870143eeba8b46
-  get_it: ^8.0.3
   flutter_markdown_plus: ^1.0.3
   pub_semver: ^2.2.0
   change_case: ^1.1.0
@@ -172,7 +174,6 @@ dependencies:
       url: https://github.com/media-kit/media-kit
       ref: d310049f24196250d876efb02b9ff56fa9ef5068
       path: libs/universal/media_kit_libs_audio
-  base32: ^2.2.0
 
 dev_dependencies:
   build_runner: ^2.4.13
@@ -200,11 +201,14 @@ dev_dependencies:
   auto_route_generator: ^9.0.0
 
 dependency_overrides:
+  # DEP.4: pinned to a tested resolution. The old KRTirtho fork (5.x-based,
+  # "remove registerWith" fix) is subsumed by upstream 6.x — its registerWith
+  # is gone there too and the avahi "-rc" version fix landed in bonsoir_linux
+  # 6.0.2, so the whole family is pinned to the upstream 6.1.0 tag.
   bonsoir_android:
     git:
-      url: https://github.com/KRTirtho/Bonsoir.git
-      # DEP.4: pinned to the tested resolution (was floating HEAD).
-      ref: aa5604628ba41e3a7153769f4465a3d375488f2e
+      url: https://github.com/Skyost/Bonsoir.git
+      ref: bonsoir-v6.1.0
       path: packages/bonsoir_android
   # DEP.4: force the pinned SHAs transitively too. hetu_spotube_plugin
   # itself depends on hetu_std/hetu_otp_util at branch main,

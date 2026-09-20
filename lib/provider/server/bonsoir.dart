@@ -32,7 +32,8 @@ final bonsoirProvider = FutureProvider((ref) async {
 
   final broadcast = BonsoirBroadcast(service: service);
 
-  await broadcast.ready;
+  // bonsoir >=6: `ready` was renamed to `initialize()`.
+  await broadcast.initialize();
   await broadcast.start();
 
   ref.onDispose(() async {
