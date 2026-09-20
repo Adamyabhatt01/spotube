@@ -53,11 +53,15 @@ class SyncedLyrics extends HookConsumerWidget {
 
     final lyricValue = timedLyricsQuery.asData?.value;
 
-    final lyricsState = ref.watch(
-      syncedLyricsMapProvider(activeTrack),
+    final isStaticLyrics =
+        (lyricValue?.lyrics.isNotEmpty ?? false) &&
+        lyricValue!.lyrics.every((l) => l.time == Duration.zero);
+
+    final currentTime = useSyncedLyrics(
+      ref,
+      lyricValue?.lyrics ?? const [],
+      delay,
     );
-    final currentTime =
-        useSyncedLyrics(ref, lyricsState.asData?.value.lyricsMap ?? {}, delay);
     final textZoomLevel = useState<int>(defaultTextZoom);
 
     final typography = Theme.of(context).typography;
@@ -132,12 +136,12 @@ class SyncedLyrics extends HookConsumerWidget {
               ),
             if (lyricValue != null &&
                 lyricValue.lyrics.isNotEmpty &&
-                lyricsState.asData?.value.static != true)
+                isStaticLyrics != true)
               SliverList.builder(
                 itemCount: lyricValue.lyrics.length,
                 itemBuilder: (context, index) {
                   final lyricSlice = lyricValue.lyrics[index];
-                  final isActive = lyricSlice.time.inSeconds == currentTime;
+                  final isActive = index == currentTime;
 
                   if (isActive) {
                     controller.scrollToIndex(
@@ -220,7 +224,7 @@ class SyncedLyrics extends HookConsumerWidget {
               const SliverToBoxAdapter(
                 child: Icon(SpotubeIcons.noLyrics, size: 60),
               ),
-            ] else if (lyricsState.asData?.value.static == true)
+            ] else if (isStaticLyrics == true)
               SliverFillRemaining(
                 child: Center(
                   child: RichText(
