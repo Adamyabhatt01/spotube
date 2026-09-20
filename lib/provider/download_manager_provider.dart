@@ -15,6 +15,8 @@ import 'package:spotube/provider/metadata_plugin/audio_source/quality_presets.da
 import 'package:spotube/provider/server/sourced_track_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/services/logger/logger.dart';
+import 'package:spotube/services/sourced_track/source_resolver.dart';
+import 'package:spotube/services/sourced_track/sourced_track.dart';
 import 'package:spotube/utils/service_utils.dart';
 
 enum DownloadStatus {
@@ -132,7 +134,11 @@ class DownloadTask {
 class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   final Dio dio;
   DownloadManagerNotifier()
-      : dio = Dio(),
+      : dio = Dio(BaseOptions(
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 15),
+        )),
         super();
 
   @override
@@ -187,11 +193,21 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   }
 
   void retry(SpotubeFullTrackObject track) {
-    if (state.firstWhereOrNull((e) => e.track.id == track.id)?.status
-        case DownloadStatus.canceled || DownloadStatus.failed) {
-      _setStatus(track, DownloadStatus.queued);
-      _pumpDownloadPool(); // No await should be invoked to avoid stuck UI
+    final existing =
+        state.firstWhereOrNull((e) => e.track.id == track.id);
+    if (existing == null ||
+        (existing.status != DownloadStatus.canceled &&
+            existing.status != DownloadStatus.failed)) {
+      return;
     }
+    // A spent CancelToken can never be reused — re-queue with a fresh one.
+    state = state
+        .map((e) => e.track.id == track.id
+            ? e.copyWith(
+                status: DownloadStatus.queued, cancelToken: CancelToken())
+            : e)
+        .toList();
+    _pumpDownloadPool(); // No await should be invoked to avoid stuck UI
   }
 
   void cancel(SpotubeFullTrackObject track) {
@@ -211,17 +227,84 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     state = [];
   }
 
-  void _setStatus(SpotubeFullTrackObject track, DownloadStatus status) {
+  /// [sourceToken] identifies the CancelToken of the [DownloadTask] instance a
+  /// worker was started with. Status writes carrying it are ignored when the
+  /// live entry has since been re-created with a fresh token (e.g. cancel →
+  /// retry): the still-finishing old worker must never act on the new
+  /// generation — it would re-cancel and revert the retried download.
+  void _setStatus(
+    SpotubeFullTrackObject track,
+    DownloadStatus status, {
+    CancelToken? sourceToken,
+  }) {
     state = state.map((e) {
       if (e.track.id == track.id) {
-        if ((status == DownloadStatus.canceled) && e.cancelToken.isCancelled) {
+        if (sourceToken != null && !identical(e.cancelToken, sourceToken)) {
+          return e;
+        }
+        if ((status == DownloadStatus.canceled) && !e.cancelToken.isCancelled) {
           e.cancelToken.cancel();
+        }
+
+        // A canceled task must never transition back to completed: the
+        // in-flight transfer may finish after the user canceled and would
+        // otherwise overwrite the canceled state (and write metadata).
+        if (status == DownloadStatus.completed &&
+            e.status == DownloadStatus.canceled) {
+          return e;
         }
 
         return e.copyWith(status: status);
       }
       return e;
     }).toList();
+
+    if (status == DownloadStatus.completed ||
+        status == DownloadStatus.failed ||
+        status == DownloadStatus.canceled) {
+      _pruneTerminalTasks();
+    }
+  }
+
+  /// Keeps only the most recent [_maxRetainedTerminalTasks] terminal tasks
+  /// (completed/failed/canceled) so a long download history does not grow
+  /// the in-memory task list (and the metadata each task holds) unbounded.
+  /// Active tasks (queued/downloading) are always retained.
+  static const int _maxRetainedTerminalTasks = 100;
+
+  void _pruneTerminalTasks() {
+    final terminal = <DownloadTask>[];
+    final active = <DownloadTask>[];
+    for (final task in state) {
+      if (task.status == DownloadStatus.queued ||
+          task.status == DownloadStatus.downloading) {
+        active.add(task);
+      } else {
+        terminal.add(task);
+      }
+    }
+
+    final dropped = terminal.length > _maxRetainedTerminalTasks
+        ? terminal.sublist(0, terminal.length - _maxRetainedTerminalTasks)
+        : const <DownloadTask>[];
+    final keepTerminal = terminal.length > _maxRetainedTerminalTasks
+        ? terminal.sublist(terminal.length - _maxRetainedTerminalTasks)
+        : terminal;
+
+    // Release per-task resources of dropped entries.
+    for (final task in dropped) {
+      if (task.status == DownloadStatus.downloading) {
+        task.cancelToken.cancel();
+      }
+      if (!task._downloadedBytesStreamController.isClosed) {
+        task._downloadedBytesStreamController.close();
+      }
+    }
+
+    final pruned = [...active, ...keepTerminal];
+    if (pruned.length != state.length) {
+      state = pruned;
+    }
   }
 
   bool _isShowingDialog = false;
@@ -285,115 +368,234 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
 
   Future<void> _downloadTrack(DownloadTask task) async {
     try {
-      _setStatus(task.track, DownloadStatus.downloading);
-      final track = await ref.read(sourcedTrackProvider(task.track).future);
       if (task.cancelToken.isCancelled) {
-        _setStatus(task.track, DownloadStatus.canceled);
+        _setStatus(task.track, DownloadStatus.canceled, sourceToken: task.cancelToken);
         return;
       }
+      _setStatus(task.track, DownloadStatus.downloading);
       final presets = ref.read(audioSourcePresetsProvider);
       final container =
           presets.presets[presets.selectedDownloadingContainerIndex];
       final downloadLocation = ref.read(
           userPreferencesProvider.select((value) => value.downloadLocation));
-
-      final url = track.getUrlOfQuality(
-        container,
-        presets.selectedDownloadingQualityIndex,
+      final autoQuality = ref.read(
+        userPreferencesProvider.select((value) => value.autoDownloadQuality),
       );
 
-      if (url == null) {
-        throw Exception("No download URL found for selected codec");
-      }
-
-      // Best-effort preflight: the destination directory may not exist
-      // yet (fresh download location). Chunked transfers additionally
-      // need ~2x the final size transiently (temp parts + concatenation),
-      // which cannot be checked without a free-space API — ENOSPC during
-      // the transfer is caught below and tagged via [isNoSpaceError].
       await Directory(downloadLocation).create(recursive: true);
 
       final savePath =
-          _savePathFor(track.query, downloadLocation, container);
+          _savePathFor(task.track, downloadLocation, container);
 
       final savePathFile = File(savePath);
       if (await savePathFile.exists()) {
         // dio automatically replaces the file if it exists so no deletion required
         if (!await _shouldReplaceFileOnExist(task)) {
-          _setStatus(track.query, DownloadStatus.completed);
+          _setStatus(task.track, DownloadStatus.completed, sourceToken: task.cancelToken);
           return;
         }
       }
 
-      var lastProgressEmit = DateTime.fromMillisecondsSinceEpoch(0);
-      final response = await _chunkDownloadWithRetry(
-        task,
-        () => dio.chunkDownload(
-          url,
-          savePath,
-          cancelToken: task.cancelToken,
-          onReceiveProgress: (count, total) {
-            if (task.totalSizeBytes == null) {
-              state = state.map((e) {
-                if (e.track.id == track.query.id) {
-                  return e.copyWith(totalSizeBytes: total);
-                }
-                return e;
-              }).toList();
-            }
-            // Throttled: chunk callbacks arrive ~100/sec/connection and
-            // each event rebuilds the row. The terminal event always
-            // passes (see [shouldEmitDownloadProgress]).
-            final now = DateTime.now();
-            if (shouldEmitDownloadProgress(
-              count: count,
-              total: total,
-              now: now,
-              lastEmit: lastProgressEmit,
-            )) {
-              lastProgressEmit = now;
-              final controller = task._downloadedBytesStreamController;
-              if (!controller.isClosed) controller.add(count);
-            }
-          },
-          deleteOnError: true,
-          fileAccessMode: FileAccessMode.write,
-        ),
-      );
-      if (response.statusCode != null && response.statusCode! < 400) {
-        _setStatus(track.query, DownloadStatus.completed);
-      } else {
-        _setStatus(track.query, DownloadStatus.failed);
+      Object? lastError;
+      StackTrace? lastStack;
+
+      // 1. Primary attempt: the default plugin + user-selected engine,
+      //    preserving the original behavior exactly.
+      try {
+        final primary =
+            await ref.read(sourcedTrackProvider(task.track).future);
+        final url = _pickDownloadUrl(primary, container, presets, autoQuality);
+        if (url != null) {
+          await _chunkDownloadTrack(
+            task,
+            url: url,
+            savePath: savePath,
+            savePathFile: savePathFile,
+            container: container,
+          );
+          return;
+        }
+        lastError = Exception("No download URL found for selected codec");
+      } catch (e, stack) {
+        lastError = e;
+        lastStack = stack;
+      }
+
+      if (task.cancelToken.isCancelled) {
+        _setStatus(task.track, DownloadStatus.canceled, sourceToken: task.cancelToken);
         return;
       }
 
-      if (container.getFileExtension() == "weba") return;
+      // 2. Fallback: walk the source cascade (other engines, other plugins,
+      //    sibling matches, any available quality) until one succeeds.
+      final resolver = SourceResolver(ref);
+      final candidates = await resolver.candidates();
 
-      final imageBytes = await ServiceUtils.downloadImage(
-        (task.track.album.images).asUrlString(
-          placeholder: ImagePlaceholder.albumArt,
-          index: 1,
-        ),
-      );
-      await MetadataGod.writeMetadata(
-        file: savePath,
-        metadata: task.track.toMetadata(
-          fileLength: await savePathFile.length(),
-          imageBytes: imageBytes,
-        ),
-      );
+      for (final candidate in candidates) {
+        if (task.cancelToken.isCancelled) {
+          _setStatus(task.track, DownloadStatus.canceled, sourceToken: task.cancelToken);
+          return;
+        }
+
+        try {
+          final track = await resolver.resolve(candidate, task.track);
+          final candidatesToTry = [
+            track,
+            for (final sibling in track.siblings)
+              await resolver.resolveMatch(candidate, task.track, sibling),
+          ];
+
+          for (final resolved in candidatesToTry) {
+            if (task.cancelToken.isCancelled) {
+              _setStatus(task.track, DownloadStatus.canceled, sourceToken: task.cancelToken);
+              return;
+            }
+            final url = _pickDownloadUrl(
+              resolved,
+              container,
+              presets,
+              autoQuality,
+            );
+            if (url == null) continue;
+
+            try {
+              await _chunkDownloadTrack(
+                task,
+                url: url,
+                savePath: savePath,
+                savePathFile: savePathFile,
+                container: container,
+              );
+              return;
+            } catch (e, stack) {
+              lastError = e;
+              lastStack = stack;
+            }
+          }
+        } catch (e, stack) {
+          lastError = e;
+          lastStack = stack;
+        }
+      }
+
+      if (lastError case final Object error) {
+        Error.throwWithStackTrace(error, lastStack ?? StackTrace.current);
+      }
+      throw Exception("All download sources failed for ${task.track.name}");
     } catch (e, stack) {
       if (e is DioException && e.type == DioExceptionType.cancel) {
         // Cancellation (including retry-loop abort) is not a failure.
         return;
       }
-      _setStatus(task.track, DownloadStatus.failed);
+      _setStatus(task.track, DownloadStatus.failed, sourceToken: task.cancelToken);
       if (isNoSpaceError(e)) {
         AppLogger.reportError('Download out of disk space: $e', stack);
       } else {
-        AppLogger.reportError(e, stack);
+        AppLogger.reportError('Download failed for ${task.track.name}: $e', stack);
       }
     }
+  }
+
+  /// Selects the download URL for [track]. When [autoQuality] is enabled,
+  /// the selected container/quality is not required — the best available
+  /// stream (any container) is used instead.
+  String? _pickDownloadUrl(
+    SourcedTrack track,
+    SpotubeAudioSourceContainerPreset container,
+    AudioSourcePresetsState presets,
+    bool autoQuality,
+  ) {
+    if (autoQuality) {
+      return track.getStreamOfAnyContainer(container)?.url;
+    }
+    return track.getUrlOfQuality(
+      container,
+      presets.selectedDownloadingQualityIndex,
+    );
+  }
+
+  /// Performs the actual chunked download to [savePath] and writes metadata.
+  /// Throws on failure so the caller can fall back to another source.
+  Future<void> _chunkDownloadTrack(
+    DownloadTask task, {
+    required String url,
+    required String savePath,
+    required File savePathFile,
+    required SpotubeAudioSourceContainerPreset container,
+  }) async {
+    var lastProgressEmit = DateTime.fromMillisecondsSinceEpoch(0);
+    final response = await _chunkDownloadWithRetry(
+      task,
+      () => dio.chunkDownload(
+        url,
+        savePath,
+        cancelToken: task.cancelToken,
+        onReceiveProgress: (count, total) {
+          // The captured `task` is a stale snapshot (every _setStatus creates
+          // a new DownloadTask), so check the LIVE state entry instead —
+          // otherwise this rebuilt the whole list on every chunk callback.
+          if (total > 0 &&
+              state
+                      .firstWhereOrNull(
+                        (e) =>
+                            e.track.id == task.track.id &&
+                            identical(e.cancelToken, task.cancelToken),
+                      )
+                      ?.totalSizeBytes ==
+                  null) {
+            state = state.map((e) {
+              if (e.track.id == task.track.id &&
+                  identical(e.cancelToken, task.cancelToken)) {
+                return e.copyWith(totalSizeBytes: total);
+              }
+              return e;
+            }).toList();
+          }
+          // Throttled: chunk callbacks arrive ~100/sec/connection and
+          // each event rebuilds the row. The terminal event always
+          // passes (see [shouldEmitDownloadProgress]).
+          final now = DateTime.now();
+          if (shouldEmitDownloadProgress(
+            count: count,
+            total: total,
+            now: now,
+            lastEmit: lastProgressEmit,
+          )) {
+            lastProgressEmit = now;
+            final controller = task._downloadedBytesStreamController;
+            if (!controller.isClosed) controller.add(count);
+          }
+        },
+        deleteOnError: true,
+        fileAccessMode: FileAccessMode.write,
+      ),
+    );
+
+    if (response.statusCode != null && response.statusCode! < 400) {
+      if (task.cancelToken.isCancelled) {
+        // Canceled mid-transfer — leave the task in `canceled`.
+        return;
+      }
+      _setStatus(task.track, DownloadStatus.completed, sourceToken: task.cancelToken);
+    } else {
+      throw Exception("Download failed with status ${response.statusCode}");
+    }
+
+    if (container.getFileExtension() == "weba") return;
+
+    final imageBytes = await ServiceUtils.downloadImage(
+      (task.track.album.images).asUrlString(
+        placeholder: ImagePlaceholder.albumArt,
+        index: 1,
+      ),
+    );
+    await MetadataGod.writeMetadata(
+      file: savePath,
+      metadata: task.track.toMetadata(
+        fileLength: await savePathFile.length(),
+        imageBytes: imageBytes,
+      ),
+    );
   }
 
   /// Maximum number of tracks downloaded concurrently.

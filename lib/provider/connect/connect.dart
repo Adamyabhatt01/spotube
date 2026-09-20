@@ -131,9 +131,8 @@ class ConnectNotifier extends AsyncNotifier<ConnectState?> {
                         leading: const Icon(SpotubeIcons.error),
                         title: Text(
                           context.l10n.connection_request_denied,
-                          style: theme.typography.normal.copyWith(
-                            color: theme.colorScheme.destructiveForeground,
-                          ),
+                          style: theme.typography.normal
+                              .copyWith(color: Colors.white),
                         ),
                         leadingAlignment: Alignment.center,
                       ),

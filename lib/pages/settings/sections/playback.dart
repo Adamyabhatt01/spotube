@@ -11,6 +11,7 @@ import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/adaptive/adaptive_select_tile.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/modules/settings/playback/edit_connect_port_dialog.dart';
+import 'package:spotube/modules/settings/playback/source_priority_dialog.dart';
 import 'package:spotube/modules/settings/section_card_with_heading.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/modules/settings/youtube_engine_not_installed_dialog.dart';
@@ -64,6 +65,20 @@ class SettingsPlaybackSection extends HookConsumerWidget {
             }
             preferencesNotifier.setYoutubeClientEngine(value);
           },
+        ),
+        ListTile(
+          leading: const Icon(SpotubeIcons.engine),
+          title: Text(context.l10n.source_priority),
+          subtitle: Text(context.l10n.source_priority_description),
+          onTap: () {
+            showDialog(
+              context: context,
+              barrierColor: Colors.black.withValues(alpha: 0.5),
+              builder: (context) =>
+                  const SettingsPlaybackSourcePriorityDialog(),
+            );
+          },
+          trailing: const Icon(SpotubeIcons.angleRight),
         ),
         if (sourcePresets.presets.isNotEmpty) ...[
           AdaptiveSelectTile(
@@ -129,6 +144,15 @@ class SettingsPlaybackSection extends HookConsumerWidget {
             },
           ),
         ],
+        ListTile(
+          leading: const Icon(SpotubeIcons.audioQuality),
+          title: Text(context.l10n.auto_download_quality),
+          subtitle: Text(context.l10n.auto_download_quality_description),
+          trailing: Switch(
+            value: preferences.autoDownloadQuality,
+            onChanged: preferencesNotifier.setAutoDownloadQuality,
+          ),
+        ),
         ListTile(
           title: Text(context.l10n.cache_music),
           subtitle: kIsMobile

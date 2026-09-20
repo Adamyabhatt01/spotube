@@ -382,7 +382,7 @@ void main() {
       expect(res.data, isA<Stream<List<int>>>());
       expect(res.data, isNot(isA<Uint8List>()));
       expect(res.headers.value('content-type'), 'audio/mp3');
-      expect(res.headers.value('content-length'), '${bytes.length - 1}');
+      expect(res.headers.value('content-length'), '${bytes.length}');
       expect(res.headers.value('accept-ranges'), 'bytes');
       expect(
         res.headers.value('content-range'),
