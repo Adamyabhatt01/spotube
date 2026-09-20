@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# ai-context — quick summary of the persistent AI context for Spotube.
+# Fast: no source dumps, just pointers + git state.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+echo "=== SPOTUBE AI CONTEXT ==="
+echo
+echo "Files:"
+for f in AGENTS.md .ai/ARCHITECTURE.md .ai/PERFORMANCE.md .ai/AUDIT_STATE.md \
+         .ai/CONVENTIONS.md .ai/CHANGELOG.md .ai/TODO.md; do
+  if [ -f "$f" ]; then
+    printf '  %-24s %s lines\n' "$f" "$(wc -l < "$f")"
+  else
+    printf '  %-24s MISSING\n' "$f"
+  fi
+done
+
+echo
+echo "Read order:"
+echo "  1. AGENTS.md"
+echo "  2. .ai/ARCHITECTURE.md"
+echo "  3. .ai/AUDIT_STATE.md   (check before investigating)"
+echo "  4. .ai/PERFORMANCE.md   (performance tasks)"
+echo "  5. .ai/CONVENTIONS.md   (before architectural changes)"
+
+echo
+echo "Git branch:"
+git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "  (not a git repo)"
+
+echo
+echo "Working tree:"
+if git diff --quiet 2>/dev/null && git diff --cached --quiet 2>/dev/null; then
+  echo "  clean"
+else
+  stat=$(git status --short 2>/dev/null | wc -l)
+  echo "  ${stat} changed/untracked entries:"
+  git status --short 2>/dev/null | head -15
+  [ "$(git status --short 2>/dev/null | wc -l)" -gt 15 ] && echo "  ... (truncated)"
+fi
+
+echo
+echo "Recent commits:"
+git log --oneline -10 2>/dev/null || echo "  (no commits found)"
+
+echo
+echo "Standard commands:"
+echo "  fvm flutter analyze        — analyzer"
+echo "  fvm flutter test           — test suite"
+echo "  make migrate               — drift migrations after schema change"
+echo "  fvm flutter build linux --release"

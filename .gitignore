@@ -89,3 +89,8 @@ tm.json
 
 android/build
 android/app/.cxx
+
+# Local AI agent context (per-machine; not committed)
+/.ai/
+/AGENTS.md
+/.qoder/

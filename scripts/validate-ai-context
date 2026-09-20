@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# validate-ai-context — sanity check for the persistent AI context files.
+# Checks: required files exist, referenced key paths still exist, files not bloated.
+set -uo pipefail
+
+cd "$(dirname "$0")/.."
+
+fail=0
+
+echo "=== Validating AI context ==="
+
+# 1. Required files
+required="AGENTS.md .ai/ARCHITECTURE.md .ai/PERFORMANCE.md .ai/AUDIT_STATE.md .ai/CONVENTIONS.md .ai/CHANGELOG.md .ai/TODO.md"
+for f in $required; do
+  if [ ! -f "$f" ]; then
+    echo "MISSING: $f"; fail=1
+  fi
+done
+
+# 2. Key referenced paths still exist (spot-check important source anchors)
+paths="
+lib/main.dart
+lib/models/database/database.dart
+lib/models/database/tables/preferences.dart
+lib/provider/lyrics/synced.dart
+lib/services/lyrics/lyrics_provider.dart
+lib/services/lyrics/lrclib_provider.dart
+lib/services/lyrics/better_lyrics_provider.dart
+lib/modules/lyrics/use_synced_lyrics.dart
+lib/services/sourced_track/source_resolver.dart
+lib/provider/server/routes/playback.dart
+lib/provider/user_preferences/user_preferences_provider.dart
+lib/services/youtube_engine/youtube_explode_engine.dart
+lib/provider/local_tracks/local_tracks_provider.dart
+lib/provider/download_manager_provider.dart
+lib/provider/audio_player/audio_player.dart
+lib/services/audio_player/audio_player_impl.dart
+lib/extensions/dio.dart
+test/lyrics_provider_registry_test.dart
+test/better_lyrics_provider_test.dart
+test/isolated_youtube_explode_test.dart
+test/drift/app_db/migration_test.dart
+"
+for p in $paths; do
+  if [ ! -e "$p" ]; then
+    echo "STALE REFERENCE: $p (mentioned in context but not found)"; fail=1
+  fi
+done
+
+# 3. File size sanity (no file should blow past ~400 lines)
+for f in $required; do
+  [ -f "$f" ] || continue
+  n=$(wc -l < "$f")
+  if [ "$n" -gt 400 ]; then
+    echo "TOO LARGE: $f ($n lines > 400) — context docs should stay concise"; fail=1
+  fi
+done
+
+if [ "$fail" -eq 0 ]; then
+  echo "OK: all checks passed"
+else
+  echo "FAILED: fix issues above (or update docs if the code changed)"
+  exit 1
+fi
