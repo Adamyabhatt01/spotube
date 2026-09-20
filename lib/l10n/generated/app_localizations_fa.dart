@@ -1446,6 +1446,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get an_error_occurred => 'خطایی رخ داد';
 
   @override
+  String get rate_limited_please_retry =>
+      'Spotify rate limit reached. Wait about a minute and try again.';
+
+  @override
   String get copy_to_clipboard => 'کپی به کلیپ‌بورد';
 
   @override

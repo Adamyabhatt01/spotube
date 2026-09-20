@@ -1422,6 +1422,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get an_error_occurred => '发生错误';
 
   @override
+  String get rate_limited_please_retry =>
+      'Spotify rate limit reached. Wait about a minute and try again.';
+
+  @override
   String get copy_to_clipboard => '复制到剪贴板';
 
   @override

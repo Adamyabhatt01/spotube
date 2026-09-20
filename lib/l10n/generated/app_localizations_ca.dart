@@ -1456,6 +1456,10 @@ class AppLocalizationsCa extends AppLocalizations {
   String get an_error_occurred => 'S’ha produït un error';
 
   @override
+  String get rate_limited_please_retry =>
+      'Spotify rate limit reached. Wait about a minute and try again.';
+
+  @override
   String get copy_to_clipboard => 'Copiar al porta-retalls';
 
   @override

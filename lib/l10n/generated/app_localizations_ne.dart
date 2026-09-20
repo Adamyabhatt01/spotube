@@ -1458,6 +1458,10 @@ class AppLocalizationsNe extends AppLocalizations {
   String get an_error_occurred => 'त्रुटि भयो';
 
   @override
+  String get rate_limited_please_retry =>
+      'Spotify rate limit reached. Wait about a minute and try again.';
+
+  @override
   String get copy_to_clipboard => 'क्लिपबोर्डमा प्रतिलिपि गर्नुहोस्';
 
   @override

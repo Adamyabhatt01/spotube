@@ -2781,6 +2781,12 @@ abstract class AppLocalizations {
   /// **'An error occurred'**
   String get an_error_occurred;
 
+  /// No description provided for @rate_limited_please_retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Spotify rate limit reached. Wait about a minute and try again.'**
+  String get rate_limited_please_retry;
+
   /// No description provided for @copy_to_clipboard.
   ///
   /// In en, this message translates to:

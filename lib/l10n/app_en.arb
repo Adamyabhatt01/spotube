@@ -437,6 +437,7 @@
   "connect_request": "Allow {client} to connect?",
   "connection_request_denied": "Connection denied. User denied access.",
   "an_error_occurred": "An error occurred",
+  "rate_limited_please_retry": "Spotify rate limit reached. Wait about a minute and try again.",
   "copy_to_clipboard": "Copy to clipboard",
   "view_logs": "View logs",
   "retry": "Retry",
