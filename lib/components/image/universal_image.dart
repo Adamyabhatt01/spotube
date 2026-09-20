@@ -26,9 +26,12 @@ class UniversalImage extends HookWidget {
 
   /// Bounded LRU cache of decoded base64 image bytes. Local-track embedded
   /// artwork can be full-resolution; decoding it on every widget build spikes
-  /// CPU and RAM when scrolling long local-track lists.
+  /// CPU and RAM when scrolling long local-track lists. Bounded by total
+  /// bytes (not entry count) so a few large artworks cannot accumulate
+  /// unbounded memory.
   static final Map<String, Uint8List> _decodedMemoryCache = {};
-  static const int _maxDecodedEntries = 50;
+  static const int _maxDecodedBytes = 24 * 1024 * 1024; // 24MB
+  static int _decodedBytes = 0;
 
   static Uint8List _decodeMemory(String path) {
     final cached = _decodedMemoryCache.remove(path);
@@ -39,9 +42,16 @@ class UniversalImage extends HookWidget {
 
     final decoded = base64Decode(path);
     _decodedMemoryCache[path] = decoded;
-    if (_decodedMemoryCache.length > _maxDecodedEntries) {
-      _decodedMemoryCache.remove(_decodedMemoryCache.keys.first);
+    _decodedBytes += decoded.length;
+
+    // Evict oldest entries until the total byte budget is respected.
+    while (_decodedBytes > _maxDecodedBytes &&
+        _decodedMemoryCache.isNotEmpty) {
+      final oldest = _decodedMemoryCache.keys.first;
+      final removed = _decodedMemoryCache.remove(oldest);
+      if (removed != null) _decodedBytes -= removed.length;
     }
+
     return decoded;
   }
 
@@ -62,7 +72,19 @@ class UniversalImage extends HookWidget {
     } else if (path.startsWith("assets/")) {
       return AssetImage(path);
     } else if (Uri.tryParse(path) != null) {
-      return FileImage(File(path), scale: scale);
+      final fileImage = FileImage(File(path), scale: scale);
+      // FileImage has no decode-size knob: an 80x80 request on a 1000x1000
+      // sidecar used to put 4 MB in ImageCache instead of 25 kB.
+      if (width == null && height == null) {
+        return fileImage;
+      }
+      return ResizeImage(
+        fileImage,
+        width: width?.toInt(),
+        height: height?.toInt(),
+        policy: ResizeImagePolicy.fit,
+        allowUpscaling: false,
+      );
     }
     // Decode at display size instead of full embedded-art resolution.
     final memoryImage = MemoryImage(_decodeMemory(path), scale: scale);

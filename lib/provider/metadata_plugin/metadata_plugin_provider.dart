@@ -20,6 +20,8 @@ import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/services/metadata/metadata.dart';
 import 'package:spotube/utils/service_utils.dart';
 import 'package:archive/archive.dart';
+// ignore: depend_on_referenced_packages
+import 'package:meta/meta.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 final allowedDomainsRegex = RegExp(
@@ -229,7 +231,10 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
           final isDefaultTheme =
               oldConfig == pluginState.defaultThemePluginConfig;
 
-          await removePlugin(pluginConfig);
+          // The extraction dir is version-suffixed: removing the NEW config
+          // would delete the freshly extracted files. Remove the OLD plugin
+          // so its dir and DB row go away, then register the new one.
+          await removePlugin(oldConfig);
           await addPlugin(pluginConfig);
 
           if (isDefaultMetadata) {
@@ -341,25 +346,68 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
       ) as Map<String, dynamic>,
     );
 
+    // Validate before anything is written to disk: the bytecode file
+    // [getPluginByteCode] will later require must be present, and every
+    // entry path must stay inside the extraction directory. A partially
+    // extracted plugin would otherwise linger on disk even though the
+    // install itself fails.
+    final hasByteCode =
+        archive.any((file) => file.isFile && file.name == "plugin.out");
+    if (!hasByteCode) {
+      throw MetadataPluginException.pluginByteCodeFileNotFound();
+    }
+
     final pluginDir = await _getPluginRootDir();
     await pluginDir.create(recursive: true);
 
     final pluginExtractionDir = await _getPluginExtractionDir(pluginConfig);
+    final extractionDirPath = pluginExtractionDir.path;
 
     for (final file in archive) {
-      if (file.isFile) {
-        final filename = file.name;
-        final data = file.content as List<int>;
-        final extractedFile = File(join(
-          pluginExtractionDir.path,
-          filename,
-        ));
-        await extractedFile.create(recursive: true);
-        await extractedFile.writeAsBytes(data);
+      if (file.isFile && !isSafePluginEntryPath(file.name)) {
+        throw MetadataPluginException.invalidPluginConfiguration();
       }
     }
 
+    try {
+      for (final file in archive) {
+        if (file.isFile) {
+          final filename = file.name;
+          final data = file.content as List<int>;
+          final extractedFile = File(join(
+            extractionDirPath,
+            filename,
+          ));
+          await extractedFile.create(recursive: true);
+          await extractedFile.writeAsBytes(data);
+        }
+      }
+    } catch (_) {
+      // Never leave a partially extracted plugin behind.
+      if (await pluginExtractionDir.exists()) {
+        await pluginExtractionDir.delete(recursive: true);
+      }
+      rethrow;
+    }
+
     return pluginConfig;
+  }
+
+  /// True when [name] cannot escape the plugin extraction directory.
+  ///
+  /// Both separator styles are normalized first: a Windows-style
+  /// `..\evil` entry only traverses on Windows, so a substring check
+  /// for `..` alone would miss platform differences, and `a/../../b`
+  /// only escapes after normalization. Drive-letter prefixes are also
+  /// rejected on every platform: a zip built on one OS is extracted on
+  /// whatever OS the installer runs.
+  /// Static and side-effect free so the traversal rules stay unit-testable.
+  static bool isSafePluginEntryPath(String name) {
+    final normalized = normalize(name.replaceAll('\\', '/'));
+    if (isAbsolute(normalized)) return false;
+    if (normalized == '..' || normalized.startsWith('../')) return false;
+    if (RegExp(r'^[a-zA-Z]:').hasMatch(normalized)) return false;
+    return true;
   }
 
   /// Downloads, extracts & caches the plugin from the given URL and returns the plugin config.
@@ -465,6 +513,10 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
         ),
       ),
     );
+
+    // A (re)installed plugin's bytecode differs from anything cached under
+    // the same slug — drop stale VMs so the next resolution recompiles.
+    ref.read(pluginCacheProvider).evictPlugin(plugin.slug);
   }
 
   Future<void> removePlugin(PluginConfiguration plugin) async {
@@ -475,6 +527,9 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     }
     await database.pluginsTable.deleteWhere((tbl) =>
         tbl.name.equals(plugin.name) & tbl.author.equals(plugin.author));
+
+    // Cached VMs of a removed plugin must not resolve anymore.
+    ref.read(pluginCacheProvider).evictPlugin(plugin.slug);
 
     // The removed plugin can no longer seed the startup cache. Clear
     // before the promotion blocks below: a promoted replacement
@@ -552,7 +607,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     final pluginUpdatedConfig =
         await downloadAndCachePlugin(update.downloadUrl);
 
-    if (pluginUpdatedConfig.name != plugin.name &&
+    if (pluginUpdatedConfig.name != plugin.name ||
         pluginUpdatedConfig.author != plugin.author) {
       throw MetadataPluginException.invalidPluginConfiguration();
     }
@@ -725,24 +780,18 @@ final themeDefinitionProvider = FutureProvider<ThemeDefinition?>(
       // the plugin theme loads, and scheme changes are rare.
       ref.watch(shellThemeSignalProvider);
 
+      // Reuses a memoized plugin instance instead of spinning a fresh Hetu
+      // VM on every recompute (the previous code created one per signal,
+      // and Hetu VMs are never released). The instance only rebuilds when
+      // the default theme plugin changes.
+      final plugin = await ref.watch(themePluginProvider.future);
+      if (plugin == null) return null;
+
       final defaultPlugin = await ref.watch(
         metadataPluginsProvider
             .selectAsync((data) => data.defaultThemePluginConfig),
       );
-
       if (defaultPlugin == null) return null;
-
-      final pluginsNotifier = ref.read(metadataPluginsProvider.notifier);
-      final pluginByteCode =
-          await pluginsNotifier.getPluginByteCode(defaultPlugin);
-
-      final youtubeEngine = ref.read(youtubeEngineProvider);
-
-      final plugin = await MetadataPlugin.create(
-        youtubeEngine,
-        defaultPlugin,
-        pluginByteCode,
-      );
 
       final definition = await plugin.theme.getTheme();
 
@@ -774,3 +823,76 @@ final themeDefinitionProvider = FutureProvider<ThemeDefinition?>(
     }
   },
 );
+
+/// Memoized theme plugin instance. Rebuilds only when the default theme
+/// plugin changes, so theme recomputes reuse the same Hetu VM instead of
+/// creating a new one each time (Hetu VMs are never disposed).
+final themePluginProvider = FutureProvider<MetadataPlugin?>(
+  (ref) async {
+    final defaultPlugin = await ref.watch(
+      metadataPluginsProvider
+          .selectAsync((data) => data.defaultThemePluginConfig),
+    );
+    if (defaultPlugin == null) return null;
+
+    final pluginsNotifier = ref.read(metadataPluginsProvider.notifier);
+    final pluginByteCode =
+        await pluginsNotifier.getPluginByteCode(defaultPlugin);
+    final youtubeEngine = ref.read(youtubeEngineProvider);
+
+    return MetadataPlugin.create(
+      youtubeEngine,
+      defaultPlugin,
+      pluginByteCode,
+    );
+  },
+);
+
+/// In-memory cache for MetadataPlugin instances (Hetu VMs).
+/// Scoped to provider lifecycle with explicit disposal. Generic so the
+/// failure-recovery and eviction semantics are unit-testable without a
+/// real Hetu VM.
+class PluginVmCache<T> {
+  final Map<String, Future<T>> _cache = {};
+
+  /// Caches the creation [Future] (so concurrent attempts share one VM), but
+  /// a FAILED future must not linger: without the removal below, one transient
+  /// error would permanently disable this (plugin, engine) candidate.
+  Future<T> getOrCreate(String key, Future<T> Function() factory) {
+    final existing = _cache[key];
+    if (existing != null) return existing;
+
+    late final Future<T> tracked;
+    tracked = factory().catchError((Object error, StackTrace stack) {
+      if (identical(_cache[key], tracked)) _cache.remove(key);
+      return Future<T>.error(error, stack);
+    });
+    _cache[key] = tracked;
+    return tracked;
+  }
+
+  void evict(String key) => _cache.remove(key);
+
+  void evictPlugin(String pluginSlug) {
+    // Keys look like "<slug>@<version>:<engine>" (see SourceCandidate.key).
+    _cache.keys
+        .where((k) =>
+            k.startsWith('$pluginSlug:') || k.startsWith('$pluginSlug@'))
+        .toList()
+        .forEach(_cache.remove);
+  }
+
+  void clear() => _cache.clear();
+
+  @visibleForTesting
+  int get length => _cache.length;
+}
+
+/// Provider for the plugin cache. Drops cached VM references when the
+/// provider is disposed; hetu_script exposes no VM disposal API, so the
+/// VMs themselves become garbage-collectable but are not force-released.
+final pluginCacheProvider = Provider<PluginVmCache<MetadataPlugin>>((ref) {
+  final cache = PluginVmCache<MetadataPlugin>();
+  ref.onDispose(() => cache.clear());
+  return cache;
+});

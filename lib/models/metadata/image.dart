@@ -71,7 +71,6 @@ extension SpotubeImageExtensions on List<SpotubeImageObject>? {
   ]) {
     final placeholderUrl = placeholderUrlMap[placeholder]!;
 
-    // Sort images by width and height to find the smallest one
     final sortedImage = this?.sorted((a, b) {
       final widthComparison = (a.width ?? 0).compareTo(b.width ?? 0);
       if (widthComparison != 0) return widthComparison;

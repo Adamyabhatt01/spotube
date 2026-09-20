@@ -1,20 +1,6 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-enum Breakpoint {
-  xs,
-  sm,
-  md,
-  lg,
-  xl,
-  xxl;
-
-  bool operator <=(Breakpoint other) => index <= other.index;
-  bool operator <(Breakpoint other) => index < other.index;
-  bool operator >(Breakpoint other) => index > other.index;
-  bool operator >=(Breakpoint other) => index >= other.index;
-}
-
 // ignore: constant_identifier_names
 const Breakpoints = (
   xs: 480.0,
@@ -36,15 +22,6 @@ extension SliverBreakpoints on SliverConstraints {
       crossAxisExtent > Breakpoints.lg && crossAxisExtent <= Breakpoints.xl;
   bool get is2Xl => crossAxisExtent > Breakpoints.xl;
 
-  Breakpoint get breakpoint {
-    if (isXs) return Breakpoint.xs;
-    if (isSm) return Breakpoint.sm;
-    if (isMd) return Breakpoint.md;
-    if (isLg) return Breakpoint.lg;
-    if (isXl) return Breakpoint.xl;
-    return Breakpoint.xxl;
-  }
-
   bool get smAndUp => isSm || isMd || isLg || isXl || is2Xl;
   bool get mdAndUp => isMd || isLg || isXl || is2Xl;
   bool get lgAndUp => isLg || isXl || is2Xl;
@@ -53,7 +30,6 @@ extension SliverBreakpoints on SliverConstraints {
   bool get smAndDown => isXs || isSm;
   bool get mdAndDown => isXs || isSm || isMd;
   bool get lgAndDown => isXs || isSm || isMd || isLg;
-  bool get xlAndDown => isXs || isSm || isMd || isLg || isXl;
 }
 
 extension ContainerBreakpoints on BoxConstraints {
@@ -68,15 +44,6 @@ extension ContainerBreakpoints on BoxConstraints {
       biggest.width > Breakpoints.lg && biggest.width <= Breakpoints.xl;
   bool get is2Xl => biggest.width > Breakpoints.xl;
 
-  Breakpoint get breakpoint {
-    if (isXs) return Breakpoint.xs;
-    if (isSm) return Breakpoint.sm;
-    if (isMd) return Breakpoint.md;
-    if (isLg) return Breakpoint.lg;
-    if (isXl) return Breakpoint.xl;
-    return Breakpoint.xxl;
-  }
-
   bool get smAndUp => isSm || isMd || isLg || isXl || is2Xl;
   bool get mdAndUp => isMd || isLg || isXl || is2Xl;
   bool get lgAndUp => isLg || isXl || is2Xl;
@@ -85,7 +52,6 @@ extension ContainerBreakpoints on BoxConstraints {
   bool get smAndDown => isXs || isSm;
   bool get mdAndDown => isXs || isSm || isMd;
   bool get lgAndDown => isXs || isSm || isMd || isLg;
-  bool get xlAndDown => isXs || isSm || isMd || isLg || isXl;
 }
 
 extension ScreenBreakpoints on MediaQueryData {
@@ -104,7 +70,6 @@ extension ScreenBreakpoints on MediaQueryData {
   bool get smAndDown => isXs || isSm;
   bool get mdAndDown => isXs || isSm || isMd;
   bool get lgAndDown => isXs || isSm || isMd || isLg;
-  bool get xlAndDown => isXs || isSm || isMd || isLg || isXl;
 }
 
 extension SizeBreakpoints on Size {
@@ -123,5 +88,4 @@ extension SizeBreakpoints on Size {
   bool get smAndDown => isXs || isSm;
   bool get mdAndDown => isXs || isSm || isMd;
   bool get lgAndDown => isXs || isSm || isMd || isLg;
-  bool get xlAndDown => isXs || isSm || isMd || isLg || isXl;
 }
