@@ -10,7 +10,8 @@ import 'dart:async';
 import 'package:media_kit/media_kit.dart' as mk;
 
 import 'package:spotube/services/audio_player/playback_state.dart';
-import 'package:spotube/utils/platform.dart';
+import 'package:spotube/utils/perf_counters.dart';
+import 'package:spotube/utils/position_tick.dart';
 
 part 'audio_players_streams_mixin.dart';
 part 'audio_player_impl.dart';
@@ -18,8 +19,7 @@ part 'audio_player_impl.dart';
 class SpotubeMedia extends mk.Media {
   static int serverPort = 0;
 
-  static String get _host =>
-      kIsWindows ? "localhost" : InternetAddress.anyIPv4.address;
+  static String get _host => InternetAddress.loopbackIPv4.address;
 
   final SpotubeTrackObject track;
   SpotubeMedia(this.track)
@@ -27,15 +27,23 @@ class SpotubeMedia extends mk.Media {
           track is SpotubeLocalTrackObject || track is SpotubeFullTrackObject,
           "Track must be a either a local track or a full track object with ISRC",
         ),
-        // If the track is a local track, use its path, otherwise use the server URL
-        super(
-          track is SpotubeLocalTrackObject
-              ? track.path
-              : "http://$_host:$serverPort/stream/${track.id}",
-          extras: track.toJson(),
-        );
+        super(uriFor(track), extras: track.toJson());
+
+  /// The uri the backend holds [track] under. Also what a bare `Media` — the
+  /// kind media_kit rebuilds the playlist from after `setShuffle` — can be
+  /// matched back to a queue entry by, so the rule lives in one place.
+  static String uriFor(SpotubeTrackObject track) =>
+      track is SpotubeLocalTrackObject
+          ? track.path
+          : "http://$_host:$serverPort/stream/${track.id}";
 
   factory SpotubeMedia.media(Media media) {
+    // The backend keeps the [SpotubeMedia] instances it was given, so on an
+    // index-only playlist event `media` is already one and `track` is already
+    // parsed. Re-running `fromJson` over `extras` cost one track parse per
+    // queue slot per event.
+    if (media is SpotubeMedia) return media;
+
     assert(media.extras != null, "[Media] must have extra metadata set");
     return SpotubeMedia(SpotubeTrackObject.fromJson(media.extras!));
   }
@@ -56,11 +64,6 @@ abstract class AudioPlayerInterface {
       AppLogger.reportError(event, StackTrace.current);
     });
   }
-
-  /// Whether the current platform supports the audioplayers plugin
-  static const bool _mkSupportedPlatform = true;
-
-  bool get mkSupportedPlatform => _mkSupportedPlatform;
 
   Duration get duration {
     return _mkPlayer.state.duration;
@@ -86,21 +89,12 @@ abstract class AudioPlayerInterface {
     return _mkPlayer.state.audioDevices;
   }
 
-  bool get hasSource {
-    return _mkPlayer.state.playlist.medias.isNotEmpty;
-  }
-
-  // states
   bool get isPlaying {
     return _mkPlayer.state.playing;
   }
 
   bool get isPaused {
     return !_mkPlayer.state.playing;
-  }
-
-  bool get isStopped {
-    return !hasSource;
   }
 
   Future<bool> get isCompleted async {
@@ -115,7 +109,6 @@ abstract class AudioPlayerInterface {
     return _mkPlayer.state.playlistMode;
   }
 
-  /// Returns the current volume of the player, between 0 and 1
   double get volume {
     return _mkPlayer.state.volume / 100;
   }

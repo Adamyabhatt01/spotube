@@ -15,6 +15,7 @@ import 'package:spotube/provider/server/sourced_track_provider.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/utils/debounced_writer.dart';
+import 'package:spotube/utils/perf_counters.dart';
 
 /// Initialization status of [audioPlayerProvider]'s saved-state restore.
 /// `AsyncLoading` while [AudioPlayerNotifier.syncSavedState] runs,
@@ -68,7 +69,30 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   Future<void> removeMediaFromBackend(int index) =>
       audioPlayer.removeTrack(index);
 
+  Future<void> openPlaylistOnBackend(
+    List<SpotubeMedia> medias, {
+    required int initialIndex,
+    required bool autoPlay,
+  }) =>
+      audioPlayer.openPlaylist(
+        medias,
+        initialIndex: initialIndex,
+        autoPlay: autoPlay,
+      );
+
   int get backendCurrentIndex => audioPlayer.currentIndex;
+
+  /// The backend's current media list, used to remember *which* queue a
+  /// persistence write describes (see [_lastSyncedMedias]). A seam for the
+  /// same reason as [backendCurrentIndex]: tests replace the native player.
+  List<Media> get backendMedias => audioPlayer.playlist.medias;
+
+  /// The media list the persisted `tracks` column describes, element-identical
+  /// to what the backend holds. A playlist event whose medias are the same
+  /// objects is an index/flag-only change, so re-decoding every media
+  /// (`SpotubeMedia.media` → `fromJson`) and re-encoding the whole
+  /// `tracks` column would persist what is already stored.
+  List<Media>? _lastSyncedMedias;
 
   /// Depth of in-progress bulk native-queue mutations. While > 0, the
   /// playlistStream listener skips its state+DB sync: the native queue is
@@ -178,9 +202,66 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   ) async {
     final database = ref.read(databaseProvider);
 
+    // Whatever `tracks` is being stored now describes the backend queue at this
+    // instant; a later playlist event over the same media objects is therefore
+    // an index-only change and must not rewrite the column.
+    if (companion.tracks.present) {
+      _lastSyncedMedias = backendMedias;
+      PerfCounters.note('queue.tracksWrite');
+    }
+
     await (database.update(database.audioPlayerStateTable)
           ..where((tb) => tb.id.equals(0)))
         .write(companion);
+  }
+
+  /// Response to one native playlist event: publish the queue and persist it.
+  ///
+  /// A seam (like the mutation seams above) because media_kit's stream cannot
+  /// be fed in a test.
+  ///
+  /// `setShuffle` arrives here as a list of bare `Media(uri)` — media_kit
+  /// rebuilds it from mpv's own playlist — and it still works, because
+  /// `Media.new` restores `extras` from media_kit's static uri→payload cache
+  /// (`media_native.dart:111`), which stays warm for as long as the playlist
+  /// itself holds a `Media` for each uri. `test/queue_persistence_test.dart`
+  /// pins that contract; do not "fix" the missing extras without checking it.
+  Future<void> onBackendPlaylist(Playlist playlist) async {
+    // Skipped inside bulk mutations (see [_bulkMutationDepth]): the
+    // native queue is mid-loop and each event would otherwise cause
+    // a rebuild + DB write per track. Bulk methods sync once after.
+    if (_bulkMutationDepth > 0) return;
+
+    final isSameQueue = _sameMedias(_lastSyncedMedias, playlist.medias);
+    PerfCounters.note('queue.playlistEvent');
+    if (!isSameQueue) PerfCounters.note('queue.playlistDecode');
+    // One state emission per event, as before: publishing `tracks` and
+    // `currentIndex` separately would rebuild every queue listener twice.
+    state = state.copyWith(
+      tracks: isSameQueue
+          ? state.tracks
+          : playlist.medias.map((e) => SpotubeMedia.media(e).track).toList(),
+      currentIndex: playlist.index,
+    );
+
+    await _updatePlayerState(
+      AudioPlayerStateTableCompanion(
+        currentIndex: Value(state.currentIndex),
+        // The column already holds this exact queue; rewriting it would be a
+        // full `jsonEncode` of the queue for a change it does not describe.
+        tracks: isSameQueue ? const Value.absent() : Value(state.tracks),
+      ),
+    );
+  }
+
+  static bool _sameMedias(List<Media>? previous, List<Media> current) {
+    if (previous == null) return false;
+    if (identical(previous, current)) return true;
+    if (previous.length != current.length) return false;
+    for (var i = 0; i < current.length; i++) {
+      if (!identical(previous[i], current[i])) return false;
+    }
+    return true;
   }
 
   @override
@@ -233,24 +314,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       }),
       audioPlayer.playlistStream.listen((playlist) async {
         try {
-          // Skipped inside bulk mutations (see [_bulkMutationDepth]): the
-          // native queue is mid-loop and each event would otherwise cause
-          // a rebuild + DB write per track. Bulk methods sync once after.
-          if (_bulkMutationDepth > 0) return;
-          final tracks =
-              playlist.medias.map((e) => SpotubeMedia.media(e).track).toList();
-
-          state = state.copyWith(
-            tracks: tracks,
-            currentIndex: playlist.index,
-          );
-
-          await _updatePlayerState(
-            AudioPlayerStateTableCompanion(
-              currentIndex: Value(state.currentIndex),
-              tracks: Value(state.tracks),
-            ),
-          );
+          await onBackendPlaylist(playlist);
         } catch (e, stack) {
           AppLogger.reportError(e, stack);
         }
@@ -335,25 +399,64 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
         .toList();
     if (addableTracks.isEmpty) return;
 
+    final previousState = state;
     state = state.copyWith(
       tracks: [...addableTracks, ...state.tracks],
     );
 
+    // Indexes of inserted backend entries, for rollback if a mid-loop
+    // insert fails (they are contiguous from insertBase onward, but
+    // recording each index keeps the revert straightforward).
+    final insertedIndexes = <int>[];
     _bulkMutationDepth++;
     try {
       for (int i = 0; i < addableTracks.length; i++) {
         final track = addableTracks.elementAt(i);
+        final insertAt = max(previousState.currentIndex, 0) + i + 1;
 
         await insertMediaIntoBackend(
           SpotubeMedia(track),
-          max(state.currentIndex, 0) + i + 1,
+          insertAt,
         );
+        insertedIndexes.add(insertAt);
       }
+    } catch (_) {
+      await _rollbackBulkAdditions(insertedIndexes);
+      state = previousState;
+      rethrow;
     } finally {
       _bulkMutationDepth--;
     }
 
     await _persistQueueState();
+  }
+
+  /// Removes backend entries that were added by a bulk op before it
+  /// failed. Highest index first so earlier removals never shift the
+  /// positions of later ones. Individual rollback failures are reported
+  /// but never mask the original error.
+  Future<void> _rollbackBulkAdditions(List<int> insertedIndexes) async {
+    for (var i = insertedIndexes.length - 1; i >= 0; i--) {
+      try {
+        await removeMediaFromBackend(insertedIndexes[i]);
+      } catch (e, stack) {
+        AppLogger.reportError(e, stack);
+      }
+    }
+  }
+
+  /// Re-adds backend entries that a bulk removal deleted before it
+  /// failed, in ascending order so positions rebuild correctly.
+  Future<void> _rollbackBulkRemovals(
+    List<({int index, SpotubeTrackObject track})> removed,
+  ) async {
+    for (final entry in removed..sort((a, b) => a.index.compareTo(b.index))) {
+      try {
+        await insertMediaIntoBackend(SpotubeMedia(entry.track), entry.index);
+      } catch (e, stack) {
+        AppLogger.reportError(e, stack);
+      }
+    }
   }
 
   Future<void> addTrack(SpotubeTrackObject track) async {
@@ -362,11 +465,17 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     if (_blacklist.contains(track)) return;
     if (state.tracks.any((element) => _compareTracks(element, track))) return;
 
+    final previousState = state;
     state = state.copyWith(
       tracks: [...state.tracks, track],
     );
 
-    await audioPlayer.addTrack(SpotubeMedia(track));
+    try {
+      await audioPlayer.addTrack(SpotubeMedia(track));
+    } catch (_) {
+      state = previousState;
+      rethrow;
+    }
 
     await _updatePlayerState(
       AudioPlayerStateTableCompanion(
@@ -384,15 +493,25 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     final addableTracks = _blacklist.filter(tracks).toList();
     if (addableTracks.isEmpty) return;
 
+    final previousState = state;
     state = state.copyWith(
       tracks: [...state.tracks, ...addableTracks],
     );
+
+    // Appends land at the (pre-mutation) tail, growing one slot at a time.
+    final baseIndex = previousState.tracks.length;
+    final addedIndexes = <int>[];
 
     _bulkMutationDepth++;
     try {
       for (final track in addableTracks) {
         await addMediaToBackend(SpotubeMedia(track));
+        addedIndexes.add(baseIndex + addedIndexes.length);
       }
+    } catch (_) {
+      await _rollbackBulkAdditions(addedIndexes);
+      state = previousState;
+      rethrow;
     } finally {
       _bulkMutationDepth--;
     }
@@ -405,11 +524,17 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
 
     if (index == -1) return;
 
+    final previousState = state;
     state = state.copyWith(
       tracks: List.of(state.tracks)..removeAt(index),
     );
 
-    await audioPlayer.removeTrack(index);
+    try {
+      await audioPlayer.removeTrack(index);
+    } catch (_) {
+      state = previousState;
+      rethrow;
+    }
 
     await _updatePlayerState(
       AudioPlayerStateTableCompanion(
@@ -433,15 +558,27 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       ..sort((a, b) => b.compareTo(a));
     if (indexesToRemove.isEmpty) return;
 
+    final previousState = state;
     state = state.copyWith(
-      tracks: state.tracks.where((element) => !ids.contains(element.id)).toList(),
+      tracks:
+          state.tracks.where((element) => !ids.contains(element.id)).toList(),
     );
+
+    // (index, track) pairs of what was actually removed from the backend,
+    // so a mid-loop failure can re-insert exactly the same entries.
+    final removedFromBackend = <({int index, SpotubeTrackObject track})>[];
 
     _bulkMutationDepth++;
     try {
       for (final index in indexesToRemove) {
         await removeMediaFromBackend(index);
+        removedFromBackend
+            .add((index: index, track: previousState.tracks[index]));
       }
+    } catch (_) {
+      await _rollbackBulkRemovals(removedFromBackend);
+      state = previousState;
+      rethrow;
     } finally {
       _bulkMutationDepth--;
     }
@@ -472,9 +609,16 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
         .asMediaList()
         .unique((a, b) => a.uri == b.uri);
 
+    if (medias.isEmpty) return;
+
+    // The blacklist filter and dedupe above can shrink the input, so a
+    // caller-supplied [initialIndex] may no longer be in range. Clamp
+    // before indexing (e.g. the pre-warm below) instead of throwing.
+    final safeInitialIndex = initialIndex.clamp(0, medias.length - 1);
+
     // Giving the initial track a boost so MediaKit won't skip
     // because of timeout
-    final intendedActiveTrack = medias.elementAt(initialIndex);
+    final intendedActiveTrack = medias[safeInitialIndex];
     if (intendedActiveTrack.track is! SpotubeLocalTrackObject) {
       ref.read(
         sourcedTrackProvider(
@@ -483,20 +627,26 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       );
     }
 
-    if (medias.isEmpty) return;
-
+    final previousState = state;
     state = state.copyWith(
       // These are filtered tracks as well
       tracks: medias.map((media) => media.track).toList(),
-      currentIndex: initialIndex,
+      currentIndex: safeInitialIndex,
       collections: [],
     );
 
-    await audioPlayer.openPlaylist(
-      medias,
-      initialIndex: initialIndex,
-      autoPlay: autoPlay,
-    );
+    try {
+      await openPlaylistOnBackend(
+        medias,
+        initialIndex: safeInitialIndex,
+        autoPlay: autoPlay,
+      );
+    } catch (_) {
+      // The backend rejected the new queue; the previously loaded
+      // playlist (if any) is still what the player holds.
+      state = previousState;
+      rethrow;
+    }
 
     await _updatePlayerState(
       AudioPlayerStateTableCompanion(

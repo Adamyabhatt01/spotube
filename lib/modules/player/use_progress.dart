@@ -26,16 +26,11 @@ import 'package:spotube/services/audio_player/audio_player.dart';
 
     position.value = audioPlayer.position;
 
-    var lastPosition = position.value;
-
-    // audioPlayer.positionStream is fired every 200ms and only 1s delay is
-    // enough. Thus only update the position if the difference is more than 1s
-    // Reduces CPU usage
-    final positionSubscription = audioPlayer.positionStream.listen((event) {
-      final diff = event.inMilliseconds - lastPosition.inMilliseconds;
-      if (event.inMilliseconds > 1000 && diff < 1000 && diff > 0) return;
-
-      lastPosition = event;
+    // Shared whole-second ticks (~1/sec instead of the raw ~5/sec), and the
+    // player service forces a tick after a seek so a scrub shows up within one
+    // position event instead of waiting for the second to roll over.
+    final positionSubscription =
+        audioPlayer.positionTickStream.listen((event) {
       position.value = event;
     });
 

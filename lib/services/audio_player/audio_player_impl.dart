@@ -17,6 +17,9 @@ class SpotubeAudioPlayer extends AudioPlayerInterface
   }
 
   Future<void> seek(Duration position) async {
+    // A seek can land inside the second that was already reported, so the
+    // shared tick gate is told to let the next position event through.
+    _invalidatePositionTick();
     await _mkPlayer.seek(position);
   }
 
@@ -35,10 +38,10 @@ class SpotubeAudioPlayer extends AudioPlayerInterface
   }
 
   Future<void> dispose() async {
+    await _positionTicker?.dispose();
+    _positionTicker = null;
     await _mkPlayer.dispose();
   }
-
-  // Playlist related
 
   Future<void> openPlaylist(
     List<mk.Media> tracks, {

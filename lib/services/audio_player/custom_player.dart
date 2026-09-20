@@ -8,8 +8,7 @@ import 'package:audio_session/audio_session.dart';
 import 'package:spotube/services/audio_player/playback_state.dart';
 import 'package:spotube/utils/platform.dart';
 
-/// MediaKit [Player] by default doesn't have a state stream.
-/// This class adds a state stream to the [Player] class.
+/// Adds a [playerStateStream] to the media_kit [Player].
 class CustomPlayer extends Player {
   final StreamController<AudioPlaybackState> _playerStateStream;
 
@@ -115,6 +114,7 @@ class CustomPlayer extends Player {
       element.cancel();
     }
     await notifyAudioSessionUpdate(false);
+    await _playerStateStream.close();
     return super.dispose();
   }
 

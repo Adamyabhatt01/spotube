@@ -107,8 +107,7 @@ class LocalLibraryPage extends HookConsumerWidget {
 
     final sortBy = useState<SortBy>(SortBy.none);
     // Perf: queue-membership + highlight only.
-    final queueTracks =
-        ref.watch(audioPlayerProvider.select((s) => s.tracks));
+    final queueTracks = ref.watch(audioPlayerProvider.select((s) => s.tracks));
     final activeTrackId =
         ref.watch(audioPlayerProvider.select((s) => s.activeTrack?.id));
     final trackSnapshot = ref.watch(localTracksProvider);
@@ -284,11 +283,15 @@ class LocalLibraryPage extends HookConsumerWidget {
                                 }
                               }
                             : null,
-                        icon: Icon(
-                          isPlaylistPlaying
-                              ? SpotubeIcons.stop
-                              : SpotubeIcons.play,
-                        ),
+                        // Same gate as Shuffle play and Add to queue below.
+                        // The icon used to swap to a stop square while the
+                        // folder was playing, but `onPressed` short-circuits on
+                        // exactly that condition — and the only stop available,
+                        // `AudioPlayerNotifier.stop`, clears the whole queue
+                        // rather than this folder, so the square promised
+                        // something no click could deliver.
+                        enabled: !isPlaylistPlaying,
+                        icon: const Icon(SpotubeIcons.play),
                       ),
                     ),
                     const Gap(5),
@@ -452,21 +455,20 @@ class LocalLibraryPage extends HookConsumerWidget {
                                       ? 5
                                       : filteredTracks.length,
                                   itemBuilder: (context, index) {
-                                      if (trackSnapshot.isLoading) {
-                                        return TrackTile(
-                                          isPlaying: activeTrackId ==
-                                              FakeData.track.id,
-                                          track: FakeData.track,
-                                          index: index,
-                                        );
-                                      }
-
-                                      final track = filteredTracks[index];
+                                    if (trackSnapshot.isLoading) {
                                       return TrackTile(
-                                        index: index,
                                         isPlaying:
-                                            activeTrackId == track.id,
-                                        track: track,
+                                            activeTrackId == FakeData.track.id,
+                                        track: FakeData.track,
+                                        index: index,
+                                      );
+                                    }
+
+                                    final track = filteredTracks[index];
+                                    return TrackTile(
+                                      index: index,
+                                      isPlaying: activeTrackId == track.id,
+                                      track: track,
                                       userPlaylist: false,
                                       onTap: () async {
                                         await playLocalTracks(
@@ -494,8 +496,7 @@ class LocalLibraryPage extends HookConsumerWidget {
                         itemBuilder: (context, index) => TrackTile(
                           track: FakeData.track,
                           index: index,
-                          isPlaying:
-                              activeTrackId == FakeData.track.id,
+                          isPlaying: activeTrackId == FakeData.track.id,
                         ),
                       ),
                     ),

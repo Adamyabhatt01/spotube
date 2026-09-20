@@ -26,36 +26,142 @@ import 'package:spotube/services/audio_player/audio_player.dart';
 class _RecordingBackendNotifier extends AudioPlayerNotifier {
   final List<String> backendCalls = [];
   final List<SpotubeTrackObject> backendQueue = [];
+
+  /// The media list the native backend holds. Kept in step with
+  /// [backendQueue] and replaced wholesale on every membership change, the way
+  /// media_kit does, so `backendMedias` stays a faithful mirror.
+  List<Media> medias = const [];
   int fakeIndex = 0;
 
   @override
   AudioPlayerState build() => _playerState(tracks: const []);
 
   @override
+  List<Media> get backendMedias => medias;
+
+  void backendAdd(SpotubeMedia media) {
+    backendQueue.add(media.track);
+    medias = [...medias, media];
+  }
+
+  void backendInsert(SpotubeMedia media, int index) {
+    final at = index.clamp(0, backendQueue.length);
+    backendQueue.insert(at, media.track);
+    medias = [...medias]..insert(at, media);
+  }
+
+  void backendRemove(int index) {
+    backendQueue.removeAt(index);
+    medias = [...medias]..removeAt(index);
+  }
+
+  void backendOpen(List<SpotubeMedia> opened) {
+    backendQueue
+      ..clear()
+      ..addAll(opened.map((m) => m.track));
+    medias = List<Media>.of(opened);
+  }
+
+  @override
   Future<void> addMediaToBackend(SpotubeMedia media) async {
     backendCalls.add('add:${media.track.id}');
-    backendQueue.add(media.track);
+    backendAdd(media);
   }
 
   @override
   Future<void> insertMediaIntoBackend(SpotubeMedia media, int index) async {
     backendCalls.add('insert:$index:${media.track.id}');
-    backendQueue.insert(index.clamp(0, backendQueue.length), media.track);
+    backendInsert(media, index);
   }
 
   @override
   Future<void> removeMediaFromBackend(int index) async {
     backendCalls.add('remove:$index');
-    backendQueue.removeAt(index);
+    backendRemove(index);
+  }
+
+  @override
+  Future<void> openPlaylistOnBackend(
+    List<SpotubeMedia> medias, {
+    required int initialIndex,
+    required bool autoPlay,
+  }) async {
+    backendCalls.add('open:$initialIndex:${medias.length}');
+    backendOpen(medias);
   }
 
   @override
   int get backendCurrentIndex => fakeIndex;
 }
 
+/// Recording backend where one designated call (matched by its recorded
+/// string, e.g. 'add:t3') throws before mutating, so failure-path
+/// rollback behavior can be exercised.
+class _FailingBackendNotifier extends _RecordingBackendNotifier {
+  String? failOnCall;
+  bool throwOnOpen = false;
+
+  bool _failIf(String record) {
+    backendCalls.add(record);
+    if (record == failOnCall) {
+      failOnCall = null;
+      throw StateError('simulated backend failure');
+    }
+    return false;
+  }
+
+  @override
+  Future<void> addMediaToBackend(SpotubeMedia media) async {
+    if (_failIf('add:${media.track.id}')) return;
+    backendAdd(media);
+  }
+
+  @override
+  Future<void> insertMediaIntoBackend(SpotubeMedia media, int index) async {
+    if (_failIf('insert:$index:${media.track.id}')) return;
+    backendInsert(media, index);
+  }
+
+  @override
+  Future<void> removeMediaFromBackend(int index) async {
+    if (_failIf('remove:$index')) return;
+    backendRemove(index);
+  }
+
+  @override
+  Future<void> openPlaylistOnBackend(
+    List<SpotubeMedia> medias, {
+    required int initialIndex,
+    required bool autoPlay,
+  }) async {
+    if (throwOnOpen) {
+      backendCalls.add('open:$initialIndex:${medias.length}');
+      throw StateError('simulated open failure');
+    }
+    await super.openPlaylistOnBackend(
+      medias,
+      initialIndex: initialIndex,
+      autoPlay: autoPlay,
+    );
+  }
+}
+
 class _EmptyBlacklistNotifier extends BlackListNotifier {
   @override
   Future<List<BlacklistTableData>> build() async => [];
+}
+
+/// Blacklist whose contents tests can flip at runtime.
+class _StubBlacklistNotifier extends BlackListNotifier {
+  final Set<String> blockedIds = {};
+
+  @override
+  Future<List<BlacklistTableData>> build() async => [];
+
+  @override
+  bool contains(SpotubeTrackObject track) =>
+      blockedIds.contains(track.id) ||
+      track.artists.any((a) => blockedIds.contains(a.id));
 }
 
 SpotubeFullTrackObject _testTrack(String id) {
@@ -287,5 +393,142 @@ void main() {
     expect(player.state.tracks.map((t) => t.id), ['b', 'a', 'x']);
     expect(player.backendCalls, ['insert:1:b']);
     expect(await persistedIds(), ['b', 'a', 'x']);
+  });
+
+  group('backend failure rollback', () {
+    /// Builds a second container backed by the same in-memory database,
+    /// driving [notifier] instead of the default recording one.
+    Future<T> withNotifier<T extends AudioPlayerNotifier>(T notifier) async {
+      final secondary = ProviderContainer(
+        overrides: [
+          audioPlayerProvider.overrideWith(() => notifier),
+          databaseProvider.overrideWithValue(database),
+          blacklistProvider.overrideWith(() => _EmptyBlacklistNotifier()),
+        ],
+      );
+      secondary.read(audioPlayerProvider);
+      addTearDown(secondary.dispose);
+      return notifier;
+    }
+
+    test('addTracks mid-failure rolls back backend, state and persistence',
+        () async {
+      final flaky = await withNotifier(_FailingBackendNotifier()
+        ..failOnCall = 'add:c');
+
+      await expectLater(
+        flaky.addTracks([_testTrack('a'), _testTrack('b'), _testTrack('c')]),
+        throwsStateError,
+      );
+
+      expect(flaky.state.tracks, isEmpty);
+      expect(flaky.backendQueue, isEmpty);
+      expect(await persistedIds(), isEmpty);
+      // add:a, add:b landed; add:c threw; rollback removed b then a.
+      expect(
+        flaky.backendCalls,
+        ['add:a', 'add:b', 'add:c', 'remove:1', 'remove:0'],
+      );
+    });
+
+    test('removeTracks mid-failure re-inserts the removed slice', () async {
+      final flaky = await withNotifier(_FailingBackendNotifier());
+      await flaky.addTracks([
+        _testTrack('a'),
+        _testTrack('b'),
+        _testTrack('c'),
+        _testTrack('d'),
+      ]);
+      flaky.backendCalls.clear();
+      flaky.failOnCall = 'remove:1';
+
+      await expectLater(flaky.removeTracks(['b', 'd']), throwsStateError);
+
+      // First removal (index 3, track d) was rolled back; queue intact.
+      expect(flaky.state.tracks.map((t) => t.id), ['a', 'b', 'c', 'd']);
+      expect(flaky.backendQueue.map((t) => t.id), ['a', 'b', 'c', 'd']);
+      expect(await persistedIds(), ['a', 'b', 'c', 'd']);
+      expect(flaky.backendCalls, ['remove:3', 'remove:1', 'insert:3:d']);
+    });
+
+    test('addTracksAtFirst mid-failure removes the inserted prefix slice',
+        () async {
+      final flaky = await withNotifier(_FailingBackendNotifier());
+      await flaky.addTracks([_testTrack('x'), _testTrack('y')]);
+      flaky.backendCalls.clear();
+      flaky.failOnCall = 'insert:2:b';
+
+      await expectLater(
+        flaky.addTracksAtFirst([_testTrack('a'), _testTrack('b')]),
+        throwsStateError,
+      );
+
+      expect(flaky.state.tracks.map((t) => t.id), ['x', 'y']);
+      expect(flaky.backendQueue.map((t) => t.id), ['x', 'y']);
+      expect(await persistedIds(), ['x', 'y']);
+      expect(flaky.backendCalls, ['insert:1:a', 'insert:2:b', 'remove:1']);
+    });
+
+    test('load open failure restores the previous queue', () async {
+      final flaky = await withNotifier(_FailingBackendNotifier());
+      await flaky.addTracks([_testTrack('x')]);
+      flaky
+        ..backendCalls.clear()
+        ..throwOnOpen = true;
+
+      await expectLater(flaky.load([_testTrack('a')]), throwsStateError);
+
+      expect(flaky.state.tracks.map((t) => t.id), ['x']);
+      expect(await persistedIds(), ['x']);
+      expect(flaky.backendCalls, ['open:0:1']);
+    });
+
+    test('load clamps an out-of-range initial index', () async {
+      final notifier = await withNotifier(_RecordingBackendNotifier());
+
+      await notifier.load(
+        [
+          _localTrack('local-a', '/music/a.mp3'),
+          _localTrack('local-b', '/music/b.mp3'),
+        ],
+        initialIndex: 5,
+      );
+
+      expect(notifier.state.currentIndex, 1);
+      expect(notifier.backendCalls, ['open:1:2']);
+      expect(await persistedIds(), ['local-a', 'local-b']);
+    });
+  });
+
+  group('load input validation', () {
+    test('empty input is a no-op', () async {
+      await player.load([]);
+      expect(player.state.tracks, isEmpty);
+      expect(player.backendCalls, isEmpty);
+    });
+
+    test('fully blacklisted input is a no-op, no throw', () async {
+      final recording = _RecordingBackendNotifier();
+      final blacklist = _StubBlacklistNotifier()..blockedIds.addAll(['a', 'b']);
+      final secondary = ProviderContainer(
+        overrides: [
+          audioPlayerProvider.overrideWith(() => recording),
+          databaseProvider.overrideWithValue(database),
+          blacklistProvider.overrideWith(() => blacklist),
+        ],
+      );
+      secondary.read(audioPlayerProvider);
+      addTearDown(secondary.dispose);
+
+      // Previously threw RangeError via elementAt before the empty check.
+      await recording.load(
+        [_testTrack('a'), _testTrack('b')],
+        initialIndex: 1,
+      );
+
+      expect(recording.state.tracks, isEmpty);
+      expect(recording.backendCalls, isEmpty);
+      expect(await persistedIds(), isEmpty);
+    });
   });
 }

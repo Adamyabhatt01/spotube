@@ -6,7 +6,6 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/audio_player/playback_state.dart';
-import 'package:spotube/utils/position_tick_gate.dart';
 
 class WindowsAudioService {
   final SMTCWindows smtc;
@@ -60,12 +59,9 @@ class WindowsAudioService {
       }
     });
 
-    final positionGate = PositionTickGate();
-    final positionStream = audioPlayer.positionStream.listen((pos) async {
-      // Whole-second granularity + guaranteed first update per track
-      // (see PositionTickGate). Playback-status changes bypass this gate.
-      final trackId = ref.read(audioPlayerProvider).activeTrack?.id;
-      if (!positionGate.shouldEmit(trackId: trackId, position: pos)) return;
+    final positionStream = audioPlayer.positionTickStream.listen((pos) async {
+      // Shared whole-second ticks (see PositionTicker). Playback-status
+      // changes bypass this path.
       await smtc.setPosition(pos);
     });
 

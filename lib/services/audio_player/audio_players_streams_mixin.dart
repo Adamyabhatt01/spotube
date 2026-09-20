@@ -6,9 +6,32 @@ mixin SpotubeAudioPlayersStreams on AudioPlayerInterface {
     return _mkPlayer.stream.duration;
   }
 
+  Stream<Duration>? _countedPositionStream;
+  PositionTicker? _positionTicker;
+
+  /// Wrapped in a counting `map` only outside release builds; media_kit's
+  /// `position` is a broadcast stream and `map` preserves that, so every
+  /// consumer keeps receiving the same events from the same source.
   Stream<Duration> get positionStream {
-    return _mkPlayer.stream.position;
+    if (!kPerfCountersEnabled) return _mkPlayer.stream.position;
+    return _countedPositionStream ??= _mkPlayer.stream.position.map((position) {
+      PerfCounters.note('position.rawDispatch');
+      return position;
+    });
   }
+
+  /// Shared whole-second ticks for consumers that never need finer position
+  /// resolution than a second. Lazy: the upstream subscription exists only
+  /// once someone asks, which in practice is the first player UI mounting.
+  /// See [PositionTicker] for the emission contract.
+  Stream<Duration> get positionTickStream {
+    return (_positionTicker ??= PositionTicker(positionStream)).stream;
+  }
+
+  /// Drops the current second so the next position event passes the gate —
+  /// called on seek, where the position jumps without crossing seconds in
+  /// order.
+  void _invalidatePositionTick() => _positionTicker?.invalidate();
 
   Stream<Duration> get bufferedPositionStream {
     return _mkPlayer.stream.buffer;

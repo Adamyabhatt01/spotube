@@ -8,7 +8,6 @@ import 'package:spotube/provider/audio_player/state.dart';
 import 'package:spotube/provider/discord_provider.dart';
 import 'package:spotube/provider/history/history.dart';
 import 'package:spotube/provider/metadata_plugin/core/scrobble.dart';
-import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/server/sourced_track_provider.dart';
 import 'package:spotube/provider/skip_segments/skip_segments.dart';
 import 'package:spotube/provider/scrobbler/scrobbler.dart';
@@ -142,7 +141,10 @@ class AudioPlayerStreamListeners {
 
   StreamSubscription subscribeToScrobbleChanged() {
     String? lastScrobbled;
-    return audioPlayer.positionStream.listen((position) async {
+    // Scrobble thresholds are in whole seconds, so the shared ~1 Hz tick is
+    // the resolution this listener can act on. The sponsor-skip listener above
+    // deliberately stays on the raw ~5 Hz stream.
+    return audioPlayer.positionTickStream.listen((position) async {
       try {
         final uid = audioPlayerState.activeTrack is SpotubeLocalTrackObject
             ? (audioPlayerState.activeTrack as SpotubeLocalTrackObject).path
@@ -167,23 +169,7 @@ class AudioPlayerStreamListeners {
             .scrobble(audioPlayerState.activeTrack!);
         lastScrobbled = uid;
 
-        /// The [Track] from Playlist.getTracks doesn't contain artist images
-        /// so we need to fetch them from the API
-        var activeTrack = audioPlayerState.activeTrack!;
-        if (activeTrack.artists.any((a) => a.images == null)) {
-          final metadataPlugin = await ref.read(metadataPluginProvider.future);
-          final artists = await Future.wait(
-            activeTrack.artists
-                .map((artist) => metadataPlugin!.artist.getArtist(artist.id)),
-          );
-          activeTrack = activeTrack.copyWith(
-            artists: artists
-                .map((e) => SpotubeSimpleArtistObject.fromJson(e.toJson()))
-                .toList(),
-          );
-        }
-
-        await history.addTrack(activeTrack);
+        await history.addTrack(audioPlayerState.activeTrack!);
       } catch (e, stack) {
         AppLogger.reportError(e, stack);
       }
@@ -192,7 +178,13 @@ class AudioPlayerStreamListeners {
 
   StreamSubscription subscribeToPosition() {
     String lastTrack = ""; // used to prevent multiple calls to the same track
-    return audioPlayer.positionStream.listen((event) async {
+    String? failedTrackId;
+    DateTime? retryAfter;
+    var prewarming = false;
+
+    // Whole-second ticks: the 80% threshold it watches is expressed in
+    // seconds, so the raw ~5 Hz stream only re-evaluated the same comparison.
+    return audioPlayer.positionTickStream.listen((event) async {
       final percentProgress =
           (event.inSeconds / max(audioPlayer.duration.inSeconds, 1)) * 100;
       try {
@@ -202,21 +194,46 @@ class AudioPlayerStreamListeners {
                 audioPlayerState.tracks.length - 1) {
           return;
         }
+        // Resolution can take seconds while ticks keep arriving; without this
+        // guard every tick launches another resolve for the same track (the
+        // retry-storm finding).
+        if (prewarming) return;
+
         final nextTrack = audioPlayerState.tracks
             .elementAtOrNull(audioPlayerState.currentIndex + 1);
 
         if (nextTrack == null ||
             lastTrack == nextTrack.id ||
-            nextTrack is SpotubeLocalTrackObject) {
+            nextTrack is! SpotubeFullTrackObject) {
+          // Also covers local tracks, which need no sourcing.
           return;
         }
 
+        // A failed prewarm is retried only after a cooldown — otherwise a
+        // permanently unresolvable track re-ran the whole source cascade
+        // every position tick.
+        if (!shouldPrewarmNow(
+          failedTrackId: failedTrackId,
+          retryAfter: retryAfter,
+          candidateId: nextTrack.id,
+          now: DateTime.now(),
+        )) {
+          return;
+        }
+
+        prewarming = true;
         try {
           await ref.read(
-            sourcedTrackProvider(nextTrack as SpotubeFullTrackObject).future,
+            sourcedTrackProvider(nextTrack).future,
           );
-        } finally {
           lastTrack = nextTrack.id;
+          failedTrackId = null;
+          retryAfter = null;
+        } catch (_) {
+          failedTrackId = nextTrack.id;
+          retryAfter = DateTime.now().add(prewarmRetryCooldown);
+        } finally {
+          prewarming = false;
         }
       } catch (e, stack) {
         AppLogger.reportError(e, stack);
@@ -231,6 +248,22 @@ class AudioPlayerStreamListeners {
 
 final audioPlayerStreamListenersProvider =
     Provider<AudioPlayerStreamListeners>(AudioPlayerStreamListeners.new);
+
+/// Cooldown before a failed next-track prewarm may be attempted again.
+const Duration prewarmRetryCooldown = Duration(seconds: 15);
+
+/// Pure prewarm retry decision: a candidate may be attempted unless it is
+/// the track whose prewarm recently failed and the cooldown has not elapsed.
+bool shouldPrewarmNow({
+  required String? failedTrackId,
+  required DateTime? retryAfter,
+  required String candidateId,
+  required DateTime now,
+}) {
+  if (failedTrackId != candidateId) return true;
+  if (retryAfter == null) return true;
+  return !now.isBefore(retryAfter);
+}
 
 /// Pure per-tick sponsor-segment decision: (re)fetch only when the active
 /// track differs from the track whose segments are cached (including the

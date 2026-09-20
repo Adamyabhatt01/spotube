@@ -70,16 +70,49 @@ class AudioPlayerState with _$AudioPlayerState {
     List<SpotubeTrackObject> haystack,
     List<SpotubeTrackObject> tracks,
   ) {
-    return haystack.isNotEmpty &&
-        tracks.every((track) => listContainsTrack(haystack, track));
+    if (haystack.isEmpty || tracks.isEmpty) return false;
+
+    // Below this the three hash sets cost more than scanning: a single needle
+    // against a queue is the common case and stays O(n).
+    if (tracks.length * haystack.length <= 256) {
+      return tracks.every((track) => listContainsTrack(haystack, track));
+    }
+
+    // Mirrors `listContainsTrack`'s pair rule — two locals compare by path,
+    // anything else by id — so a local needle can be satisfied either by a
+    // local entry's path or by a remote entry's id.
+    final localPaths = <String>{};
+    final remoteIds = <String>{};
+    final allIds = <String>{};
+    for (final candidate in haystack) {
+      allIds.add(candidate.id);
+      if (candidate case final SpotubeLocalTrackObject local) {
+        localPaths.add(local.path);
+      } else {
+        remoteIds.add(candidate.id);
+      }
+    }
+
+    for (final track in tracks) {
+      final bool found;
+      if (track case final SpotubeLocalTrackObject local) {
+        found = localPaths.contains(local.path) || remoteIds.contains(local.id);
+      } else {
+        found = allIds.contains(track.id);
+      }
+      if (!found) return false;
+    }
+    return true;
   }
 
   bool containsTrack(SpotubeTrackObject track) {
     return listContainsTrack(tracks, track);
   }
 
-  bool containsTracks(List<SpotubeTrackObject> tracks) {
-    return listContainsTracks(tracks, tracks);
+  bool containsTracks(List<SpotubeTrackObject> needles) {
+    // Deliberately not named `tracks`: shadowing the field here made the
+    // predicate compare the queue against itself, i.e. `needles.isNotEmpty`.
+    return listContainsTracks(tracks, needles);
   }
 
   bool containsCollection(String collectionId) {
