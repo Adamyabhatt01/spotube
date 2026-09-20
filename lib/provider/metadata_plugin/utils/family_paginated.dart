@@ -109,8 +109,7 @@ abstract class FamilyPaginatedAsyncNotifier<K, A>
         limit = newState.limit;
         lastPage = newState;
 
-        final items =
-            newState.items.isEmpty ? <K>[] : newState.items.cast<K>();
+        final items = newState.items.isEmpty ? <K>[] : newState.items.cast<K>();
         for (final item in items) {
           if (seenKeys.add(_itemKey(item))) allItems.add(item);
         }
@@ -223,8 +222,7 @@ abstract class AutoDisposeFamilyPaginatedAsyncNotifier<K, A>
         limit = newState.limit;
         lastPage = newState;
 
-        final items =
-            newState.items.isEmpty ? <K>[] : newState.items.cast<K>();
+        final items = newState.items.isEmpty ? <K>[] : newState.items.cast<K>();
         for (final item in items) {
           if (seenKeys.add(_itemKey(item))) allItems.add(item);
         }

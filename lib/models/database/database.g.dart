@@ -4613,6 +4613,246 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
   }
 }
 
+class $LibrarySnapshotTableTable extends LibrarySnapshotTable
+    with TableInfo<$LibrarySnapshotTableTable, LibrarySnapshotTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LibrarySnapshotTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+      'key', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _dataMeta = const VerificationMeta('data');
+  @override
+  late final GeneratedColumn<String> data = GeneratedColumn<String>(
+      'data', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMsMeta =
+      const VerificationMeta('updatedAtMs');
+  @override
+  late final GeneratedColumn<int> updatedAtMs = GeneratedColumn<int>(
+      'updated_at_ms', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [key, data, updatedAtMs];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'library_snapshot_table';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<LibrarySnapshotTableData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+          _keyMeta, key.isAcceptableOrUnknown(data['key']!, _keyMeta));
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('data')) {
+      context.handle(
+          _dataMeta, this.data.isAcceptableOrUnknown(data['data']!, _dataMeta));
+    } else if (isInserting) {
+      context.missing(_dataMeta);
+    }
+    if (data.containsKey('updated_at_ms')) {
+      context.handle(
+          _updatedAtMsMeta,
+          updatedAtMs.isAcceptableOrUnknown(
+              data['updated_at_ms']!, _updatedAtMsMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => const {};
+  @override
+  LibrarySnapshotTableData map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LibrarySnapshotTableData(
+      key: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}key'])!,
+      data: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}data'])!,
+      updatedAtMs: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}updated_at_ms'])!,
+    );
+  }
+
+  @override
+  $LibrarySnapshotTableTable createAlias(String alias) {
+    return $LibrarySnapshotTableTable(attachedDatabase, alias);
+  }
+}
+
+class LibrarySnapshotTableData extends DataClass
+    implements Insertable<LibrarySnapshotTableData> {
+  final String key;
+  final String data;
+  final int updatedAtMs;
+  const LibrarySnapshotTableData(
+      {required this.key, required this.data, required this.updatedAtMs});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['data'] = Variable<String>(data);
+    map['updated_at_ms'] = Variable<int>(updatedAtMs);
+    return map;
+  }
+
+  LibrarySnapshotTableCompanion toCompanion(bool nullToAbsent) {
+    return LibrarySnapshotTableCompanion(
+      key: Value(key),
+      data: Value(data),
+      updatedAtMs: Value(updatedAtMs),
+    );
+  }
+
+  factory LibrarySnapshotTableData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LibrarySnapshotTableData(
+      key: serializer.fromJson<String>(json['key']),
+      data: serializer.fromJson<String>(json['data']),
+      updatedAtMs: serializer.fromJson<int>(json['updatedAtMs']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'data': serializer.toJson<String>(data),
+      'updatedAtMs': serializer.toJson<int>(updatedAtMs),
+    };
+  }
+
+  LibrarySnapshotTableData copyWith(
+          {String? key, String? data, int? updatedAtMs}) =>
+      LibrarySnapshotTableData(
+        key: key ?? this.key,
+        data: data ?? this.data,
+        updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+      );
+  LibrarySnapshotTableData copyWithCompanion(
+      LibrarySnapshotTableCompanion data) {
+    return LibrarySnapshotTableData(
+      key: data.key.present ? data.key.value : this.key,
+      data: data.data.present ? data.data.value : this.data,
+      updatedAtMs:
+          data.updatedAtMs.present ? data.updatedAtMs.value : this.updatedAtMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LibrarySnapshotTableData(')
+          ..write('key: $key, ')
+          ..write('data: $data, ')
+          ..write('updatedAtMs: $updatedAtMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, data, updatedAtMs);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LibrarySnapshotTableData &&
+          other.key == this.key &&
+          other.data == this.data &&
+          other.updatedAtMs == this.updatedAtMs);
+}
+
+class LibrarySnapshotTableCompanion
+    extends UpdateCompanion<LibrarySnapshotTableData> {
+  final Value<String> key;
+  final Value<String> data;
+  final Value<int> updatedAtMs;
+  final Value<int> rowid;
+  const LibrarySnapshotTableCompanion({
+    this.key = const Value.absent(),
+    this.data = const Value.absent(),
+    this.updatedAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LibrarySnapshotTableCompanion.insert({
+    required String key,
+    required String data,
+    required int updatedAtMs,
+    this.rowid = const Value.absent(),
+  })  : key = Value(key),
+        data = Value(data),
+        updatedAtMs = Value(updatedAtMs);
+  static Insertable<LibrarySnapshotTableData> custom({
+    Expression<String>? key,
+    Expression<String>? data,
+    Expression<int>? updatedAtMs,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (data != null) 'data': data,
+      if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LibrarySnapshotTableCompanion copyWith(
+      {Value<String>? key,
+      Value<String>? data,
+      Value<int>? updatedAtMs,
+      Value<int>? rowid}) {
+    return LibrarySnapshotTableCompanion(
+      key: key ?? this.key,
+      data: data ?? this.data,
+      updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (data.present) {
+      map['data'] = Variable<String>(data.value);
+    }
+    if (updatedAtMs.present) {
+      map['updated_at_ms'] = Variable<int>(updatedAtMs.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LibrarySnapshotTableCompanion(')
+          ..write('key: $key, ')
+          ..write('data: $data, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4633,6 +4873,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $HistoryTableTable historyTable = $HistoryTableTable(this);
   late final $LyricsTableTable lyricsTable = $LyricsTableTable(this);
   late final $PluginsTableTable pluginsTable = $PluginsTableTable(this);
+  late final $LibrarySnapshotTableTable librarySnapshotTable =
+      $LibrarySnapshotTableTable(this);
   late final Index uniqueBlacklist = Index('unique_blacklist',
       'CREATE UNIQUE INDEX unique_blacklist ON blacklist_table (element_type, element_id)');
   @override
@@ -4651,6 +4893,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         historyTable,
         lyricsTable,
         pluginsTable,
+        librarySnapshotTable,
         uniqueBlacklist
       ];
 }
@@ -7026,6 +7269,155 @@ typedef $$PluginsTableTableProcessedTableManager = ProcessedTableManager<
     ),
     PluginsTableData,
     PrefetchHooks Function()>;
+typedef $$LibrarySnapshotTableTableCreateCompanionBuilder
+    = LibrarySnapshotTableCompanion Function({
+  required String key,
+  required String data,
+  required int updatedAtMs,
+  Value<int> rowid,
+});
+typedef $$LibrarySnapshotTableTableUpdateCompanionBuilder
+    = LibrarySnapshotTableCompanion Function({
+  Value<String> key,
+  Value<String> data,
+  Value<int> updatedAtMs,
+  Value<int> rowid,
+});
+
+class $$LibrarySnapshotTableTableFilterComposer
+    extends Composer<_$AppDatabase, $LibrarySnapshotTableTable> {
+  $$LibrarySnapshotTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+      column: $table.key, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get data => $composableBuilder(
+      column: $table.data, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get updatedAtMs => $composableBuilder(
+      column: $table.updatedAtMs, builder: (column) => ColumnFilters(column));
+}
+
+class $$LibrarySnapshotTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $LibrarySnapshotTableTable> {
+  $$LibrarySnapshotTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+      column: $table.key, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get data => $composableBuilder(
+      column: $table.data, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAtMs => $composableBuilder(
+      column: $table.updatedAtMs, builder: (column) => ColumnOrderings(column));
+}
+
+class $$LibrarySnapshotTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LibrarySnapshotTableTable> {
+  $$LibrarySnapshotTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get data =>
+      $composableBuilder(column: $table.data, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAtMs => $composableBuilder(
+      column: $table.updatedAtMs, builder: (column) => column);
+}
+
+class $$LibrarySnapshotTableTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LibrarySnapshotTableTable,
+    LibrarySnapshotTableData,
+    $$LibrarySnapshotTableTableFilterComposer,
+    $$LibrarySnapshotTableTableOrderingComposer,
+    $$LibrarySnapshotTableTableAnnotationComposer,
+    $$LibrarySnapshotTableTableCreateCompanionBuilder,
+    $$LibrarySnapshotTableTableUpdateCompanionBuilder,
+    (
+      LibrarySnapshotTableData,
+      BaseReferences<_$AppDatabase, $LibrarySnapshotTableTable,
+          LibrarySnapshotTableData>
+    ),
+    LibrarySnapshotTableData,
+    PrefetchHooks Function()> {
+  $$LibrarySnapshotTableTableTableManager(
+      _$AppDatabase db, $LibrarySnapshotTableTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LibrarySnapshotTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LibrarySnapshotTableTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LibrarySnapshotTableTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> key = const Value.absent(),
+            Value<String> data = const Value.absent(),
+            Value<int> updatedAtMs = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LibrarySnapshotTableCompanion(
+            key: key,
+            data: data,
+            updatedAtMs: updatedAtMs,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String key,
+            required String data,
+            required int updatedAtMs,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LibrarySnapshotTableCompanion.insert(
+            key: key,
+            data: data,
+            updatedAtMs: updatedAtMs,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LibrarySnapshotTableTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $LibrarySnapshotTableTable,
+        LibrarySnapshotTableData,
+        $$LibrarySnapshotTableTableFilterComposer,
+        $$LibrarySnapshotTableTableOrderingComposer,
+        $$LibrarySnapshotTableTableAnnotationComposer,
+        $$LibrarySnapshotTableTableCreateCompanionBuilder,
+        $$LibrarySnapshotTableTableUpdateCompanionBuilder,
+        (
+          LibrarySnapshotTableData,
+          BaseReferences<_$AppDatabase, $LibrarySnapshotTableTable,
+              LibrarySnapshotTableData>
+        ),
+        LibrarySnapshotTableData,
+        PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7054,4 +7446,6 @@ class $AppDatabaseManager {
       $$LyricsTableTableTableManager(_db, _db.lyricsTable);
   $$PluginsTableTableTableManager get pluginsTable =>
       $$PluginsTableTableTableManager(_db, _db.pluginsTable);
+  $$LibrarySnapshotTableTableTableManager get librarySnapshotTable =>
+      $$LibrarySnapshotTableTableTableManager(_db, _db.librarySnapshotTable);
 }

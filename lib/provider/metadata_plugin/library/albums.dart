@@ -1,10 +1,21 @@
+import 'dart:async';
+
 import 'package:riverpod/riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/utils/paginated.dart';
+import 'package:spotube/services/metadata/library_snapshot.dart';
 
 class MetadataPluginSavedAlbumNotifier
-    extends PaginatedAsyncNotifier<SpotubeSimpleAlbumObject> {
+    extends PaginatedAsyncNotifier<SpotubeSimpleAlbumObject>
+    with SavedListCacheMixin<SpotubeSimpleAlbumObject> {
+  @override
+  String? get snapshotKey => librarySnapshotKeySavedAlbums;
+
+  @override
+  SpotubeSimpleAlbumObject Function(Map<String, dynamic>)?
+      get snapshotDecoder => SpotubeSimpleAlbumObject.fromJson;
+
   @override
   Future<SpotubePaginationResponseObject<SpotubeSimpleAlbumObject>> fetch(
     int offset,
@@ -19,7 +30,7 @@ class MetadataPluginSavedAlbumNotifier
   @override
   build() async {
     await ref.watch(metadataPluginAuthenticatedProvider.future);
-    return await fetchWithRateLimitRetry(() => fetch(0, 20));
+    return await buildSavedList();
   }
 
   Future<void> addFavorite(List<SpotubeSimpleAlbumObject> albums) async {
@@ -40,6 +51,7 @@ class MetadataPluginSavedAlbumNotifier
       state = AsyncData(oldState!);
       rethrow;
     }
+    unawaited(persistSnapshot());
   }
 
   Future<void> removeFavorite(List<SpotubeSimpleAlbumObject> albums) async {
@@ -63,6 +75,7 @@ class MetadataPluginSavedAlbumNotifier
       state = AsyncData(oldState!);
       rethrow;
     }
+    unawaited(persistSnapshot());
   }
 }
 

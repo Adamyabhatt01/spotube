@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
@@ -6,10 +8,19 @@ import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/playlist.dart';
 import 'package:spotube/provider/metadata_plugin/utils/paginated.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
+import 'package:spotube/services/metadata/library_snapshot.dart';
 
 class MetadataPluginSavedPlaylistsNotifier
-    extends PaginatedAsyncNotifier<SpotubeSimplePlaylistObject> {
+    extends PaginatedAsyncNotifier<SpotubeSimplePlaylistObject>
+    with SavedListCacheMixin<SpotubeSimplePlaylistObject> {
   MetadataPluginSavedPlaylistsNotifier() : super();
+
+  @override
+  String? get snapshotKey => librarySnapshotKeySavedPlaylists;
+
+  @override
+  SpotubeSimplePlaylistObject Function(Map<String, dynamic>)?
+      get snapshotDecoder => SpotubeSimplePlaylistObject.fromJson;
 
   @override
   fetch(int offset, int limit) async {
@@ -24,7 +35,7 @@ class MetadataPluginSavedPlaylistsNotifier
   build() async {
     await ref.watch(metadataPluginAuthenticatedProvider.future);
 
-    final playlists = await fetchWithRateLimitRetry(() => fetch(0, 20));
+    final playlists = await buildSavedList();
 
     return playlists;
   }
@@ -41,6 +52,7 @@ class MetadataPluginSavedPlaylistsNotifier
             .toList(),
       ),
     );
+    unawaited(persistSnapshot());
   }
 
   Future<void> addFavorite(SpotubeSimplePlaylistObject playlist) async {
@@ -63,6 +75,7 @@ class MetadataPluginSavedPlaylistsNotifier
       state = AsyncData(oldState!);
       rethrow;
     }
+    unawaited(persistSnapshot());
   }
 
   Future<void> removeFavorite(SpotubeSimplePlaylistObject playlist) async {
@@ -81,6 +94,7 @@ class MetadataPluginSavedPlaylistsNotifier
       state = AsyncData(oldState!);
       rethrow;
     }
+    unawaited(persistSnapshot());
   }
 
   Future<void> delete(String playlistId) async {

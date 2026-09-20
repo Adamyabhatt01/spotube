@@ -41,6 +41,9 @@ class _FakeSavedArtists extends MetadataPluginSavedArtistNotifier {
   int _next = 1;
 
   @override
+  String? get snapshotKey => null; // keep the fake off the database
+
+  @override
   Future<SpotubePaginationResponseObject<SpotubeFullArtistObject>> build() =>
       Future.value(pages.first);
 
@@ -59,6 +62,9 @@ class _FakeSavedAlbums extends MetadataPluginSavedAlbumNotifier {
   final List<SpotubePaginationResponseObject<SpotubeSimpleAlbumObject>> pages;
   final seenOffsetsLimits = <List<int>>[];
   int _next = 1;
+
+  @override
+  String? get snapshotKey => null; // keep the fake off the database
 
   @override
   Future<SpotubePaginationResponseObject<SpotubeSimpleAlbumObject>> build() =>

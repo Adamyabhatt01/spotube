@@ -5,13 +5,39 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 // ignore: implementation_imports
 import 'package:riverpod/src/async_notifier.dart';
+import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/metadata_plugin/utils/common.dart';
 import 'package:spotube/services/logger/logger.dart';
+import 'package:spotube/services/metadata/errors/rate_limit.dart';
+import 'package:spotube/services/metadata/library_snapshot.dart';
 
 mixin PaginatedAsyncNotifierMixin<K>
     // ignore: invalid_use_of_internal_member
     on AsyncNotifierBase<SpotubePaginationResponseObject<K>> {
   Future<SpotubePaginationResponseObject<K>> fetch(int offset, int limit);
+
+  /// When non-null, the fully-materialized list is persisted as a
+  /// last-known-good snapshot ([LibrarySnapshotTable]) so the library can
+  /// still render while Spotify rate-limits the plugin. Opted in per saved
+  /// list notifier; plain paginated fakes (tests, other providers) leave
+  /// these null and never touch the database.
+  String? get snapshotKey => null;
+
+  K Function(Map<String, dynamic>)? get snapshotDecoder => null;
+
+  /// Persists the current state iff it is complete (every page loaded).
+  /// Best-effort: cache failures are reported, never surfaced.
+  Future<void> persistSnapshot() async {
+    final key = snapshotKey;
+    if (key == null) return;
+    final value = state.value;
+    if (value == null || value.hasMore) return;
+    try {
+      await writeLibrarySnapshot(ref.read(databaseProvider), key, value.items);
+    } catch (e, stack) {
+      AppLogger.reportError(e, stack);
+    }
+  }
 
   /// Single-flight guard shared by [fetchMore] and [fetchAll] so concurrent
   /// UI triggers (scroll edge, visibility callbacks, heart-button lookups)
@@ -64,6 +90,7 @@ mixin PaginatedAsyncNotifierMixin<K>
       state = AsyncData(
         newState.copyWith(items: _mergeDeduped(oldItems, items)),
       );
+      unawaited(persistSnapshot());
     } catch (e, stack) {
       AppLogger.reportError(e, stack);
       state = AsyncData(oldState!);
@@ -111,14 +138,14 @@ mixin PaginatedAsyncNotifierMixin<K>
         limit = newState.limit;
         lastPage = newState;
 
-        final items =
-            newState.items.isEmpty ? <K>[] : newState.items.cast<K>();
+        final items = newState.items.isEmpty ? <K>[] : newState.items.cast<K>();
         for (final item in items) {
           if (seenKeys.add(_itemKey(item))) allItems.add(item);
         }
       }
 
       state = AsyncData(lastPage.copyWith(items: allItems));
+      await persistSnapshot();
     } catch (e, stack) {
       AppLogger.reportError(e, stack);
       rethrow;
@@ -137,3 +164,49 @@ abstract class PaginatedAsyncNotifier<K>
 abstract class AutoDisposePaginatedAsyncNotifier<K>
     extends AutoDisposeAsyncNotifier<SpotubePaginationResponseObject<K>>
     with PaginatedAsyncNotifierMixin<K>, MetadataPluginMixin<K> {}
+
+/// Build-time helper for the four Spotify saved-list notifiers: rate-limit
+/// retried first page, with a fallback to the persisted last-known-good
+/// snapshot when the fetch fails (429, gate closed, network, plugin error).
+mixin SavedListCacheMixin<K>
+    on PaginatedAsyncNotifierMixin<K>, MetadataPluginMixin<K> {
+  Future<SpotubePaginationResponseObject<K>> buildSavedList({
+    Duration cooldown = rateLimitRetryCooldown,
+  }) async {
+    try {
+      final page = await fetchWithRateLimitRetry(
+        () => fetch(0, 20),
+        cooldown: cooldown,
+      );
+      // A single-page library is already complete; cache it right away.
+      if (!page.hasMore) unawaited(persistSnapshot());
+      return page;
+    } catch (e) {
+      final key = snapshotKey;
+      final decoder = snapshotDecoder;
+      if (key != null && decoder != null) {
+        List<K>? stale;
+        try {
+          stale = await readLibrarySnapshot(
+            ref.read(databaseProvider),
+            key,
+            decoder,
+          );
+        } catch (_) {
+          // A failing cache is simply no cache; the original fetch error
+          // is what the user should see.
+        }
+        if (stale != null && stale.isNotEmpty) {
+          return SpotubePaginationResponseObject(
+            limit: stale.length,
+            nextOffset: null,
+            total: stale.length,
+            hasMore: false,
+            items: stale,
+          );
+        }
+      }
+      rethrow;
+    }
+  }
+}

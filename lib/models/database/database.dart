@@ -40,6 +40,7 @@ part 'tables/audio_player_state.dart';
 part 'tables/history.dart';
 part 'tables/lyrics.dart';
 part 'tables/metadata_plugins.dart';
+part 'tables/library_snapshot.dart';
 
 part 'typeconverters/color.dart';
 part 'typeconverters/locale.dart';
@@ -62,6 +63,7 @@ part 'typeconverters/subtitle.dart';
     HistoryTable,
     LyricsTable,
     PluginsTable,
+    LibrarySnapshotTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -75,7 +77,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   /// Raw DDL for the quarantine table, kept as a constant so the v11->v12
   /// step can create it idempotently (`IF NOT EXISTS`) without depending
@@ -598,6 +600,16 @@ class AppDatabase extends _$AppDatabase {
                 schema.preferencesTable,
                 preferencesTable.autoDownloadQuality,
               );
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from13To14: (m, schema) async {
+          try {
+            if (!await _tableExists('library_snapshot_table')) {
+              await m.createTable(schema.librarySnapshotTable);
             }
           } catch (e, stack) {
             AppLogger.reportError(e, stack);

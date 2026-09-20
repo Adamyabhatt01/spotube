@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:riverpod/riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+import 'package:spotube/services/metadata/library_snapshot.dart';
 
 class MetadataPluginAuthenticatedNotifier extends AsyncNotifier<bool> {
   @override
@@ -20,6 +22,13 @@ class MetadataPluginAuthenticatedNotifier extends AsyncNotifier<bool> {
     }
 
     final sub = defaultPlugin.auth.authStateStream.listen((event) {
+      // Account boundary: cached library snapshots belong to whoever was
+      // signed in before, so drop them on explicit login/logout. "recovered"
+      // and "refreshed" keep the same account and must not evict them.
+      if (event is Map &&
+          (event['type'] == 'login' || event['type'] == 'logout')) {
+        unawaited(clearLibrarySnapshots(ref.read(databaseProvider)));
+      }
       state = AsyncData(defaultPlugin.auth.isAuthenticated());
     });
 

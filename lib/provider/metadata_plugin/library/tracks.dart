@@ -1,12 +1,23 @@
+import 'dart:async';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/utils/common.dart';
 import 'package:spotube/provider/metadata_plugin/utils/paginated.dart';
+import 'package:spotube/services/metadata/library_snapshot.dart';
 
 class MetadataPluginSavedTracksNotifier
-    extends AutoDisposePaginatedAsyncNotifier<SpotubeFullTrackObject> {
+    extends AutoDisposePaginatedAsyncNotifier<SpotubeFullTrackObject>
+    with SavedListCacheMixin<SpotubeFullTrackObject> {
   MetadataPluginSavedTracksNotifier() : super();
+
+  @override
+  String? get snapshotKey => librarySnapshotKeySavedTracks;
+
+  @override
+  SpotubeFullTrackObject Function(Map<String, dynamic>)? get snapshotDecoder =>
+      SpotubeFullTrackObject.fromJson;
 
   @override
   fetch(offset, limit) async {
@@ -23,7 +34,7 @@ class MetadataPluginSavedTracksNotifier
     ref.cacheFor();
 
     await ref.watch(metadataPluginAuthenticatedProvider.future);
-    return await fetchWithRateLimitRetry(() => fetch(0, 20));
+    return await buildSavedList();
   }
 
   Future<void> addFavorite(List<SpotubeTrackObject> tracks) async {
@@ -47,6 +58,7 @@ class MetadataPluginSavedTracksNotifier
       state = AsyncData(oldState!);
       rethrow;
     }
+    unawaited(persistSnapshot());
   }
 
   Future<void> removeFavorite(List<SpotubeTrackObject> tracks) async {
@@ -73,6 +85,7 @@ class MetadataPluginSavedTracksNotifier
       state = AsyncData(oldState!);
       rethrow;
     }
+    unawaited(persistSnapshot());
   }
 }
 
