@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:drift/drift.dart';
 import 'package:drift/extensions/json1.dart';
@@ -54,8 +53,6 @@ class PlaybackHistorySummaryNotifier
     final itemIdCountingCol = database.historyTable.itemId.count();
     final durationSumJsonColumn =
         database.historyTable.data.jsonExtract<int>(r"$.durationMs").sum();
-    final artistCountingCol =
-        database.historyTable.data.jsonExtract<String>(r"$.artists");
 
     final totalTracksListenedQuery = (database.selectOnly(database.historyTable)
           ..addColumns([uniqItemIdCountingCol])
@@ -72,18 +69,18 @@ class PlaybackHistorySummaryNotifier
       (row) => Duration(milliseconds: row.read(durationSumJsonColumn) ?? 0),
     );
 
-    final totalArtistsListenedQuery =
-        (database.selectOnly(database.historyTable)
-              ..addColumns([artistCountingCol])
-              ..where(
-                database.historyTable.type.equals(HistoryEntryType.track.name),
-              ))
-            .map(
-      (row) {
-        final data = jsonDecode(row.read(artistCountingCol)!) as List;
-        return data.map((e) => e['id'] as String).cast<String>().toList();
-      },
-    );
+    // Distinct artist count in SQL: the previous per-row decode re-parsed
+    // the artists JSON of EVERY history row on every watch event — the
+    // dominant cost on the stats page for large histories.
+    final totalArtistsListenedQuery = database.customSelect(
+      '''
+      SELECT COUNT(DISTINCT json_extract(artist_element.value, '\$.id')) AS artist_count
+      FROM history_table,
+           json_each(json_extract(history_table.data, '\$.artists')) AS artist_element
+      WHERE history_table.type = 'track'
+      ''',
+      readsFrom: {database.historyTable},
+    ).map((row) => row.read<int>('artist_count'));
 
     final totalAlbumsListenedQuery = (database.selectOnly(database.historyTable)
           ..addColumns([uniqItemIdCountingCol])
@@ -100,8 +97,12 @@ class PlaybackHistorySummaryNotifier
               ))
             .map((row) => row.read(uniqItemIdCountingCol));
 
-    final oldestDate = DateTime.now().copyWith(day: 1, hour: 0, minute: 0);
-    final newestDate = DateTime.now().copyWith(day: 30, hour: 23, minute: 59);
+    // [startOfMonth, startOfMonthNext) — the previous
+    // copyWith(day: 30, hour: 23) window dropped everything on day 31
+    // and mis-bounded shorter months.
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month);
+    final startOfNextMonth = DateTime(now.year, now.month + 1);
     final totalTracksListenedThisMonthQuery =
         (database.selectOnly(database.historyTable)
               ..addColumns([itemIdCountingCol])
@@ -110,7 +111,9 @@ class PlaybackHistorySummaryNotifier
                       HistoryEntryType.track.name,
                     ) &
                     database.historyTable.createdAt
-                        .isBetweenValues(oldestDate, newestDate),
+                        .isBiggerOrEqualValue(startOfMonth) &
+                    database.historyTable.createdAt
+                        .isSmallerThanValue(startOfNextMonth),
               ))
             .map((row) => row.read(itemIdCountingCol));
 
@@ -127,10 +130,10 @@ class PlaybackHistorySummaryNotifier
           duration: event,
         ));
       }),
-      totalArtistsListenedQuery.watch().listen((event) {
+      totalArtistsListenedQuery.watchSingle().listen((event) {
         if (state.asData == null) return;
         state = AsyncData(state.asData!.value.copyWith(
-          artists: event.expand((e) => e).toSet().length,
+          artists: event,
         ));
       }),
       totalAlbumsListenedQuery.watchSingle().listen((event) {
@@ -166,9 +169,8 @@ class PlaybackHistorySummaryNotifier
       final totalDurationListened =
           await totalDurationListenedQuery.getSingle();
 
-      final totalArtistsListened = await totalArtistsListenedQuery
-          .get()
-          .then((value) => value.expand((e) => e).toSet().length);
+      final totalArtistsListened =
+          await totalArtistsListenedQuery.getSingle().catchError((_) => 0);
 
       final totalAlbumsListened =
           await totalAlbumsListenedQuery.getSingle() ?? 0;

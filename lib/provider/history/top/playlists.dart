@@ -12,8 +12,9 @@ typedef PlaybackHistoryPlaylist = ({
   SpotubeSimplePlaylistObject playlist
 });
 
-class HistoryTopPlaylistsNotifier extends FamilyPaginatedAsyncNotifier<
-    PlaybackHistoryPlaylist, HistoryDuration> {
+class HistoryTopPlaylistsNotifier
+    extends AutoDisposeFamilyPaginatedAsyncNotifier<PlaybackHistoryPlaylist,
+        HistoryDuration> {
   HistoryTopPlaylistsNotifier() : super();
 
   SimpleSelectStatement<$HistoryTableTable, HistoryTableData>
@@ -78,7 +79,7 @@ class HistoryTopPlaylistsNotifier extends FamilyPaginatedAsyncNotifier<
   }
 }
 
-final historyTopPlaylistsProvider = AsyncNotifierProviderFamily<
+final historyTopPlaylistsProvider = AutoDisposeAsyncNotifierProviderFamily<
     HistoryTopPlaylistsNotifier,
     SpotubePaginationResponseObject<PlaybackHistoryPlaylist>,
     HistoryDuration>(

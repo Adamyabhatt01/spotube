@@ -7,10 +7,11 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/history/top.dart';
 import 'package:spotube/provider/metadata_plugin/utils/family_paginated.dart';
+import 'package:spotube/utils/perf_counters.dart';
 
 typedef PlaybackHistoryAlbum = ({int count, SpotubeSimpleAlbumObject album});
 
-class HistoryTopAlbumsNotifier extends FamilyPaginatedAsyncNotifier<
+class HistoryTopAlbumsNotifier extends AutoDisposeFamilyPaginatedAsyncNotifier<
     PlaybackHistoryAlbum, HistoryDuration> {
   HistoryTopAlbumsNotifier() : super();
 
@@ -58,8 +59,10 @@ class HistoryTopAlbumsNotifier extends FamilyPaginatedAsyncNotifier<
       readsFrom: {database.historyTable},
     ).map((row) {
       final data = row.read<String>('data');
-      final album = SpotubeSimpleAlbumObject.fromJson(jsonDecode(data));
-      return album;
+      return PerfCounters.measured('history.albumParseTime', () {
+        PerfCounters.note('history.albumParse');
+        return SpotubeSimpleAlbumObject.fromJson(jsonDecode(data));
+      });
     });
   }
 
@@ -80,8 +83,14 @@ class HistoryTopAlbumsNotifier extends FamilyPaginatedAsyncNotifier<
 
   @override
   build(arg) async {
+    // Buffer (rather than drop) events that arrive during the initial fetch,
+    // same as HistoryTopTracksNotifier.build.
+    List<SpotubeSimpleAlbumObject>? bufferedEvent;
     final subscription = createAlbumsQuery().watch().listen((event) {
-      if (state.asData == null) return;
+      if (state.asData == null) {
+        bufferedEvent = event;
+        return;
+      }
       state = AsyncData(state.asData!.value.copyWith(
         items: getAlbumsWithCount(event),
         hasMore: false,
@@ -92,7 +101,14 @@ class HistoryTopAlbumsNotifier extends FamilyPaginatedAsyncNotifier<
       subscription.cancel();
     });
 
-    return await fetch(0, 20);
+    final initial = await fetch(0, 20);
+    if (bufferedEvent case final buffered?) {
+      return initial.copyWith(
+        items: getAlbumsWithCount(buffered),
+        hasMore: false,
+      );
+    }
+    return initial;
   }
 
   List<PlaybackHistoryAlbum> getAlbumsWithCount(
@@ -108,7 +124,7 @@ class HistoryTopAlbumsNotifier extends FamilyPaginatedAsyncNotifier<
   }
 }
 
-final historyTopAlbumsProvider = AsyncNotifierProviderFamily<
+final historyTopAlbumsProvider = AutoDisposeAsyncNotifierProviderFamily<
     HistoryTopAlbumsNotifier,
     SpotubePaginationResponseObject<PlaybackHistoryAlbum>,
     HistoryDuration>(
