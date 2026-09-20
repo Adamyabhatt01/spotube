@@ -11,7 +11,6 @@ import 'package:spotube/provider/server/server.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/utils/platform.dart';
-import 'package:spotube/utils/position_tick_gate.dart';
 
 @pragma("vm:entry-point")
 Future<void> glanceBackgroundCallback(Uri? data) async {
@@ -152,22 +151,14 @@ final glanceProvider = Provider((ref) {
     },
   );
 
-  // Whole-second gate: the position stream fires ~5/sec but the home
-  // widget only renders second granularity. Track flips always pass
-  // (see PositionTickGate), so the first update of a new track is never
-  // swallowed by a coinciding second value. The active-track listener
-  // above stays the primary track-change path.
-  final positionGate = PositionTickGate();
   final subscriptions = [
     audioPlayer.playingStream.listen((playing) async {
       await _saveWidgetData("isPlaying", playing);
       await _updateWidget();
     }),
-    audioPlayer.positionStream.listen((position) async {
-      final trackId = ref.read(audioPlayerProvider).activeTrack?.id;
-      if (!positionGate.shouldEmit(trackId: trackId, position: position)) {
-        return;
-      }
+    // The shared tick stream is already whole-second gated; the widget only
+    // renders seconds, so no gate of its own.
+    audioPlayer.positionTickStream.listen((position) async {
       await _saveWidgetData("position", position.inSeconds);
       await _updateWidget();
     }),

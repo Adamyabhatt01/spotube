@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:drift/drift.dart';
 
@@ -147,19 +148,46 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
     await query.replace(PreferencesTableCompanion.insert(id: const Value(0)));
   }
 
+  static Future<Directory>? _musicCacheRootDir;
+
+  /// The OS cache directory tracks are cached under.
+  ///
+  /// Resolved once per process: it derives from OS paths, which do not change
+  /// while the app runs, while every caller used to pay a platform-channel
+  /// round trip for it — the playback proxy asks twice per track. A failed
+  /// resolution is not cached, so a transient path_provider error stays
+  /// retryable.
+  static Future<Directory> _musicCacheRoot() {
+    final cached = _musicCacheRootDir;
+    if (cached != null) return cached;
+
+    final future = kIsAndroid
+        ? paths.getExternalCacheDirectories().then((dirs) => dirs!.first)
+        : paths.getApplicationCacheDirectory();
+    _musicCacheRootDir = future;
+    future.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) => _musicCacheRootDir = null,
+    );
+    return future;
+  }
+
   static Future<String> getMusicCacheDir() async {
+    final dir = await _musicCacheRoot();
     if (kIsAndroid) {
-      final dir =
-          await paths.getExternalCacheDirectories().then((dirs) => dirs!.first);
+      // Android can drop an app's external cache directory while it runs, so
+      // the recreate stays per call — only the channel round trip is memoized.
       if (!await dir.exists()) {
         await dir.create(recursive: true);
       }
       return join(dir.path, 'Cached Tracks');
     }
 
-    final dir = await paths.getApplicationCacheDirectory();
     return join(dir.path, 'cached_tracks');
   }
+
+  @visibleForTesting
+  static void resetMusicCacheDirForTest() => _musicCacheRootDir = null;
 
   Future<void> openCacheFolder() async {
     try {
@@ -185,12 +213,6 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
 
   void setAlbumColorSync(bool sync) {
     setData(PreferencesTableCompanion(albumColorSync: Value(sync)));
-
-    // if (!sync) {
-    //   ref.read(paletteProvider.notifier).state = null;
-    // } else {
-    //   ref.read(audioPlayerStreamListenersProvider).updatePalette();
-    // }
   }
 
   void setCheckUpdate(bool check) {
@@ -203,7 +225,6 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
   }
 
   void setLocalLibraryLocation(List<String> localLibraryDirs) {
-    //if (localLibraryDir.isEmpty) return;
     setData(
       PreferencesTableCompanion(
         localLibraryLocation: Value(localLibraryDirs),
@@ -237,6 +258,16 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
 
   void setYoutubeClientEngine(YoutubeClientEngine engine) {
     setData(PreferencesTableCompanion(youtubeClientEngine: Value(engine)));
+  }
+
+  void setSourcePriority(List<String> priority) {
+    setData(PreferencesTableCompanion(sourcePriority: Value(priority)));
+  }
+
+  void setAutoDownloadQuality(bool auto) {
+    setData(
+      PreferencesTableCompanion(autoDownloadQuality: Value(auto)),
+    );
   }
 
   void setSystemTitleBar(bool isSystemTitleBar) {

@@ -26,7 +26,15 @@ final _loggingToLoggerLevel = {
 
 class AppLogger {
   static late final Logger log;
-  static late final File logFile;
+
+  static Future<File>? _logFile;
+
+  /// Resolved on first use rather than cached eagerly: the previous
+  /// `late final logFile` was assigned by a fire-and-forget future, so a
+  /// startup error reported before it completed hit a
+  /// LateInitializationError inside [reportError] and the report was
+  /// dropped — the file never got the line that explained the crash.
+  static Future<File> get logFile => _logFile ??= getLogsPath();
 
   static initialize(bool verbose) {
     log = Logger(
@@ -80,8 +88,6 @@ class AppLogger {
 
         _initInternalPackageLoggers();
 
-        getLogsPath().then((value) => logFile = value);
-
         return body();
       },
       (error, stackTrace) {
@@ -119,12 +125,25 @@ class AppLogger {
     log.e(message, error: error, stackTrace: stackTrace);
 
     if (kReleaseMode) {
-      await logFile.writeAsString(
-        "[${DateTime.now()}]---------------------\n"
-        "$error\n$stackTrace\n"
-        "----------------------------------------\n",
-        mode: FileMode.writeOnlyAppend,
-      );
+      try {
+        final file = await logFile;
+        await file.writeAsString(
+          "[${DateTime.now()}]---------------------\n"
+          "$error\n$stackTrace\n"
+          "----------------------------------------\n",
+          mode: FileMode.writeOnlyAppend,
+        );
+      } catch (writeError, writeStackTrace) {
+        // The log sink must never be the thing that breaks error reporting.
+        // Drop the cached path so the next report retries resolution (the
+        // first one can run before plugins are registered).
+        _logFile = null;
+        log.w(
+          "Could not write to the log file",
+          error: writeError,
+          stackTrace: writeStackTrace,
+        );
+      }
     }
   }
 

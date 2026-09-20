@@ -59,6 +59,9 @@ void useGlobalSubscriptions(WidgetRef ref) {
               await audioPlayer.pause();
               pausedByStream = true;
             } else {
+              // Raw stream on purpose: this watches the remaining buffer, so
+              // pausing up to a second late (the shared tick's cadence) would
+              // let mpv hit the underrun.
               audioPlayerSubscription =
                   audioPlayer.positionStream.listen((position) async {
                 if (ConnectionCheckerService.instance.isConnectedSync) return;
@@ -97,14 +100,14 @@ void useGlobalSubscriptions(WidgetRef ref) {
               fillColor: theme.colorScheme.destructive,
               filled: true,
               child: Basic(
-                leading: Icon(
+                leading: const Icon(
                   SpotubeIcons.noWifi,
-                  color: theme.colorScheme.destructiveForeground,
+                  color: Colors.white,
                 ),
                 trailing: Text(
                   context.l10n.you_are_offline,
-                  style: TextStyle(
-                    color: theme.colorScheme.destructiveForeground,
+                  style: const TextStyle(
+                    color: Colors.white,
                   ),
                 ),
               ),
@@ -141,6 +144,10 @@ void useGlobalSubscriptions(WidgetRef ref) {
       for (final subscription in subscriptions) {
         subscription.cancel();
       }
+      // The connectivity listener can leave a position subscription alive;
+      // it is only cancelled by the next connectivity event, so unmounting
+      // while disconnected would keep it running and pausing the player.
+      audioPlayerSubscription?.cancel();
     };
   }, []);
 }

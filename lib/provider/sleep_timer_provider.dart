@@ -11,8 +11,11 @@ class SleepTimerNotifier extends StateNotifier<Duration?> {
   void setSleepTimer(Duration duration) {
     state = duration;
 
+    // Cancel the previous timer first: re-setting the timer used to leave the
+    // old one armed, so the app exited at the earlier deadline however much
+    // time the user had just asked for.
+    _timer?.cancel();
     _timer = Timer(duration, () {
-      //! This can be a reason  for app termination in iOS AppStore
       exit(0);
     });
   }
@@ -20,6 +23,7 @@ class SleepTimerNotifier extends StateNotifier<Duration?> {
   void cancelSleepTimer() {
     state = null;
     _timer?.cancel();
+    _timer = null;
   }
 }
 

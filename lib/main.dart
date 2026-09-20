@@ -43,6 +43,7 @@ import 'package:spotube/provider/metadata_plugin/updater/update_checker.dart';
 import 'package:spotube/provider/server/bonsoir.dart';
 import 'package:spotube/provider/server/server.dart';
 import 'package:spotube/provider/tray_manager/tray_manager.dart';
+import 'package:spotube/provider/lyrics/synced.dart';
 import 'package:spotube/l10n/l10n.dart';
 import 'package:spotube/provider/connect/clients.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
@@ -51,9 +52,11 @@ import 'package:spotube/services/cli/cli.dart';
 import 'package:spotube/services/kv_store/encrypted_kv_store.dart';
 import 'package:spotube/services/kv_store/kv_store.dart';
 import 'package:spotube/services/logger/logger.dart';
+import 'package:spotube/services/connectivity_adapter.dart';
 import 'package:spotube/services/wm_tools/wm_tools.dart';
 import 'package:spotube/utils/migrations/sandbox.dart';
 import 'package:spotube/utils/platform.dart';
+import 'package:spotube/utils/perf_counters.dart';
 import 'package:spotube/utils/theme_converter.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
@@ -160,6 +163,22 @@ Future<void> main(List<String> rawArgs) async {
   }
   final arguments = await startCLI(rawArgs);
   AppLogger.initialize(arguments["verbose"]);
+
+  // Opt-in perf counter dump for a debug/profile run: set
+  // SPOTUBE_PERF_COUNTERS to an ISO duration (e.g. 00:00:10) and the counters
+  // are logged on that interval. Absent variable or release build => no timer,
+  // and every counter call site is a no-op anyway (kPerfCountersEnabled).
+  if (!kIsWeb &&
+      !kReleaseMode &&
+      Platform.environment.containsKey('SPOTUBE_PERF_COUNTERS')) {
+    final interval = Duration(
+      seconds: int.tryParse(Platform.environment['SPOTUBE_PERF_COUNTERS']!) ?? 10,
+    );
+    PerfCounters.startDumpTimer(interval: interval, log: AppLogger.log.t);
+  }
+
+  // Register lyrics providers at startup (idempotent)
+  registerLyricsProviders();
 
   AppLogger.runZoned(() async {
     final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -352,6 +371,7 @@ class Spotube extends HookConsumerWidget {
         /// For enabling hot reload for audio player
         if (!kDebugMode) return;
         audioPlayer.dispose();
+        ConnectionCheckerService.instance.dispose();
       };
     }, []);
     // Branded in-app splash: hidden the moment a themed frame is

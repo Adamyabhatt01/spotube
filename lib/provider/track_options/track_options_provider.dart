@@ -76,8 +76,6 @@ class TrackOptionsActions {
     BuildContext context,
     String? playlistId,
   ) async {
-    /// showDialog doesn't work for some reason. So we have to
-    /// manually push a Dialog Route in the Navigator to get it working
     await showDialog(
       context: context,
       builder: (context) {
@@ -116,7 +114,6 @@ class TrackOptionsActions {
       await playback.stop();
       await playback.load([track], autoPlay: true);
 
-      // we don't have to add those tracks as useEndlessPlayback will do it for us
       return;
     } else {
       await playback.addTrack(track);
@@ -276,11 +273,7 @@ final trackOptionsStateProvider =
   ref.watch(downloadManagerProvider);
   ref.watch(blacklistProvider);
 
-  // Phase 2 perf (W.4): subscribe to the consumed audio-player slices only.
-  // Flag (playing/loop/shuffle/collections) changes keep both references
-  // identical, so menu instances no longer rebuild on flag flaps. Queue
-  // mutations and active-track changes still rebuild as before.
-  // See test/track_options_select_test.dart.
+  // Subscribe to consumed player slices only (see test/track_options_select_test.dart).
   final activeTrack =
       ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
   final queueTracks = ref.watch(audioPlayerProvider.select((s) => s.tracks));

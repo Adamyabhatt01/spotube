@@ -9,6 +9,10 @@ import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/utils/platform.dart';
 
+/// A position step larger than one whole-second tick plus slack, i.e. a
+/// discontinuity (seek) rather than normal playback advancement.
+const presenceSeekThreshold = Duration(milliseconds: 1500);
+
 class DiscordNotifier extends AsyncNotifier<void> {
   @override
   FutureOr<void> build() async {
@@ -40,12 +44,19 @@ class DiscordNotifier extends AsyncNotifier<void> {
           AppLogger.reportError(e, stack);
         }
       }),
-      audioPlayer.positionStream.listen((position) async {
+      // Runs on the shared ~1 Hz tick stream rather than the raw ~5 Hz one.
+      // The point is discontinuity detection, not periodic refresh: presence
+      // is re-published when the position moved by more than a tick plus
+      // slack (a seek), which is the only thing the previous ±500 ms test on
+      // consecutive raw events ever matched, since a raw step is ~200 ms.
+      // Track changes and play/pause are covered by the two listeners above.
+      audioPlayer.positionTickStream.listen((position) async {
         try {
           final playback = ref.read(audioPlayerProvider);
           if (playback.activeTrack != null) {
             final diff = position.inMilliseconds - lastPosition.inMilliseconds;
-            if (diff > 500 || diff < -500) {
+            if (diff > presenceSeekThreshold.inMilliseconds ||
+                diff < -presenceSeekThreshold.inMilliseconds) {
               await updatePresence(ref.read(audioPlayerProvider).activeTrack!);
             }
           }

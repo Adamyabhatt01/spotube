@@ -2,14 +2,6 @@ import 'dart:math';
 import 'package:uuid/uuid.dart';
 
 abstract class PrimitiveUtils {
-  static bool containsTextInBracket(String matcher, String text) {
-    final allMatches = RegExp(r"(?<=\().+?(?=\))").allMatches(matcher);
-    if (allMatches.isEmpty) return false;
-    return allMatches
-        .map((e) => e.group(0))
-        .every((match) => match?.contains(text) ?? false);
-  }
-
   static final Random _random = Random();
   static T getRandomElement<T>(List<T> list) {
     return list[_random.nextInt(list.length)];
@@ -29,25 +21,5 @@ abstract class PrimitiveUtils {
     } else {
       return num.toStringAsFixed(0);
     }
-  }
-
-  static Future<T> raceMultiple<T>(
-    Future<T> Function() inner, {
-    Duration timeout = const Duration(milliseconds: 2500),
-    int retryCount = 4,
-  }) async {
-    return Future.any(
-      List.generate(retryCount, (i) {
-        if (i == 0) return inner();
-        return Future.delayed(
-          Duration(milliseconds: timeout.inMilliseconds * i),
-          inner,
-        );
-      }),
-    );
-  }
-
-  static String toSafeFileName(String str) {
-    return str.replaceAll(RegExp(r'[/\?%*:|"<>]'), ' ');
   }
 }

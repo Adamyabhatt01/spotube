@@ -6,22 +6,27 @@ import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:spotube/services/logger/logger.dart';
 
-class ConnectionCheckerService with WidgetsBindingObserver {
+class ConnectionCheckerService {
   final _connectionStreamController = StreamController<bool>.broadcast();
   final Dio dio;
+  Timer? _periodicTimer;
+
+  /// The two subscriptions the constructor opens. Nothing cancels them
+  /// today, which is invisible for a process-lifetime singleton but keeps
+  /// [dispose] from actually being a shutdown.
+  StreamSubscription<bool>? _ownStateSubscription;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   static final _instance = ConnectionCheckerService._();
 
   static ConnectionCheckerService get instance => _instance;
 
   ConnectionCheckerService._() : dio = Dio() {
-    Timer? timer;
-
-    onConnectivityChanged.listen((connected) {
+    _ownStateSubscription =
+        onConnectivityChanged.listen((connected) {
       try {
-        if (!connected && timer == null) {
-          // check every 30 seconds if we are connected when we are not connected
-          timer = Timer.periodic(const Duration(seconds: 30), (timer) async {
+        if (!connected && _periodicTimer == null) {
+          _periodicTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
             if (WidgetsBinding.instance.lifecycleState ==
                 AppLifecycleState.paused) {
               return;
@@ -29,24 +34,26 @@ class ConnectionCheckerService with WidgetsBindingObserver {
             await isConnected;
           });
         } else {
-          timer?.cancel();
-          timer = null;
+          _periodicTimer?.cancel();
+          _periodicTimer = null;
         }
       } catch (e, stack) {
         AppLogger.reportError(e, stack);
       }
     });
 
-    Connectivity().onConnectivityChanged.listen((event) async {
+    _connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen((event) async {
       await isConnected;
     });
   }
 
-  @override
-  didChangeAppLifecycleState(AppLifecycleState state) async {
-    if (state == AppLifecycleState.resumed) {
-      await isConnected;
-    }
+  void dispose() {
+    _periodicTimer?.cancel();
+    _periodicTimer = null;
+    _ownStateSubscription?.cancel();
+    _connectivitySubscription?.cancel();
+    _connectionStreamController.close();
   }
 
   final vpnNames = [
@@ -109,14 +116,14 @@ class ConnectionCheckerService with WidgetsBindingObserver {
   Future<bool> _isConnected() async {
     return await doesConnectTo('google.com') ||
         await doesConnectTo('www.baidu.com') || // for China
-        await isVpnActive(); // when VPN is active that means we are connected
+        await isVpnActive();
   }
 
   bool isConnectedSync = true;
 
   Future<bool> get isConnected async {
     final connected = await _isConnected();
-    if (connected != isConnectedSync /*previous value*/) {
+    if (connected != isConnectedSync) {
       _connectionStreamController.add(connected);
     }
     isConnectedSync = connected;

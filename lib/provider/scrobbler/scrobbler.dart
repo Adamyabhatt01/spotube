@@ -61,6 +61,7 @@ class ScrobblerNotifier extends AsyncNotifier<Scrobblenaut?> {
     ref.onDispose(() {
       subscription.cancel();
       scrobblerSubscription.cancel();
+      _scrobbleController.close();
     });
 
     if (loginInfo == null) {
