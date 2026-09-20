@@ -765,6 +765,25 @@ class $PreferencesTableTable extends PreferencesTable
           GeneratedColumn.constraintIsAlways('CHECK ("cache_music" IN (0, 1))'),
       defaultValue: const Constant(true));
   @override
+  late final GeneratedColumnWithTypeConverter<List<String>, String>
+      sourcePriority = GeneratedColumn<String>(
+              'source_priority', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant(""))
+          .withConverter<List<String>>(
+              $PreferencesTableTable.$convertersourcePriority);
+  static const VerificationMeta _autoDownloadQualityMeta =
+      const VerificationMeta('autoDownloadQuality');
+  @override
+  late final GeneratedColumn<bool> autoDownloadQuality = GeneratedColumn<bool>(
+      'auto_download_quality', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("auto_download_quality" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
   List<GeneratedColumn> get $columns => [
         id,
         albumColorSync,
@@ -789,7 +808,9 @@ class $PreferencesTableTable extends PreferencesTable
         endlessPlayback,
         enableConnect,
         connectPort,
-        cacheMusic
+        cacheMusic,
+        sourcePriority,
+        autoDownloadQuality
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -889,6 +910,12 @@ class $PreferencesTableTable extends PreferencesTable
           cacheMusic.isAcceptableOrUnknown(
               data['cache_music']!, _cacheMusicMeta));
     }
+    if (data.containsKey('auto_download_quality')) {
+      context.handle(
+          _autoDownloadQualityMeta,
+          autoDownloadQuality.isAcceptableOrUnknown(
+              data['auto_download_quality']!, _autoDownloadQualityMeta));
+    }
     return context;
   }
 
@@ -956,6 +983,11 @@ class $PreferencesTableTable extends PreferencesTable
           .read(DriftSqlType.int, data['${effectivePrefix}connect_port'])!,
       cacheMusic: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}cache_music'])!,
+      sourcePriority: $PreferencesTableTable.$convertersourcePriority.fromSql(
+          attachedDatabase.typeMapping.read(
+              DriftSqlType.string, data['${effectivePrefix}source_priority'])!),
+      autoDownloadQuality: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}auto_download_quality'])!,
     );
   }
 
@@ -984,6 +1016,8 @@ class $PreferencesTableTable extends PreferencesTable
   static JsonTypeConverter2<YoutubeClientEngine, String, String>
       $converteryoutubeClientEngine =
       const EnumNameConverter<YoutubeClientEngine>(YoutubeClientEngine.values);
+  static TypeConverter<List<String>, String> $convertersourcePriority =
+      const StringListConverter();
 }
 
 class PreferencesTableData extends DataClass
@@ -1012,6 +1046,8 @@ class PreferencesTableData extends DataClass
   final bool enableConnect;
   final int connectPort;
   final bool cacheMusic;
+  final List<String> sourcePriority;
+  final bool autoDownloadQuality;
   const PreferencesTableData(
       {required this.id,
       required this.albumColorSync,
@@ -1036,7 +1072,9 @@ class PreferencesTableData extends DataClass
       required this.endlessPlayback,
       required this.enableConnect,
       required this.connectPort,
-      required this.cacheMusic});
+      required this.cacheMusic,
+      required this.sourcePriority,
+      required this.autoDownloadQuality});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1096,6 +1134,12 @@ class PreferencesTableData extends DataClass
     map['enable_connect'] = Variable<bool>(enableConnect);
     map['connect_port'] = Variable<int>(connectPort);
     map['cache_music'] = Variable<bool>(cacheMusic);
+    {
+      map['source_priority'] = Variable<String>($PreferencesTableTable
+          .$convertersourcePriority
+          .toSql(sourcePriority));
+    }
+    map['auto_download_quality'] = Variable<bool>(autoDownloadQuality);
     return map;
   }
 
@@ -1127,6 +1171,8 @@ class PreferencesTableData extends DataClass
       enableConnect: Value(enableConnect),
       connectPort: Value(connectPort),
       cacheMusic: Value(cacheMusic),
+      sourcePriority: Value(sourcePriority),
+      autoDownloadQuality: Value(autoDownloadQuality),
     );
   }
 
@@ -1166,6 +1212,9 @@ class PreferencesTableData extends DataClass
       enableConnect: serializer.fromJson<bool>(json['enableConnect']),
       connectPort: serializer.fromJson<int>(json['connectPort']),
       cacheMusic: serializer.fromJson<bool>(json['cacheMusic']),
+      sourcePriority: serializer.fromJson<List<String>>(json['sourcePriority']),
+      autoDownloadQuality:
+          serializer.fromJson<bool>(json['autoDownloadQuality']),
     );
   }
   @override
@@ -1204,6 +1253,8 @@ class PreferencesTableData extends DataClass
       'enableConnect': serializer.toJson<bool>(enableConnect),
       'connectPort': serializer.toJson<int>(connectPort),
       'cacheMusic': serializer.toJson<bool>(cacheMusic),
+      'sourcePriority': serializer.toJson<List<String>>(sourcePriority),
+      'autoDownloadQuality': serializer.toJson<bool>(autoDownloadQuality),
     };
   }
 
@@ -1231,7 +1282,9 @@ class PreferencesTableData extends DataClass
           bool? endlessPlayback,
           bool? enableConnect,
           int? connectPort,
-          bool? cacheMusic}) =>
+          bool? cacheMusic,
+          List<String>? sourcePriority,
+          bool? autoDownloadQuality}) =>
       PreferencesTableData(
         id: id ?? this.id,
         albumColorSync: albumColorSync ?? this.albumColorSync,
@@ -1258,6 +1311,8 @@ class PreferencesTableData extends DataClass
         enableConnect: enableConnect ?? this.enableConnect,
         connectPort: connectPort ?? this.connectPort,
         cacheMusic: cacheMusic ?? this.cacheMusic,
+        sourcePriority: sourcePriority ?? this.sourcePriority,
+        autoDownloadQuality: autoDownloadQuality ?? this.autoDownloadQuality,
       );
   PreferencesTableData copyWithCompanion(PreferencesTableCompanion data) {
     return PreferencesTableData(
@@ -1320,6 +1375,12 @@ class PreferencesTableData extends DataClass
           data.connectPort.present ? data.connectPort.value : this.connectPort,
       cacheMusic:
           data.cacheMusic.present ? data.cacheMusic.value : this.cacheMusic,
+      sourcePriority: data.sourcePriority.present
+          ? data.sourcePriority.value
+          : this.sourcePriority,
+      autoDownloadQuality: data.autoDownloadQuality.present
+          ? data.autoDownloadQuality.value
+          : this.autoDownloadQuality,
     );
   }
 
@@ -1349,7 +1410,9 @@ class PreferencesTableData extends DataClass
           ..write('endlessPlayback: $endlessPlayback, ')
           ..write('enableConnect: $enableConnect, ')
           ..write('connectPort: $connectPort, ')
-          ..write('cacheMusic: $cacheMusic')
+          ..write('cacheMusic: $cacheMusic, ')
+          ..write('sourcePriority: $sourcePriority, ')
+          ..write('autoDownloadQuality: $autoDownloadQuality')
           ..write(')'))
         .toString();
   }
@@ -1379,7 +1442,9 @@ class PreferencesTableData extends DataClass
         endlessPlayback,
         enableConnect,
         connectPort,
-        cacheMusic
+        cacheMusic,
+        sourcePriority,
+        autoDownloadQuality
       ]);
   @override
   bool operator ==(Object other) =>
@@ -1408,7 +1473,9 @@ class PreferencesTableData extends DataClass
           other.endlessPlayback == this.endlessPlayback &&
           other.enableConnect == this.enableConnect &&
           other.connectPort == this.connectPort &&
-          other.cacheMusic == this.cacheMusic);
+          other.cacheMusic == this.cacheMusic &&
+          other.sourcePriority == this.sourcePriority &&
+          other.autoDownloadQuality == this.autoDownloadQuality);
 }
 
 class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
@@ -1436,6 +1503,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
   final Value<bool> enableConnect;
   final Value<int> connectPort;
   final Value<bool> cacheMusic;
+  final Value<List<String>> sourcePriority;
+  final Value<bool> autoDownloadQuality;
   const PreferencesTableCompanion({
     this.id = const Value.absent(),
     this.albumColorSync = const Value.absent(),
@@ -1461,6 +1530,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.enableConnect = const Value.absent(),
     this.connectPort = const Value.absent(),
     this.cacheMusic = const Value.absent(),
+    this.sourcePriority = const Value.absent(),
+    this.autoDownloadQuality = const Value.absent(),
   });
   PreferencesTableCompanion.insert({
     this.id = const Value.absent(),
@@ -1487,6 +1558,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.enableConnect = const Value.absent(),
     this.connectPort = const Value.absent(),
     this.cacheMusic = const Value.absent(),
+    this.sourcePriority = const Value.absent(),
+    this.autoDownloadQuality = const Value.absent(),
   });
   static Insertable<PreferencesTableData> custom({
     Expression<int>? id,
@@ -1513,6 +1586,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     Expression<bool>? enableConnect,
     Expression<int>? connectPort,
     Expression<bool>? cacheMusic,
+    Expression<String>? sourcePriority,
+    Expression<bool>? autoDownloadQuality,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1542,6 +1617,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       if (enableConnect != null) 'enable_connect': enableConnect,
       if (connectPort != null) 'connect_port': connectPort,
       if (cacheMusic != null) 'cache_music': cacheMusic,
+      if (sourcePriority != null) 'source_priority': sourcePriority,
+      if (autoDownloadQuality != null)
+        'auto_download_quality': autoDownloadQuality,
     });
   }
 
@@ -1569,7 +1647,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       Value<bool>? endlessPlayback,
       Value<bool>? enableConnect,
       Value<int>? connectPort,
-      Value<bool>? cacheMusic}) {
+      Value<bool>? cacheMusic,
+      Value<List<String>>? sourcePriority,
+      Value<bool>? autoDownloadQuality}) {
     return PreferencesTableCompanion(
       id: id ?? this.id,
       albumColorSync: albumColorSync ?? this.albumColorSync,
@@ -1595,6 +1675,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       enableConnect: enableConnect ?? this.enableConnect,
       connectPort: connectPort ?? this.connectPort,
       cacheMusic: cacheMusic ?? this.cacheMusic,
+      sourcePriority: sourcePriority ?? this.sourcePriority,
+      autoDownloadQuality: autoDownloadQuality ?? this.autoDownloadQuality,
     );
   }
 
@@ -1686,6 +1768,14 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     if (cacheMusic.present) {
       map['cache_music'] = Variable<bool>(cacheMusic.value);
     }
+    if (sourcePriority.present) {
+      map['source_priority'] = Variable<String>($PreferencesTableTable
+          .$convertersourcePriority
+          .toSql(sourcePriority.value));
+    }
+    if (autoDownloadQuality.present) {
+      map['auto_download_quality'] = Variable<bool>(autoDownloadQuality.value);
+    }
     return map;
   }
 
@@ -1715,7 +1805,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           ..write('endlessPlayback: $endlessPlayback, ')
           ..write('enableConnect: $enableConnect, ')
           ..write('connectPort: $connectPort, ')
-          ..write('cacheMusic: $cacheMusic')
+          ..write('cacheMusic: $cacheMusic, ')
+          ..write('sourcePriority: $sourcePriority, ')
+          ..write('autoDownloadQuality: $autoDownloadQuality')
           ..write(')'))
         .toString();
   }
@@ -4907,6 +4999,8 @@ typedef $$PreferencesTableTableCreateCompanionBuilder
   Value<bool> enableConnect,
   Value<int> connectPort,
   Value<bool> cacheMusic,
+  Value<List<String>> sourcePriority,
+  Value<bool> autoDownloadQuality,
 });
 typedef $$PreferencesTableTableUpdateCompanionBuilder
     = PreferencesTableCompanion Function({
@@ -4934,6 +5028,8 @@ typedef $$PreferencesTableTableUpdateCompanionBuilder
   Value<bool> enableConnect,
   Value<int> connectPort,
   Value<bool> cacheMusic,
+  Value<List<String>> sourcePriority,
+  Value<bool> autoDownloadQuality,
 });
 
 class $$PreferencesTableTableFilterComposer
@@ -5043,6 +5139,15 @@ class $$PreferencesTableTableFilterComposer
 
   ColumnFilters<bool> get cacheMusic => $composableBuilder(
       column: $table.cacheMusic, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<List<String>, List<String>, String>
+      get sourcePriority => $composableBuilder(
+          column: $table.sourcePriority,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnFilters<bool> get autoDownloadQuality => $composableBuilder(
+      column: $table.autoDownloadQuality,
+      builder: (column) => ColumnFilters(column));
 }
 
 class $$PreferencesTableTableOrderingComposer
@@ -5140,6 +5245,14 @@ class $$PreferencesTableTableOrderingComposer
 
   ColumnOrderings<bool> get cacheMusic => $composableBuilder(
       column: $table.cacheMusic, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourcePriority => $composableBuilder(
+      column: $table.sourcePriority,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get autoDownloadQuality => $composableBuilder(
+      column: $table.autoDownloadQuality,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$PreferencesTableTableAnnotationComposer
@@ -5228,6 +5341,13 @@ class $$PreferencesTableTableAnnotationComposer
 
   GeneratedColumn<bool> get cacheMusic => $composableBuilder(
       column: $table.cacheMusic, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<List<String>, String> get sourcePriority =>
+      $composableBuilder(
+          column: $table.sourcePriority, builder: (column) => column);
+
+  GeneratedColumn<bool> get autoDownloadQuality => $composableBuilder(
+      column: $table.autoDownloadQuality, builder: (column) => column);
 }
 
 class $$PreferencesTableTableTableManager extends RootTableManager<
@@ -5283,6 +5403,8 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<bool> enableConnect = const Value.absent(),
             Value<int> connectPort = const Value.absent(),
             Value<bool> cacheMusic = const Value.absent(),
+            Value<List<String>> sourcePriority = const Value.absent(),
+            Value<bool> autoDownloadQuality = const Value.absent(),
           }) =>
               PreferencesTableCompanion(
             id: id,
@@ -5309,6 +5431,8 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             enableConnect: enableConnect,
             connectPort: connectPort,
             cacheMusic: cacheMusic,
+            sourcePriority: sourcePriority,
+            autoDownloadQuality: autoDownloadQuality,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -5336,6 +5460,8 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<bool> enableConnect = const Value.absent(),
             Value<int> connectPort = const Value.absent(),
             Value<bool> cacheMusic = const Value.absent(),
+            Value<List<String>> sourcePriority = const Value.absent(),
+            Value<bool> autoDownloadQuality = const Value.absent(),
           }) =>
               PreferencesTableCompanion.insert(
             id: id,
@@ -5362,6 +5488,8 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             enableConnect: enableConnect,
             connectPort: connectPort,
             cacheMusic: cacheMusic,
+            sourcePriority: sourcePriority,
+            autoDownloadQuality: autoDownloadQuality,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

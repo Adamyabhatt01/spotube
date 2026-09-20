@@ -24,6 +24,7 @@ import 'package:spotube/services/youtube_engine/newpipe_engine.dart';
 import 'package:spotube/services/youtube_engine/youtube_explode_engine.dart';
 import 'package:spotube/services/youtube_engine/yt_dlp_engine.dart';
 import 'package:spotube/utils/platform.dart';
+import 'package:spotube/utils/perf_counters.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
@@ -74,7 +75,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   /// Raw DDL for the quarantine table, kept as a constant so the v11->v12
   /// step can create it idempotently (`IF NOT EXISTS`) without depending
@@ -124,13 +125,42 @@ class AppDatabase extends _$AppDatabase {
     String table,
     String? Function(String ddl) patchDdl,
   ) async {
-    final ddl = await _tableDdl(table);
+    var ddl = await _tableDdl(table);
     if (ddl == null) {
       throw StateError('$table does not exist during migration');
     }
+    final legacy = '${table}_legacy';
+    // Retroactivity: if a previous migration left a $legacy table with
+    // real data (crash between rename and copy), recover it now before
+    // the normal path runs.  This prevents permanent data loss for users
+    // who already hit the bug this PR fixed.
+    if (await _tableExists(legacy)) {
+      // The new table is the patched-empty version; drop it so the
+      // rename-back can succeed, then restore the legacy table as the
+      // real table.
+      try {
+        await customStatement('DROP TABLE IF EXISTS "$table"');
+      } catch (_) {
+        // If dropping fails, the state is uncertain; still try the
+        // rename-back below.
+      }
+      try {
+        await customStatement('ALTER TABLE "$legacy" RENAME TO "$table"');
+      } catch (_) {
+        // Recovery rename also failed — fall through to the normal
+        // below, which will rethrow the original error at the caller.
+      }
+      // Recovery replaced the table (legacy carries the ORIGINAL, pre-patch
+      // schema), so the DDL read above is stale. Re-read it so patchDdl sees
+      // the restored schema; otherwise patchDdl(ddl) would see the already-
+      // patched DDL, return null, and skip the migration entirely.
+      ddl = await _tableDdl(table);
+      if (ddl == null) {
+        throw StateError('$table does not exist after legacy recovery');
+      }
+    }
     final patched = patchDdl(ddl);
     if (patched == null) return; // Already correct (idempotent re-run).
-    final legacy = '${table}_legacy';
     await customStatement('ALTER TABLE $table RENAME TO $legacy');
     try {
       // [patched] still names the original table (DDL was read before the
@@ -141,14 +171,37 @@ class AppDatabase extends _$AppDatabase {
       );
       await customStatement('DROP TABLE "$legacy"');
     } catch (e) {
+      // The patched CREATE TABLE may have taken the original table name,
+      // so the recovery rename below can fail with "already exists".
+      // Drop the new table first so the rename-back can succeed,
+      // guaranteeing original rows are always recoverable.
+      try {
+        await customStatement('DROP TABLE IF EXISTS "$table"');
+      } catch (_) {
+        // If dropping the new table fails, the state is uncertain; still
+        // attempt the rename-back below.
+      }
       try {
         await customStatement('ALTER TABLE "$legacy" RENAME TO "$table"');
       } catch (_) {
-        // Original error below is what matters.
+        // Even the recovery rename failed — report and rethrow the
+        // original error so the migration does not silently succeed with
+        // lost rows.
+        AppLogger.reportError(e, StackTrace.current);
       }
       rethrow;
     }
   }
+
+  /// Testing seam for [_rebuildTablePreservingData]: production callers reach
+  /// it only through migration steps; tests drive the failure/recovery paths
+  /// directly (mirrors [AppDatabase.forTesting] and
+  /// [moveQuarantineMarkersToTable]).
+  @visibleForTesting
+  Future<void> rebuildTablePreservingDataForTesting(
+    String table,
+    String? Function(String ddl) patchDdl,
+  ) => _rebuildTablePreservingData(table, patchDdl);
 
   /// Ensures `plugin_api_version` carries the given `DEFAULT` (v8 wants
   /// `'1.0.0'`, v9+ wants `'2.0.0'`). The column predates both defaults,
@@ -530,29 +583,43 @@ class AppDatabase extends _$AppDatabase {
             rethrow;
           }
         },
+        from12To13: (m, schema) async {
+          try {
+            if (!(await _tableColumns('preferences_table'))
+                .contains('source_priority')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                preferencesTable.sourcePriority,
+              );
+            }
+            if (!(await _tableColumns('preferences_table'))
+                .contains('auto_download_quality')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                preferencesTable.autoDownloadQuality,
+              );
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
       ),
     );
   }
 }
 
 LazyDatabase _openConnection() {
-  // the LazyDatabase util lets us find the right location for the file async.
   return LazyDatabase(() async {
-    // put the database file, called db.sqlite here, into the documents folder
-    // for your app.
     final dbFolder = await getApplicationSupportDirectory();
     final file = File(join(dbFolder.path, 'db.sqlite'));
 
-    // Also work around limitations on old Android versions
     if (Platform.isAndroid) {
       await applyWorkaroundToOpenSqlite3OnOldAndroidVersions();
     }
 
-    // Make sqlite3 pick a more suitable location for temporary files - the
-    // one from the system may be inaccessible due to sandboxing.
+    // sqlite3 defaults to /tmp, which is inaccessible on Android.
     final cacheBase = (await getTemporaryDirectory()).path;
-    // We can't access /tmp on Android, which sqlite3 would try by default.
-    // Explicitly tell it about the correct temporary directory.
     sqlite3.tempDirectory = cacheBase;
 
     return NativeDatabase.createInBackground(file);

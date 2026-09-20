@@ -3365,6 +3365,297 @@ i1.GeneratedColumn<String> _column_110(String aliasedName) =>
     i1.GeneratedColumn<String>('plugin_api_version', aliasedName, false,
         type: i1.DriftSqlType.string,
         defaultValue: const CustomExpression('\'2.0.0\''));
+
+final class Schema13 extends i0.VersionedSchema {
+  Schema13({required super.database}) : super(version: 13);
+  @override
+  late final List<i1.DatabaseSchemaEntity> entities = [
+    authenticationTable,
+    blacklistTable,
+    preferencesTable,
+    scrobblerTable,
+    skipSegmentTable,
+    sourceMatchTable,
+    sourceMatchQuarantineTable,
+    audioPlayerStateTable,
+    historyTable,
+    lyricsTable,
+    pluginsTable,
+    uniqueBlacklist,
+  ];
+  late final Shape0 authenticationTable = Shape0(
+      source: i0.VersionedTable(
+        entityName: 'authentication_table',
+        withoutRowId: false,
+        isStrict: false,
+        tableConstraints: [],
+        columns: [
+          _column_0,
+          _column_1,
+          _column_2,
+          _column_3,
+        ],
+        attachedDatabase: database,
+      ),
+      alias: null);
+  late final Shape1 blacklistTable = Shape1(
+      source: i0.VersionedTable(
+        entityName: 'blacklist_table',
+        withoutRowId: false,
+        isStrict: false,
+        tableConstraints: [],
+        columns: [
+          _column_0,
+          _column_4,
+          _column_5,
+          _column_6,
+        ],
+        attachedDatabase: database,
+      ),
+      alias: null);
+  late final Shape21 preferencesTable = Shape21(
+      source: i0.VersionedTable(
+        entityName: 'preferences_table',
+        withoutRowId: false,
+        isStrict: false,
+        tableConstraints: [],
+        columns: [
+          _column_0,
+          _column_77,
+          _column_78,
+          _column_79,
+          _column_80,
+          _column_81,
+          _column_82,
+          _column_83,
+          _column_84,
+          _column_85,
+          _column_86,
+          _column_87,
+          _column_88,
+          _column_89,
+          _column_90,
+          _column_91,
+          _column_92,
+          _column_73,
+          _column_93,
+          _column_94,
+          _column_95,
+          _column_96,
+          _column_97,
+          _column_98,
+          _column_111,
+          _column_112,
+        ],
+        attachedDatabase: database,
+      ),
+      alias: null);
+  late final Shape3 scrobblerTable = Shape3(
+      source: i0.VersionedTable(
+        entityName: 'scrobbler_table',
+        withoutRowId: false,
+        isStrict: false,
+        tableConstraints: [],
+        columns: [
+          _column_0,
+          _column_99,
+          _column_33,
+          _column_34,
+        ],
+        attachedDatabase: database,
+      ),
+      alias: null);
+  late final Shape4 skipSegmentTable = Shape4(
+      source: i0.VersionedTable(
+        entityName: 'skip_segment_table',
+        withoutRowId: false,
+        isStrict: false,
+        tableConstraints: [],
+        columns: [
+          _column_0,
+          _column_35,
+          _column_36,
+          _column_37,
+          _column_99,
+        ],
+        attachedDatabase: database,
+      ),
+      alias: null);
+  late final Shape18 sourceMatchTable = Shape18(
+      source: i0.VersionedTable(
+        entityName: 'source_match_table',
+        withoutRowId: false,
+        isStrict: false,
+        tableConstraints: [],
+        columns: [
+          _column_0,
+          _column_37,
+          _column_100,
+          _column_75,
+          _column_99,
+        ],
+        attachedDatabase: database,
+      ),
+      alias: null);
+  late final Shape20 sourceMatchQuarantineTable = Shape20(
+      source: i0.VersionedTable(
+        entityName: 'source_match_quarantine_table',
+        withoutRowId: false,
+        isStrict: false,
+        tableConstraints: [],
+        columns: [
+          _column_0,
+          _column_37,
+          _column_101,
+          _column_102,
+          _column_103,
+          _column_104,
+        ],
+        attachedDatabase: database,
+      ),
+      alias: null);
+  late final Shape14 audioPlayerStateTable = Shape14(
+      source: i0.VersionedTable(
+        entityName: 'audio_player_state_table',
+        withoutRowId: false,
+        isStrict: false,
+        tableConstraints: [],
+        columns: [
+          _column_0,
+          _column_40,
+          _column_41,
+          _column_42,
+          _column_43,
+          _column_105,
+          _column_106,
+        ],
+        attachedDatabase: database,
+      ),
+      alias: null);
+  late final Shape9 historyTable = Shape9(
+      source: i0.VersionedTable(
+        entityName: 'history_table',
+        withoutRowId: false,
+        isStrict: false,
+        tableConstraints: [],
+        columns: [
+          _column_0,
+          _column_99,
+          _column_50,
+          _column_51,
+          _column_52,
+        ],
+        attachedDatabase: database,
+      ),
+      alias: null);
+  late final Shape10 lyricsTable = Shape10(
+      source: i0.VersionedTable(
+        entityName: 'lyrics_table',
+        withoutRowId: false,
+        isStrict: false,
+        tableConstraints: [],
+        columns: [
+          _column_0,
+          _column_37,
+          _column_52,
+        ],
+        attachedDatabase: database,
+      ),
+      alias: null);
+  late final Shape19 pluginsTable = Shape19(
+      source: i0.VersionedTable(
+        entityName: 'plugins_table',
+        withoutRowId: false,
+        isStrict: false,
+        tableConstraints: [],
+        columns: [
+          _column_0,
+          _column_59,
+          _column_60,
+          _column_61,
+          _column_62,
+          _column_63,
+          _column_64,
+          _column_65,
+          _column_107,
+          _column_108,
+          _column_109,
+          _column_67,
+          _column_110,
+        ],
+        attachedDatabase: database,
+      ),
+      alias: null);
+  final i1.Index uniqueBlacklist = i1.Index('unique_blacklist',
+      'CREATE UNIQUE INDEX unique_blacklist ON blacklist_table (element_type, element_id)');
+}
+
+class Shape21 extends i0.VersionedTable {
+  Shape21({required super.source, required super.alias}) : super.aliased();
+  i1.GeneratedColumn<int> get id =>
+      columnsByName['id']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<bool> get albumColorSync =>
+      columnsByName['album_color_sync']! as i1.GeneratedColumn<bool>;
+  i1.GeneratedColumn<bool> get amoledDarkTheme =>
+      columnsByName['amoled_dark_theme']! as i1.GeneratedColumn<bool>;
+  i1.GeneratedColumn<bool> get checkUpdate =>
+      columnsByName['check_update']! as i1.GeneratedColumn<bool>;
+  i1.GeneratedColumn<bool> get normalizeAudio =>
+      columnsByName['normalize_audio']! as i1.GeneratedColumn<bool>;
+  i1.GeneratedColumn<bool> get showSystemTrayIcon =>
+      columnsByName['show_system_tray_icon']! as i1.GeneratedColumn<bool>;
+  i1.GeneratedColumn<bool> get systemTitleBar =>
+      columnsByName['system_title_bar']! as i1.GeneratedColumn<bool>;
+  i1.GeneratedColumn<bool> get skipNonMusic =>
+      columnsByName['skip_non_music']! as i1.GeneratedColumn<bool>;
+  i1.GeneratedColumn<String> get closeBehavior =>
+      columnsByName['close_behavior']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get accentColorScheme =>
+      columnsByName['accent_color_scheme']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get layoutMode =>
+      columnsByName['layout_mode']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get locale =>
+      columnsByName['locale']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get market =>
+      columnsByName['market']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get searchMode =>
+      columnsByName['search_mode']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get downloadLocation =>
+      columnsByName['download_location']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get localLibraryLocation =>
+      columnsByName['local_library_location']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get themeMode =>
+      columnsByName['theme_mode']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get audioSourceId =>
+      columnsByName['audio_source_id']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get youtubeClientEngine =>
+      columnsByName['youtube_client_engine']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<bool> get discordPresence =>
+      columnsByName['discord_presence']! as i1.GeneratedColumn<bool>;
+  i1.GeneratedColumn<bool> get endlessPlayback =>
+      columnsByName['endless_playback']! as i1.GeneratedColumn<bool>;
+  i1.GeneratedColumn<bool> get enableConnect =>
+      columnsByName['enable_connect']! as i1.GeneratedColumn<bool>;
+  i1.GeneratedColumn<int> get connectPort =>
+      columnsByName['connect_port']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<bool> get cacheMusic =>
+      columnsByName['cache_music']! as i1.GeneratedColumn<bool>;
+  i1.GeneratedColumn<String> get sourcePriority =>
+      columnsByName['source_priority']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<bool> get autoDownloadQuality =>
+      columnsByName['auto_download_quality']! as i1.GeneratedColumn<bool>;
+}
+
+i1.GeneratedColumn<String> _column_111(String aliasedName) =>
+    i1.GeneratedColumn<String>('source_priority', aliasedName, false,
+        type: i1.DriftSqlType.string,
+        defaultValue: const CustomExpression('\'\''));
+i1.GeneratedColumn<bool> _column_112(String aliasedName) =>
+    i1.GeneratedColumn<bool>('auto_download_quality', aliasedName, false,
+        type: i1.DriftSqlType.bool,
+        defaultConstraints: i1.GeneratedColumn.constraintIsAlways(
+            'CHECK ("auto_download_quality" IN (0, 1))'),
+        defaultValue: const CustomExpression('0'));
 i0.MigrationStepWithVersion migrationSteps({
   required Future<void> Function(i1.Migrator m, Schema2 schema) from1To2,
   required Future<void> Function(i1.Migrator m, Schema3 schema) from2To3,
@@ -3377,6 +3668,7 @@ i0.MigrationStepWithVersion migrationSteps({
   required Future<void> Function(i1.Migrator m, Schema10 schema) from9To10,
   required Future<void> Function(i1.Migrator m, Schema11 schema) from10To11,
   required Future<void> Function(i1.Migrator m, Schema12 schema) from11To12,
+  required Future<void> Function(i1.Migrator m, Schema13 schema) from12To13,
 }) {
   return (currentVersion, database) async {
     switch (currentVersion) {
@@ -3435,6 +3727,11 @@ i0.MigrationStepWithVersion migrationSteps({
         final migrator = i1.Migrator(database, schema);
         await from11To12(migrator, schema);
         return 12;
+      case 12:
+        final schema = Schema13(database: database);
+        final migrator = i1.Migrator(database, schema);
+        await from12To13(migrator, schema);
+        return 13;
       default:
         throw ArgumentError.value('Unknown migration from $currentVersion');
     }
@@ -3453,6 +3750,7 @@ i1.OnUpgrade stepByStep({
   required Future<void> Function(i1.Migrator m, Schema10 schema) from9To10,
   required Future<void> Function(i1.Migrator m, Schema11 schema) from10To11,
   required Future<void> Function(i1.Migrator m, Schema12 schema) from11To12,
+  required Future<void> Function(i1.Migrator m, Schema13 schema) from12To13,
 }) =>
     i0.VersionedSchema.stepByStepHelper(
         step: migrationSteps(
@@ -3467,4 +3765,5 @@ i1.OnUpgrade stepByStep({
       from9To10: from9To10,
       from10To11: from10To11,
       from11To12: from11To12,
+      from12To13: from12To13,
     ));

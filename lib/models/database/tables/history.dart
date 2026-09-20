@@ -18,14 +18,35 @@ class HistoryTable extends Table {
 extension HistoryItemParseExtension on HistoryTableData {
   SpotubeSimplePlaylistObject? get playlist =>
       type == HistoryEntryType.playlist && !data.containsKey("external_urls")
-          ? SpotubeSimplePlaylistObject.fromJson(data)
+          ? PerfCounters.measured(
+              'history.playlistParseTime',
+              () {
+                PerfCounters.note('history.playlistParse');
+                return SpotubeSimplePlaylistObject.fromJson(data);
+              },
+            )
           : null;
   SpotubeSimpleAlbumObject? get album =>
       type == HistoryEntryType.album && !data.containsKey("external_urls")
-          ? SpotubeSimpleAlbumObject.fromJson(data)
+          ? PerfCounters.measured(
+              'history.albumParseTime',
+              () {
+                PerfCounters.note('history.albumParse');
+                return SpotubeSimpleAlbumObject.fromJson(data);
+              },
+            )
           : null;
-  SpotubeTrackObject? get track =>
-      type == HistoryEntryType.track && !data.containsKey("external_urls")
-          ? SpotubeTrackObject.fromJson(data)
-          : null;
+  SpotubeTrackObject? get track {
+    if (type != HistoryEntryType.track || data.containsKey("external_urls")) {
+      return null;
+    }
+    // Every history watcher that re-materializes its rows parses one JSON
+    // document per row through this getter, so the count is the direct measure
+    // of "did a track change cost us the whole table again".
+    PerfCounters.note('history.rowParse');
+    return PerfCounters.measured(
+      'history.rowParseTime',
+      () => SpotubeTrackObject.fromJson(data),
+    );
+  }
 }

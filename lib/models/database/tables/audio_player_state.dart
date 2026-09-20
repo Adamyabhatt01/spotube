@@ -20,15 +20,23 @@ class SpotubeTrackObjectListConverter
   List<SpotubeTrackObject> fromSql(String fromDb) {
     final raw = (jsonDecode(fromDb) as List).cast<Map>();
 
-    return raw
-        .map((e) => SpotubeTrackObject.fromJson(e.cast<String, dynamic>()))
-        .toList();
+    return PerfCounters.measured('queue.decode', () {
+      PerfCounters.note('queue.decodeRows', raw.length);
+      return raw
+          .map((e) => SpotubeTrackObject.fromJson(e.cast<String, dynamic>()))
+          .toList();
+    });
   }
 
   @override
   String toSql(List<SpotubeTrackObject> value) {
-    return jsonEncode(
-      value.map((e) => e.toJson()).toList(),
-    );
+    return PerfCounters.measured('queue.encode', () {
+      final encoded = jsonEncode(
+        value.map((e) => e.toJson()).toList(),
+      );
+      PerfCounters.note('queue.encodeRows', value.length);
+      PerfCounters.note('queue.encodeBytes', encoded.length);
+      return encoded;
+    });
   }
 }

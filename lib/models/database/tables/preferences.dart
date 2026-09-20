@@ -94,8 +94,11 @@ class PreferencesTable extends Table {
       boolean().withDefault(const Constant(false))();
   IntColumn get connectPort => integer().withDefault(const Constant(-1))();
   BoolColumn get cacheMusic => boolean().withDefault(const Constant(true))();
+  TextColumn get sourcePriority => text().withDefault(const Constant(""))
+      .map(const StringListConverter())();
+  BoolColumn get autoDownloadQuality =>
+      boolean().withDefault(const Constant(false))();
 
-  // Default values as PreferencesTableData
   static PreferencesTableData defaults() {
     return PreferencesTableData(
       id: 0,
@@ -124,6 +127,8 @@ class PreferencesTable extends Table {
       enableConnect: false,
       cacheMusic: true,
       connectPort: -1,
+      sourcePriority: [],
+      autoDownloadQuality: false,
     );
   }
 }
