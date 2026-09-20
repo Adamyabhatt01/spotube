@@ -7,9 +7,11 @@ import 'dart:async';
 /// unbounded `Future.wait` over all candidates). Results are re-associated
 /// by index, so out-of-order completions cannot change selection semantics.
 ///
-/// Error contract mirrors the previous serial loop: a throwing validator
-/// aborts the whole operation (partial results are discarded, the first
-/// error is rethrown) — failures are never silently converted into skips.
+/// Error contract: a candidate whose validation throws or times out is
+/// treated as INVALID (no response observed) rather than aborting the whole
+/// sequence — one dead CDN edge must not turn an otherwise-good manifest into
+/// a refresh failure. Total failure still surfaces naturally: the caller gets
+/// an empty list and falls through to its re-fetch/reject path.
 /// [timeout] bounds each individual validation; previously a hung request
 /// stalled the entire sequence with no ceiling at all (30s default matches
 /// the plugin-download `receiveTimeout` precedent).
@@ -24,8 +26,19 @@ Future<List<T>> filterValidBounded<T>(
   Duration timeout = const Duration(seconds: 30),
   void Function(T candidate, int? statusCode)? onValidated,
 }) async {
-  final statuses = await _mapBounded(
-    [for (final candidate in candidates) () => validateOne(candidate)],
+  final statuses = await _mapBounded<int?>(
+    [
+      // Any per-candidate failure (throw, timeout, connection reset) means
+      // "no valid response observed" for that candidate.
+      for (final candidate in candidates)
+        () async {
+          try {
+            return await validateOne(candidate).timeout(timeout);
+          } catch (_) {
+            return null;
+          }
+        },
+    ],
     maxConcurrency: maxConcurrency,
     timeout: timeout,
   );

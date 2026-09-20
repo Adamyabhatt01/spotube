@@ -2,8 +2,8 @@
 // (lib/services/sourced_track/validation.dart).
 //
 // The validator is exercised with fake status functions so concurrency cap,
-// ordering, filtering, abort semantics, timeout, and latency are all
-// observable without network access.
+// ordering, filtering, per-candidate failure tolerance, timeout, and latency
+// are all observable without network access.
 
 import 'dart:async';
 import 'dart:math';
@@ -77,39 +77,32 @@ void main() {
     expect(result, ['c0', 'c2', 'c4']);
   });
 
-  test('throw aborts without partial results', () {
-    fakeAsync((async) {
-      Object? caught;
-      filterValidBounded(
-        ['ok-1', 'boom', 'ok-2'],
-        (candidate) async {
-          await Future<void>.delayed(const Duration(milliseconds: 10));
-          if (candidate == 'boom') throw StateError('sick mirror');
-          return 200;
-        },
-      ).then<void>((_) {}, onError: (Object e) {
-        caught = e;
-      });
-      async.elapse(const Duration(seconds: 5));
+  // Contract change (remediation 2026-09): per-candidate failures must not
+  // abort the whole validation — one dead candidate (throw or hang) is
+  // simply skipped; total failure still yields an empty result for the
+  // caller's re-fetch/reject path.
+  test('throwing candidate is skipped, others survive', () async {
+    final result = await filterValidBounded(
+      ['ok-1', 'boom', 'ok-2'],
+      (candidate) async {
+        if (candidate == 'boom') throw StateError('sick mirror');
+        return 200;
+      },
+    );
 
-      expect(caught, isStateError);
-    });
+    expect(result, ['ok-1', 'ok-2']);
   });
 
-  test('hung candidate terminates at the timeout ceiling', () {
-    fakeAsync((async) {
-      Object? caught;
-      filterValidBounded(
-        ['hung'],
-        (_) => Completer<int?>().future,
-        timeout: const Duration(milliseconds: 100),
-      ).then<void>((_) {}, onError: (Object e) {
-        caught = e;
-      });
-      async.elapse(const Duration(milliseconds: 100));
+  test('hung candidate is dropped at the timeout ceiling', () async {
+    final result = await filterValidBounded(
+      ['hung', 'fine'],
+      (candidate) => candidate == 'hung'
+          ? Completer<int?>().future
+          : Future.value(200),
+      timeout: const Duration(milliseconds: 100),
+    );
 
-      expect(caught, isA<TimeoutException>());
-    });
+    expect(result, ['fine']);
   });
 
   test('empty and all-invalid inputs preserve existing behavior', () async {

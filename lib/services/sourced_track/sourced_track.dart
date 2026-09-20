@@ -10,6 +10,7 @@ import 'package:spotube/models/playback/track_sources.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/metadata_plugin/audio_source/quality_presets.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/services/dio/dio.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
@@ -78,15 +79,17 @@ class SourcedTrack extends BasicSourcedTrack {
     required super.source,
     required super.siblings,
     required super.sources,
+    super.sourceCandidateKey,
   });
 
-  static Future<SourcedTrack> fetchFromTrack({
+static Future<SourcedTrack> fetchFromTrack({
     required SpotubeFullTrackObject query,
     required Ref ref,
   }) async {
     final audioSource = await ref.read(audioSourcePluginProvider.future);
     final audioSourceConfig = await ref.read(metadataPluginsProvider
         .selectAsync((data) => data.defaultAudioSourcePluginConfig));
+    final youtubeEngine = ref.read(userPreferencesProvider.select((s) => s.youtubeClientEngine));
     if (audioSource == null || audioSourceConfig == null) {
       throw MetadataPluginException.noDefaultAudioSourcePlugin();
     }
@@ -115,7 +118,7 @@ class SourcedTrack extends BasicSourcedTrack {
           // Stale identity (or stale tombstone): drop and re-search below.
           await (database.sourceMatchTable.delete()
                 ..where((s) => s.id.equals(cachedSource!.id)))
-              .go();
+            .go();
           cachedSource = null;
         case SourceMatchCacheDecision.negativeHit:
           // A recent search already found nothing: fail without
@@ -123,6 +126,8 @@ class SourcedTrack extends BasicSourcedTrack {
           throw TrackNotFoundError(query);
       }
     }
+
+    final candidateKey = '${audioSourceConfig.slug}:${youtubeEngine.runtimeType}';
 
     if (cachedSource == null) {
       final siblings = await fetchSiblings(ref: ref, query: query);
@@ -156,6 +161,7 @@ class SourcedTrack extends BasicSourcedTrack {
         source: audioSourceConfig.slug,
         sources: manifest,
         query: query,
+        sourceCandidateKey: candidateKey,
       );
     }
     final item = SpotubeAudioSourceMatchObject.fromJson(
@@ -170,6 +176,7 @@ class SourcedTrack extends BasicSourcedTrack {
       info: item,
       query: query,
       source: audioSourceConfig.slug,
+      sourceCandidateKey: candidateKey,
     );
 
     AppLogger.log.i("${query.name}: ${sourcedTrack.url}");
@@ -279,7 +286,6 @@ class SourcedTrack extends BasicSourcedTrack {
       throw MetadataPluginException.noDefaultAudioSourcePlugin();
     }
 
-    // a sibling source that was fetched from the search results
     final isStepSibling = siblings.none((s) => s.id == sibling.id);
 
     final newSourceInfo = isStepSibling
@@ -293,7 +299,6 @@ class SourcedTrack extends BasicSourcedTrack {
 
     final database = ref.read(databaseProvider);
 
-    // Delete the old Entry
     await (database.sourceMatchTable.delete()
           ..where(
             (table) =>
@@ -372,7 +377,31 @@ class SourcedTrack extends BasicSourcedTrack {
     AppLogger.log.d(stringBuffer.toString());
 
     if (validStreams.isEmpty) {
-      validStreams = await audioSource.audioSource.streams(info);
+      // The cached manifest is entirely unusable (e.g. every URL 403'd by
+      // the CDN). Re-fetch the manifest — the engine retries with alternate
+      // clients internally — and re-validate instead of trusting the raw
+      // result: returning unvalidated URLs here is what previously turned
+      // one dead manifest into an endless playback-refresh loop.
+      final refetched = await audioSource.audioSource.streams(info);
+      final revalidated = await filterValidBounded(
+        refetched,
+        (source) async {
+          final res = await globalDio.head(
+            source.url,
+            options: Options(
+              validateStatus: (status) => status != null && status < 500,
+              receiveTimeout: const Duration(seconds: 30),
+            ),
+          );
+          return res.statusCode;
+        },
+      );
+      if (revalidated.isEmpty) {
+        throw NoValidStreamError(
+          "All stream URLs rejected for ${query.name} after manifest re-fetch",
+        );
+      }
+      validStreams = revalidated;
     }
 
     final sourcedTrack = SourcedTrack(
@@ -391,11 +420,15 @@ class SourcedTrack extends BasicSourcedTrack {
 
   String? get url {
     final preferences = ref.read(audioSourcePresetsProvider);
+    final preset = preferences.presets
+            .elementAtOrNull(preferences.selectedStreamingContainerIndex) ??
+        preferences.presets.firstOrNull;
 
-    return getUrlOfQuality(
-      preferences.presets[preferences.selectedStreamingContainerIndex],
-      preferences.selectedStreamingQualityIndex,
-    );
+    // No presets at all (plugin not loaded yet): serve the first validated
+    // stream instead of throwing RangeError on index 0.
+    if (preset == null) return sources.firstOrNull?.url;
+
+    return getUrlOfQuality(preset, preferences.selectedStreamingQualityIndex);
   }
 
   /// Returns the URL of the track based on the codec and quality preferences.
@@ -410,30 +443,40 @@ class SourcedTrack extends BasicSourcedTrack {
   ) {
     if (sources.isEmpty) return null;
 
-    final quality = preset.qualities[qualityIndex];
+    final quality = preset.qualities.elementAtOrNull(qualityIndex);
 
-    final exactMatch = sources.firstWhereOrNull(
-      (source) {
-        if (source.container != preset.name) return false;
+    if (quality != null) {
+      final exactMatch = sources.firstWhereOrNull(
+        (source) {
+          if (source.container != preset.name) return false;
 
-        if (quality case SpotubeAudioLosslessContainerQuality()) {
-          return source.sampleRate == quality.sampleRate &&
-              source.bitDepth == quality.bitDepth;
-        } else {
-          return source.bitrate ==
-              (quality as SpotubeAudioLossyContainerQuality).bitrate;
-        }
-      },
-    );
+          if (quality case SpotubeAudioLosslessContainerQuality()) {
+            return source.sampleRate == quality.sampleRate &&
+                source.bitDepth == quality.bitDepth;
+          } else {
+            return source.bitrate ==
+                (quality as SpotubeAudioLossyContainerQuality).bitrate;
+          }
+        },
+      );
 
-    if (exactMatch != null) {
-      return exactMatch;
+      if (exactMatch != null) {
+        return exactMatch;
+      }
     }
 
-    // Find the preset with closest quality to the supplied quality
-    return sources.where((source) {
-      return source.container == preset.name;
-    }).reduce((prev, curr) {
+    final inContainer =
+        sources.where((source) => source.container == preset.name).toList();
+
+    // The requested container/quality can disappear after validation
+    // (re-fetched manifest, engine returned a different set). Serve the
+    // best available stream instead of throwing StateError from reduce()
+    // on an empty iterable.
+    if (quality == null || inContainer.isEmpty) {
+      return getStreamOfAnyContainer(preset);
+    }
+
+    return inContainer.reduce((prev, curr) {
       if (quality is SpotubeAudioLosslessContainerQuality) {
         final prevDiff = ((prev.sampleRate ?? 0) - quality.sampleRate).abs() +
             ((prev.bitDepth ?? 0) - quality.bitDepth).abs();
@@ -455,6 +498,28 @@ class SourcedTrack extends BasicSourcedTrack {
     int qualityIndex,
   ) {
     return getStreamOfQuality(preset, qualityIndex)?.url;
+  }
+
+  /// Picks the best available stream without requiring the user's selected
+  /// container. Tries the exact-selected container first; if that container
+  /// has no source at all, falls back to the highest-bitrate stream across
+  /// every available container. Used for downloads when the selected
+  /// quality/container must not be a hard requirement.
+  SpotubeAudioSourceStreamObject? getStreamOfAnyContainer(
+    SpotubeAudioSourceContainerPreset preferredPreset,
+  ) {
+    if (sources.isEmpty) return null;
+
+    final inPreferred = sources
+        .where((s) => s.container == preferredPreset.name)
+        .toList();
+    if (inPreferred.isNotEmpty) {
+      return inPreferred.reduce((a, b) =>
+          (b.bitrate ?? 0) > (a.bitrate ?? 0) ? b : a);
+    }
+
+    return sources.reduce((a, b) =>
+        (b.bitrate ?? 0) > (a.bitrate ?? 0) ? b : a);
   }
 
   SpotubeAudioSourceContainerPreset? get qualityPreset {

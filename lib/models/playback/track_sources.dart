@@ -10,12 +10,14 @@ class BasicSourcedTrack {
   final String source;
   final List<SpotubeAudioSourceStreamObject> sources;
   final List<SpotubeAudioSourceMatchObject> siblings;
+  final String? sourceCandidateKey;
   BasicSourcedTrack({
     required this.query,
     required this.source,
     required this.info,
     required this.sources,
     this.siblings = const [],
+    this.sourceCandidateKey,
   });
 
   factory BasicSourcedTrack.fromJson(Map<String, dynamic> json) =>

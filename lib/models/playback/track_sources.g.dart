@@ -21,6 +21,7 @@ BasicSourcedTrack _$BasicSourcedTrackFromJson(Map json) => BasicSourcedTrack(
                   Map<String, dynamic>.from(e as Map)))
               .toList() ??
           const [],
+      sourceCandidateKey: json['sourceCandidateKey'] as String?,
     );
 
 Map<String, dynamic> _$BasicSourcedTrackToJson(BasicSourcedTrack instance) =>
@@ -30,4 +31,5 @@ Map<String, dynamic> _$BasicSourcedTrackToJson(BasicSourcedTrack instance) =>
       'source': instance.source,
       'sources': instance.sources.map((e) => e.toJson()).toList(),
       'siblings': instance.siblings.map((e) => e.toJson()).toList(),
+      'sourceCandidateKey': instance.sourceCandidateKey,
     };
