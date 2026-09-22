@@ -30,6 +30,7 @@ class PlayerOverlayCollapsedSection extends HookConsumerWidget {
     final theme = Theme.of(context);
 
     final shouldShow = useState(true);
+    final blurFrozen = ref.watch(chromeBlurFrozen);
 
     ref.listen(navigationPanelHeight, (_, height) {
       shouldShow.value = height.ceil() == 50;
@@ -41,7 +42,7 @@ class PlayerOverlayCollapsedSection extends HookConsumerWidget {
           ? Padding(
               padding: const EdgeInsets.all(5),
               child: SurfaceCard(
-                surfaceBlur: theme.surfaceBlur,
+                surfaceBlur: blurFrozen ? 0 : theme.surfaceBlur,
                 surfaceOpacity: theme.surfaceOpacity,
                 padding: EdgeInsets.zero,
                 borderRadius: theme.borderRadiusLg,

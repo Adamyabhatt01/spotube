@@ -6,6 +6,7 @@ import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:spotube/collections/fake.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/album/album_card.dart';
 import 'package:spotube/modules/artist/artist_card.dart';
 import 'package:spotube/modules/playlist/playlist_card.dart';
@@ -41,8 +42,11 @@ class HorizontalPlaybuttonCardView<T> extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final scrollController = useScrollController();
-    final isArtist = items.every((s) => s is SpotubeFullArtistObject);
-    final scale = context.theme.scaling;
+    // The artist card is taller than the album/playlist one (a round avatar
+    // plus name plus badge), and a row sizes for its tallest member: an
+    // otherwise-album row where a single artist slipped in used to clip it.
+    final hasArtistCard = items.any((s) => s is SpotubeFullArtistObject);
+    final cardsExtent = playbuttonCardExtent(context, hasArtist: hasArtistCard);
 
     return Padding(
       padding: const EdgeInsets.all(8.0),
@@ -70,7 +74,7 @@ class HorizontalPlaybuttonCardView<T> extends HookWidget {
             error!
           else
             SizedBox(
-              height: isArtist ? 250 : 225,
+              height: cardsExtent,
               child: NotificationListener(
                 // disable multiple scrollbar to use this
                 onNotification: (notification) => true,
@@ -94,13 +98,14 @@ class HorizontalPlaybuttonCardView<T> extends HookWidget {
                           onFetchData: onFetchMore,
                           loadingBuilder: (context) => Skeletonizer(
                                 enabled: true,
-                                child: isArtist
+                                child: hasArtistCard
                                     ? ArtistCard(FakeData.artist)
                                     : AlbumCard(FakeData.albumSimple),
                               ),
                           isLoading: isLoadingNextPage,
                           hasReachedMax: !hasNextPage,
-                          separatorBuilder: (context, index) => Gap(12 * scale),
+                          separatorBuilder: (context, index) =>
+                              Gap(context.layoutGutter),
                           itemBuilder: (context, index) {
                             final item = items[index];
 

@@ -17,7 +17,7 @@ import 'package:spotube/components/fallbacks/no_default_metadata_plugin.dart';
 import 'package:spotube/modules/artist/artist_card.dart';
 import 'package:spotube/components/inter_scrollbar/inter_scrollbar.dart';
 import 'package:spotube/components/waypoint.dart';
-import 'package:spotube/extensions/constrains.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/library/artists.dart';
@@ -110,14 +110,15 @@ class UserArtistsPage extends HookConsumerWidget {
                   ),
                   const SliverGap(10),
                   if (filteredArtists.isNotEmpty || artistQuery.isLoading)
-                    SliverLayoutBuilder(builder: (context, constrains) {
+                    SliverLayoutBuilder(builder: (context, _) {
                       return SliverGrid.builder(
                         itemCount: filteredArtists.length + 1,
                         gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 200,
-                          mainAxisExtent: constrains.smAndDown ? 225 : 250,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
+                          maxCrossAxisExtent: context.artistCardWidth,
+                          mainAxisExtent:
+                              playbuttonCardExtent(context, hasArtist: true),
+                          crossAxisSpacing: context.layoutGutter,
+                          mainAxisSpacing: context.layoutGutter,
                         ),
                         itemBuilder: (context, index) {
                           if (filteredArtists.isNotEmpty &&

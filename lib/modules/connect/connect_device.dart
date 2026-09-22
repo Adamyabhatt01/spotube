@@ -3,14 +3,22 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/collections/spotube_icons.dart';
-import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/provider/connect/clients.dart';
 
 class ConnectDeviceButton extends HookConsumerWidget {
   final bool _sidebar;
-  const ConnectDeviceButton({super.key}) : _sidebar = false;
-  const ConnectDeviceButton.sidebar({super.key}) : _sidebar = true;
+
+  /// Forces the icon-only form, for a sidebar whose navigation is a rail. The
+  /// rail collapses at a different width than `md`, so the sidebar that owns it
+  /// says which form its footer wants.
+  final bool compact;
+
+  const ConnectDeviceButton({super.key})
+      : _sidebar = false,
+        compact = false;
+  const ConnectDeviceButton.sidebar({super.key, this.compact = false})
+      : _sidebar = true;
 
   @override
   Widget build(BuildContext context, ref) {
@@ -20,9 +28,7 @@ class ConnectDeviceButton extends HookConsumerWidget {
         connectClients.asData?.value.services.isNotEmpty == true;
 
     if (_sidebar) {
-      final mediaQuery = MediaQuery.sizeOf(context);
-
-      if (mediaQuery.mdAndDown) {
+      if (compact) {
         return IconButton.ghost(
           icon: const Icon(SpotubeIcons.speaker),
           onPressed: () {

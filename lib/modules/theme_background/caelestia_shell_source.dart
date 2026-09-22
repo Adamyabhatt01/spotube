@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -5,6 +6,7 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/theme_background/theme_shell_source.dart';
 import 'package:spotube/modules/theme_caelestia/caelestia_state.dart';
 import 'package:spotube/modules/theme_caelestia/caelestia_theme_source.dart';
+import 'package:spotube/utils/debounced_writer.dart';
 
 /// [ThemeShellSource] backed by Caelestia's on-disk state.
 ///
@@ -69,17 +71,19 @@ class CaelestiaShellSource implements ThemeShellSource {
       if (stateDir == null) return const Stream.empty();
       final dir = Directory(stateDir);
       if (!dir.existsSync()) return const Stream.empty();
-      return dir
-          .watch()
-          .where((event) {
-            if (p.basename(event.path) == 'scheme.json') return true;
-            final destination =
-                event is FileSystemMoveEvent ? event.destination : null;
-            return destination != null &&
-                p.basename(destination) == 'scheme.json';
-          })
-          .map((_) {})
-          .handleError((_) {});
+      return _coalesceEvents(
+        dir
+            .watch()
+            .where((event) {
+              if (p.basename(event.path) == 'scheme.json') return true;
+              final destination =
+                  event is FileSystemMoveEvent ? event.destination : null;
+              return destination != null &&
+                  p.basename(destination) == 'scheme.json';
+            })
+            .map((_) {})
+            .handleError((_) {}),
+      );
     } catch (_) {
       return const Stream.empty();
     }
@@ -94,9 +98,31 @@ class CaelestiaShellSource implements ThemeShellSource {
       if (stateDir == null) return const Stream.empty();
       final dir = Directory(p.join(stateDir, 'wallpaper'));
       if (!dir.existsSync()) return const Stream.empty();
-      return dir.watch().map((_) {}).handleError((_) {});
+      return _coalesceEvents(dir.watch().map((_) {}).handleError((_) {}));
     } catch (_) {
       return const Stream.empty();
     }
   }
+}
+
+const _themeEventWindow = Duration(milliseconds: 300);
+
+/// Caelestia saves through temp-file + rename, so a single palette write
+/// surfaces as several filesystem events and each raw one re-resolved the theme
+/// and rebuilt the tree. A burst inside [_themeEventWindow] becomes one.
+Stream<void> _coalesceEvents(Stream<void> source) {
+  final controller = StreamController<void>();
+  final debouncer = DebouncedWriter(_themeEventWindow, (error, stackTrace) {});
+  StreamSubscription<void>? subscription;
+
+  controller.onListen = () {
+    subscription = source.listen((_) {
+      debouncer(() async => controller.add(null));
+    });
+  };
+  controller.onCancel = () async {
+    debouncer.cancel();
+    await subscription?.cancel();
+  };
+  return controller.stream;
 }

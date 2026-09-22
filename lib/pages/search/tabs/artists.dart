@@ -7,7 +7,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:spotube/collections/fake.dart';
 import 'package:spotube/components/fallbacks/error_box.dart';
 import 'package:spotube/components/waypoint.dart';
-import 'package:spotube/extensions/constrains.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/modules/artist/artist_card.dart';
 import 'package:spotube/modules/search/loading.dart';
@@ -41,7 +41,7 @@ class SearchPageArtistsTab extends HookConsumerWidget {
       snapshot: searchArtistsSnapshot,
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
-        child: LayoutBuilder(builder: (context, constrains) {
+        child: LayoutBuilder(builder: (context, _) {
           if (searchArtistsSnapshot.hasValue && searchArtists.isEmpty) {
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -67,10 +67,10 @@ class SearchPageArtistsTab extends HookConsumerWidget {
             padding: const EdgeInsets.all(16),
             itemCount: searchArtists.length + 1,
             gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 200,
-              mainAxisExtent: constrains.smAndDown ? 225 : 250,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
+              maxCrossAxisExtent: context.artistCardWidth,
+              mainAxisExtent: playbuttonCardExtent(context, hasArtist: true),
+              crossAxisSpacing: context.layoutGutter,
+              mainAxisSpacing: context.layoutGutter,
             ),
             itemBuilder: (context, index) {
               if (searchArtists.isNotEmpty && index == searchArtists.length) {

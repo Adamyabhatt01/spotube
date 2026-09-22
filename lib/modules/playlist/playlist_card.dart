@@ -38,7 +38,6 @@ class PlaylistCard extends HookConsumerWidget {
     final playlistCollections =
         ref.watch(audioPlayerProvider.select((s) => s.collections));
     final playlistNotifier = ref.watch(audioPlayerProvider.notifier);
-    final isFetchingActiveTrack = ref.watch(queryingTrackInfoProvider);
     final historyNotifier = ref.read(playbackHistoryActionsProvider);
 
     final playing =
@@ -48,6 +47,10 @@ class PlaylistCard extends HookConsumerWidget {
       () => playlistCollections.contains(playlist.id),
       [playlistCollections, playlist.id],
     );
+    // Short-circuits the watch, so only the card that is actually in the queue
+    // subscribes: a track change used to rebuild every visible card.
+    final isFetchingActiveTrack =
+        isPlaylistPlaying && ref.watch(queryingTrackInfoProvider);
 
     final updating = useState(false);
     final me = ref.watch(metadataPluginUserProvider);

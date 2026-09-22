@@ -45,7 +45,7 @@ class ThemeBackgroundLayer extends ConsumerWidget {
     }
 
     return Opacity(
-      opacity: background.opacity.clamp(0.0, 1.0),
+      opacity: background.opacity,
       child: Stack(
         children: [
           Positioned.fill(

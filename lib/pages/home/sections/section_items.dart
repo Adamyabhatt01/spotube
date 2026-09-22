@@ -2,9 +2,9 @@ import 'package:auto_route/auto_route.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
-import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:spotube/components/playbutton_view/playbutton_card.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/components/waypoint.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/album/album_card.dart';
@@ -37,8 +37,6 @@ class HomeBrowseSectionItemsPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, ref) {
-    final scale = context.theme.scaling;
-
     final sectionItems =
         ref.watch(metadataPluginBrowseSectionItemsProvider(sectionId));
     final sectionItemsNotifier =
@@ -46,6 +44,12 @@ class HomeBrowseSectionItemsPage extends HookConsumerWidget {
     final items = sectionItems.asData?.value.items ?? [];
     final controller = useScrollController();
 
+    // A browse section mixes albums, playlists and artists, and the grid gives
+    // every cell the same height — so it reserves the taller artist extent as
+    // soon as one is in view, on any page.
+    final hasArtistCard =
+        items.any((item) => item is SpotubeFullArtistObject) ||
+            section.items.any((item) => item is SpotubeFullArtistObject);
     final isLoading = sectionItems.isLoading || sectionItems.isLoadingNextPage;
     final itemCount = items.length;
     final hasMore = sectionItems.asData?.value.hasMore ?? false;
@@ -68,10 +72,15 @@ class HomeBrowseSectionItemsPage extends HookConsumerWidget {
                 SliverGrid.builder(
                   itemCount: isLoading ? 6 : itemCount + 1,
                   gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 150 * scale,
-                    mainAxisExtent: 225 * scale,
-                    crossAxisSpacing: 12 * scale,
-                    mainAxisSpacing: 12 * scale,
+                    maxCrossAxisExtent: hasArtistCard
+                        ? context.artistCardWidth
+                        : context.gridCardWidth,
+                    mainAxisExtent: playbuttonCardExtent(
+                      context,
+                      hasArtist: hasArtistCard,
+                    ),
+                    crossAxisSpacing: context.layoutGutter,
+                    mainAxisSpacing: context.layoutGutter,
                   ),
                   itemBuilder: (context, index) {
                     if (isLoading) {

@@ -1,6 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/theme_background/caelestia_shell_source.dart';
+import 'package:spotube/services/metadata/theme_sanitizer.dart';
 
 /// Host-side source for external shell integrations.
 ///
@@ -50,7 +51,13 @@ ThemeDefinition mergeShellPalette({
   required ThemeDefinition plugin,
   required ThemeDefinition shell,
 }) {
-  return plugin.copyWith(light: shell.light, dark: shell.dark);
+  // Re-sanitize: the shell payload is a second untrusted input, and
+  // `fromJson` on the shell side never went through the plugin endpoint's
+  // clamps. Cheap, and it keeps geometry provably in range on every path
+  // that can produce a ThemeDefinition.
+  return sanitizeThemeDefinition(
+    plugin.copyWith(light: shell.light, dark: shell.dark),
+  );
 }
 
 /// Resolves the effective theme for a plugin definition.

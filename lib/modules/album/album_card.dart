@@ -42,12 +42,15 @@ class AlbumCard extends HookConsumerWidget {
         useStream(audioPlayer.playingStream).data ?? audioPlayer.isPlaying;
     final playlistNotifier = ref.watch(audioPlayerProvider.notifier);
     final historyNotifier = ref.read(playbackHistoryActionsProvider);
-    final isFetchingActiveTrack = ref.watch(queryingTrackInfoProvider);
 
     final isPlaylistPlaying = useMemoized<bool>(
       () => playlistCollections.contains(album.id),
       [playlistCollections, album.id],
     );
+    // Short-circuits the watch, so only the card that is actually in the queue
+    // subscribes: a track change used to rebuild every visible card.
+    final isFetchingActiveTrack =
+        isPlaylistPlaying && ref.watch(queryingTrackInfoProvider);
 
     final updating = useState(false);
 

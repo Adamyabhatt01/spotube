@@ -14,9 +14,15 @@ import 'package:spotube/provider/download_manager_provider.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
 
-class SidebarFooter extends HookConsumerWidget implements NavigationBarItem {
+class SidebarFooter extends HookConsumerWidget {
+  /// Forces the icon-only form, for a sidebar whose navigation collapsed into a
+  /// rail. The rail is narrower than the `md` breakpoint that this widget would
+  /// otherwise use to decide, so its owner says which form the footer wants.
+  final bool compact;
+
   const SidebarFooter({
     super.key,
+    this.compact = false,
   });
 
   @override
@@ -40,7 +46,7 @@ class SidebarFooter extends HookConsumerWidget implements NavigationBarItem {
 
     final authenticated = ref.watch(metadataPluginAuthenticatedProvider);
 
-    if (mediaQuery.mdAndDown) {
+    if (compact || mediaQuery.mdAndDown) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         spacing: 10,
@@ -56,7 +62,7 @@ class SidebarFooter extends HookConsumerWidget implements NavigationBarItem {
               onPressed: () => context.navigateTo(const UserDownloadsRoute()),
             ),
           ),
-          const ConnectDeviceButton.sidebar(),
+          const ConnectDeviceButton.sidebar(compact: true),
           IconButton(
             variance: ButtonVariance.ghost,
             icon: const Icon(SpotubeIcons.settings),
@@ -68,7 +74,9 @@ class SidebarFooter extends HookConsumerWidget implements NavigationBarItem {
 
     return Container(
       padding: const EdgeInsets.only(left: 12),
-      width: 180,
+      // Unscaled, this is the width that clips "Downloads" and "Connect device"
+      // mid-word once the theme's scaling is past 1.
+      width: 180 * theme.scaling,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         spacing: 10,
@@ -108,7 +116,11 @@ class SidebarFooter extends HookConsumerWidget implements NavigationBarItem {
                       children: [
                         Avatar(
                           initials: Avatar.getInitials(data.name),
-                          provider: UniversalImage.imageProvider(avatarImg),
+                          provider: UniversalImage.imageProvider(
+                            avatarImg,
+                            width: 64,
+                            height: 64,
+                          ),
                         ),
                         const SizedBox(width: 10),
                         Flexible(
@@ -138,7 +150,4 @@ class SidebarFooter extends HookConsumerWidget implements NavigationBarItem {
       ),
     );
   }
-
-  @override
-  bool get selectable => false;
 }

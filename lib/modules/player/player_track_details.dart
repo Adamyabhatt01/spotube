@@ -39,6 +39,8 @@ class PlayerTrackDetails extends HookConsumerWidget {
                 path: (track?.album.images)
                     .asUrlString(placeholder: ImagePlaceholder.albumArt),
                 placeholder: Assets.images.albumPlaceholder.path,
+                width: 80,
+                height: 80,
               ),
             ),
           ),

@@ -161,6 +161,8 @@ class PlayerView extends HookConsumerWidget {
                         path: albumArt,
                         placeholder: Assets.images.albumPlaceholder.path,
                         fit: BoxFit.cover,
+                        width: 300,
+                        height: 300,
                       ),
                     ),
                   ),

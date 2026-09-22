@@ -1,5 +1,6 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/artist/artist_card.dart';
 import 'package:spotube/provider/metadata_plugin/artist/related.dart';
 
@@ -20,19 +21,15 @@ class ArtistPageRelatedArtists extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
           sliver: SliverGrid.builder(
             itemCount: artists.items.length,
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 200,
-              mainAxisExtent: 250,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 0.8,
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: context.artistCardWidth,
+              mainAxisExtent: playbuttonCardExtent(context, hasArtist: true),
+              mainAxisSpacing: context.layoutGutter,
+              crossAxisSpacing: context.layoutGutter,
             ),
             itemBuilder: (context, index) {
               final artist = artists.items.elementAt(index);
-              return SizedBox(
-                width: 180,
-                child: ArtistCard(artist),
-              );
+              return ArtistCard(artist);
             },
           ),
         ),
