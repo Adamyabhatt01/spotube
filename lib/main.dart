@@ -58,6 +58,7 @@ import 'package:spotube/utils/migrations/sandbox.dart';
 import 'package:spotube/utils/platform.dart';
 import 'package:spotube/utils/perf_counters.dart';
 import 'package:spotube/utils/theme_converter.dart';
+import 'package:spotube/services/youtube_engine/yt_dlp_engine.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -136,10 +137,15 @@ Future<void> _initDeferredServices() async {
   });
   await guardedStartupInit('YtDlp.setBinaryLocation', () async {
     if (kIsDesktop) {
-      await YtDlp.instance.setBinaryLocation(
-        KVStoreService.getYoutubeEnginePath(YoutubeClientEngine.ytDlp) ??
-            "yt-dlp${kIsWindows ? '.exe' : ''}",
-      );
+      // A bare "yt-dlp" only resolves through the process PATH, which a
+      // GUI-launched app keeps short of ~/.local/bin — so resolve an
+      // absolute path here and every later call inherits it.
+      final binaryPath = KVStoreService.getYoutubeEnginePath(
+            YoutubeClientEngine.ytDlp,
+          ) ??
+          await YtDlpEngine.resolveBinaryPath() ??
+          "yt-dlp${kIsWindows ? '.exe' : ''}";
+      await YtDlp.instance.setBinaryLocation(binaryPath);
     }
   });
   await guardedStartupInit('FlutterDiscordRPC.initialize', () async {

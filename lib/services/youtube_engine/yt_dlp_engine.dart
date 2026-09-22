@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:collection/collection.dart';
+import 'package:path/path.dart' as p;
 import 'package:spotube/services/youtube_engine/youtube_engine.dart';
 import 'package:spotube/utils/platform.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
@@ -69,9 +71,61 @@ class YtDlpEngine implements YouTubeEngine {
 
   static bool get isAvailableForPlatform => kIsDesktop;
 
+  static const String binaryName = 'yt-dlp';
+
+  /// Install directories that a GUI-launched process is usually never told
+  /// about. A desktop session hands out a PATH built for packaged programs,
+  /// so the most common way of installing yt-dlp on Linux — `pip --user`,
+  /// `uv tool install`, `pipx`, all of which land in `~/.local/bin` — leaves
+  /// the app reporting the engine missing and every call through it failing,
+  /// with the binary sitting right there.
+  static List<String> commonInstallDirs(Map<String, String> environment) {
+    final home = environment['HOME'] ?? environment['USERPROFILE'];
+    if (kIsWindows) {
+      final localAppData = environment['LOCALAPPDATA'];
+      return [
+        if (localAppData != null)
+          p.join(localAppData, 'Microsoft', 'WinGet', 'Links'),
+        if (home != null) p.join(home, 'scoop', 'shims'),
+      ];
+    }
+    return [
+      if (home != null) p.join(home, '.local', 'bin'),
+      if (home != null) p.join(home, 'bin'),
+      if (home != null) p.join(home, '.cargo', 'bin'),
+      '/usr/local/bin',
+      '/opt/homebrew/bin',
+      '/opt/local/bin',
+      '/snap/bin',
+      '/usr/bin',
+    ];
+  }
+
+  /// Absolute path to a usable yt-dlp, or null if there is none.
+  ///
+  /// [fallbackDirs] exists for tests; production callers want the default,
+  /// which is [commonInstallDirs] for [environment].
+  static Future<String?> resolveBinaryPath({
+    Map<String, String>? environment,
+    List<String>? fallbackDirs,
+  }) async {
+    final env = environment ?? Platform.environment;
+    final binary = kIsWindows ? '$binaryName.exe' : binaryName;
+    final searchedDirs = <String>[
+      ...?env['PATH']?.split(kIsWindows ? ';' : ':'),
+      ...fallbackDirs ?? commonInstallDirs(env),
+    ];
+
+    for (final dir in searchedDirs) {
+      if (dir.isEmpty) continue;
+      final file = File(p.join(dir, binary));
+      if (await file.exists()) return file.path;
+    }
+    return null;
+  }
+
   static Future<bool> isInstalled() async {
-    return isAvailableForPlatform &&
-        await YtDlp.instance.checkAvailableInPath();
+    return isAvailableForPlatform && await resolveBinaryPath() != null;
   }
 
   @override
