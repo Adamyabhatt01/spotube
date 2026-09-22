@@ -11,7 +11,13 @@ import 'package:spotube/provider/metadata_plugin/updater/update_checker.dart';
 import 'package:spotube/provider/server/routes/connect.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/connectivity_adapter.dart';
+import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/utils/service_utils.dart';
+
+/// How long the app waits before it starts the update checks. Everything that
+/// hangs off it is network plus, for a plugin release check, a plugin VM
+/// coming online - none of which the first frame or the first playback needs.
+const _startupIdleDelay = Duration(seconds: 5);
 
 void useGlobalSubscriptions(WidgetRef ref) {
   final context = useContext();
@@ -19,23 +25,34 @@ void useGlobalSubscriptions(WidgetRef ref) {
   final connectRoutes = ref.watch(serverConnectRoutesProvider);
 
   useEffect(() {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final idleTimer = Timer(_startupIdleDelay, () async {
+      if (!context.mounted) return;
       ServiceUtils.checkForUpdates(context, ref);
 
-      final pluginUpdate =
-          await ref.read(metadataPluginUpdateCheckerProvider.future);
+      try {
+        final pluginUpdate =
+            await ref.read(metadataPluginUpdateCheckerProvider.future);
+        // Only the Settings > Plugins badge reads this one; starting it here
+        // keeps it off the launch path instead of putting it in front of the
+        // first frame.
+        ref.read(audioSourcePluginUpdateCheckerProvider);
 
-      if (pluginUpdate != null) {
-        final pluginConfig = await ref.read(metadataPluginsProvider.future);
-        if (context.mounted) {
-          showDialog(
-            context: context,
-            builder: (context) => MetadataPluginUpdateAvailableDialog(
-              plugin: pluginConfig.defaultMetadataPluginConfig!,
-              update: pluginUpdate,
-            ),
-          );
+        if (pluginUpdate != null) {
+          final pluginConfig = await ref.read(metadataPluginsProvider.future);
+          if (context.mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => MetadataPluginUpdateAvailableDialog(
+                plugin: pluginConfig.defaultMetadataPluginConfig!,
+                update: pluginUpdate,
+              ),
+            );
+          }
         }
+      } catch (e, stack) {
+        // Reported here because nothing awaits this future; it used to be
+        // surfaced by the root widget's onError listeners.
+        AppLogger.reportError(e, stack);
       }
     });
 
@@ -141,6 +158,7 @@ void useGlobalSubscriptions(WidgetRef ref) {
     ];
 
     return () {
+      idleTimer.cancel();
       for (final subscription in subscriptions) {
         subscription.cancel();
       }

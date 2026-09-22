@@ -22,13 +22,6 @@ import 'package:spotube/collections/env.dart';
 import 'package:version/version.dart';
 
 abstract class ServiceUtils {
-  static final _englishMatcherRegex = RegExp(
-    "^[a-zA-Z0-9\\s!\"#\$%&\\'()*+,-.\\/:;<=>?@\\[\\]^_`{|}~]*\$",
-  );
-  static bool onlyContainsEnglish(String text) {
-    return _englishMatcherRegex.hasMatch(text);
-  }
-
   static String clearArtistsOfTitle(String title, List<String> artists) {
     return title
         .replaceAll(RegExp(artists.join("|"), caseSensitive: false), "")
@@ -101,19 +94,38 @@ abstract class ServiceUtils {
     if (checkUpdate == false) return;
     final packageInfo = await PackageInfo.fromPlatform();
 
-    if (Env.releaseChannel == ReleaseChannel.nightly) {
-      final value = await globalDio.getUri(
+    // A failed lookup is the expected case, not an error: a fork build whose
+    // repository has published nothing yet simply has nowhere to update from.
+    final Response response;
+    try {
+      response = await globalDio.getUri(
         Uri.parse(
-          "https://api.github.com/repos/KRTirtho/spotube/actions/workflows/spotube-release-binary.yml/runs?status=success&per_page=1",
+          Env.releaseChannel == ReleaseChannel.nightly
+              ? "https://api.github.com/repos/${Env.updateRepo}/actions/workflows/spotube-release-binary.yml/runs?status=success&per_page=1"
+              : "https://api.github.com/repos/${Env.updateRepo}/releases/latest",
         ),
         options: Options(
           responseType: ResponseType.json,
         ),
       );
+    } on Object {
+      return;
+    }
 
-      final buildNum = value.data["workflow_runs"][0]["run_number"] as int;
+    final data = response.data;
+    if (data is! Map) return;
 
-      if (buildNum <= int.parse(packageInfo.buildNumber) || !context.mounted) {
+    if (Env.releaseChannel == ReleaseChannel.nightly) {
+      final runs = data["workflow_runs"];
+      final currentBuild = int.tryParse(packageInfo.buildNumber);
+      final buildNum = runs is List && runs.isNotEmpty
+          ? (runs.first as Map)["run_number"]
+          : null;
+
+      if (buildNum is! int ||
+          currentBuild == null ||
+          buildNum <= currentBuild ||
+          !context.mounted) {
         return;
       }
 
@@ -126,17 +138,21 @@ abstract class ServiceUtils {
         },
       );
     } else {
-      final value = await globalDio.getUri(
-        Uri.parse(
-          "https://api.github.com/repos/KRTirtho/spotube/releases/latest",
-        ),
-      );
-      final tagName = (value.data["tag_name"] as String).replaceAll("v", "");
+      final tagName = data["tag_name"];
+      if (tagName is! String || !context.mounted) return;
+
+      final Version? latestVersion;
+      try {
+        latestVersion = tagName == "nightly"
+            ? null
+            : Version.parse(tagName.replaceAll("v", ""));
+      } on FormatException {
+        return;
+      }
+
       final currentVersion = packageInfo.version == "Unknown"
           ? null
           : Version.parse(packageInfo.version);
-      final latestVersion =
-          tagName == "nightly" ? null : Version.parse(tagName);
 
       if (currentVersion == null ||
           latestVersion == null ||
@@ -145,7 +161,7 @@ abstract class ServiceUtils {
         return;
       }
 
-      if (latestVersion <= currentVersion || !context.mounted) return;
+      if (latestVersion <= currentVersion) return;
 
       showDialog(
         context: context,

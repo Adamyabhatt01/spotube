@@ -3,7 +3,10 @@ description: Open source extensible music streaming platform and app, based on B
 
 publish_to: "none"
 
-version: 5.1.2+45
+# Upstream ships 5.1.2+45; 4501 reads as "upstream build 45, fork build 01" so
+# fork artifacts are attributable without claiming a version upstream never
+# released. Numeric: PackageInfo.buildNumber is int-parsed by the updater.
+version: 5.1.2+4501
 
 homepage: https://spotube.krtirtho.dev
 repository: https://github.com/KRTirtho/spotube

@@ -1,5 +1,6 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
+import 'package:spotube/collections/env.dart';
 import 'package:spotube/components/links/anchor_button.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:spotube/extensions/context.dart';
@@ -15,15 +16,14 @@ class RootAppUpdateDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const url = "https://spotube.krtirtho.dev/downloads";
-    const nightlyUrl = "https://spotube.krtirtho.dev/downloads/nightly";
+    const url = Env.updateRepoReleasesUrl;
     return AlertDialog(
       title: Text(context.l10n.spotube_has_an_update),
       actions: [
         Button.primary(
           child: Text(context.l10n.download_now),
           onPressed: () => launchUrlString(
-            nightlyBuildNum != null ? nightlyUrl : url,
+            url,
             mode: LaunchMode.externalApplication,
           ),
         ),

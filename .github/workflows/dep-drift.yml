@@ -1,0 +1,30 @@
+name: Dependency drift
+
+# The git dependencies in pubspec.yaml are pinned to tested SHAs on purpose, so
+# they never move by themselves. This is what notices when they've gone stale.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.35.2
+          channel: stable
+
+      - run: flutter pub get
+
+      - name: Compare pins with their repositories
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dart run scripts/dep_drift.dart --summary="$GITHUB_STEP_SUMMARY"
