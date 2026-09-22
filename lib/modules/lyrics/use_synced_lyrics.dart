@@ -2,11 +2,10 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotube/models/lyrics.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
-import 'package:spotube/services/logger/logger.dart';
 
 /// Returns the index of the active lyric line at the current playback
 /// position, i.e. the most recent line whose timestamp is at or before
-/// `position + delay`.
+/// `position + delay`, or -1 before the first line starts.
 ///
 /// The previous implementation only advanced when the playback second landed
 /// exactly on a lyric's integer-second key (`lyricsMap.containsKey(...)`),
@@ -18,39 +17,41 @@ int useSyncedLyrics(
   List<LyricSlice> lyrics,
   int delay,
 ) {
-  final position = useState(Duration.zero);
-  final activeIndex = useState(0);
+  final activeIndex = useState(-1);
 
+  void evaluate(Duration position) {
+    final next = _activeLineIndex(lyrics, position + Duration(seconds: delay));
+    if (next != activeIndex.value) {
+      activeIndex.value = next;
+    }
+  }
+
+  // Raw position events, on purpose: throttling them would delay the
+  // highlight. Only a line change is allowed to rebuild the page, which is why
+  // the index is resolved here instead of in a position ValueNotifier that the
+  // whole lyric list would watch.
   useEffect(() {
-    return audioPlayer.positionStream.listen((pos) {
-      try {
-        position.value = pos;
-      } catch (e, stack) {
-        AppLogger.reportError(e, stack);
-      }
-    }).cancel;
-  }, []);
+    evaluate(audioPlayer.position);
+    return audioPlayer.positionStream.listen(evaluate).cancel;
+  }, [lyrics, delay]);
 
-  final effectivePosition = position.value + Duration(seconds: delay);
+  return activeIndex.value;
+}
 
-  // Binary search for the most recent line with time <= effectivePosition.
-  // Lyrics are sorted by timestamp; this avoids a linear scan per frame.
+/// Binary search for the most recent line with time <= [position].
+/// Lyrics are sorted by timestamp; this avoids a linear scan per event.
+int _activeLineIndex(List<LyricSlice> lyrics, Duration position) {
   var lo = 0;
   var hi = lyrics.length - 1;
   var result = -1;
   while (lo <= hi) {
     final mid = (lo + hi) >> 1;
-    if (lyrics[mid].time <= effectivePosition) {
+    if (lyrics[mid].time <= position) {
       result = mid;
       lo = mid + 1;
     } else {
       hi = mid - 1;
     }
   }
-
-  if (result != activeIndex.value) {
-    activeIndex.value = result;
-  }
-
-  return activeIndex.value;
+  return result;
 }

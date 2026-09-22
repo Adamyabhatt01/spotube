@@ -75,6 +75,12 @@ class LyricsPage extends HookConsumerWidget {
       ],
     );
 
+    // The backdrop covers the whole page, but the provider's cache key
+    // includes the decode size — rounding the window up in steps keeps a
+    // resize from re-decoding for every pixel it moves.
+    final backdropSide =
+        (MediaQuery.sizeOf(context).longestSide / 256).ceilToDouble() * 256;
+
     return SafeArea(
       bottom: false,
       child: Scaffold(
@@ -95,7 +101,11 @@ class LyricsPage extends HookConsumerWidget {
           decoration: BoxDecoration(
             image: hasArtwork
                 ? DecorationImage(
-                    image: UniversalImage.imageProvider(albumArt),
+                    image: UniversalImage.imageProvider(
+                      albumArt,
+                      width: backdropSide,
+                      height: backdropSide,
+                    ),
                     fit: BoxFit.cover,
                   )
                 : null,

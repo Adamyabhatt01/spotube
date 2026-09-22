@@ -111,6 +111,10 @@ class BetterLyricsLyricsProvider implements LyricsProvider {
         },
         responseType: ResponseType.json,
         receiveTimeout: const Duration(seconds: 8),
+        // The public endpoint answers 401 ("uncached queries require a valid
+        // API key") for anything it has not already served. That is a miss to
+        // report, not an exception to log with a stack trace.
+        validateStatus: (_) => true,
       ),
     );
 

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:drift/drift.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/lyrics.dart';
@@ -29,48 +28,62 @@ class SyncedLyricsNotifier
         throw "No track currently";
       }
 
-      final cachedLyrics = await (database.select(database.lyricsTable)
+      // `trackId` has no unique index (the primary key is an autoincrement
+      // id), so a track can legitimately have several rows. Read them all and
+      // keep the best: getSingleOrNull() throws on the second row, which used
+      // to break that track's lyrics permanently.
+      final rows = await (database.select(database.lyricsTable)
             ..where((tbl) => tbl.trackId.equals(track.id)))
-          .map((row) => row.data)
-          .getSingleOrNull();
+          .get();
+      final cached = _bestCachedRow(rows);
 
-      SubtitleSimple? lyrics = cachedLyrics;
+      // A cached row only counts if it says something. Blank answers used to
+      // be stored and then treated as a hit forever.
+      final fromCache = cached != null && cached.hasContent ? cached : null;
+      var lyrics = fromCache;
 
-      if (lyrics == null ||
-          lyrics.lyrics.isEmpty) {
+      if (lyrics == null && track is SpotubeFullTrackObject) {
         // Only online tracks have provider-backed lyrics; local files have
         // none to fetch. Try each provider in priority order, isolating
         // failures so one broken source cannot prevent later providers.
-        if (track is SpotubeFullTrackObject) {
-          for (final provider in lyricsProviders) {
-            try {
-              final candidate = await provider.fetchLyrics(track);
-              if (candidate.lyrics.isNotEmpty) {
-                lyrics = candidate;
-                break;
-              }
-            } catch (e, stackTrace) {
-              AppLogger.reportError(
-                e,
-                stackTrace,
-                'lyrics provider ${provider.id}',
-              );
+        SubtitleSimple? plainFallback;
+        for (final provider in lyricsProviders) {
+          try {
+            final candidate = await provider.fetchLyrics(track);
+            if (!candidate.hasContent) continue;
+            if (candidate.isSynced) {
+              lyrics = candidate;
+              break;
             }
+            // Timestamps beat no timestamps, so an unsynced answer is held
+            // while the remaining providers get a chance to beat it.
+            plainFallback ??= candidate;
+          } catch (e, stackTrace) {
+            AppLogger.reportError(
+              e,
+              stackTrace,
+              'lyrics provider ${provider.id}',
+            );
           }
         }
+        lyrics ??= plainFallback;
       }
 
-      if (lyrics == null || lyrics.lyrics.isEmpty) {
+      if (lyrics == null || !lyrics.hasContent) {
         throw Exception("Unable to find lyrics");
       }
 
-      if (cachedLyrics == null || cachedLyrics.lyrics.isEmpty) {
+      if (fromCache == null) {
+        // Replace rather than append, so a track never accumulates rows that
+        // the read above then has to arbitrate between.
+        await (database.delete(database.lyricsTable)
+              ..where((tbl) => tbl.trackId.equals(track.id)))
+            .go();
         await database.into(database.lyricsTable).insert(
               LyricsTableCompanion.insert(
                 trackId: track.id,
                 data: lyrics,
               ),
-              mode: InsertMode.replace,
             );
       }
 
@@ -79,6 +92,25 @@ class SyncedLyricsNotifier
       AppLogger.reportError(e, stackTrace);
       rethrow;
     }
+  }
+
+  /// Newest row that has readable text, preferring one with real timestamps;
+  /// falling back to the newest row at all so an empty cache still reads as
+  /// empty rather than missing.
+  SubtitleSimple? _bestCachedRow(List<LyricsTableData> rows) {
+    if (rows.isEmpty) return null;
+
+    final sorted = [...rows]..sort((a, b) => b.id.compareTo(a.id));
+    SubtitleSimple? best;
+    int bestScore(SubtitleSimple? s) {
+      if (s == null) return -1;
+      return (s.hasContent ? 2 : 0) + (s.isSynced ? 1 : 0);
+    }
+
+    for (final row in sorted) {
+      if (bestScore(row.data) > bestScore(best)) best = row.data;
+    }
+    return best;
   }
 }
 

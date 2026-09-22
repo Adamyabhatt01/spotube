@@ -15,6 +15,15 @@ class SubtitleSimple {
     required this.provider,
   });
 
+  /// Whether any line carries readable text. A provider that answers with a
+  /// single blank line (an empty `plainLyrics` splits to `[""]`) is a miss,
+  /// not a hit — treating it as a hit caches a permanently empty panel.
+  bool get hasContent => lyrics.any((slice) => slice.text.trim().isNotEmpty);
+
+  /// Whether at least one line is stamped past zero. Plain lyrics render fine
+  /// but the synced view can never advance, so a synced source is preferred.
+  bool get isSynced => lyrics.any((slice) => slice.time > Duration.zero);
+
   factory SubtitleSimple.fromJson(Map<String, dynamic> json) {
     return SubtitleSimple(
       uri: Uri.parse(json["uri"] as String),
