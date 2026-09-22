@@ -12,6 +12,9 @@ final metadataPluginUserProvider = FutureProvider<SpotubeUserObject?>(
     if (!authenticated || metadataPlugin == null) {
       return null;
     }
+    // Deliberately not gated: this builds once per session and the sidebar
+    // reads it to decide whether the account looks signed in, so a 429 from
+    // some other screen must not be able to make the profile look logged out.
     return metadataPlugin.user.me();
   },
 );

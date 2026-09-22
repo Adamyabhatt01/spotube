@@ -18,9 +18,15 @@ const rateLimitRetryCooldown = Duration(seconds: 30);
 const maxRateLimitAutoRetries = 2;
 const maxRateLimitBackoff = Duration(minutes: 10);
 
-/// Pure decision fn (repo idiom: state stays in the caller).
-bool shouldRetryAfterRateLimit(Object error, int attempt) {
-  return attempt < maxRateLimitAutoRetries && isRateLimitedError(error);
+/// Pure decision fn (repo idiom: state stays in the caller). [maxRetries] is
+/// the caller's in-request budget: interactive screens pass 0 so a 429
+/// surfaces at once instead of waiting out cooldowns mid-build.
+bool shouldRetryAfterRateLimit(
+  Object error,
+  int attempt, {
+  int maxRetries = maxRateLimitAutoRetries,
+}) {
+  return attempt < maxRetries && isRateLimitedError(error);
 }
 
 /// Escalating session-wide cooldown after repeated 429s: 30s, 1min, 2min,

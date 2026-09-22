@@ -1,6 +1,7 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+import 'package:spotube/provider/metadata_plugin/utils/rate_limit_gate.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 
 final metadataPluginTrackProvider =
@@ -11,5 +12,8 @@ final metadataPluginTrackProvider =
     throw MetadataPluginException.noDefaultMetadataPlugin();
   }
 
-  return metadataPlugin.track.getTrack(trackId);
+  return runGated(
+    ref.read(rateLimitGateProvider.notifier),
+    () => metadataPlugin.track.getTrack(trackId),
+  );
 });

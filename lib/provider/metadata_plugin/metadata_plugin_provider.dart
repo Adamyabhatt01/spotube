@@ -214,8 +214,24 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
       final byteData = await rootBundle.load(
         "assets/plugins/$plugin/plugin.smplug",
       );
-      final pluginConfig =
-          await extractPluginArchive(byteData.buffer.asUint8List());
+      // Only the central directory is read here; inflating `plugin.json` is a
+      // few hundred bytes. Writing the archive out again is what used to sit
+      // on the startup path for every launch of an up-to-date install.
+      final archive = ZipDecoder().decodeBytes(byteData.buffer.asUint8List());
+      final pluginConfig = readPluginArchiveConfig(archive);
+
+      if (!await isBundledPluginUpToDate(
+        pluginConfig,
+        archive
+            .firstWhereOrNull(
+              (file) => file.isFile && file.name == "plugin.out",
+            )
+            ?.size,
+        pluginState,
+      )) {
+        await extractPluginArchiveFrom(archive);
+      }
+
       try {
         await addPlugin(pluginConfig);
       } on MetadataPluginException catch (e) {
@@ -249,6 +265,34 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
         }
       }
     }
+  }
+
+  /// Whether the bundled [config] is already registered and complete on disk,
+  /// in which case startup has nothing to do.
+  ///
+  /// Completeness is the declared bytecode size rather than a content hash: a
+  /// write interrupted by a crash leaves a short `plugin.out` behind, and the
+  /// unconditional re-extraction this replaces used to repair that.
+  Future<bool> isBundledPluginUpToDate(
+    PluginConfiguration config,
+    int? byteCodeLength,
+    MetadataPluginState installed,
+  ) async {
+    if (byteCodeLength == null) return false;
+
+    final row = installed.plugins.firstWhereOrNull(
+      (plugin) => plugin.name == config.name && plugin.author == config.author,
+    );
+    if (row == null || row.version != config.version) return false;
+
+    final extractionDir = await _getPluginExtractionDir(config);
+    if (!await File(join(extractionDir.path, "plugin.json")).exists()) {
+      return false;
+    }
+    final binary = File(join(extractionDir.path, "plugin.out"));
+    if (!await binary.exists()) return false;
+
+    return await binary.length() == byteCodeLength;
   }
 
   Uri _getGithubReleasesUrl(String repoUrl) {
@@ -333,18 +377,26 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
   }
 
   Future<PluginConfiguration> extractPluginArchive(List<int> bytes) async {
-    final archive = ZipDecoder().decodeBytes(bytes);
-    final pluginJson = archive
-        .firstWhereOrNull((file) => file.isFile && file.name == "plugin.json");
+    return extractPluginArchiveFrom(ZipDecoder().decodeBytes(bytes));
+  }
 
+  /// `plugin.json` of an already decoded archive, without touching the disk.
+  static PluginConfiguration readPluginArchiveConfig(Archive archive) {
+    final pluginJson = archive.firstWhereOrNull(
+      (file) => file.isFile && file.name == "plugin.json",
+    );
     if (pluginJson == null) {
       throw MetadataPluginException.pluginConfigJsonNotFound();
     }
-    final pluginConfig = PluginConfiguration.fromJson(
+    return PluginConfiguration.fromJson(
       jsonDecode(
         utf8.decode(pluginJson.content as List<int>),
       ) as Map<String, dynamic>,
     );
+  }
+
+  Future<PluginConfiguration> extractPluginArchiveFrom(Archive archive) async {
+    final pluginConfig = readPluginArchiveConfig(archive);
 
     // Validate before anything is written to disk: the bytecode file
     // [getPluginByteCode] will later require must be present, and every
@@ -871,13 +923,11 @@ class PluginVmCache<T> {
     return tracked;
   }
 
-  void evict(String key) => _cache.remove(key);
-
   void evictPlugin(String pluginSlug) {
     // Keys look like "<slug>@<version>:<engine>" (see SourceCandidate.key).
     _cache.keys
-        .where((k) =>
-            k.startsWith('$pluginSlug:') || k.startsWith('$pluginSlug@'))
+        .where(
+            (k) => k.startsWith('$pluginSlug:') || k.startsWith('$pluginSlug@'))
         .toList()
         .forEach(_cache.remove);
   }

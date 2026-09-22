@@ -4,6 +4,7 @@ import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/metadata_plugin/utils/common.dart';
+import 'package:spotube/provider/metadata_plugin/utils/rate_limit_gate.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/services/metadata/metadata.dart';
 
@@ -23,7 +24,11 @@ class MetadataPluginPlaylistNotifier
   build(playlistId) async {
     ref.cacheFor();
 
-    return (await metadataPlugin).playlist.getPlaylist(playlistId);
+    final plugin = await metadataPlugin;
+    return runGated(
+      ref.read(rateLimitGateProvider.notifier),
+      () => plugin.playlist.getPlaylist(playlistId),
+    );
   }
 
   Future<void> create({

@@ -38,3 +38,38 @@ class RateLimitGate extends Notifier<DateTime?> {
 
 final rateLimitGateProvider =
     NotifierProvider<RateLimitGate, DateTime?>(() => RateLimitGate());
+
+/// Runs [request] behind the session [RateLimitGate], recording the outcome on
+/// [gate].
+///
+/// [maxRetries] is the in-request cooldown budget. It defaults to 0 because
+/// most metadata reads back UI that is rebuilt by navigation: waiting 30s
+/// inside a build is worse than showing the rate-limit error, and the strike
+/// makes the next read fail fast without re-probing Spotify. Callers that
+/// would rather wait than fail (saved-list builds) pass
+/// [maxRateLimitAutoRetries].
+Future<T> runGated<T>(
+  RateLimitGate gate,
+  Future<T> Function() request, {
+  int maxRetries = 0,
+  Duration cooldown = rateLimitRetryCooldown,
+}) async {
+  gate.ensureOpen();
+
+  var attempt = 0;
+  while (true) {
+    try {
+      final result = await request();
+      gate.recordSuccess();
+      return result;
+    } catch (e) {
+      if (!isRateLimitedError(e)) rethrow;
+      if (e is! RateLimitedUntilException) gate.recordRateLimit();
+      if (!shouldRetryAfterRateLimit(e, attempt, maxRetries: maxRetries)) {
+        rethrow;
+      }
+      ++attempt;
+      await Future.delayed(cooldown);
+    }
+  }
+}

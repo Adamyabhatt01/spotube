@@ -35,7 +35,7 @@ class MetadataPluginSearchTracksNotifier
     ref.cacheFor();
 
     ref.watch(metadataPluginProvider);
-    return await fetch(0, 20);
+    return await fetchGated(() => fetch(0, 20));
   }
 }
 

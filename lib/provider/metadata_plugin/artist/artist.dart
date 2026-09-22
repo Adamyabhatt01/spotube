@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/utils/common.dart';
+import 'package:spotube/provider/metadata_plugin/utils/rate_limit_gate.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 
 final metadataPluginArtistProvider =
@@ -15,6 +16,9 @@ final metadataPluginArtistProvider =
       throw MetadataPluginException.noDefaultMetadataPlugin();
     }
 
-    return metadataPlugin.artist.getArtist(artistId);
+    return runGated(
+      ref.read(rateLimitGateProvider.notifier),
+      () => metadataPlugin.artist.getArtist(artistId),
+    );
   },
 );

@@ -11,6 +11,7 @@ import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/form/text_form_field.dart';
+import 'package:spotube/components/fallbacks/error_box.dart';
 import 'package:spotube/components/titlebar/titlebar.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/metadata/metadata.dart';
@@ -294,36 +295,51 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
                 ),
               ),
               const SliverGap(12),
-              SliverInfiniteList(
-                isLoading: pluginReposSnapshot.isLoading &&
-                    !pluginReposSnapshot.isLoadingNextPage,
-                itemCount: pluginRepos.length,
-                onFetchData: pluginReposNotifier.fetchMore,
-                separatorBuilder: (context, index) {
-                  return const Gap(12);
-                },
-                loadingBuilder: (context) {
-                  return Skeletonizer(
-                    enabled: true,
-                    child: MetadataPluginRepositoryItem(
-                      pluginRepo: MetadataPluginRepository(
-                        name: "Loading...",
-                        description: "Loading...",
-                        repoUrl: "",
-                        owner: "",
-                        topics: [],
+              // An index that failed to load must not look like a catalog with
+              // nothing in it - that is indistinguishable from a working
+              // network and gives no way to try again.
+              if (pluginReposSnapshot.hasError)
+                SliverToBoxAdapter(
+                  child: Center(
+                    child: ErrorBox(
+                      error: pluginReposSnapshot.error!,
+                      onRetry: () => ref.invalidate(
+                        metadataPluginRepositoriesProvider,
                       ),
                     ),
-                  );
-                },
-                itemBuilder: (context, index) {
-                  final pluginRepo = pluginRepos[index];
+                  ),
+                )
+              else
+                SliverInfiniteList(
+                  isLoading: pluginReposSnapshot.isLoading &&
+                      !pluginReposSnapshot.isLoadingNextPage,
+                  itemCount: pluginRepos.length,
+                  onFetchData: pluginReposNotifier.fetchMore,
+                  separatorBuilder: (context, index) {
+                    return const Gap(12);
+                  },
+                  loadingBuilder: (context) {
+                    return Skeletonizer(
+                      enabled: true,
+                      child: MetadataPluginRepositoryItem(
+                        pluginRepo: MetadataPluginRepository(
+                          name: "Loading...",
+                          description: "Loading...",
+                          repoUrl: "",
+                          owner: "",
+                          topics: [],
+                        ),
+                      ),
+                    );
+                  },
+                  itemBuilder: (context, index) {
+                    final pluginRepo = pluginRepos[index];
 
-                  return MetadataPluginRepositoryItem(
-                    pluginRepo: pluginRepo,
-                  );
-                },
-              ),
+                    return MetadataPluginRepositoryItem(
+                      pluginRepo: pluginRepo,
+                    );
+                  },
+                ),
               const SliverGap(20),
               SliverCrossAxisConstrained(
                 maxCrossAxisExtent: 720,

@@ -28,6 +28,15 @@ mixin MetadataPluginMixin<K>
     return plugin;
   }
 
+  RateLimitGate get rateLimitGate => ref.read(rateLimitGateProvider.notifier);
+
+  /// Reads from a plugin through the session [RateLimitGate] without waiting
+  /// out a cooldown: a 429 strikes the gate and surfaces immediately, so the
+  /// next read fails fast instead of re-probing Spotify's rate limiter. Used
+  /// by provider `build()`s, which back navigation-rebuilt screens.
+  Future<T> fetchGated<T>(Future<T> Function() request) =>
+      runGated(rateLimitGate, request);
+
   /// Runs [request], absorbing transient Spotify 429 rate limits with a
   /// bounded cooldown-retry. Every 429 also strikes the session-wide
   /// [RateLimitGate], so once throttled, further gated requests fail fast
@@ -36,25 +45,13 @@ mixin MetadataPluginMixin<K>
   Future<T> fetchWithRateLimitRetry<T>(
     Future<T> Function() request, {
     Duration cooldown = rateLimitRetryCooldown,
-  }) async {
-    final gate = ref.read(rateLimitGateProvider.notifier);
-    gate.ensureOpen();
-
-    var attempt = 0;
-    while (true) {
-      try {
-        final result = await request();
-        gate.recordSuccess();
-        return result;
-      } catch (e) {
-        if (!isRateLimitedError(e)) rethrow;
-        if (e is! RateLimitedUntilException) gate.recordRateLimit();
-        if (!shouldRetryAfterRateLimit(e, attempt)) rethrow;
-        ++attempt;
-        await Future.delayed(cooldown);
-      }
-    }
-  }
+  }) =>
+      runGated(
+        rateLimitGate,
+        request,
+        maxRetries: maxRateLimitAutoRetries,
+        cooldown: cooldown,
+      );
 }
 
 extension AutoDisposeAsyncNotifierCacheFor
