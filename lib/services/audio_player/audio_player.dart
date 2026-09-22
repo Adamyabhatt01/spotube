@@ -11,6 +11,7 @@ import 'package:media_kit/media_kit.dart' as mk;
 
 import 'package:spotube/services/audio_player/playback_state.dart';
 import 'package:spotube/utils/perf_counters.dart';
+import 'package:spotube/utils/platform.dart';
 import 'package:spotube/utils/position_tick.dart';
 
 part 'audio_players_streams_mixin.dart';
@@ -19,7 +20,11 @@ part 'audio_player_impl.dart';
 class SpotubeMedia extends mk.Media {
   static int serverPort = 0;
 
-  static String get _host => InternetAddress.loopbackIPv4.address;
+  // Windows proxy bypass lists conventionally name "localhost", not 127.0.0.1,
+  // and libmpv honors http_proxy — so the loopback literal can get local
+  // playback routed through a proxy that then rejects it.
+  static String get _host =>
+      kIsWindows ? "localhost" : InternetAddress.loopbackIPv4.address;
 
   final SpotubeTrackObject track;
   SpotubeMedia(this.track)
