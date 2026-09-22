@@ -88,10 +88,16 @@ mixin SpotubeAudioPlayersStreams on AudioPlayerInterface {
         .cast<String>();
   }
 
-  Stream<List<mk.AudioDevice>> get devicesStream =>
-      _mkPlayer.stream.audioDevices.asBroadcastStream();
+  // Cached: `asBroadcastStream()` mints a new wrapper per call, and `useStream`
+  // resubscribes whenever the stream identity changes - which its own event
+  // causes, so the Connect page re-subscribed once per rebuild.
+  Stream<List<mk.AudioDevice>>? _devicesStream;
+  Stream<mk.AudioDevice>? _selectedDeviceStream;
 
-  Stream<mk.AudioDevice> get selectedDeviceStream =>
+  Stream<List<mk.AudioDevice>> get devicesStream =>
+      _devicesStream ??= _mkPlayer.stream.audioDevices.asBroadcastStream();
+
+  Stream<mk.AudioDevice> get selectedDeviceStream => _selectedDeviceStream ??=
       _mkPlayer.stream.audioDevice.asBroadcastStream();
 
   Stream<String> get errorStream => _mkPlayer.stream.error;

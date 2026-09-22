@@ -24,27 +24,31 @@ class TrackOptionsButton extends HookConsumerWidget {
 
   static OverlayCompleter<dynamic> showOptions(
     BuildContext context,
-    Offset offset,
     SpotubeTrackObject track, {
     bool userPlaylist = false,
     String? playlistId,
   }) {
     return showPopover(
       context: context,
-      position: offset,
-      alignment: Alignment.bottomRight,
+      alignment: Alignment.topRight,
+      anchorAlignment: Alignment.bottomRight,
       builder: (context) {
         return SizedBox(
           width: 220 * context.theme.scaling,
-          child: Card(
-            padding: const EdgeInsets.all(8),
-            child: TrackOptions(
-              track: track,
-              playlistId: playlistId,
-              userPlaylist: userPlaylist,
-              onTapItem: () {
-                closeOverlay(context);
-              },
+          // Without this boundary the rows inherit the track row's own
+          // hovered/focused states and every entry renders as if the cursor
+          // were on it. Same reason `AdaptivePopSheetList` wraps its menu.
+          child: WidgetStatesProvider.boundary(
+            child: Card(
+              padding: const EdgeInsets.all(8),
+              child: TrackOptions(
+                track: track,
+                playlistId: playlistId,
+                userPlaylist: userPlaylist,
+                onTapItem: () {
+                  closeOverlay(context);
+                },
+              ),
             ),
           ),
         );
@@ -71,20 +75,8 @@ class TrackOptionsButton extends HookConsumerWidget {
         final mediaQuery = MediaQuery.sizeOf(context);
 
         if (mediaQuery.lgAndUp) {
-          final renderBox = context.findRenderObject() as RenderBox;
-          final position = RelativeRect.fromRect(
-            Rect.fromPoints(
-              renderBox.localToGlobal(Offset.zero,
-                  ancestor: context.findRenderObject()),
-              renderBox.localToGlobal(renderBox.size.bottomRight(Offset.zero),
-                  ancestor: context.findRenderObject()),
-            ),
-            Offset.zero & mediaQuery,
-          );
-          final offset = Offset(position.left, position.top);
           showOptions(
             context,
-            offset,
             track,
             userPlaylist: userPlaylist,
             playlistId: playlistId,
@@ -98,53 +90,55 @@ class TrackOptionsButton extends HookConsumerWidget {
             borderRadius: context.theme.borderRadiusMd,
             transformBackdrop: false,
             builder: (context) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 8.0,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: 8,
-                  children: [
-                    Basic(
-                      leading: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          borderRadius: context.theme.borderRadiusMd,
-                          image: DecorationImage(
-                            fit: BoxFit.cover,
-                            image: imageProvider,
+              return WidgetStatesProvider.boundary(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 8.0,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 8,
+                    children: [
+                      Basic(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            borderRadius: context.theme.borderRadiusMd,
+                            image: DecorationImage(
+                              fit: BoxFit.cover,
+                              image: imageProvider,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          track.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ).semiBold(),
+                        subtitle: Align(
+                          alignment: Alignment.centerLeft,
+                          child: ArtistLink(
+                            artists: track.artists,
+                            onOverflowArtistClick: () => context.navigateTo(
+                              TrackRoute(trackId: track.id),
+                            ),
                           ),
                         ),
                       ),
-                      title: Text(
-                        track.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ).semiBold(),
-                      subtitle: Align(
-                        alignment: Alignment.centerLeft,
-                        child: ArtistLink(
-                          artists: track.artists,
-                          onOverflowArtistClick: () => context.navigateTo(
-                            TrackRoute(trackId: track.id),
-                          ),
-                        ),
+                      const Divider(),
+                      TrackOptions(
+                        track: track,
+                        userPlaylist: userPlaylist,
+                        playlistId: playlistId,
+                        onTapItem: () {
+                          closeDrawer(context);
+                        },
                       ),
-                    ),
-                    const Divider(),
-                    TrackOptions(
-                      track: track,
-                      userPlaylist: userPlaylist,
-                      playlistId: playlistId,
-                      onTapItem: () {
-                        closeDrawer(context);
-                      },
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },

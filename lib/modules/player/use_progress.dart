@@ -8,8 +8,17 @@ import 'package:spotube/services/audio_player/audio_player.dart';
   Duration duration,
   double bufferProgress
 }) useProgress(WidgetRef ref) {
-  final bufferProgress =
-      useStream(audioPlayer.bufferedPositionStream).data?.inSeconds ?? 0;
+  // media_kit's `buffer` (demuxer-cache-time) fires several times a second
+  // while the network refills, and the hint bar only ever renders whole
+  // seconds. Quantize before the hook sees it, and hold one stream object so
+  // the rebuild does not resubscribe (Stream has no value equality).
+  final bufferedSecondsStream = useMemoized(
+    () => audioPlayer.bufferedPositionStream
+        .map((buffered) => buffered.inSeconds)
+        .distinct(),
+    const [],
+  );
+  final bufferProgress = useStream(bufferedSecondsStream).data ?? 0;
 
   final duration = useState(Duration.zero);
   final position = useState(Duration.zero);

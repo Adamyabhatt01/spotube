@@ -71,7 +71,13 @@ class MobileAudioService extends BaseAudioHandler {
       // handler above stays unthrottled.
       playbackState.add(await _transformEvent());
     });
-    audioPlayer.bufferedPositionStream.listen((pos) async {
+    audioPlayer.bufferedPositionStream
+        // Buffer time moves several times a second while streaming; a
+        // notification-bar refresh one second later is indistinguishable, and
+        // each unthrottled event here is a full platform-channel state object.
+        .map((pos) => pos.inSeconds)
+        .distinct()
+        .listen((pos) async {
       playbackState.add(await _transformEvent());
     });
   }

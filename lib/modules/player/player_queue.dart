@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/services.dart';
@@ -58,6 +60,23 @@ class PlayerQueue extends HookConsumerWidget {
     final controller = useAutoScrollController();
     final searchText = useState('');
 
+    // Scoring and sorting the whole queue costs about a frame every few
+    // thousand rows, so a burst of keystrokes collapses into one pass. The
+    // field itself stays untouched - only the applied query is delayed.
+    final searchDebounce = useRef<Timer?>(null);
+    useEffect(() => () => searchDebounce.value?.cancel(), []);
+
+    void applySearchText(String value, {bool delayed = false}) {
+      searchDebounce.value?.cancel();
+      if (!delayed) {
+        searchText.value = value;
+        return;
+      }
+      searchDebounce.value = Timer(const Duration(milliseconds: 200), () {
+        searchText.value = value;
+      });
+    }
+
     final selectionMode = useState(false);
     final selectedTrackIds = useState(<String>{});
 
@@ -101,7 +120,7 @@ class PlayerQueue extends HookConsumerWidget {
               ),
               child: TextField(
                 onChanged: (value) {
-                  searchText.value = value;
+                  applySearchText(value, delayed: true);
                 },
                 placeholder: Text(context.l10n.search),
               ),
@@ -113,7 +132,7 @@ class PlayerQueue extends HookConsumerWidget {
                     Navigator.of(context).pop();
                   }
                   isSearching.value = false;
-                  searchText.value = '';
+                  applySearchText('');
                 }
               },
               child: Column(
@@ -129,7 +148,7 @@ class PlayerQueue extends HookConsumerWidget {
                             ),
                             onPressed: () {
                               isSearching.value = false;
-                              searchText.value = '';
+                              applySearchText('');
                             },
                           )
                       ],

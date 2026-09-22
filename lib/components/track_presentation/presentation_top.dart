@@ -12,6 +12,7 @@ import 'package:spotube/components/track_presentation/use_is_user_playlist.dart'
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/modules/playlist/playlist_create_dialog.dart';
+import 'package:spotube/provider/scroll_motion.dart';
 
 class TrackPresentationTopSection extends HookConsumerWidget {
   const TrackPresentationTopSection({super.key});
@@ -23,12 +24,19 @@ class TrackPresentationTopSection extends HookConsumerWidget {
     final scale = context.theme.scaling;
     final isUserPlaylist = useIsUserPlaylist(ref, options.collectionId);
 
+    final imageDimension = mediaQuery.mdAndUp ? 200 : 120;
+
     final decorationImage = DecorationImage(
-      image: UniversalImage.imageProvider(options.image),
+      // 2x oversample: the source is 640px and this is a large cover image, so
+      // decoding at layout size keeps it sharp on scaled displays while
+      // dropping a full-size bitmap from the cache.
+      image: UniversalImage.imageProvider(
+        options.image,
+        width: imageDimension * 2,
+        height: imageDimension * 2,
+      ),
       fit: BoxFit.cover,
     );
-
-    final imageDimension = mediaQuery.mdAndUp ? 200 : 120;
 
     final (:isLoading, :isActive, :onPlay, :onShuffle, :onAddToQueue) =
         useActionCallbacks(ref);
@@ -161,12 +169,7 @@ class TrackPresentationTopSection extends HookConsumerWidget {
                   image: decorationImage,
                   borderRadius: BorderRadius.circular(45),
                 ),
-                child: OutlinedContainer(
-                  surfaceOpacity: context.theme.surfaceOpacity,
-                  surfaceBlur: context.theme.surfaceBlur,
-                  padding: EdgeInsets.all(24 * scale),
-                  borderRadius: BorderRadius.circular(22 * scale),
-                  borderWidth: 2,
+                child: _HeaderSurface(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     spacing: 16 * scale,
@@ -225,6 +228,8 @@ class TrackPresentationTopSection extends HookConsumerWidget {
                                                 provider: UniversalImage
                                                     .imageProvider(
                                                   options.ownerImage!,
+                                                  width: 40,
+                                                  height: 40,
                                                 ),
                                                 size: 20 * scale,
                                               )
@@ -256,6 +261,33 @@ class TrackPresentationTopSection extends HookConsumerWidget {
           ),
         )
       ],
+    );
+  }
+}
+
+/// The header's frosted panel.
+///
+/// Its blur is read here instead of in [TrackPresentationTopSection.build] so
+/// that freezing it while the page scrolls redraws this surface rather than
+/// rebuilding the header's whole subtree - which is also the subtree the scroll
+/// is moving.
+class _HeaderSurface extends ConsumerWidget {
+  final Widget child;
+
+  const _HeaderSurface({required this.child});
+
+  @override
+  Widget build(BuildContext context, ref) {
+    final scale = context.theme.scaling;
+    final blurFrozen = ref.watch(scrollInFlightProvider);
+
+    return OutlinedContainer(
+      surfaceOpacity: context.theme.surfaceOpacity,
+      surfaceBlur: blurFrozen ? 0 : context.theme.surfaceBlur,
+      padding: EdgeInsets.all(24 * scale),
+      borderRadius: BorderRadius.circular(22 * scale),
+      borderWidth: 2,
+      child: child,
     );
   }
 }

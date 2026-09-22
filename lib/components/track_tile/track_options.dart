@@ -48,7 +48,7 @@ class TrackOptions extends HookConsumerWidget {
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: 8,
       children: [
         if (isLocalTrack)
@@ -143,9 +143,9 @@ class TrackOptions extends HookConsumerWidget {
               onTapItem?.call();
             },
             leading: isLiked
-                ? Icon(
+                ? const Icon(
                     SpotubeIcons.heartFilled,
-                    color: context.theme.colorScheme.destructive,
+                    color: Colors.pink,
                   )
                 : const Icon(SpotubeIcons.heart),
             title: Text(
@@ -238,18 +238,14 @@ class TrackOptions extends HookConsumerWidget {
             },
             leading: Icon(
               SpotubeIcons.playlistRemove,
-              color: isBlacklisted != true
-                  ? context.theme.colorScheme.destructive
-                  : null,
+              color: isBlacklisted != true ? Colors.red[400] : null,
             ),
             title: Text(
               isBlacklisted == true
                   ? context.l10n.remove_from_blacklist
                   : context.l10n.add_to_blacklist,
               style: TextStyle(
-                color: isBlacklisted != true
-                    ? context.theme.colorScheme.destructive
-                    : null,
+                color: isBlacklisted != true ? Colors.red[400] : null,
               ),
             ),
           ),

@@ -22,15 +22,6 @@ import 'package:spotube/provider/audio_player/querying_track_info.dart';
 import 'package:spotube/provider/blacklist_provider.dart';
 import 'package:spotube/utils/platform.dart';
 
-final isBlacklistedProvider =
-    Provider.autoDispose.family<bool, SpotubeTrackObject>(
-  (ref, track) {
-    ref.watch(blacklistProvider);
-    final blacklist = ref.read(blacklistProvider.notifier);
-    return blacklist.contains(track);
-  },
-);
-
 final _overlay = ValueNotifier<OverlayCompleter<dynamic>?>(null);
 
 class TrackTile extends HookConsumerWidget {
@@ -73,7 +64,11 @@ class TrackTile extends HookConsumerWidget {
   Widget build(BuildContext context, ref) {
     final theme = Theme.of(context);
 
-    final isBlackListed = ref.watch(isBlacklistedProvider(track));
+    final isBlackListed = ref.watch(
+      blacklistedIdsProvider.select(
+        (ids) => BlackListNotifier.matches(ids, track),
+      ),
+    );
 
     final isLoading = useState(false);
 
@@ -106,7 +101,6 @@ class TrackTile extends HookConsumerWidget {
           }
           _overlay.value = TrackOptionsButton.showOptions(
             context,
-            Offset.zero,
             track,
             userPlaylist: userPlaylist,
             playlistId: playlistId,
@@ -139,19 +133,13 @@ class TrackTile extends HookConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 ...?leadingActions,
-                AnimatedCrossFade(
-                  duration: const Duration(milliseconds: 300),
-                  crossFadeState: index != null && onChanged == null
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
-                  firstChild: Checkbox(
-                    state: selected
-                        ? CheckboxState.checked
-                        : CheckboxState.unchecked,
-                    onChanged: (state) =>
-                        onChanged?.call(state == CheckboxState.checked),
-                  ),
-                  secondChild: constrains.smAndDown
+                // A row shows either its checkbox or its index for as long as it
+                // is mounted, so this is a choice rather than a transition. It
+                // used to be an AnimatedCrossFade, which kept both children
+                // mounted and two tickers alive per row — a cost a phone pays
+                // again for every row it scrolls in.
+                if (index != null && onChanged == null)
+                  constrains.smAndDown
                       ? const SizedBox(width: 16)
                       : SizedBox(
                           width: 50,
@@ -164,8 +152,15 @@ class TrackTile extends HookConsumerWidget {
                               textAlign: TextAlign.center,
                             ),
                           ),
-                        ),
-                ),
+                        )
+                else
+                  Checkbox(
+                    state: selected
+                        ? CheckboxState.checked
+                        : CheckboxState.unchecked,
+                    onChanged: (state) =>
+                        onChanged?.call(state == CheckboxState.checked),
+                  ),
                 Stack(
                   children: [
                     Container(
@@ -195,7 +190,10 @@ class TrackTile extends HookConsumerWidget {
                         child: Skeleton.ignore(
                           child: Consumer(
                             builder: (context, ref, _) {
-                              final isFetchingActiveTrack =
+                              // Gated on this row being the active one, so a
+                              // track change only rebuilds that row's overlay
+                              // instead of every visible tile's.
+                              final isFetchingActiveTrack = isPlaying &&
                                   ref.watch(queryingTrackInfoProvider);
                               return AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 300),

@@ -25,6 +25,17 @@ class Waypoint extends HookWidget {
     // also enforces single-flight fetching; this is redundant suppression.
     final isTriggering = useRef(false);
 
+    // Held so the scroll listener can be registered once per controller instead
+    // of once per parent rebuild, which is what a `onTouchEdge` dependency did
+    // (it is a fresh closure almost every build).
+    final onTouchEdgeRef = useRef(onTouchEdge);
+    onTouchEdgeRef.value = onTouchEdge;
+
+    // Unconditional so the hook order can't shift: a shared const key collides
+    // as soon as two grid waypoints coexist, and a key rebuilt each frame makes
+    // VisibilityDetector drop its notifications.
+    final detectorKey = useMemoized(UniqueKey.new, const []);
+
     useEffect(() {
       if (isGrid) {
         return null;
@@ -40,7 +51,7 @@ class Waypoint extends HookWidget {
             context.mounted) {
           isTriggering.value = true;
           try {
-            await onTouchEdge?.call();
+            await onTouchEdgeRef.value?.call();
           } finally {
             isTriggering.value = false;
           }
@@ -54,18 +65,18 @@ class Waypoint extends HookWidget {
         }
       });
       return () => controller.removeListener(listener);
-    }, [controller, onTouchEdge]);
+    }, [controller, isGrid]);
 
     if (isGrid) {
       return VisibilityDetector(
-        key: const Key("waypoint"),
+        key: detectorKey,
         onVisibilityChanged: (info) async {
           if (info.visibleFraction > 0 &&
               !isTriggering.value &&
               context.mounted) {
             isTriggering.value = true;
             try {
-              await onTouchEdge?.call();
+              await onTouchEdgeRef.value?.call();
             } finally {
               isTriggering.value = false;
             }

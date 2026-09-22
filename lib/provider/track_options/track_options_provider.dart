@@ -264,28 +264,45 @@ typedef TrackOptionFlags = ({
 });
 
 final trackOptionActionsProvider =
-    Provider.family<TrackOptionsActions, SpotubeTrackObject>(
+    Provider.autoDispose.family<TrackOptionsActions, SpotubeTrackObject>(
   (ref, track) => TrackOptionsActions(ref, track),
 );
 
+/// Auto-disposed on purpose: this is a `family` keyed by every track the user
+/// ever opened a menu on, and a kept-alive instance stays subscribed to the
+/// player, the download list and the blacklist table for the rest of the
+/// session - recomputing an O(queue) scan per unseen row on every queue change.
 final trackOptionsStateProvider =
-    Provider.family<TrackOptionFlags, SpotubeTrackObject>((ref, track) {
-  ref.watch(downloadManagerProvider);
-  ref.watch(blacklistProvider);
-
+    Provider.autoDispose.family<TrackOptionFlags, SpotubeTrackObject>((
+  ref,
+  track,
+) {
   // Subscribe to consumed player slices only (see test/track_options_select_test.dart).
   final activeTrack =
       ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
   final queueTracks = ref.watch(audioPlayerProvider.select((s) => s.tracks));
   final authenticated = ref.watch(metadataPluginAuthenticatedProvider);
-  final downloadManager = ref.watch(downloadManagerProvider.notifier);
-  final blacklist = ref.watch(blacklistProvider.notifier);
-  final isBlacklisted = blacklist.contains(track);
-  final isSavedTrack = ref.watch(metadataPluginIsSavedTrackProvider(track.id));
+  final isSavedTrack =
+      ref.watch(metadataPluginIsSavedTrackProvider(track.id));
 
-  final downloadTask = activeTrack?.id == null
-      ? null
-      : downloadManager.getTaskByTrackId(activeTrack!.id);
+  // Both lists are watched through a `select` that already applies this row's
+  // predicate: watching them whole made every download-progress tick and every
+  // blacklist write rebuild the menu state of every mounted row.
+  final activeTrackId = activeTrack?.id;
+  final downloadTask = ref.watch(downloadManagerProvider.select((tasks) {
+    if (activeTrackId == null) return null;
+    for (final task in tasks) {
+      if (task.track.id == activeTrackId) return task;
+    }
+    return null;
+  }));
+
+  final isBlacklisted = ref.watch(
+    blacklistedIdsProvider.select(
+      (ids) => BlackListNotifier.matches(ids, track),
+    ),
+  );
+
   final isInDownloadQueue = activeTrack == null ||
           activeTrack is SpotubeLocalTrackObject
       ? false
@@ -305,7 +322,7 @@ final trackOptionsStateProvider =
         ),
     isBlacklisted: isBlacklisted,
     isInDownloadQueue: isInDownloadQueue,
-    isActiveTrack: activeTrack?.id == track.id,
+    isActiveTrack: activeTrackId == track.id,
     isAuthenticated: authenticated.asData?.value ?? false,
     isLiked: isSavedTrack.asData?.value ?? false,
     downloadTask: downloadTask,

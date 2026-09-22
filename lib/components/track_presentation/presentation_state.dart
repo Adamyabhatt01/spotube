@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:collection/collection.dart';
 import 'package:fuzzywuzzy/fuzzywuzzy.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -34,8 +36,17 @@ class PresentationState {
 
 class PresentationStateNotifier
     extends AutoDisposeFamilyNotifier<PresentationState, Object> {
+  Timer? _filterDebounce;
+  String? _pendingFilter;
+
   @override
   PresentationState build(collection) {
+    ref.onDispose(() {
+      _filterDebounce?.cancel();
+      _filterDebounce = null;
+      _pendingFilter = null;
+    });
+
     if (arg case SpotubeSimplePlaylistObject() || SpotubeSimpleAlbumObject()) {
       if (isSavedTrackPlaylist) {
         ref.listen(
@@ -144,6 +155,18 @@ class PresentationStateNotifier
     if (query.isEmpty) {
       return;
     }
+    // Scoring and sorting the whole list costs roughly a frame per few thousand
+    // tracks, so a burst of keystrokes collapses into one pass.
+    _pendingFilter = query;
+    _filterDebounce?.cancel();
+    _filterDebounce = Timer(const Duration(milliseconds: 200), _flushFilter);
+  }
+
+  void _flushFilter() {
+    _filterDebounce?.cancel();
+    final query = _pendingFilter;
+    _pendingFilter = null;
+    if (query == null || query.isEmpty) return;
 
     state = state.copyWith(
       presentationTracks: ServiceUtils.sortTracks(
@@ -159,12 +182,17 @@ class PresentationStateNotifier
   }
 
   void clearFilter() {
+    _filterDebounce?.cancel();
+    _pendingFilter = null;
     state = state.copyWith(
       presentationTracks: ServiceUtils.sortTracks(tracks, state.sortBy),
     );
   }
 
   void sortTracks(SortBy sortBy) {
+    // A typed-but-unapplied query still owns the field, so apply it before
+    // re-ordering what's on screen.
+    _flushFilter();
     state = state.copyWith(
       presentationTracks: sortBy == SortBy.none
           ? tracks

@@ -33,18 +33,20 @@ class BlackListNotifier extends AsyncNotifier<List<BlacklistTableData>> {
         .go();
   }
 
-  bool contains(SpotubeTrackObject track) {
-    final containsTrack =
-        state.asData?.value.any((element) => element.elementId == track.id) ??
-            false;
+  bool contains(SpotubeTrackObject track) =>
+      matches(idsOf(state.asData?.value ?? const []), track);
 
-    final containsTrackArtists = track.artists.any(
-      (artist) =>
-          state.asData?.value.any((el) => el.elementId == artist.id) ?? false,
-    );
-
-    return containsTrack || containsTrackArtists;
+  /// [contains] as a function of the entries rather than of this notifier's
+  /// state, so a watcher can `select` a bool out of [blacklistedIdsProvider]
+  /// instead of subscribing to the whole table.
+  static bool matches(Set<String> ids, SpotubeTrackObject track) {
+    if (ids.isEmpty) return false;
+    return ids.contains(track.id) ||
+        track.artists.any((artist) => ids.contains(artist.id));
   }
+
+  static Set<String> idsOf(List<BlacklistTableData> entries) =>
+      {for (final entry in entries) entry.elementId};
 
   bool containsArtist(String artistId) {
     return state.asData?.value
@@ -62,3 +64,16 @@ final blacklistProvider =
     AsyncNotifierProvider<BlackListNotifier, List<BlacklistTableData>>(
   () => BlackListNotifier(),
 );
+
+/// The table as an id set, rebuilt once per change.
+///
+/// Every visible row wants to know whether *it* is blacklisted. Asking through
+/// the list costs a scan of the whole table per row, and a screenful of rows
+/// rebuilds on each other's question; the set turns it into a lookup, and a row
+/// watching [BlackListNotifier.matches] through a `select` only rebuilds when its
+/// own answer changes.
+final blacklistedIdsProvider = Provider<Set<String>>((ref) {
+  final entries = ref.watch(blacklistProvider).asData?.value;
+  if (entries == null || entries.isEmpty) return const <String>{};
+  return BlackListNotifier.idsOf(entries);
+});

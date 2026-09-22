@@ -1,9 +1,41 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
-import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/image/universal_image.dart';
 import 'package:spotube/extensions/string.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/utils/platform.dart';
+
+/// Fades an overlay in when the pointer hovers its card.
+///
+/// Touch input never reports a hovered state, so on mobile the animated target
+/// is a constant and both implicit animations - two controllers and two
+/// tickers per card - exist only to be mounted and disposed as the grid
+/// recycles cards while scrolling. [animated] is a parameter rather than a read
+/// of [kIsMobile] because the platform flags come from the host process, so a
+/// test could otherwise only ever exercise one of the two shapes.
+@visibleForTesting
+Widget hoverReveal({
+  required bool shown,
+  required Duration duration,
+  required bool animated,
+  required Widget child,
+}) {
+  if (!animated) {
+    // Held at zero rather than dropped: the slot keeps the play button where it
+    // is while the card loads, exactly as the faded animation did.
+    return shown ? child : Opacity(opacity: 0, child: child);
+  }
+  return AnimatedScale(
+    curve: Curves.easeOutBack,
+    duration: duration,
+    scale: shown ? 1 : 0.7,
+    child: AnimatedOpacity(
+      duration: duration,
+      opacity: shown ? 1 : 0,
+      child: child,
+    ),
+  );
+}
 
 class PlaybuttonCard extends StatelessWidget {
   final void Function()? onTap;
@@ -37,25 +69,28 @@ class PlaybuttonCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final unescapeHtml = description?.unescapeHtml().cleanHtml() ?? "";
-    final scale = context.theme.scaling;
+    final unescapeHtml = description.strippedHtml();
+    // 4/3 is the decode oversample the fixed 150px card used with a 200px
+    // image; the cover is square, so one value serves both edges.
+    final coverSize = context.gridCardWidth;
+    final coverRadius = BorderRadius.circular(context.cardCornerRadius);
 
     return SizedBox(
-      width: 150 * scale,
+      width: coverSize,
       child: CardImage(
         image: Stack(
           children: [
             if (imageUrl != null)
               Container(
-                width: 150 * scale,
-                height: 150 * scale,
+                width: coverSize,
+                height: coverSize,
                 decoration: BoxDecoration(
-                  borderRadius: context.theme.borderRadiusMd,
+                  borderRadius: coverRadius,
                   image: DecorationImage(
                     image: UniversalImage.imageProvider(
                       imageUrl!,
-                      height: 200 * scale,
-                      width: 200 * scale,
+                      height: coverSize * 4 / 3,
+                      width: coverSize * 4 / 3,
                     ),
                     fit: BoxFit.cover,
                   ),
@@ -63,72 +98,48 @@ class PlaybuttonCard extends StatelessWidget {
               )
             else
               SizedBox(
-                width: 150 * scale,
-                height: 150 * scale,
+                width: coverSize,
+                height: coverSize,
                 child: ClipRRect(
-                  borderRadius: context.theme.borderRadiusMd,
+                  borderRadius: coverRadius,
                   child: image!,
                 ),
               ),
             StatedWidget.builder(
               builder: (context, states) {
+                final hovered = states.contains(WidgetState.hovered) ||
+                    kIsMobile;
                 return Positioned(
                   right: 8,
                   bottom: 8,
                   child: Column(
                     children: [
-                      AnimatedScale(
-                        curve: Curves.easeOutBack,
+                      hoverReveal(
+                        shown: hovered && !isLoading,
                         duration: const Duration(milliseconds: 300),
-                        scale: (states.contains(WidgetState.hovered) ||
-                                    kIsMobile) &&
-                                !isLoading
-                            ? 1
-                            : 0.7,
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 300),
-                          opacity: (states.contains(WidgetState.hovered) ||
-                                      kIsMobile) &&
-                                  !isLoading
-                              ? 1
-                              : 0,
-                          child: IconButton.secondary(
-                            icon: const Icon(SpotubeIcons.queueAdd),
-                            onPressed: onAddToQueuePressed,
-                            size: ButtonSize.small,
-                          ),
+                        animated: !kIsMobile,
+                        child: IconButton.secondary(
+                          icon: const Icon(SpotubeIcons.queueAdd),
+                          onPressed: onAddToQueuePressed,
+                          size: ButtonSize.small,
                         ),
                       ),
                       const Gap(5),
-                      AnimatedScale(
-                        curve: Curves.easeOutBack,
+                      hoverReveal(
+                        shown: hovered || isPlaying || isLoading,
                         duration: const Duration(milliseconds: 150),
-                        scale: states.contains(WidgetState.hovered) ||
-                                kIsMobile ||
-                                isPlaying ||
-                                isLoading
-                            ? 1
-                            : 0.7,
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 150),
-                          opacity: states.contains(WidgetState.hovered) ||
-                                  kIsMobile ||
-                                  isPlaying ||
-                                  isLoading
-                              ? 1
-                              : 0,
-                          child: IconButton.secondary(
-                            icon: switch ((isLoading, isPlaying)) {
-                              (true, _) => const CircularProgressIndicator(
-                                  size: 15,
-                                ),
-                              (false, false) => const Icon(SpotubeIcons.play),
-                              (false, true) => const Icon(SpotubeIcons.pause)
-                            },
-                            enabled: !isLoading,
-                            onPressed: onPlaybuttonPressed,
-                            size: ButtonSize.small,
-                          ),
+                        animated: !kIsMobile,
+                        child: IconButton.secondary(
+                          icon: switch ((isLoading, isPlaying)) {
+                            (true, _) => const CircularProgressIndicator(
+                                size: 15,
+                              ),
+                            (false, false) => const Icon(SpotubeIcons.play),
+                            (false, true) => const Icon(SpotubeIcons.pause)
+                          },
+                          enabled: !isLoading,
+                          onPressed: onPlaybuttonPressed,
+                          size: ButtonSize.small,
                         ),
                       ),
                     ],

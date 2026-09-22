@@ -32,7 +32,13 @@ class UserLocalLibraryPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, ref) {
-    final cacheDir = useFuture(UserPreferencesNotifier.getMusicCacheDir());
+    // Memoized: a fresh Future per build makes useFuture re-subscribe and
+    // rebuild forever (flutter_hooks treats every new instance as a change).
+    final cacheDirFuture = useMemoized(
+      UserPreferencesNotifier.getMusicCacheDir,
+      const [],
+    );
+    final cacheDir = useFuture(cacheDirFuture);
     final preferencesNotifier = ref.watch(userPreferencesProvider.notifier);
     final preferences = ref.watch(userPreferencesProvider);
 

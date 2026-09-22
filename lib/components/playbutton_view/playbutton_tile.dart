@@ -37,7 +37,7 @@ class PlaybuttonTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cleanDescription = description?.unescapeHtml().cleanHtml() ?? "";
+    final cleanDescription = description.strippedHtml();
     final scale = context.theme.scaling;
 
     return Button(

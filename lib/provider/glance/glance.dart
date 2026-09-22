@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -10,6 +11,7 @@ import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/server/server.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
+import 'package:spotube/utils/foreground_coalescer.dart';
 import 'package:spotube/utils/platform.dart';
 
 @pragma("vm:entry-point")
@@ -71,10 +73,13 @@ Future<void> _updateWidget() async {
   }
 }
 
-Future<void> _sendActiveTrack(SpotubeTrackObject? track) async {
+Future<void> _sendActiveTrack(
+  SpotubeTrackObject? track, {
+  bool notify = true,
+}) async {
   if (track == null) {
     await _saveWidgetData("activeTrack", null);
-    await _updateWidget();
+    if (notify) await _updateWidget();
     return;
   }
 
@@ -102,39 +107,58 @@ Future<void> _sendActiveTrack(SpotubeTrackObject? track) async {
 
   await _saveWidgetData("activeTrack", jsonEncode(data));
 
-  await _updateWidget();
+  if (notify) await _updateWidget();
 }
 
 final glanceProvider = Provider((ref) {
   final server = ref.read(serverProvider);
   final activeTrack = ref.read(audioPlayerProvider).activeTrack;
 
+  String? serverAddress;
   server.whenData(
-    (value) async {
-      final (:server, :port) = value;
-
-      await _saveWidgetData(
-        "playbackServerAddress",
-        "${server.address.host}:$port",
-      );
-      await _updateWidget();
-    },
+    (value) => serverAddress = "${value.server.address.host}:${value.port}",
   );
 
+  // The single writer of the widget's data. Every playback signal routes
+  // through the coalescer instead, so the widget is refreshed once per
+  // backgrounding rather than once per second of playback.
+  Future<void> pushCurrentState() async {
+    if (serverAddress != null) {
+      await _saveWidgetData("playbackServerAddress", serverAddress);
+    }
+    await _saveWidgetData("isPlaying", audioPlayer.isPlaying);
+    await _saveWidgetData("position", audioPlayer.position.inSeconds);
+    await _saveWidgetData("duration", audioPlayer.duration.inSeconds);
+    await _sendActiveTrack(
+      ref.read(audioPlayerProvider).activeTrack,
+      notify: false,
+    );
+    await _updateWidget();
+  }
+
+  final pushes = ForegroundCoalescer(
+    push: pushCurrentState,
+    isForeground: () =>
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed,
+  );
+
+  // [WidgetsBinding] publishes the new state before notifying observers, so
+  // [isForeground] is already accurate inside these callbacks.
+  final lifecycle = AppLifecycleListener(
+    onInactive: () => pushes.onForegroundChanged(false),
+    onHide: () => pushes.onForegroundChanged(false),
+    onPause: () => pushes.onForegroundChanged(false),
+  );
+
+  // Startup is not a playback signal: seeding the widget with the restored
+  // queue's track is what lets it show anything before the first backgrounding.
   _sendActiveTrack(activeTrack);
 
-  ref.listen(serverProvider, (prev, next) async {
-    next.whenData(
-      (value) async {
-        final (:server, :port) = value;
-
-        await _saveWidgetData(
-          "playbackServerAddress",
-          "${server.address.host}:$port",
-        );
-        await _updateWidget();
-      },
-    );
+  ref.listen(serverProvider, (prev, next) {
+    next.whenData((value) {
+      serverAddress = "${value.server.address.host}:${value.port}";
+      pushes.request();
+    });
   });
 
   ref.listen(
@@ -143,7 +167,7 @@ final glanceProvider = Provider((ref) {
       try {
         if (previous?.activeTrack != next.activeTrack &&
             next.activeTrack != null) {
-          await _sendActiveTrack(next.activeTrack);
+          await pushes.request();
         }
       } catch (e, stack) {
         AppLogger.reportError(e, stack);
@@ -152,25 +176,17 @@ final glanceProvider = Provider((ref) {
   );
 
   final subscriptions = [
-    audioPlayer.playingStream.listen((playing) async {
-      await _saveWidgetData("isPlaying", playing);
-      await _updateWidget();
-    }),
+    audioPlayer.playingStream.listen((_) => pushes.request()),
     // The shared tick stream is already whole-second gated; the widget only
     // renders seconds, so no gate of its own.
-    audioPlayer.positionTickStream.listen((position) async {
-      await _saveWidgetData("position", position.inSeconds);
-      await _updateWidget();
-    }),
-    audioPlayer.durationStream.listen((duration) async {
-      await _saveWidgetData("duration", duration.inSeconds);
-      await _updateWidget();
-    }),
+    audioPlayer.positionTickStream.listen((_) => pushes.request()),
+    audioPlayer.durationStream.listen((_) => pushes.request()),
   ];
 
   ref.onDispose(() {
     for (final subscription in subscriptions) {
       subscription.cancel();
     }
+    lifecycle.dispose();
   });
 });
