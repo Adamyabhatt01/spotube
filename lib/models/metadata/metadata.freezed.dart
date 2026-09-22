@@ -6785,6 +6785,8 @@ mixin _$ThemeDefinition {
   ThemeBackground get background => throw _privateConstructorUsedError;
   ThemeRadius get radius => throw _privateConstructorUsedError;
   double get density => throw _privateConstructorUsedError;
+  ThemeTokens get tokens => throw _privateConstructorUsedError;
+  ThemeLayout get layout => throw _privateConstructorUsedError;
   @JsonKey(name: 'dynamic')
   DynamicTheme? get dynamicTheme => throw _privateConstructorUsedError;
 
@@ -6811,6 +6813,8 @@ abstract class $ThemeDefinitionCopyWith<$Res> {
       ThemeBackground background,
       ThemeRadius radius,
       double density,
+      ThemeTokens tokens,
+      ThemeLayout layout,
       @JsonKey(name: 'dynamic') DynamicTheme? dynamicTheme});
 
   $ThemeColorsCopyWith<$Res> get light;
@@ -6818,6 +6822,8 @@ abstract class $ThemeDefinitionCopyWith<$Res> {
   $ThemeSurfacesCopyWith<$Res> get surfaces;
   $ThemeBackgroundCopyWith<$Res> get background;
   $ThemeRadiusCopyWith<$Res> get radius;
+  $ThemeTokensCopyWith<$Res> get tokens;
+  $ThemeLayoutCopyWith<$Res> get layout;
   $DynamicThemeCopyWith<$Res>? get dynamicTheme;
 }
 
@@ -6842,6 +6848,8 @@ class _$ThemeDefinitionCopyWithImpl<$Res, $Val extends ThemeDefinition>
     Object? background = null,
     Object? radius = null,
     Object? density = null,
+    Object? tokens = null,
+    Object? layout = null,
     Object? dynamicTheme = freezed,
   }) {
     return _then(_value.copyWith(
@@ -6869,6 +6877,14 @@ class _$ThemeDefinitionCopyWithImpl<$Res, $Val extends ThemeDefinition>
           ? _value.density
           : density // ignore: cast_nullable_to_non_nullable
               as double,
+      tokens: null == tokens
+          ? _value.tokens
+          : tokens // ignore: cast_nullable_to_non_nullable
+              as ThemeTokens,
+      layout: null == layout
+          ? _value.layout
+          : layout // ignore: cast_nullable_to_non_nullable
+              as ThemeLayout,
       dynamicTheme: freezed == dynamicTheme
           ? _value.dynamicTheme
           : dynamicTheme // ignore: cast_nullable_to_non_nullable
@@ -6930,6 +6946,26 @@ class _$ThemeDefinitionCopyWithImpl<$Res, $Val extends ThemeDefinition>
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
+  $ThemeTokensCopyWith<$Res> get tokens {
+    return $ThemeTokensCopyWith<$Res>(_value.tokens, (value) {
+      return _then(_value.copyWith(tokens: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ThemeDefinition
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ThemeLayoutCopyWith<$Res> get layout {
+    return $ThemeLayoutCopyWith<$Res>(_value.layout, (value) {
+      return _then(_value.copyWith(layout: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ThemeDefinition
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
   $DynamicThemeCopyWith<$Res>? get dynamicTheme {
     if (_value.dynamicTheme == null) {
       return null;
@@ -6956,6 +6992,8 @@ abstract class _$$ThemeDefinitionImplCopyWith<$Res>
       ThemeBackground background,
       ThemeRadius radius,
       double density,
+      ThemeTokens tokens,
+      ThemeLayout layout,
       @JsonKey(name: 'dynamic') DynamicTheme? dynamicTheme});
 
   @override
@@ -6968,6 +7006,10 @@ abstract class _$$ThemeDefinitionImplCopyWith<$Res>
   $ThemeBackgroundCopyWith<$Res> get background;
   @override
   $ThemeRadiusCopyWith<$Res> get radius;
+  @override
+  $ThemeTokensCopyWith<$Res> get tokens;
+  @override
+  $ThemeLayoutCopyWith<$Res> get layout;
   @override
   $DynamicThemeCopyWith<$Res>? get dynamicTheme;
 }
@@ -6991,6 +7033,8 @@ class __$$ThemeDefinitionImplCopyWithImpl<$Res>
     Object? background = null,
     Object? radius = null,
     Object? density = null,
+    Object? tokens = null,
+    Object? layout = null,
     Object? dynamicTheme = freezed,
   }) {
     return _then(_$ThemeDefinitionImpl(
@@ -7018,6 +7062,14 @@ class __$$ThemeDefinitionImplCopyWithImpl<$Res>
           ? _value.density
           : density // ignore: cast_nullable_to_non_nullable
               as double,
+      tokens: null == tokens
+          ? _value.tokens
+          : tokens // ignore: cast_nullable_to_non_nullable
+              as ThemeTokens,
+      layout: null == layout
+          ? _value.layout
+          : layout // ignore: cast_nullable_to_non_nullable
+              as ThemeLayout,
       dynamicTheme: freezed == dynamicTheme
           ? _value.dynamicTheme
           : dynamicTheme // ignore: cast_nullable_to_non_nullable
@@ -7036,6 +7088,8 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
       this.background = const ThemeBackground(),
       this.radius = const ThemeRadius(),
       this.density = 1.0,
+      this.tokens = const ThemeTokens(),
+      this.layout = const ThemeLayout(),
       @JsonKey(name: 'dynamic') this.dynamicTheme});
 
   factory _$ThemeDefinitionImpl.fromJson(Map<String, dynamic> json) =>
@@ -7058,12 +7112,18 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
   @JsonKey()
   final double density;
   @override
+  @JsonKey()
+  final ThemeTokens tokens;
+  @override
+  @JsonKey()
+  final ThemeLayout layout;
+  @override
   @JsonKey(name: 'dynamic')
   final DynamicTheme? dynamicTheme;
 
   @override
   String toString() {
-    return 'ThemeDefinition(light: $light, dark: $dark, surfaces: $surfaces, background: $background, radius: $radius, density: $density, dynamicTheme: $dynamicTheme)';
+    return 'ThemeDefinition(light: $light, dark: $dark, surfaces: $surfaces, background: $background, radius: $radius, density: $density, tokens: $tokens, layout: $layout, dynamicTheme: $dynamicTheme)';
   }
 
   @override
@@ -7079,6 +7139,8 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
                 other.background == background) &&
             (identical(other.radius, radius) || other.radius == radius) &&
             (identical(other.density, density) || other.density == density) &&
+            (identical(other.tokens, tokens) || other.tokens == tokens) &&
+            (identical(other.layout, layout) || other.layout == layout) &&
             (identical(other.dynamicTheme, dynamicTheme) ||
                 other.dynamicTheme == dynamicTheme));
   }
@@ -7086,7 +7148,7 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, light, dark, surfaces,
-      background, radius, density, dynamicTheme);
+      background, radius, density, tokens, layout, dynamicTheme);
 
   /// Create a copy of ThemeDefinition
   /// with the given fields replaced by the non-null parameter values.
@@ -7113,6 +7175,8 @@ abstract class _ThemeDefinition implements ThemeDefinition {
           final ThemeBackground background,
           final ThemeRadius radius,
           final double density,
+          final ThemeTokens tokens,
+          final ThemeLayout layout,
           @JsonKey(name: 'dynamic') final DynamicTheme? dynamicTheme}) =
       _$ThemeDefinitionImpl;
 
@@ -7132,6 +7196,10 @@ abstract class _ThemeDefinition implements ThemeDefinition {
   @override
   double get density;
   @override
+  ThemeTokens get tokens;
+  @override
+  ThemeLayout get layout;
+  @override
   @JsonKey(name: 'dynamic')
   DynamicTheme? get dynamicTheme;
 
@@ -7140,6 +7208,538 @@ abstract class _ThemeDefinition implements ThemeDefinition {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ThemeDefinitionImplCopyWith<_$ThemeDefinitionImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ThemeLayout _$ThemeLayoutFromJson(Map<String, dynamic> json) {
+  return _ThemeLayout.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ThemeLayout {
+  /// `inset` floats the page content in a rounded panel over a darkened
+  /// backdrop, leaving the player bar full width on the backdrop.
+  @JsonKey(unknownEnumValue: ThemeChrome.flat)
+  ThemeChrome get chrome => throw _privateConstructorUsedError;
+
+  /// `rail` keeps the navigation icon-only at every width instead of
+  /// trading width for labels.
+  @JsonKey(unknownEnumValue: ThemeNav.labels)
+  ThemeNav get nav => throw _privateConstructorUsedError;
+
+  /// `below` spans the seek bar across the full player width instead of
+  /// docking it above the transport controls.
+  @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
+  ThemeProgress get progress => throw _privateConstructorUsedError;
+
+  /// Serializes this ThemeLayout to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ThemeLayout
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ThemeLayoutCopyWith<ThemeLayout> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ThemeLayoutCopyWith<$Res> {
+  factory $ThemeLayoutCopyWith(
+          ThemeLayout value, $Res Function(ThemeLayout) then) =
+      _$ThemeLayoutCopyWithImpl<$Res, ThemeLayout>;
+  @useResult
+  $Res call(
+      {@JsonKey(unknownEnumValue: ThemeChrome.flat) ThemeChrome chrome,
+      @JsonKey(unknownEnumValue: ThemeNav.labels) ThemeNav nav,
+      @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
+      ThemeProgress progress});
+}
+
+/// @nodoc
+class _$ThemeLayoutCopyWithImpl<$Res, $Val extends ThemeLayout>
+    implements $ThemeLayoutCopyWith<$Res> {
+  _$ThemeLayoutCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ThemeLayout
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? chrome = null,
+    Object? nav = null,
+    Object? progress = null,
+  }) {
+    return _then(_value.copyWith(
+      chrome: null == chrome
+          ? _value.chrome
+          : chrome // ignore: cast_nullable_to_non_nullable
+              as ThemeChrome,
+      nav: null == nav
+          ? _value.nav
+          : nav // ignore: cast_nullable_to_non_nullable
+              as ThemeNav,
+      progress: null == progress
+          ? _value.progress
+          : progress // ignore: cast_nullable_to_non_nullable
+              as ThemeProgress,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ThemeLayoutImplCopyWith<$Res>
+    implements $ThemeLayoutCopyWith<$Res> {
+  factory _$$ThemeLayoutImplCopyWith(
+          _$ThemeLayoutImpl value, $Res Function(_$ThemeLayoutImpl) then) =
+      __$$ThemeLayoutImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {@JsonKey(unknownEnumValue: ThemeChrome.flat) ThemeChrome chrome,
+      @JsonKey(unknownEnumValue: ThemeNav.labels) ThemeNav nav,
+      @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
+      ThemeProgress progress});
+}
+
+/// @nodoc
+class __$$ThemeLayoutImplCopyWithImpl<$Res>
+    extends _$ThemeLayoutCopyWithImpl<$Res, _$ThemeLayoutImpl>
+    implements _$$ThemeLayoutImplCopyWith<$Res> {
+  __$$ThemeLayoutImplCopyWithImpl(
+      _$ThemeLayoutImpl _value, $Res Function(_$ThemeLayoutImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ThemeLayout
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? chrome = null,
+    Object? nav = null,
+    Object? progress = null,
+  }) {
+    return _then(_$ThemeLayoutImpl(
+      chrome: null == chrome
+          ? _value.chrome
+          : chrome // ignore: cast_nullable_to_non_nullable
+              as ThemeChrome,
+      nav: null == nav
+          ? _value.nav
+          : nav // ignore: cast_nullable_to_non_nullable
+              as ThemeNav,
+      progress: null == progress
+          ? _value.progress
+          : progress // ignore: cast_nullable_to_non_nullable
+              as ThemeProgress,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ThemeLayoutImpl implements _ThemeLayout {
+  const _$ThemeLayoutImpl(
+      {@JsonKey(unknownEnumValue: ThemeChrome.flat)
+      this.chrome = ThemeChrome.flat,
+      @JsonKey(unknownEnumValue: ThemeNav.labels) this.nav = ThemeNav.labels,
+      @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
+      this.progress = ThemeProgress.inlinePlacement});
+
+  factory _$ThemeLayoutImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ThemeLayoutImplFromJson(json);
+
+  /// `inset` floats the page content in a rounded panel over a darkened
+  /// backdrop, leaving the player bar full width on the backdrop.
+  @override
+  @JsonKey(unknownEnumValue: ThemeChrome.flat)
+  final ThemeChrome chrome;
+
+  /// `rail` keeps the navigation icon-only at every width instead of
+  /// trading width for labels.
+  @override
+  @JsonKey(unknownEnumValue: ThemeNav.labels)
+  final ThemeNav nav;
+
+  /// `below` spans the seek bar across the full player width instead of
+  /// docking it above the transport controls.
+  @override
+  @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
+  final ThemeProgress progress;
+
+  @override
+  String toString() {
+    return 'ThemeLayout(chrome: $chrome, nav: $nav, progress: $progress)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ThemeLayoutImpl &&
+            (identical(other.chrome, chrome) || other.chrome == chrome) &&
+            (identical(other.nav, nav) || other.nav == nav) &&
+            (identical(other.progress, progress) ||
+                other.progress == progress));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, chrome, nav, progress);
+
+  /// Create a copy of ThemeLayout
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ThemeLayoutImplCopyWith<_$ThemeLayoutImpl> get copyWith =>
+      __$$ThemeLayoutImplCopyWithImpl<_$ThemeLayoutImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ThemeLayoutImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ThemeLayout implements ThemeLayout {
+  const factory _ThemeLayout(
+      {@JsonKey(unknownEnumValue: ThemeChrome.flat) final ThemeChrome chrome,
+      @JsonKey(unknownEnumValue: ThemeNav.labels) final ThemeNav nav,
+      @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
+      final ThemeProgress progress}) = _$ThemeLayoutImpl;
+
+  factory _ThemeLayout.fromJson(Map<String, dynamic> json) =
+      _$ThemeLayoutImpl.fromJson;
+
+  /// `inset` floats the page content in a rounded panel over a darkened
+  /// backdrop, leaving the player bar full width on the backdrop.
+  @override
+  @JsonKey(unknownEnumValue: ThemeChrome.flat)
+  ThemeChrome get chrome;
+
+  /// `rail` keeps the navigation icon-only at every width instead of
+  /// trading width for labels.
+  @override
+  @JsonKey(unknownEnumValue: ThemeNav.labels)
+  ThemeNav get nav;
+
+  /// `below` spans the seek bar across the full player width instead of
+  /// docking it above the transport controls.
+  @override
+  @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
+  ThemeProgress get progress;
+
+  /// Create a copy of ThemeLayout
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ThemeLayoutImplCopyWith<_$ThemeLayoutImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ThemeTokens _$ThemeTokensFromJson(Map<String, dynamic> json) {
+  return _ThemeTokens.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ThemeTokens {
+  /// Width of an album/playlist card, and edge of its square cover.
+  double get cardWidth => throw _privateConstructorUsedError;
+
+  /// Height of an album/playlist card row or grid cell.
+  double get cardHeight => throw _privateConstructorUsedError;
+
+  /// Width of an artist card. Always at least as wide as its avatar.
+  double get artistCardWidth => throw _privateConstructorUsedError;
+
+  /// Height of an artist card row or grid cell.
+  double get artistCardHeight => throw _privateConstructorUsedError;
+
+  /// Space between cards, and between a card row's blocks.
+  double get gutter => throw _privateConstructorUsedError;
+
+  /// Font family to render text with. Resolved against the platform's
+  /// font fallbacks, never loaded from the plugin.
+  String? get fontFamily => throw _privateConstructorUsedError;
+
+  /// Serializes this ThemeTokens to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ThemeTokens
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ThemeTokensCopyWith<ThemeTokens> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ThemeTokensCopyWith<$Res> {
+  factory $ThemeTokensCopyWith(
+          ThemeTokens value, $Res Function(ThemeTokens) then) =
+      _$ThemeTokensCopyWithImpl<$Res, ThemeTokens>;
+  @useResult
+  $Res call(
+      {double cardWidth,
+      double cardHeight,
+      double artistCardWidth,
+      double artistCardHeight,
+      double gutter,
+      String? fontFamily});
+}
+
+/// @nodoc
+class _$ThemeTokensCopyWithImpl<$Res, $Val extends ThemeTokens>
+    implements $ThemeTokensCopyWith<$Res> {
+  _$ThemeTokensCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ThemeTokens
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? cardWidth = null,
+    Object? cardHeight = null,
+    Object? artistCardWidth = null,
+    Object? artistCardHeight = null,
+    Object? gutter = null,
+    Object? fontFamily = freezed,
+  }) {
+    return _then(_value.copyWith(
+      cardWidth: null == cardWidth
+          ? _value.cardWidth
+          : cardWidth // ignore: cast_nullable_to_non_nullable
+              as double,
+      cardHeight: null == cardHeight
+          ? _value.cardHeight
+          : cardHeight // ignore: cast_nullable_to_non_nullable
+              as double,
+      artistCardWidth: null == artistCardWidth
+          ? _value.artistCardWidth
+          : artistCardWidth // ignore: cast_nullable_to_non_nullable
+              as double,
+      artistCardHeight: null == artistCardHeight
+          ? _value.artistCardHeight
+          : artistCardHeight // ignore: cast_nullable_to_non_nullable
+              as double,
+      gutter: null == gutter
+          ? _value.gutter
+          : gutter // ignore: cast_nullable_to_non_nullable
+              as double,
+      fontFamily: freezed == fontFamily
+          ? _value.fontFamily
+          : fontFamily // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ThemeTokensImplCopyWith<$Res>
+    implements $ThemeTokensCopyWith<$Res> {
+  factory _$$ThemeTokensImplCopyWith(
+          _$ThemeTokensImpl value, $Res Function(_$ThemeTokensImpl) then) =
+      __$$ThemeTokensImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {double cardWidth,
+      double cardHeight,
+      double artistCardWidth,
+      double artistCardHeight,
+      double gutter,
+      String? fontFamily});
+}
+
+/// @nodoc
+class __$$ThemeTokensImplCopyWithImpl<$Res>
+    extends _$ThemeTokensCopyWithImpl<$Res, _$ThemeTokensImpl>
+    implements _$$ThemeTokensImplCopyWith<$Res> {
+  __$$ThemeTokensImplCopyWithImpl(
+      _$ThemeTokensImpl _value, $Res Function(_$ThemeTokensImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ThemeTokens
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? cardWidth = null,
+    Object? cardHeight = null,
+    Object? artistCardWidth = null,
+    Object? artistCardHeight = null,
+    Object? gutter = null,
+    Object? fontFamily = freezed,
+  }) {
+    return _then(_$ThemeTokensImpl(
+      cardWidth: null == cardWidth
+          ? _value.cardWidth
+          : cardWidth // ignore: cast_nullable_to_non_nullable
+              as double,
+      cardHeight: null == cardHeight
+          ? _value.cardHeight
+          : cardHeight // ignore: cast_nullable_to_non_nullable
+              as double,
+      artistCardWidth: null == artistCardWidth
+          ? _value.artistCardWidth
+          : artistCardWidth // ignore: cast_nullable_to_non_nullable
+              as double,
+      artistCardHeight: null == artistCardHeight
+          ? _value.artistCardHeight
+          : artistCardHeight // ignore: cast_nullable_to_non_nullable
+              as double,
+      gutter: null == gutter
+          ? _value.gutter
+          : gutter // ignore: cast_nullable_to_non_nullable
+              as double,
+      fontFamily: freezed == fontFamily
+          ? _value.fontFamily
+          : fontFamily // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ThemeTokensImpl implements _ThemeTokens {
+  const _$ThemeTokensImpl(
+      {this.cardWidth = 150.0,
+      this.cardHeight = 225.0,
+      this.artistCardWidth = 180.0,
+      this.artistCardHeight = 250.0,
+      this.gutter = 12.0,
+      this.fontFamily});
+
+  factory _$ThemeTokensImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ThemeTokensImplFromJson(json);
+
+  /// Width of an album/playlist card, and edge of its square cover.
+  @override
+  @JsonKey()
+  final double cardWidth;
+
+  /// Height of an album/playlist card row or grid cell.
+  @override
+  @JsonKey()
+  final double cardHeight;
+
+  /// Width of an artist card. Always at least as wide as its avatar.
+  @override
+  @JsonKey()
+  final double artistCardWidth;
+
+  /// Height of an artist card row or grid cell.
+  @override
+  @JsonKey()
+  final double artistCardHeight;
+
+  /// Space between cards, and between a card row's blocks.
+  @override
+  @JsonKey()
+  final double gutter;
+
+  /// Font family to render text with. Resolved against the platform's
+  /// font fallbacks, never loaded from the plugin.
+  @override
+  final String? fontFamily;
+
+  @override
+  String toString() {
+    return 'ThemeTokens(cardWidth: $cardWidth, cardHeight: $cardHeight, artistCardWidth: $artistCardWidth, artistCardHeight: $artistCardHeight, gutter: $gutter, fontFamily: $fontFamily)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ThemeTokensImpl &&
+            (identical(other.cardWidth, cardWidth) ||
+                other.cardWidth == cardWidth) &&
+            (identical(other.cardHeight, cardHeight) ||
+                other.cardHeight == cardHeight) &&
+            (identical(other.artistCardWidth, artistCardWidth) ||
+                other.artistCardWidth == artistCardWidth) &&
+            (identical(other.artistCardHeight, artistCardHeight) ||
+                other.artistCardHeight == artistCardHeight) &&
+            (identical(other.gutter, gutter) || other.gutter == gutter) &&
+            (identical(other.fontFamily, fontFamily) ||
+                other.fontFamily == fontFamily));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, cardWidth, cardHeight,
+      artistCardWidth, artistCardHeight, gutter, fontFamily);
+
+  /// Create a copy of ThemeTokens
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ThemeTokensImplCopyWith<_$ThemeTokensImpl> get copyWith =>
+      __$$ThemeTokensImplCopyWithImpl<_$ThemeTokensImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ThemeTokensImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ThemeTokens implements ThemeTokens {
+  const factory _ThemeTokens(
+      {final double cardWidth,
+      final double cardHeight,
+      final double artistCardWidth,
+      final double artistCardHeight,
+      final double gutter,
+      final String? fontFamily}) = _$ThemeTokensImpl;
+
+  factory _ThemeTokens.fromJson(Map<String, dynamic> json) =
+      _$ThemeTokensImpl.fromJson;
+
+  /// Width of an album/playlist card, and edge of its square cover.
+  @override
+  double get cardWidth;
+
+  /// Height of an album/playlist card row or grid cell.
+  @override
+  double get cardHeight;
+
+  /// Width of an artist card. Always at least as wide as its avatar.
+  @override
+  double get artistCardWidth;
+
+  /// Height of an artist card row or grid cell.
+  @override
+  double get artistCardHeight;
+
+  /// Space between cards, and between a card row's blocks.
+  @override
+  double get gutter;
+
+  /// Font family to render text with. Resolved against the platform's
+  /// font fallbacks, never loaded from the plugin.
+  @override
+  String? get fontFamily;
+
+  /// Create a copy of ThemeTokens
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ThemeTokensImplCopyWith<_$ThemeTokensImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 

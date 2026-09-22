@@ -2,6 +2,7 @@ import 'package:hetu_script/hetu_script.dart';
 import 'package:hetu_script/shared/jsonify.dart';
 import 'package:hetu_script/values.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/services/metadata/theme_sanitizer.dart';
 
 class MetadataPluginThemeEndpoint {
   final Hetu hetu;
@@ -45,32 +46,4 @@ class MetadataPluginThemeEndpoint {
 
     return sanitizeThemeDefinition(ThemeDefinition.fromJson(json));
   }
-}
-
-/// Clamps untrusted plugin numerics to render-safe ranges.
-///
-/// Only clamps: out-of-range numbers keep their intent (0.85 stays
-/// 0.85). Structurally invalid data (missing keys, wrong types) still
-/// throws from `fromJson` and falls back to null upstream.
-ThemeDefinition sanitizeThemeDefinition(ThemeDefinition definition) {
-  double clamp01(double value) => value.clamp(0.0, 1.0).toDouble();
-  double nonNegative(double value) => value < 0 ? 0.0 : value;
-
-  return definition.copyWith(
-    surfaces: definition.surfaces.copyWith(
-      opacity: clamp01(definition.surfaces.opacity),
-      blur: nonNegative(definition.surfaces.blur),
-    ),
-    background: definition.background.copyWith(
-      opacity: clamp01(definition.background.opacity),
-      blur: nonNegative(definition.background.blur),
-    ),
-    radius: definition.radius.copyWith(
-      small: nonNegative(definition.radius.small),
-      medium: nonNegative(definition.radius.medium),
-      large: nonNegative(definition.radius.large),
-      pill: nonNegative(definition.radius.pill),
-    ),
-    density: definition.density < 0 ? 1.0 : definition.density,
-  );
 }

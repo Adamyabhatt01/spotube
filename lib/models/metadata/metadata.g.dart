@@ -637,6 +637,14 @@ _$ThemeDefinitionImpl _$$ThemeDefinitionImplFromJson(Map json) =>
           : ThemeRadius.fromJson(
               Map<String, dynamic>.from(json['radius'] as Map)),
       density: (json['density'] as num?)?.toDouble() ?? 1.0,
+      tokens: json['tokens'] == null
+          ? const ThemeTokens()
+          : ThemeTokens.fromJson(
+              Map<String, dynamic>.from(json['tokens'] as Map)),
+      layout: json['layout'] == null
+          ? const ThemeLayout()
+          : ThemeLayout.fromJson(
+              Map<String, dynamic>.from(json['layout'] as Map)),
       dynamicTheme: json['dynamic'] == null
           ? null
           : DynamicTheme.fromJson(
@@ -652,7 +660,62 @@ Map<String, dynamic> _$$ThemeDefinitionImplToJson(
       'background': instance.background.toJson(),
       'radius': instance.radius.toJson(),
       'density': instance.density,
+      'tokens': instance.tokens.toJson(),
+      'layout': instance.layout.toJson(),
       'dynamic': instance.dynamicTheme?.toJson(),
+    };
+
+_$ThemeLayoutImpl _$$ThemeLayoutImplFromJson(Map json) => _$ThemeLayoutImpl(
+      chrome: $enumDecodeNullable(_$ThemeChromeEnumMap, json['chrome'],
+              unknownValue: ThemeChrome.flat) ??
+          ThemeChrome.flat,
+      nav: $enumDecodeNullable(_$ThemeNavEnumMap, json['nav'],
+              unknownValue: ThemeNav.labels) ??
+          ThemeNav.labels,
+      progress: $enumDecodeNullable(_$ThemeProgressEnumMap, json['progress'],
+              unknownValue: ThemeProgress.inlinePlacement) ??
+          ThemeProgress.inlinePlacement,
+    );
+
+Map<String, dynamic> _$$ThemeLayoutImplToJson(_$ThemeLayoutImpl instance) =>
+    <String, dynamic>{
+      'chrome': _$ThemeChromeEnumMap[instance.chrome]!,
+      'nav': _$ThemeNavEnumMap[instance.nav]!,
+      'progress': _$ThemeProgressEnumMap[instance.progress]!,
+    };
+
+const _$ThemeChromeEnumMap = {
+  ThemeChrome.flat: 'flat',
+  ThemeChrome.inset: 'inset',
+};
+
+const _$ThemeNavEnumMap = {
+  ThemeNav.labels: 'labels',
+  ThemeNav.rail: 'rail',
+};
+
+const _$ThemeProgressEnumMap = {
+  ThemeProgress.inlinePlacement: 'inline',
+  ThemeProgress.below: 'below',
+};
+
+_$ThemeTokensImpl _$$ThemeTokensImplFromJson(Map json) => _$ThemeTokensImpl(
+      cardWidth: (json['cardWidth'] as num?)?.toDouble() ?? 150.0,
+      cardHeight: (json['cardHeight'] as num?)?.toDouble() ?? 225.0,
+      artistCardWidth: (json['artistCardWidth'] as num?)?.toDouble() ?? 180.0,
+      artistCardHeight: (json['artistCardHeight'] as num?)?.toDouble() ?? 250.0,
+      gutter: (json['gutter'] as num?)?.toDouble() ?? 12.0,
+      fontFamily: json['fontFamily'] as String?,
+    );
+
+Map<String, dynamic> _$$ThemeTokensImplToJson(_$ThemeTokensImpl instance) =>
+    <String, dynamic>{
+      'cardWidth': instance.cardWidth,
+      'cardHeight': instance.cardHeight,
+      'artistCardWidth': instance.artistCardWidth,
+      'artistCardHeight': instance.artistCardHeight,
+      'gutter': instance.gutter,
+      'fontFamily': instance.fontFamily,
     };
 
 _$ThemeColorsImpl _$$ThemeColorsImplFromJson(Map json) => _$ThemeColorsImpl(
