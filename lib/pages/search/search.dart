@@ -18,6 +18,7 @@ import 'package:spotube/pages/search/tabs/all.dart';
 import 'package:spotube/pages/search/tabs/artists.dart';
 import 'package:spotube/pages/search/tabs/playlists.dart';
 import 'package:spotube/pages/search/tabs/tracks.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/provider/metadata_plugin/search/all.dart';
 import 'package:spotube/services/kv_store/kv_store.dart';
 import 'package:auto_route/auto_route.dart';
@@ -73,7 +74,10 @@ class SearchPage extends HookConsumerWidget {
 
     return PopScope(
       canPop: false,
+      // `didPop == true` means the router deleted this page out of its stack,
+      // not that the user asked to leave; see library.dart's handler.
       onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
         context.navigateTo(const HomeRoute());
       },
       child: SafeArea(
@@ -189,8 +193,8 @@ class SearchPage extends HookConsumerWidget {
                                     return ButtonVariance.primary
                                         .decoration(context, states)
                                         .copyWithIfBoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(100),
+                                          borderRadius: BorderRadius.circular(
+                                              context.pillCornerRadius),
                                         );
                                   },
                                 )
@@ -199,8 +203,8 @@ class SearchPage extends HookConsumerWidget {
                                     return ButtonVariance.secondary
                                         .decoration(context, states)
                                         .copyWithIfBoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(100),
+                                          borderRadius: BorderRadius.circular(
+                                              context.pillCornerRadius),
                                         );
                                   },
                                 ),

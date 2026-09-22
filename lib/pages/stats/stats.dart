@@ -17,7 +17,10 @@ class StatsPage extends HookConsumerWidget {
   Widget build(BuildContext context, ref) {
     return PopScope(
       canPop: false,
+      // `didPop == true` means the router deleted this page out of its stack,
+      // not that the user asked to leave; see library.dart's handler.
       onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
         context.navigateTo(const HomeRoute());
       },
       child: SafeArea(

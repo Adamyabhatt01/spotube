@@ -43,7 +43,14 @@ class LibraryPage extends HookConsumerWidget {
 
     return PopScope(
       canPop: false,
+      // Only a *blocked* pop is the user asking to leave the library, which is
+      // what Home answers. `didPop == true` means this page was deleted out of
+      // the router's stack - which is what `navigateTo` does to a route already
+      // on it (routing_controller.dart:1243-1255) - and answering that with Home
+      // is how clicking a playlist could land on the home page with no back
+      // gesture anywhere in sight.
       onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
         context.navigateTo(const HomeRoute());
       },
       child: SafeArea(
