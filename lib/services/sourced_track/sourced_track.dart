@@ -16,13 +16,92 @@ import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 
 import 'package:spotube/services/sourced_track/exceptions.dart';
+import 'package:spotube/services/sourced_track/source_resolver.dart';
 import 'package:spotube/services/sourced_track/validation.dart';
-import 'package:spotube/utils/service_utils.dart';
 
+/// Uploads that are an official *music* release. Deliberately narrower than it
+/// looks: `(Official Lyric Video)` used to match here and collect the same
+/// bonus as `(Official Audio)`, which ranked lyric pages ahead of the
+/// recording itself.
 final officialMusicRegex = RegExp(
-  r"official\s(video|audio|music\svideo|lyric\svideo|visualizer)",
+  r"official\s(audio|music\s?video|visualizer)",
   caseSensitive: false,
 );
+
+/// Not the song: tempo and echo edits, re-sung takes, lyric-only pages. These
+/// routinely out-score the recording on view-count-ordered result pages, one
+/// measured case being a 60M-view "Slowed + Reverb" of a studio track.
+final _alteredVersionRegex = RegExp(
+  r"slowed|reverb|sped\s?up|\b8d\b|bass\s?boosted|karaoke|\bcover\b|lyrics?\b|unofficial",
+  caseSensitive: false,
+);
+
+/// How far a candidate may drift from the track's length and still be the same
+/// recording. Bounds live boots, "Best of" runtimes and acoustic re-takes,
+/// which are all present on a real result page for a popular song.
+const kSourceDurationTolerance = Duration(seconds: 15);
+
+/// Trademark/copyright glyphs that survive from label metadata into artist
+/// credits ("Slay™"). Search engines treat them as literal terms, which can
+/// collapse an otherwise full result page.
+final _creditSymbolRegex = RegExp('[™®©℠]');
+
+String _stripCreditSymbols(String value) =>
+    value.replaceAll(_creditSymbolRegex, '').trim();
+
+/// YouTube renders a multi-artist upload's channel as "Flawed and 2 more",
+/// where only the leading name is comparable to a credited artist.
+final _trailingCoArtistsRegex = RegExp(r'\s+and\s+\d+\s+more$');
+
+String _normalizeChannelName(String value) => value
+    .toLowerCase()
+    .replaceAll(_trailingCoArtistsRegex, '')
+    .replaceAll(_creditSymbolRegex, '')
+    .trim();
+
+/// Metadata variants worth re-searching, most faithful first.
+///
+/// Audio-source plugins build the search string themselves from the track
+/// (typically `"<name> <artists joined>"`, or the ISRC when present), so the
+/// track object handed to the plugin is the only recall lever Spotube has.
+/// Two things silently destroy recall there: an ISRC, which never appears in
+/// a video title and whose *junk* result page stops the plugin's own
+/// empty-result fallback; and featured-artist credits, where a single ™ or
+/// accented letter is enough for YouTube's filtered search to return one or
+/// zero results instead of twenty.
+///
+/// Returns an empty list when there is nothing left to simplify, so an
+/// already-plain query costs one search whether or not the track exists.
+List<SpotubeFullTrackObject> searchRetryVariants(
+  SpotubeFullTrackObject track,
+) {
+  final artists = track.artists
+      .map((artist) => artist.copyWith(
+            name: _stripCreditSymbols(artist.name),
+          ))
+      .where((artist) => artist.name.isNotEmpty)
+      .toList();
+
+  if (artists.isEmpty) return const [];
+
+  final variants = <SpotubeFullTrackObject>[];
+  final simplified = track.copyWith(
+    isrc: '',
+    name: _stripCreditSymbols(track.name),
+    artists: artists,
+  );
+
+  if (simplified.name.isEmpty) return const [];
+
+  if (simplified != track) variants.add(simplified);
+
+  // A track credited to many artists is usually findable by its primary one,
+  // which drops whatever the simplifying above cannot reach.
+  if (artists.length > 1) {
+    variants.add(simplified.copyWith(artists: [artists.first]));
+  }
+  return variants;
+}
 
 /// How long a cached source-match stays authoritative.
 ///
@@ -50,9 +129,9 @@ SourceMatchCacheDecision classifyCachedSourceMatch({
   required String sourceInfo,
   required DateTime createdAt,
   DateTime? now,
-  Duration ttl = kSourceMatchCacheTtl,
 }) {
-  final expired = (now ?? DateTime.now()).difference(createdAt) > ttl;
+  final expired =
+      (now ?? DateTime.now()).difference(createdAt) > kSourceMatchCacheTtl;
   var readable = false;
   try {
     final decoded = jsonDecode(sourceInfo);
@@ -65,8 +144,14 @@ SourceMatchCacheDecision classifyCachedSourceMatch({
   } catch (_) {
     readable = false;
   }
-  if (readable) return expired ? SourceMatchCacheDecision.refresh : SourceMatchCacheDecision.hit;
-  return expired ? SourceMatchCacheDecision.refresh : SourceMatchCacheDecision.negativeHit;
+  if (readable) {
+    return expired
+        ? SourceMatchCacheDecision.refresh
+        : SourceMatchCacheDecision.hit;
+  }
+  return expired
+      ? SourceMatchCacheDecision.refresh
+      : SourceMatchCacheDecision.negativeHit;
 }
 
 class SourcedTrack extends BasicSourcedTrack {
@@ -82,14 +167,15 @@ class SourcedTrack extends BasicSourcedTrack {
     super.sourceCandidateKey,
   });
 
-static Future<SourcedTrack> fetchFromTrack({
+  static Future<SourcedTrack> fetchFromTrack({
     required SpotubeFullTrackObject query,
     required Ref ref,
   }) async {
     final audioSource = await ref.read(audioSourcePluginProvider.future);
     final audioSourceConfig = await ref.read(metadataPluginsProvider
         .selectAsync((data) => data.defaultAudioSourcePluginConfig));
-    final youtubeEngine = ref.read(userPreferencesProvider.select((s) => s.youtubeClientEngine));
+    final youtubeEngine =
+        ref.read(userPreferencesProvider.select((s) => s.youtubeClientEngine));
     if (audioSource == null || audioSourceConfig == null) {
       throw MetadataPluginException.noDefaultAudioSourcePlugin();
     }
@@ -118,7 +204,7 @@ static Future<SourcedTrack> fetchFromTrack({
           // Stale identity (or stale tombstone): drop and re-search below.
           await (database.sourceMatchTable.delete()
                 ..where((s) => s.id.equals(cachedSource!.id)))
-            .go();
+              .go();
           cachedSource = null;
         case SourceMatchCacheDecision.negativeHit:
           // A recent search already found nothing: fail without
@@ -127,21 +213,67 @@ static Future<SourcedTrack> fetchFromTrack({
       }
     }
 
-    final candidateKey = '${audioSourceConfig.slug}:${youtubeEngine.runtimeType}';
+    final resolver = SourceResolver(ref);
+    final candidateKey = (await resolver.primaryCandidate()).key;
 
     if (cachedSource == null) {
-      final siblings = await fetchSiblings(ref: ref, query: query);
+      // A primary-engine failure comes in two kinds and they must not be
+      // conflated: "searched, found nothing" is a miss worth remembering,
+      // "could not search" (crashed backend, bot check) is not. Both widen.
+      var siblings = const <SpotubeAudioSourceMatchObject>[];
+      Object? primaryFailure;
+      try {
+        siblings = await fetchSiblings(ref: ref, query: query);
+      } on TrackNotFoundError {
+        // answered "no such track"
+      } catch (error) {
+        primaryFailure = error;
+      }
+
       if (siblings.isEmpty) {
-        // Negative cache: remember the miss so near-future resolutions
-        // fail fast instead of re-searching. Expires via the same TTL.
+        // Playback used to stop here: `playbackFallbackUrls` can only reroute a
+        // URL that already exists, and only downloads walked the other engines —
+        // so a track visible to a backend the user did not pick never played.
+        // Costs nothing unless the first engine came up empty, which is the case
+        // above.
+        final SourcedTrack resolvedElsewhere;
+        try {
+          resolvedElsewhere = await resolver.resolveFirstAvailable(
+            query,
+            candidates: await resolver.engineFallbackCandidates(
+              pluginSlug: audioSourceConfig.slug,
+              skipEngine: youtubeEngine,
+            ),
+          );
+        } on TrackNotFoundError {
+          if (primaryFailure != null) {
+            // Nothing else could resolve it either, and the original error is
+            // the informative one. Absence stays uncached so the next playback
+            // gets a fresh attempt.
+            throw primaryFailure;
+          }
+          // Every engine answered "no such track": remember the miss so
+          // near-future resolutions fail fast instead of re-searching.
+          // Expires via the same TTL.
+          await database.into(database.sourceMatchTable).insert(
+                SourceMatchTableCompanion.insert(
+                  trackId: query.id,
+                  sourceInfo: const Value('{}'),
+                  sourceType: audioSourceConfig.slug,
+                ),
+              );
+          rethrow;
+        }
+
         await database.into(database.sourceMatchTable).insert(
               SourceMatchTableCompanion.insert(
                 trackId: query.id,
-                sourceInfo: const Value('{}'),
-                sourceType: audioSourceConfig.slug,
+                sourceInfo: Value(jsonEncode(resolvedElsewhere.info)),
+                sourceType: resolvedElsewhere.source,
               ),
             );
-        throw TrackNotFoundError(query);
+
+        return resolvedElsewhere;
       }
 
       await database.into(database.sourceMatchTable).insert(
@@ -184,6 +316,28 @@ static Future<SourcedTrack> fetchFromTrack({
     return sourcedTrack;
   }
 
+  /// Searches [track] through [search], escalating to
+  /// [searchRetryVariants] only when a variant comes back clean-empty.
+  ///
+  /// A thrown search is never treated as an empty one: it propagates so
+  /// callers skip the negative cache instead of remembering a blockage as
+  /// "this track does not exist".
+  static Future<List<SpotubeAudioSourceMatchObject>> matchWithQueryVariants({
+    required SpotubeFullTrackObject track,
+    required Future<List<SpotubeAudioSourceMatchObject>> Function(
+      SpotubeFullTrackObject track,
+    ) search,
+  }) async {
+    final results = await search(track);
+    if (results.isNotEmpty) return results;
+
+    for (final variant in searchRetryVariants(track)) {
+      final retry = await search(variant);
+      if (retry.isNotEmpty) return retry;
+    }
+    return results;
+  }
+
   static List<SpotubeAudioSourceMatchObject> rankResults(
     List<SpotubeAudioSourceMatchObject> results,
     SpotubeFullTrackObject track,
@@ -193,15 +347,19 @@ static Future<SourcedTrack> fetchFromTrack({
           int score = 0;
 
           for (final artist in track.artists) {
-            final isSameChannelArtist =
-                sibling.artists.any((a) => a.toLowerCase() == artist.name);
+            final isSameChannelArtist = sibling.artists.any(
+              (channel) =>
+                  _normalizeChannelName(channel) ==
+                  _normalizeChannelName(artist.name),
+            );
 
             if (isSameChannelArtist) {
               score += 1;
             }
 
-            final titleContainsArtist =
-                sibling.title.toLowerCase().contains(artist.name.toLowerCase());
+            final titleContainsArtist = sibling.title
+                .toLowerCase()
+                .contains(_normalizeChannelName(artist.name));
 
             if (titleContainsArtist) {
               score += 1;
@@ -226,6 +384,23 @@ static Future<SourcedTrack> fetchFromTrack({
             score += 2;
           }
 
+          if (_alteredVersionRegex.hasMatch(sibling.title)) {
+            score -= 4;
+          }
+
+          // A candidate whose length disagrees with the track is a different
+          // recording of it, however closely the titles agree. `durationMs` is
+          // the only field the plugin boundary still carries that says
+          // anything about the recording itself. A non-positive duration means
+          // the plugin never learned one, which is not evidence of a mismatch.
+          final duration = sibling.duration;
+          if (duration > Duration.zero && track.durationMs > 0) {
+            final drift = duration - Duration(milliseconds: track.durationMs);
+            if (drift.abs() > kSourceDurationTolerance) {
+              score -= 2;
+            }
+          }
+
           return (sibling: sibling, score: score);
         })
         .sorted((a, b) => b.score.compareTo(a.score))
@@ -245,13 +420,12 @@ static Future<SourcedTrack> fetchFromTrack({
 
     final videoResults = <SpotubeAudioSourceMatchObject>[];
 
-    final searchResults = await audioSource.audioSource.matches(query);
+    final searchResults = await matchWithQueryVariants(
+      track: query,
+      search: (track) => audioSource.audioSource.matches(track),
+    );
 
-    if (ServiceUtils.onlyContainsEnglish(query.name)) {
-      videoResults.addAll(searchResults);
-    } else {
-      videoResults.addAll(rankResults(searchResults, query));
-    }
+    videoResults.addAll(rankResults(searchResults, query));
 
     return videoResults.toSet().toList();
   }
@@ -327,10 +501,6 @@ static Future<SourcedTrack> fetchFromTrack({
     );
   }
 
-  Future<SourcedTrack?> swapWithSiblingOfIndex(int index) {
-    return swapWithSibling(siblings[index]);
-  }
-
   Future<SourcedTrack> refreshStream() async {
     final audioSource = await ref.read(audioSourcePluginProvider.future);
     final audioSourceConfig = await ref.read(metadataPluginsProvider
@@ -353,8 +523,7 @@ static Future<SourcedTrack> fetchFromTrack({
         final res = await globalDio.head(
           source.url,
           options: Options(
-            validateStatus: (status) =>
-                status != null && status < 500,
+            validateStatus: (status) => status != null && status < 500,
             // Abort the socket itself on stall. Note: Dio 5 only allows
             // connectTimeout on BaseOptions, so the connect phase is bounded
             // by the helper-level timeout in filterValidBounded; this
@@ -510,16 +679,15 @@ static Future<SourcedTrack> fetchFromTrack({
   ) {
     if (sources.isEmpty) return null;
 
-    final inPreferred = sources
-        .where((s) => s.container == preferredPreset.name)
-        .toList();
+    final inPreferred =
+        sources.where((s) => s.container == preferredPreset.name).toList();
     if (inPreferred.isNotEmpty) {
-      return inPreferred.reduce((a, b) =>
-          (b.bitrate ?? 0) > (a.bitrate ?? 0) ? b : a);
+      return inPreferred
+          .reduce((a, b) => (b.bitrate ?? 0) > (a.bitrate ?? 0) ? b : a);
     }
 
-    return sources.reduce((a, b) =>
-        (b.bitrate ?? 0) > (a.bitrate ?? 0) ? b : a);
+    return sources
+        .reduce((a, b) => (b.bitrate ?? 0) > (a.bitrate ?? 0) ? b : a);
   }
 
   SpotubeAudioSourceContainerPreset? get qualityPreset {

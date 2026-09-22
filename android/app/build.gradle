@@ -122,6 +122,12 @@ flutter {
 
 def glanceVersion = "1.1.1"
 dependencies {
+    // Must stay the plain artifact: desugar_jdk_libs_nio would backport
+    // java.net.URLEncoder.encode(String, Charset) (API 33), which
+    // NewPipeExtractor's utils call undixed today, but it cannot be dexed by
+    // AGP 8.7 at all — per-module DexingNoClasspathTransform has no
+    // android.jar root, so R8 fails with "android.jar is located outside the
+    // root directory". flutter_new_pipe_extractor pins this same artifact.
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
 
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.1'

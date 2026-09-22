@@ -88,14 +88,14 @@ class MetadataPlugin {
             final result = await youtubeEngine.searchVideos(query);
             return result
                 .map((video) => {
-                      'id': video.id.value,
+                      'id': video.id,
                       'title': video.title,
                       'author': video.author,
                       'duration': video.duration?.inSeconds,
                       'description': video.description,
                       'uploadDate': video.uploadDate?.toIso8601String(),
-                      'viewCount': video.engagement.viewCount,
-                      'likeCount': video.engagement.likeCount,
+                      'viewCount': video.viewCount,
+                      'likeCount': video.likeCount,
                       'isLive': video.isLive,
                     })
                 .toList();

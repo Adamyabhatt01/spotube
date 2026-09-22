@@ -1,8 +1,11 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+// ignore: depend_on_referenced_packages
+import 'package:meta/meta.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
+import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/services/metadata/metadata.dart';
 import 'package:spotube/services/sourced_track/exceptions.dart';
 import 'package:spotube/services/sourced_track/sourced_track.dart';
@@ -72,7 +75,7 @@ class SourceResolver {
   /// Engines in priority order. Honors the user's configured [sourcePriority]
   /// (list of engine labels) when present; otherwise the user-selected engine
   /// first, then every other platform-available engine.
-  List<YouTubeEngine> _orderedEngines() {
+  List<YoutubeClientEngine> _orderedEngineModes() {
     final priority = ref.read(
       userPreferencesProvider.select((s) => s.sourcePriority),
     );
@@ -100,9 +103,11 @@ class SourceResolver {
     return modes
         .where((mode) => mode.isAvailableForPlatform())
         .toSet()
-        .toList()
-        .map(_buildEngine)
         .toList();
+  }
+
+  List<YouTubeEngine> _orderedEngines() {
+    return _orderedEngineModes().map(_buildEngine).toList();
   }
 
   YouTubeEngine _buildEngine(YoutubeClientEngine mode) {
@@ -111,6 +116,23 @@ class SourceResolver {
       YoutubeClientEngine.ytDlp => YtDlpEngine(),
       YoutubeClientEngine.youtubeExplode => YouTubeExplodeEngine(),
     };
+  }
+
+  /// The candidate the normal path uses: default audio-source plugin on the
+  /// user's configured engine.
+  ///
+  /// Any caller that has to recognise a candidate as "the primary" must build
+  /// its key here. A hand-assembled key looked similar but was not
+  /// (`slug:YoutubeClientEngine` vs `slug@version:NewPipeEngine`), so
+  /// [playbackFallbackUrls] never skipped the primary: it re-searched the
+  /// engine that had just failed and burned one of its three fallback slots.
+  Future<SourceCandidate> primaryCandidate() async {
+    final plugins = await _orderedPlugins();
+    final engines = _orderedEngines();
+    if (plugins.isEmpty || engines.isEmpty) {
+      throw MetadataPluginException.noDefaultAudioSourcePlugin();
+    }
+    return SourceCandidate(plugins.first, engines.first);
   }
 
   /// Lazily builds (and caches via provider) a live plugin for a config, bound
@@ -122,11 +144,7 @@ class SourceResolver {
     // Reuse the default plugin instance when this candidate IS the default
     // (first in priority = default plugin + user-selected engine). This
     // avoids a second Hetu VM for normal downloads/playback.
-    final plugins = await _orderedPlugins();
-    final engines = _orderedEngines();
-    final isDefault =
-        plugins.isNotEmpty && engines.isNotEmpty &&
-        candidate.key == SourceCandidate(plugins.first, engines.first).key;
+    final isDefault = candidate.key == (await primaryCandidate()).key;
 
     if (isDefault) {
       final defaultPlugin = await ref.read(audioSourcePluginProvider.future);
@@ -166,6 +184,64 @@ class SourceResolver {
     return result;
   }
 
+  /// Candidates that widen the *engine* only: [pluginSlug] paired with every
+  /// available engine except [skipEngine].
+  ///
+  /// Crossing engines is safe to cache under one plugin slug because a source
+  /// match is a video id plus its credits, which any YouTube backend can
+  /// stream. Crossing plugins is not — an id from one source means nothing to
+  /// another — which is why the not-found fallback widens engines only.
+  Future<List<SourceCandidate>> engineFallbackCandidates({
+    required String pluginSlug,
+    required YoutubeClientEngine skipEngine,
+  }) async {
+    final plugins = (await _orderedPlugins())
+        .where((plugin) => plugin.slug == pluginSlug)
+        .toList();
+    if (plugins.isEmpty) return const [];
+
+    return [
+      for (final mode in _orderedEngineModes())
+        if (mode != skipEngine)
+          for (final plugin in plugins)
+            SourceCandidate(plugin, _buildEngine(mode)),
+    ];
+  }
+
+  /// Runs [attempt] over [candidates] in priority order and returns the first
+  /// [SourcedTrack] that resolves.
+  ///
+  /// The two failure kinds are kept apart on purpose: a candidate that answers
+  /// "no such track" is a miss, a candidate that throws never is. If every
+  /// candidate misses, [TrackNotFoundError] is rethrown so the caller may cache
+  /// the absence; if any candidate threw and none resolved, that error is
+  /// rethrown instead, so a rate limit or a broken backend cannot be recorded
+  /// as "this track does not exist".
+  Future<SourcedTrack> resolveFirstAvailable(
+    SpotubeFullTrackObject track, {
+    required List<SourceCandidate> candidates,
+    @visibleForTesting
+    Future<SourcedTrack> Function(SourceCandidate candidate)? attempt,
+  }) async {
+    final run = attempt ?? resolve;
+
+    TrackNotFoundError? nothingFound;
+    Object? engineFailure;
+
+    for (final candidate in candidates) {
+      try {
+        return await run(candidate);
+      } on TrackNotFoundError catch (error) {
+        nothingFound = error;
+      } catch (error) {
+        engineFailure ??= error;
+      }
+    }
+
+    if (engineFailure != null) throw engineFailure;
+    throw nothingFound ?? TrackNotFoundError(track);
+  }
+
   /// Resolves [track] through a specific candidate, returning a ready
   /// [SourcedTrack] whose stream is picked via [getStreamOfQuality]. Throws
   /// [TrackNotFoundError] when the candidate yields no matches.
@@ -175,7 +251,10 @@ class SourceResolver {
   ) async {
     final plugin = await _pluginFor(candidate);
 
-    final results = await plugin.audioSource.matches(track);
+    final results = await SourcedTrack.matchWithQueryVariants(
+      track: track,
+      search: (query) => plugin.audioSource.matches(query),
+    );
     if (results.isEmpty) {
       throw TrackNotFoundError(track);
     }
@@ -218,29 +297,6 @@ class SourceResolver {
   }
 }
 
-/// Resolves [track] through the full candidate cascade, returning the first
-/// [SourcedTrack] that resolves. Returns null if every candidate fails.
-/// Each failure is reported to the logger; the last error is returned via
-/// [lastError] so callers can surface why the cascade ultimately failed.
-Future<SourcedTrack?> resolveTrackWithFallback(
-  Ref ref,
-  SpotubeFullTrackObject track, {
-  void Function(Object error, StackTrace stack)? onCandidateFailure,
-}) async {
-  final resolver = SourceResolver(ref);
-  final candidates = await resolver.candidates();
-
-  for (final candidate in candidates) {
-    try {
-      return await resolver.resolve(candidate, track);
-    } catch (e, stack) {
-      onCandidateFailure?.call(e, stack);
-    }
-  }
-
-  return null;
-}
-
 /// Ordered, de-duplicated stream URLs to try for playback when the primary
 /// URL fails. [primary] is the already-resolved default source (yielded
 /// first, so the success path pays no extra work); the remaining URLs come
@@ -280,8 +336,8 @@ Future<List<String>> playbackFallbackUrls(
       // Only first sibling per candidate to bound work
       if (resolved.siblings.isNotEmpty && fallbackCount < maxFallbacks) {
         try {
-          final siblingTrack =
-              await resolver.resolveMatch(candidate, primary.query, resolved.siblings.first);
+          final siblingTrack = await resolver.resolveMatch(
+              candidate, primary.query, resolved.siblings.first);
           final siblingUrl = siblingTrack.url;
           if (siblingUrl != null) urls.add(siblingUrl);
         } catch (_) {

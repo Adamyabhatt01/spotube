@@ -172,7 +172,7 @@ class IsolatedYoutubeExplode {
           "search" => youtubeExplode.search
               .search(
                 arguments[0] as String,
-                filter: arguments.elementAtOrNull(1) ?? TypeFilters.video,
+                filter: TypeFilters.video,
               )
               .then((s) => s.toList()),
           "video" => youtubeExplode.videos.get(arguments[0] as String),
@@ -257,13 +257,7 @@ class IsolatedYoutubeExplode {
     _exitPort.close();
   }
 
-  Future<List<Video>> search(
-    String query, {
-    SearchFilter? filter,
-  }) async {
-    // The filter is intentionally not forwarded: YoutubeApiClient-style
-    // objects are only sent for "manifest" (pre-existing protocol), and
-    // the worker already defaults to video search.
+  Future<List<Video>> search(String query) async {
     return _runMethod<List<Video>>("search", [query]);
   }
 
@@ -300,10 +294,6 @@ class IsolatedYoutubeExplode {
 
 class YouTubeExplodeEngine implements YouTubeEngine {
   static bool get isAvailableForPlatform => true;
-
-  static Future<bool> isInstalled() async {
-    return true;
-  }
 
   @override
   Future<StreamManifest> getStreamManifest(String videoId) async {
@@ -378,23 +368,13 @@ class YouTubeExplodeEngine implements YouTubeEngine {
   }
 
   @override
-  Future<(Video, StreamManifest)> getVideoWithStreamInfo(String videoId) async {
+  Future<List<YouTubeSearchResult>> searchVideos(String query) async {
     await IsolatedYoutubeExplode.initialize();
 
-    final video = await getVideo(videoId);
-    final streamManifest = await getStreamManifest(videoId);
-
-    return (video, streamManifest);
+    final videos = await IsolatedYoutubeExplode.instance.search(query);
+    return videos.map(YouTubeSearchResult.fromVideo).toList();
   }
 
-  @override
-  Future<List<Video>> searchVideos(String query) async {
-    await IsolatedYoutubeExplode.initialize();
-
-    return IsolatedYoutubeExplode.instance.search(query);
-  }
-
-  @override
   void dispose() {
     if (!IsolatedYoutubeExplode.isInitialized) return;
     IsolatedYoutubeExplode.instance.dispose();

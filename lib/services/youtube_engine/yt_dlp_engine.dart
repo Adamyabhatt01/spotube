@@ -128,6 +128,34 @@ class YtDlpEngine implements YouTubeEngine {
     return isAvailableForPlatform && await resolveBinaryPath() != null;
   }
 
+  /// Parses one `--flat-playlist` search row.
+  ///
+  /// Flat rows are a different shape from full video info: `channel_id`,
+  /// `uploader_*`, `upload_date`, `like_count` and sometimes `duration` are
+  /// all `null`, and the rows missing them are music uploads — which is where
+  /// the correct video for a track usually is. Nothing here may require a
+  /// field yt-dlp is allowed to omit, or one such row costs the whole page.
+  static YouTubeSearchResult? parseSearchResult(dynamic entry) {
+    if (entry is! Map) return null;
+    final info = entry.cast<String, dynamic>();
+    final id = info["id"] as String?;
+    final title = info["title"] as String?;
+    if (id == null || id.isEmpty || title == null || title.isEmpty) {
+      return null;
+    }
+
+    final duration = info["duration"];
+    return YouTubeSearchResult(
+      id: id,
+      title: title,
+      author: (info["channel"] ?? info["uploader"]) as String? ?? "",
+      duration: duration is num ? Duration(seconds: duration.toInt()) : null,
+      description: info["description"] as String?,
+      viewCount: (info["view_count"] as num?)?.toInt(),
+      isLive: info["live_status"] == "is_live",
+    );
+  }
+
   @override
   Future<StreamManifest> getStreamManifest(String videoId) async {
     final formats = await YtDlp.instance.extractInfo(
@@ -162,23 +190,7 @@ class YtDlpEngine implements YouTubeEngine {
   }
 
   @override
-  Future<(Video, StreamManifest)> getVideoWithStreamInfo(String videoId) async {
-    final info = await YtDlp.instance.extractInfo(
-      "https://www.youtube.com/watch?v=$videoId",
-      formatSpecifiers: "%()j",
-      extraArgs: [
-        "--no-check-certificate",
-        "--geo-bypass",
-        "--quiet",
-        "--ignore-errors",
-      ],
-    ) as Map<String, dynamic>;
-
-    return (_parseInfo(info), _parseFormats(info["formats"], videoId));
-  }
-
-  @override
-  Future<List<Video>> searchVideos(String query) async {
+  Future<List<YouTubeSearchResult>> searchVideos(String query) async {
     final stdout = await YtDlp.instance.extractInfoString(
       "ytsearch10:$query",
       formatSpecifiers: "%()j",
@@ -197,9 +209,6 @@ class YtDlpEngine implements YouTubeEngine {
       "[${stdout.split("\n").where((s) => s.trim().isNotEmpty).join(",")}]",
     ) as List;
 
-    return json.map((e) => _parseInfo(e)).toList();
+    return json.map(parseSearchResult).nonNulls.toList();
   }
-
-  @override
-  void dispose() {}
 }
