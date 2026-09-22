@@ -310,6 +310,14 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
   void setCacheMusic(bool cache) {
     setData(PreferencesTableCompanion(cacheMusic: Value(cache)));
   }
+
+  void setThemeTransition(bool enabled) {
+    setData(PreferencesTableCompanion(themeTransition: Value(enabled)));
+  }
+
+  void setThemeTransitionMs(int milliseconds) {
+    setData(PreferencesTableCompanion(themeTransitionMs: Value(milliseconds)));
+  }
 }
 
 final userPreferencesProvider =

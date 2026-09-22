@@ -1,5 +1,8 @@
 {
   "ar": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -24,6 +27,9 @@
   ],
 
   "bn": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -48,6 +54,9 @@
   ],
 
   "ca": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -72,6 +81,9 @@
   ],
 
   "cs": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -96,6 +108,9 @@
   ],
 
   "de": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -120,6 +135,9 @@
   ],
 
   "es": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -144,6 +162,9 @@
   ],
 
   "eu": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -168,6 +189,9 @@
   ],
 
   "fa": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -192,6 +216,9 @@
   ],
 
   "fi": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -216,6 +243,9 @@
   ],
 
   "fr": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -240,6 +270,9 @@
   ],
 
   "hi": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -264,6 +297,9 @@
   ],
 
   "id": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -288,6 +324,9 @@
   ],
 
   "it": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -312,6 +351,9 @@
   ],
 
   "ja": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -336,6 +378,9 @@
   ],
 
   "ka": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -360,6 +405,9 @@
   ],
 
   "ko": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -384,6 +432,9 @@
   ],
 
   "ne": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -408,6 +459,9 @@
   ],
 
   "nl": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -432,6 +486,9 @@
   ],
 
   "pl": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -456,6 +513,9 @@
   ],
 
   "pt": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -480,6 +540,9 @@
   ],
 
   "ru": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -504,6 +567,9 @@
   ],
 
   "ta": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -528,6 +594,9 @@
   ],
 
   "th": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -552,6 +621,9 @@
   ],
 
   "tl": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -576,6 +648,9 @@
   ],
 
   "tr": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -600,6 +675,9 @@
   ],
 
   "uk": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -624,6 +702,9 @@
   ],
 
   "vi": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -648,6 +729,9 @@
   ],
 
   "zh": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",
@@ -672,6 +756,9 @@
   ],
 
   "zh_TW": [
+    "theme_transition",
+    "theme_transition_description",
+    "theme_transition_duration",
     "splash",
     "splash_animation",
     "splash_animation_none",

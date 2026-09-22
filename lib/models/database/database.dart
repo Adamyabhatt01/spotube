@@ -77,7 +77,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   /// Raw DDL for the quarantine table, kept as a constant so the v11->v12
   /// step can create it idempotently (`IF NOT EXISTS`) without depending
@@ -610,6 +610,31 @@ class AppDatabase extends _$AppDatabase {
           try {
             if (!await _tableExists('library_snapshot_table')) {
               await m.createTable(schema.librarySnapshotTable);
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from14To15: (m, schema) async {
+          try {
+            // Guarded like every step since v12: user_version only moves after
+            // the strategy returns, so a process killed between these two
+            // ALTERs re-enters with one column already present, and an
+            // unguarded ADD COLUMN would then throw on every later launch.
+            if (!(await _tableColumns('preferences_table'))
+                .contains('theme_transition')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.themeTransition,
+              );
+            }
+            if (!(await _tableColumns('preferences_table'))
+                .contains('theme_transition_ms')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.themeTransitionMs,
+              );
             }
           } catch (e, stack) {
             AppLogger.reportError(e, stack);

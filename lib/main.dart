@@ -28,7 +28,10 @@ import 'package:spotube/hooks/configurators/use_get_storage_perms.dart';
 import 'package:spotube/hooks/configurators/use_has_touch.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
+import 'package:spotube/components/scroll_motion_scope.dart';
 import 'package:spotube/modules/settings/color_scheme_picker_dialog.dart';
+import 'package:spotube/modules/theme_background/palette_transition_scope.dart';
 import 'package:spotube/modules/theme_background/theme_background_scope.dart';
 import 'package:spotube/modules/theme_background/theme_definition_cache.dart';
 import 'package:spotube/modules/splash/splash_screen.dart';
@@ -39,7 +42,6 @@ import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/glance/glance.dart';
 import 'package:spotube/provider/server/sourced_track_provider.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
-import 'package:spotube/provider/metadata_plugin/updater/update_checker.dart';
 import 'package:spotube/provider/server/bonsoir.dart';
 import 'package:spotube/provider/server/server.dart';
 import 'package:spotube/provider/tray_manager/tray_manager.dart';
@@ -178,7 +180,8 @@ Future<void> main(List<String> rawArgs) async {
       !kReleaseMode &&
       Platform.environment.containsKey('SPOTUBE_PERF_COUNTERS')) {
     final interval = Duration(
-      seconds: int.tryParse(Platform.environment['SPOTUBE_PERF_COUNTERS']!) ?? 10,
+      seconds:
+          int.tryParse(Platform.environment['SPOTUBE_PERF_COUNTERS']!) ?? 10,
     );
     PerfCounters.startDumpTimer(interval: interval, log: AppLogger.log.t);
   }
@@ -194,6 +197,14 @@ Future<void> main(List<String> rawArgs) async {
     ErrorWidget.builder = (details) => const _StartupErrorFallback();
 
     HttpOverrides.global = BadCertificateAllowlistOverrides();
+
+    // The engine defaults (1000 entries, 100 MB) let a handful of large
+    // backdrops push out the small artwork that is on screen constantly, and
+    // nothing bounded them before. This sits under the sized decodes, not over
+    // them: entries now hold far fewer bytes than they used to.
+    PaintingBinding.instance.imageCache
+      ..maximumSize = 700
+      ..maximumSizeBytes = 64 * 1024 * 1024;
 
     tz.initializeTimeZones();
 
@@ -285,6 +296,12 @@ class Spotube extends HookConsumerWidget {
     final locale = ref.watch(userPreferencesProvider.select((s) => s.locale));
     final accentMaterialColor =
         ref.watch(userPreferencesProvider.select((s) => s.accentColorScheme));
+    final themeTransition = ref.watch(
+      userPreferencesProvider.select((s) => s.themeTransition),
+    );
+    final themeTransitionMs = ref.watch(
+      userPreferencesProvider.select((s) => s.themeTransitionMs),
+    );
     final themeDefinition = ref.watch(themeDefinitionProvider);
     final cachedThemeDefinition = ref.watch(cachedThemeDefinitionProvider);
     final router = useMemoized(() => AppRouter(ref), []);
@@ -336,16 +353,11 @@ class Spotube extends HookConsumerWidget {
       (_, __) {},
       onError: logAsyncError,
     );
-    ref.listen(
-      metadataPluginUpdateCheckerProvider,
-      (_, __) {},
-      onError: logAsyncError,
-    );
-    ref.listen(
-      audioSourcePluginUpdateCheckerProvider,
-      (_, __) {},
-      onError: logAsyncError,
-    );
+    // The two plugin update checks are deliberately not started here: they are
+    // network calls that each can pull a plugin VM online, and a root-widget
+    // listener began them before the first frame. useGlobalSubscriptions runs
+    // them once the app has been idle for a few seconds, and Settings >
+    // Plugins watches the same (keepAlive) providers.
     // Retains the active + next-up sourced-track manifests for the app
     // lifetime (see sourcedTrackRetentionProvider); rebuilds only on
     // queue structural changes.
@@ -406,43 +418,137 @@ class Spotube extends HookConsumerWidget {
       return () => timer?.cancel();
     }, [themeDefinition, cachedThemeDefinition, splashReady.value]);
 
-    final builtInLightScheme =
-        colorSchemeMap[accentMaterialColor.name]?.call(ThemeMode.light) ??
-            LegacyColorSchemes.lightSlate();
+    // shadcn's ThemeData has no value equality and `Theme.updateShouldNotify`
+    // compares by identity, so a freshly built instance on any rebuild notifies
+    // every `Theme.of` consumer in the app. These derivations are memoized on the
+    // plugin theme (a freezed value) so a theme only changes when it changed.
+    final builtInLightScheme = useMemoized(
+      () => colorSchemeMap[accentMaterialColor.name]
+              ?.call(ThemeMode.light) ??
+          LegacyColorSchemes.lightSlate(),
+      [accentMaterialColor.name],
+    );
 
-    final builtInDarkScheme =
-        colorSchemeMap[accentMaterialColor.name]?.call(ThemeMode.dark) ??
-            LegacyColorSchemes.darkSlate();
+    final builtInDarkScheme = useMemoized(
+      () => colorSchemeMap[accentMaterialColor.name]
+              ?.call(ThemeMode.dark) ??
+          LegacyColorSchemes.darkSlate(),
+      [accentMaterialColor.name],
+    );
 
     // Live theme wins; cached theme seeds the first paint instantly
     // and is silently replaced when live resolves. Built-in otherwise.
     final pluginTheme =
         themeDefinition.asData?.value ?? cachedThemeDefinition.asData?.value;
 
-    final lightColorScheme = pluginTheme == null
-        ? builtInLightScheme
-        : _resolveColorScheme(
-            pluginTheme.light,
-            brightness: Brightness.light,
-            fallback: builtInLightScheme,
-          );
+    final lightColorScheme = useMemoized(
+      () => pluginTheme == null
+          ? builtInLightScheme
+          : _resolveColorScheme(
+              pluginTheme.light,
+              brightness: Brightness.light,
+              fallback: builtInLightScheme,
+            ),
+      [pluginTheme, builtInLightScheme],
+    );
 
-    final darkColorScheme = pluginTheme == null
-        ? builtInDarkScheme
-        : _resolveColorScheme(
-            pluginTheme.dark,
-            brightness: Brightness.dark,
-            fallback: builtInDarkScheme,
-          );
+    final darkColorScheme = useMemoized(
+      () => pluginTheme == null
+          ? builtInDarkScheme
+          : _resolveColorScheme(
+              pluginTheme.dark,
+              brightness: Brightness.dark,
+              fallback: builtInDarkScheme,
+            ),
+      [pluginTheme, builtInDarkScheme],
+    );
 
     // v2 contract wiring: surfaces carry translucency into ThemeData,
-    // ThemeBackgroundScope/ThemeSurfacesScope render background/tint.
-    // density and the full radius scale stay parsed-but-unrendered.
-    // Interim radius mapping: shadcn takes a single radius multiplier
-    // (default 0.5), so scale medium proportionally against its default
-    // of 10.0 until small/medium/large/pill are wired to components.
+    // ThemeBackgroundScope/ThemeSurfacesScope render background/tint, and
+    // AppLayout below renders the geometry tokens (card sizes, gutters).
+    // Radius mapping is deliberately lossy: shadcn takes one radius multiplier
+    // (default 0.5) for its whole component set, so `medium` scales against its
+    // default of 10.0 and small/large/pill only reach the surfaces Spotube
+    // draws itself. Density rides the app's size/text scaling, which is what
+    // every `* scale` site in the UI already reads.
     final pluginRadius =
         pluginTheme == null ? .5 : pluginTheme.radius.medium / 20;
+    final pluginDensity = pluginTheme?.density ?? 1.0;
+    // Also fed to `PaletteTransitionScope` below, which must scale the theme it
+    // animates exactly like `ShadcnLayer` does (`shadcn_app.dart:637-645`).
+    final pluginScaling = useMemoized(
+      () => AdaptiveScaling.only(
+        sizeScaling: pluginDensity,
+        textScaling: pluginDensity,
+      ),
+      [pluginDensity],
+    );
+    final pluginTypography = useMemoized(
+      () => switch (pluginTheme?.tokens.fontFamily) {
+        null => const Typography.geist(),
+        // A family the platform cannot resolve falls back per-glyph, so this
+        // can only change the typeface, never break rendering.
+        final family => const Typography.geist().copyWith(
+            sans: () => TextStyle(fontFamily: family),
+            base: () => TextStyle(fontSize: 16, fontFamily: family),
+          ),
+      },
+      [pluginTheme?.tokens.fontFamily],
+    );
+
+    final appTheme = useMemoized(
+      () => ThemeData(
+        radius: pluginRadius,
+        typography: pluginTypography,
+        iconTheme: const IconThemeProperties(),
+        colorScheme: lightColorScheme,
+        surfaceOpacity: pluginTheme?.surfaces.opacity ?? .8,
+        surfaceBlur: pluginTheme?.surfaces.blur ?? 10,
+      ),
+      [pluginTheme, pluginRadius, pluginTypography, lightColorScheme],
+    );
+
+    final appDarkTheme = useMemoized(
+      () => ThemeData(
+        radius: pluginRadius,
+        typography: pluginTypography,
+        iconTheme: const IconThemeProperties(),
+        colorScheme: darkColorScheme,
+        surfaceOpacity: pluginTheme?.surfaces.opacity ?? .8,
+        surfaceBlur: pluginTheme?.surfaces.blur ?? 10,
+      ),
+      [pluginTheme, pluginRadius, pluginTypography, darkColorScheme],
+    );
+
+    final materialBrightness = switch (themeMode) {
+      ThemeMode.system => MediaQuery.platformBrightnessOf(context),
+      ThemeMode.light => Brightness.light,
+      ThemeMode.dark => Brightness.dark,
+    };
+
+    final materialTheme = useMemoized(
+      () => material.ThemeData(
+        brightness: materialBrightness,
+        splashFactory: material.NoSplash.splashFactory,
+        appBarTheme: const material.AppBarTheme(
+          surfaceTintColor: Colors.transparent,
+          scrolledUnderElevation: 0,
+          shadowColor: Colors.transparent,
+          elevation: 0,
+        ),
+      ),
+      [materialBrightness],
+    );
+
+    // `ShadcnLayer` resolves light/dark with the same predicate
+    // (`themeMode == dark || (system && platformBrightness == dark)`), which is
+    // what `materialBrightness` above already computed, so handing it to the
+    // scope cannot make the fade land on a different palette than the one the
+    // package would have shown.
+    final themeTransitionDuration = useMemoized(
+      () => resolveThemeTransition(themeTransition, themeTransitionMs),
+      [themeTransition, themeTransitionMs],
+    );
 
     if (!splashReady.value) {
       final prefs = ref.watch(splashPrefsProvider).asData?.value;
@@ -489,39 +595,28 @@ class Spotube extends HookConsumerWidget {
           );
         }
 
-        return ThemeBackgroundScope(
-          child: ThemeSurfacesScope(child: child),
+        return PaletteTransitionScope(
+          theme: appTheme,
+          darkTheme: appDarkTheme,
+          scaling: pluginScaling,
+          brightness: materialBrightness,
+          duration: themeTransitionDuration,
+          child: AppLayout(
+            tokens: pluginTheme?.tokens ?? const ThemeTokens(),
+            radii: pluginTheme?.radius ?? const ThemeRadius(),
+            layout: pluginTheme?.layout ?? const ThemeLayout(),
+            child: ScrollMotionScope(
+              child: ThemeBackgroundScope(
+                child: ThemeSurfacesScope(child: child),
+              ),
+            ),
+          ),
         );
       },
-      scaling: const AdaptiveScaling(1),
-      theme: ThemeData(
-        radius: pluginRadius,
-        iconTheme: const IconThemeProperties(),
-        colorScheme: lightColorScheme,
-        surfaceOpacity: pluginTheme?.surfaces.opacity ?? .8,
-        surfaceBlur: pluginTheme?.surfaces.blur ?? 10,
-      ),
-      darkTheme: ThemeData(
-        radius: pluginRadius,
-        iconTheme: const IconThemeProperties(),
-        colorScheme: darkColorScheme,
-        surfaceOpacity: pluginTheme?.surfaces.opacity ?? .8,
-        surfaceBlur: pluginTheme?.surfaces.blur ?? 10,
-      ),
-      materialTheme: material.ThemeData(
-        brightness: switch (themeMode) {
-          ThemeMode.system => MediaQuery.platformBrightnessOf(context),
-          ThemeMode.light => Brightness.light,
-          ThemeMode.dark => Brightness.dark,
-        },
-        splashFactory: material.NoSplash.splashFactory,
-        appBarTheme: const material.AppBarTheme(
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0,
-          shadowColor: Colors.transparent,
-          elevation: 0,
-        ),
-      ),
+      scaling: pluginScaling,
+      theme: appTheme,
+      darkTheme: appDarkTheme,
+      materialTheme: materialTheme,
       themeMode: themeMode,
       shortcuts: {
         ...WidgetsApp.defaultShortcuts.map((key, value) {

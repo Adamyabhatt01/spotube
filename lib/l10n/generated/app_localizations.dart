@@ -939,6 +939,24 @@ abstract class AppLocalizations {
   /// **'Accent Color'**
   String get accent_color;
 
+  /// No description provided for @theme_transition.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme transition'**
+  String get theme_transition;
+
+  /// No description provided for @theme_transition_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Fade the color palette when the theme changes'**
+  String get theme_transition_description;
+
+  /// No description provided for @theme_transition_duration.
+  ///
+  /// In en, this message translates to:
+  /// **'Transition duration'**
+  String get theme_transition_duration;
+
   /// No description provided for @splash.
   ///
   /// In en, this message translates to:

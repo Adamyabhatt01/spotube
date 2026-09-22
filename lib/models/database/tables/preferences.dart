@@ -98,6 +98,10 @@ class PreferencesTable extends Table {
       .map(const StringListConverter())();
   BoolColumn get autoDownloadQuality =>
       boolean().withDefault(const Constant(false))();
+  BoolColumn get themeTransition =>
+      boolean().withDefault(const Constant(false))();
+  IntColumn get themeTransitionMs =>
+      integer().withDefault(const Constant(250))();
 
   static PreferencesTableData defaults() {
     return PreferencesTableData(
@@ -129,6 +133,8 @@ class PreferencesTable extends Table {
       connectPort: -1,
       sourcePriority: [],
       autoDownloadQuality: false,
+      themeTransition: false,
+      themeTransitionMs: 250,
     );
   }
 }

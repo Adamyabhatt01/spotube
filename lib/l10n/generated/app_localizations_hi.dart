@@ -435,6 +435,16 @@ class AppLocalizationsHi extends AppLocalizations {
   String get accent_color => 'अक्षरशैली का रंग';
 
   @override
+  String get theme_transition => 'Theme transition';
+
+  @override
+  String get theme_transition_description =>
+      'Fade the color palette when the theme changes';
+
+  @override
+  String get theme_transition_duration => 'Transition duration';
+
+  @override
   String get splash => 'Splash Screen';
 
   @override

@@ -783,6 +783,24 @@ class $PreferencesTableTable extends PreferencesTable
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("auto_download_quality" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _themeTransitionMeta =
+      const VerificationMeta('themeTransition');
+  @override
+  late final GeneratedColumn<bool> themeTransition = GeneratedColumn<bool>(
+      'theme_transition', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("theme_transition" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _themeTransitionMsMeta =
+      const VerificationMeta('themeTransitionMs');
+  @override
+  late final GeneratedColumn<int> themeTransitionMs = GeneratedColumn<int>(
+      'theme_transition_ms', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(250));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -810,7 +828,9 @@ class $PreferencesTableTable extends PreferencesTable
         connectPort,
         cacheMusic,
         sourcePriority,
-        autoDownloadQuality
+        autoDownloadQuality,
+        themeTransition,
+        themeTransitionMs
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -916,6 +936,18 @@ class $PreferencesTableTable extends PreferencesTable
           autoDownloadQuality.isAcceptableOrUnknown(
               data['auto_download_quality']!, _autoDownloadQualityMeta));
     }
+    if (data.containsKey('theme_transition')) {
+      context.handle(
+          _themeTransitionMeta,
+          themeTransition.isAcceptableOrUnknown(
+              data['theme_transition']!, _themeTransitionMeta));
+    }
+    if (data.containsKey('theme_transition_ms')) {
+      context.handle(
+          _themeTransitionMsMeta,
+          themeTransitionMs.isAcceptableOrUnknown(
+              data['theme_transition_ms']!, _themeTransitionMsMeta));
+    }
     return context;
   }
 
@@ -988,6 +1020,10 @@ class $PreferencesTableTable extends PreferencesTable
               DriftSqlType.string, data['${effectivePrefix}source_priority'])!),
       autoDownloadQuality: attachedDatabase.typeMapping.read(
           DriftSqlType.bool, data['${effectivePrefix}auto_download_quality'])!,
+      themeTransition: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}theme_transition'])!,
+      themeTransitionMs: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}theme_transition_ms'])!,
     );
   }
 
@@ -1048,6 +1084,8 @@ class PreferencesTableData extends DataClass
   final bool cacheMusic;
   final List<String> sourcePriority;
   final bool autoDownloadQuality;
+  final bool themeTransition;
+  final int themeTransitionMs;
   const PreferencesTableData(
       {required this.id,
       required this.albumColorSync,
@@ -1074,7 +1112,9 @@ class PreferencesTableData extends DataClass
       required this.connectPort,
       required this.cacheMusic,
       required this.sourcePriority,
-      required this.autoDownloadQuality});
+      required this.autoDownloadQuality,
+      required this.themeTransition,
+      required this.themeTransitionMs});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1140,6 +1180,8 @@ class PreferencesTableData extends DataClass
           .toSql(sourcePriority));
     }
     map['auto_download_quality'] = Variable<bool>(autoDownloadQuality);
+    map['theme_transition'] = Variable<bool>(themeTransition);
+    map['theme_transition_ms'] = Variable<int>(themeTransitionMs);
     return map;
   }
 
@@ -1173,6 +1215,8 @@ class PreferencesTableData extends DataClass
       cacheMusic: Value(cacheMusic),
       sourcePriority: Value(sourcePriority),
       autoDownloadQuality: Value(autoDownloadQuality),
+      themeTransition: Value(themeTransition),
+      themeTransitionMs: Value(themeTransitionMs),
     );
   }
 
@@ -1215,6 +1259,8 @@ class PreferencesTableData extends DataClass
       sourcePriority: serializer.fromJson<List<String>>(json['sourcePriority']),
       autoDownloadQuality:
           serializer.fromJson<bool>(json['autoDownloadQuality']),
+      themeTransition: serializer.fromJson<bool>(json['themeTransition']),
+      themeTransitionMs: serializer.fromJson<int>(json['themeTransitionMs']),
     );
   }
   @override
@@ -1255,6 +1301,8 @@ class PreferencesTableData extends DataClass
       'cacheMusic': serializer.toJson<bool>(cacheMusic),
       'sourcePriority': serializer.toJson<List<String>>(sourcePriority),
       'autoDownloadQuality': serializer.toJson<bool>(autoDownloadQuality),
+      'themeTransition': serializer.toJson<bool>(themeTransition),
+      'themeTransitionMs': serializer.toJson<int>(themeTransitionMs),
     };
   }
 
@@ -1284,7 +1332,9 @@ class PreferencesTableData extends DataClass
           int? connectPort,
           bool? cacheMusic,
           List<String>? sourcePriority,
-          bool? autoDownloadQuality}) =>
+          bool? autoDownloadQuality,
+          bool? themeTransition,
+          int? themeTransitionMs}) =>
       PreferencesTableData(
         id: id ?? this.id,
         albumColorSync: albumColorSync ?? this.albumColorSync,
@@ -1313,6 +1363,8 @@ class PreferencesTableData extends DataClass
         cacheMusic: cacheMusic ?? this.cacheMusic,
         sourcePriority: sourcePriority ?? this.sourcePriority,
         autoDownloadQuality: autoDownloadQuality ?? this.autoDownloadQuality,
+        themeTransition: themeTransition ?? this.themeTransition,
+        themeTransitionMs: themeTransitionMs ?? this.themeTransitionMs,
       );
   PreferencesTableData copyWithCompanion(PreferencesTableCompanion data) {
     return PreferencesTableData(
@@ -1381,6 +1433,12 @@ class PreferencesTableData extends DataClass
       autoDownloadQuality: data.autoDownloadQuality.present
           ? data.autoDownloadQuality.value
           : this.autoDownloadQuality,
+      themeTransition: data.themeTransition.present
+          ? data.themeTransition.value
+          : this.themeTransition,
+      themeTransitionMs: data.themeTransitionMs.present
+          ? data.themeTransitionMs.value
+          : this.themeTransitionMs,
     );
   }
 
@@ -1412,7 +1470,9 @@ class PreferencesTableData extends DataClass
           ..write('connectPort: $connectPort, ')
           ..write('cacheMusic: $cacheMusic, ')
           ..write('sourcePriority: $sourcePriority, ')
-          ..write('autoDownloadQuality: $autoDownloadQuality')
+          ..write('autoDownloadQuality: $autoDownloadQuality, ')
+          ..write('themeTransition: $themeTransition, ')
+          ..write('themeTransitionMs: $themeTransitionMs')
           ..write(')'))
         .toString();
   }
@@ -1444,7 +1504,9 @@ class PreferencesTableData extends DataClass
         connectPort,
         cacheMusic,
         sourcePriority,
-        autoDownloadQuality
+        autoDownloadQuality,
+        themeTransition,
+        themeTransitionMs
       ]);
   @override
   bool operator ==(Object other) =>
@@ -1475,7 +1537,9 @@ class PreferencesTableData extends DataClass
           other.connectPort == this.connectPort &&
           other.cacheMusic == this.cacheMusic &&
           other.sourcePriority == this.sourcePriority &&
-          other.autoDownloadQuality == this.autoDownloadQuality);
+          other.autoDownloadQuality == this.autoDownloadQuality &&
+          other.themeTransition == this.themeTransition &&
+          other.themeTransitionMs == this.themeTransitionMs);
 }
 
 class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
@@ -1505,6 +1569,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
   final Value<bool> cacheMusic;
   final Value<List<String>> sourcePriority;
   final Value<bool> autoDownloadQuality;
+  final Value<bool> themeTransition;
+  final Value<int> themeTransitionMs;
   const PreferencesTableCompanion({
     this.id = const Value.absent(),
     this.albumColorSync = const Value.absent(),
@@ -1532,6 +1598,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.cacheMusic = const Value.absent(),
     this.sourcePriority = const Value.absent(),
     this.autoDownloadQuality = const Value.absent(),
+    this.themeTransition = const Value.absent(),
+    this.themeTransitionMs = const Value.absent(),
   });
   PreferencesTableCompanion.insert({
     this.id = const Value.absent(),
@@ -1560,6 +1628,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.cacheMusic = const Value.absent(),
     this.sourcePriority = const Value.absent(),
     this.autoDownloadQuality = const Value.absent(),
+    this.themeTransition = const Value.absent(),
+    this.themeTransitionMs = const Value.absent(),
   });
   static Insertable<PreferencesTableData> custom({
     Expression<int>? id,
@@ -1588,6 +1658,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     Expression<bool>? cacheMusic,
     Expression<String>? sourcePriority,
     Expression<bool>? autoDownloadQuality,
+    Expression<bool>? themeTransition,
+    Expression<int>? themeTransitionMs,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1620,6 +1692,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       if (sourcePriority != null) 'source_priority': sourcePriority,
       if (autoDownloadQuality != null)
         'auto_download_quality': autoDownloadQuality,
+      if (themeTransition != null) 'theme_transition': themeTransition,
+      if (themeTransitionMs != null) 'theme_transition_ms': themeTransitionMs,
     });
   }
 
@@ -1649,7 +1723,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       Value<int>? connectPort,
       Value<bool>? cacheMusic,
       Value<List<String>>? sourcePriority,
-      Value<bool>? autoDownloadQuality}) {
+      Value<bool>? autoDownloadQuality,
+      Value<bool>? themeTransition,
+      Value<int>? themeTransitionMs}) {
     return PreferencesTableCompanion(
       id: id ?? this.id,
       albumColorSync: albumColorSync ?? this.albumColorSync,
@@ -1677,6 +1753,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       cacheMusic: cacheMusic ?? this.cacheMusic,
       sourcePriority: sourcePriority ?? this.sourcePriority,
       autoDownloadQuality: autoDownloadQuality ?? this.autoDownloadQuality,
+      themeTransition: themeTransition ?? this.themeTransition,
+      themeTransitionMs: themeTransitionMs ?? this.themeTransitionMs,
     );
   }
 
@@ -1776,6 +1854,12 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     if (autoDownloadQuality.present) {
       map['auto_download_quality'] = Variable<bool>(autoDownloadQuality.value);
     }
+    if (themeTransition.present) {
+      map['theme_transition'] = Variable<bool>(themeTransition.value);
+    }
+    if (themeTransitionMs.present) {
+      map['theme_transition_ms'] = Variable<int>(themeTransitionMs.value);
+    }
     return map;
   }
 
@@ -1807,7 +1891,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           ..write('connectPort: $connectPort, ')
           ..write('cacheMusic: $cacheMusic, ')
           ..write('sourcePriority: $sourcePriority, ')
-          ..write('autoDownloadQuality: $autoDownloadQuality')
+          ..write('autoDownloadQuality: $autoDownloadQuality, ')
+          ..write('themeTransition: $themeTransition, ')
+          ..write('themeTransitionMs: $themeTransitionMs')
           ..write(')'))
         .toString();
   }
@@ -5244,6 +5330,8 @@ typedef $$PreferencesTableTableCreateCompanionBuilder
   Value<bool> cacheMusic,
   Value<List<String>> sourcePriority,
   Value<bool> autoDownloadQuality,
+  Value<bool> themeTransition,
+  Value<int> themeTransitionMs,
 });
 typedef $$PreferencesTableTableUpdateCompanionBuilder
     = PreferencesTableCompanion Function({
@@ -5273,6 +5361,8 @@ typedef $$PreferencesTableTableUpdateCompanionBuilder
   Value<bool> cacheMusic,
   Value<List<String>> sourcePriority,
   Value<bool> autoDownloadQuality,
+  Value<bool> themeTransition,
+  Value<int> themeTransitionMs,
 });
 
 class $$PreferencesTableTableFilterComposer
@@ -5391,6 +5481,14 @@ class $$PreferencesTableTableFilterComposer
   ColumnFilters<bool> get autoDownloadQuality => $composableBuilder(
       column: $table.autoDownloadQuality,
       builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get themeTransition => $composableBuilder(
+      column: $table.themeTransition,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get themeTransitionMs => $composableBuilder(
+      column: $table.themeTransitionMs,
+      builder: (column) => ColumnFilters(column));
 }
 
 class $$PreferencesTableTableOrderingComposer
@@ -5496,6 +5594,14 @@ class $$PreferencesTableTableOrderingComposer
   ColumnOrderings<bool> get autoDownloadQuality => $composableBuilder(
       column: $table.autoDownloadQuality,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get themeTransition => $composableBuilder(
+      column: $table.themeTransition,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get themeTransitionMs => $composableBuilder(
+      column: $table.themeTransitionMs,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$PreferencesTableTableAnnotationComposer
@@ -5591,6 +5697,12 @@ class $$PreferencesTableTableAnnotationComposer
 
   GeneratedColumn<bool> get autoDownloadQuality => $composableBuilder(
       column: $table.autoDownloadQuality, builder: (column) => column);
+
+  GeneratedColumn<bool> get themeTransition => $composableBuilder(
+      column: $table.themeTransition, builder: (column) => column);
+
+  GeneratedColumn<int> get themeTransitionMs => $composableBuilder(
+      column: $table.themeTransitionMs, builder: (column) => column);
 }
 
 class $$PreferencesTableTableTableManager extends RootTableManager<
@@ -5648,6 +5760,8 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<bool> cacheMusic = const Value.absent(),
             Value<List<String>> sourcePriority = const Value.absent(),
             Value<bool> autoDownloadQuality = const Value.absent(),
+            Value<bool> themeTransition = const Value.absent(),
+            Value<int> themeTransitionMs = const Value.absent(),
           }) =>
               PreferencesTableCompanion(
             id: id,
@@ -5676,6 +5790,8 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             cacheMusic: cacheMusic,
             sourcePriority: sourcePriority,
             autoDownloadQuality: autoDownloadQuality,
+            themeTransition: themeTransition,
+            themeTransitionMs: themeTransitionMs,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -5705,6 +5821,8 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<bool> cacheMusic = const Value.absent(),
             Value<List<String>> sourcePriority = const Value.absent(),
             Value<bool> autoDownloadQuality = const Value.absent(),
+            Value<bool> themeTransition = const Value.absent(),
+            Value<int> themeTransitionMs = const Value.absent(),
           }) =>
               PreferencesTableCompanion.insert(
             id: id,
@@ -5733,6 +5851,8 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             cacheMusic: cacheMusic,
             sourcePriority: sourcePriority,
             autoDownloadQuality: autoDownloadQuality,
+            themeTransition: themeTransition,
+            themeTransitionMs: themeTransitionMs,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

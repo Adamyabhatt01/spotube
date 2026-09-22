@@ -126,6 +126,33 @@ class SettingsAppearanceSection extends HookConsumerWidget {
         ),
         onTap: pickColorScheme(),
       ),
+      ListTile(
+        leading: const Icon(SpotubeIcons.magic),
+        title: Text(context.l10n.theme_transition),
+        subtitle: Text(context.l10n.theme_transition_description),
+        trailing: Switch(
+          value: preferences.themeTransition,
+          onChanged: preferencesNotifier.setThemeTransition,
+        ),
+      ),
+      if (preferences.themeTransition)
+        AdaptiveSelectTile<int>(
+          secondary: const Icon(SpotubeIcons.timer),
+          title: Text(context.l10n.theme_transition_duration),
+          value: preferences.themeTransitionMs,
+          onChanged: (value) {
+            if (value != null) {
+              preferencesNotifier.setThemeTransitionMs(value);
+            }
+          },
+          options: [
+            for (final ms in [100, 150, 250, 400, 600, 1000])
+              SelectItemButton(
+                value: ms,
+                child: Text("${ms / 1000}s"),
+              ),
+          ],
+        ),
       AdaptiveSelectTile<SplashAnimation>(
         secondary: const Icon(SpotubeIcons.lightningOutlined),
         title: Text(context.l10n.splash_animation),

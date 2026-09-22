@@ -212,7 +212,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String error(Object error) {
-    return '에러';
+    return '에러 $error';
   }
 
   @override
@@ -432,6 +432,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get accent_color => '보조색';
+
+  @override
+  String get theme_transition => 'Theme transition';
+
+  @override
+  String get theme_transition_description =>
+      'Fade the color palette when the theme changes';
+
+  @override
+  String get theme_transition_duration => 'Transition duration';
 
   @override
   String get splash => 'Splash Screen';
