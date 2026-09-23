@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:spotube/components/dialogs/select_device_dialog.dart';
+import 'package:spotube/components/track_presentation/append_playback_tail.dart';
 import 'package:spotube/components/track_presentation/presentation_props.dart';
 import 'package:spotube/components/track_presentation/presentation_state.dart';
 import 'package:spotube/extensions/list.dart';
@@ -75,9 +78,13 @@ Future<void> Function(SpotubeTrackObject track, int index)
       if (isActive || queueTracks.containsBy(track, (a) => a.id)) {
         await playlistNotifier.jumpToTrack(track);
       } else {
-        final tracks = await options.pagination.onFetchAll();
+        // Start on the page already on screen; the tail of the collection
+        // streams into the queue in the background. `index` is a position
+        // inside `options.tracks`, so the tapped track is guaranteed to be
+        // in the initial load.
+        final initialTracks = options.tracks;
         await playlistNotifier.load(
-          tracks,
+          initialTracks,
           initialIndex: index,
           autoPlay: true,
         );
@@ -89,6 +96,13 @@ Future<void> Function(SpotubeTrackObject track, int index)
           historyNotifier.addPlaylists(
               [options.collection as SpotubeSimplePlaylistObject]);
         }
+        unawaited(appendCollectionTail(
+          appendTail: (tail) => playlistNotifier.addTracks(tail),
+          readCollections: () => ref.read(audioPlayerProvider).collections,
+          collectionId: options.collectionId,
+          alreadyLoaded: initialTracks,
+          fetchAll: options.pagination.onFetchAll,
+        ));
       }
     }
   }, [isActive, options, playlistNotifier, historyNotifier]);

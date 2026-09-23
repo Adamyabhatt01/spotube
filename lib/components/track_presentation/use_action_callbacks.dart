@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/components/dialogs/select_device_dialog.dart';
+import 'package:spotube/components/track_presentation/append_playback_tail.dart';
 import 'package:spotube/components/track_presentation/presentation_actions.dart';
 import 'package:spotube/components/track_presentation/presentation_props.dart';
 
@@ -79,11 +81,13 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
               [options.collection as SpotubeSimplePlaylistObject]);
         }
 
-        final allTracks = await options.pagination.onFetchAll();
-
-        await playlistNotifier.addTracks(
-          allTracks.sublist(initialTracks.length),
-        );
+        unawaited(appendCollectionTail(
+          appendTail: (tail) => playlistNotifier.addTracks(tail),
+          readCollections: () => ref.read(audioPlayerProvider).collections,
+          collectionId: options.collectionId,
+          alreadyLoaded: initialTracks,
+          fetchAll: options.pagination.onFetchAll,
+        ));
       }
     } catch (e, stack) {
       AppLogger.reportError(e, stack);
@@ -134,11 +138,13 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
           );
         }
 
-        final allTracks = await options.pagination.onFetchAll();
-
-        await playlistNotifier.addTracks(
-          allTracks.sublist(initialTracks.length),
-        );
+        unawaited(appendCollectionTail(
+          appendTail: (tail) => playlistNotifier.addTracks(tail),
+          readCollections: () => ref.read(audioPlayerProvider).collections,
+          collectionId: options.collectionId,
+          alreadyLoaded: initialTracks,
+          fetchAll: options.pagination.onFetchAll,
+        ));
       }
     } catch (e, stack) {
       AppLogger.reportError(e, stack);

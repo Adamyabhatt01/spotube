@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -6,6 +8,7 @@ import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/components/dialogs/select_device_dialog.dart';
 import 'package:spotube/components/playbutton_view/playbutton_card.dart';
 import 'package:spotube/components/playbutton_view/playbutton_tile.dart';
+import 'package:spotube/components/track_presentation/append_playback_tail.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/connect/connect.dart';
 import 'package:spotube/models/metadata/metadata.dart';
@@ -112,10 +115,13 @@ class PlaylistCard extends HookConsumerWidget {
           playlistNotifier.addCollection(playlist.id);
           historyNotifier.addPlaylists([playlist]);
 
-          final allTracks = await fetchAllTracks();
-
-          await playlistNotifier
-              .addTracks(allTracks.sublist(fetchedInitialTracks.length));
+          unawaited(appendCollectionTail(
+            appendTail: (tail) => playlistNotifier.addTracks(tail),
+            readCollections: () => ref.read(audioPlayerProvider).collections,
+            collectionId: playlist.id,
+            alreadyLoaded: fetchedInitialTracks,
+            fetchAll: fetchAllTracks,
+          ));
         }
       } finally {
         if (context.mounted) {
