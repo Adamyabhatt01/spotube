@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:riverpod/riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
+import 'package:spotube/provider/metadata_plugin/library/is_saved_batcher.dart';
+import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/utils/paginated.dart';
+import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/services/metadata/library_snapshot.dart';
 
 class MetadataPluginSavedArtistNotifier
@@ -55,6 +58,9 @@ class MetadataPluginSavedArtistNotifier
       state = AsyncData(oldState!);
       rethrow;
     }
+    for (final artist in artists) {
+      ref.invalidate(metadataPluginIsSavedArtistProvider(artist.id));
+    }
     unawaited(persistSnapshot());
   }
 
@@ -80,6 +86,9 @@ class MetadataPluginSavedArtistNotifier
       state = AsyncData(oldState!);
       rethrow;
     }
+    for (final artist in artists) {
+      ref.invalidate(metadataPluginIsSavedArtistProvider(artist.id));
+    }
     unawaited(persistSnapshot());
   }
 }
@@ -90,30 +99,22 @@ final metadataPluginSavedArtistsProvider = AsyncNotifierProvider<
   () => MetadataPluginSavedArtistNotifier(),
 );
 
-/// Fetches the full set of saved-artist IDs once and shares it across every
-/// per-artist lookup (same shape as `metadataPluginSavedTrackIdsProvider`).
-/// Previously each per-id family instance ran its own whole-library
-/// `fetchAll()` loop, multiplying Spotify requests — a direct cause of 429s.
-final metadataPluginSavedArtistIdsProvider =
-    FutureProvider.autoDispose<Set<String>>(
-  (ref) async {
-    final savedArtists =
-        await ref.watch(metadataPluginSavedArtistsProvider.future);
-
-    final allSavedArtists = savedArtists.hasMore
-        ? await ref.read(metadataPluginSavedArtistsProvider.notifier).fetchAll()
-        : savedArtists.items;
-
-    return allSavedArtists.map((artist) => artist.id).toSet();
-  },
-);
+/// Batches per-artist "is this followed?" lookups into `isSavedArtists(ids)`
+/// calls of at most 50 ids — same shape as Spotify's
+/// `GET /me/following/contains?type=artist&ids=`. Replaces the previous
+/// pattern where every family instance walked the whole followed-artists list.
+/// Overridable so tests can substitute a fake query without a live plugin.
+final savedArtistBatcherProvider = Provider<IsSavedBatcher>((ref) {
+  return IsSavedBatcher((ids) async {
+    final plugin = await ref.read(metadataPluginProvider.future);
+    if (plugin == null) {
+      throw MetadataPluginException.noDefaultMetadataPlugin();
+    }
+    return plugin.user.isSavedArtists(ids);
+  });
+});
 
 final metadataPluginIsSavedArtistProvider =
     FutureProvider.autoDispose.family<bool, String>(
-  (ref, artistId) async {
-    final allSavedArtistIds =
-        await ref.watch(metadataPluginSavedArtistIdsProvider.future);
-
-    return allSavedArtistIds.contains(artistId);
-  },
+  (ref, artistId) => ref.watch(savedArtistBatcherProvider).request(artistId),
 );

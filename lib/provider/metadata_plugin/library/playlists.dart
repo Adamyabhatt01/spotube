@@ -75,6 +75,7 @@ class MetadataPluginSavedPlaylistsNotifier
       state = AsyncData(oldState!);
       rethrow;
     }
+    ref.invalidate(metadataPluginIsSavedPlaylistProvider(playlist.id));
     unawaited(persistSnapshot());
   }
 
@@ -94,6 +95,7 @@ class MetadataPluginSavedPlaylistsNotifier
       state = AsyncData(oldState!);
       rethrow;
     }
+    ref.invalidate(metadataPluginIsSavedPlaylistProvider(playlist.id));
     unawaited(persistSnapshot());
   }
 
@@ -139,25 +141,24 @@ final metadataPluginSavedPlaylistsProvider = AsyncNotifierProvider<
   () => MetadataPluginSavedPlaylistsNotifier(),
 );
 
-final metadataPluginIsSavedPlaylistProvider =
-    FutureProvider.family<bool, String>(
-  (ref, id) async {
-    final plugin = await ref.watch(metadataPluginProvider.future);
+/// Resolves a single "is this playlist saved?" check through the plugin's
+/// dedicated `isSavedPlaylist(id)` endpoint instead of walking the entire
+/// saved-playlists list per id. The playlist page and library cards each
+/// watch exactly one family instance, so per-id lookup is one cheap call.
+/// Overridable so tests can substitute a fake without a live plugin.
+typedef IsSavedPlaylistLookup = Future<bool> Function(String id);
 
+final savedPlaylistLookupProvider = Provider<IsSavedPlaylistLookup>((ref) {
+  return (id) async {
+    final plugin = await ref.read(metadataPluginProvider.future);
     if (plugin == null) {
       throw MetadataPluginException.noDefaultMetadataPlugin();
     }
+    return plugin.user.isSavedPlaylist(id);
+  };
+});
 
-    final savedPlaylists =
-        await ref.watch(metadataPluginSavedPlaylistsProvider.future);
-
-    final savedPlaylistsNotifier =
-        ref.read(metadataPluginSavedPlaylistsProvider.notifier);
-
-    final allSavedPlaylists = savedPlaylists.hasMore
-        ? await savedPlaylistsNotifier.fetchAll()
-        : savedPlaylists.items;
-
-    return allSavedPlaylists.any((element) => element.id == id);
-  },
+final metadataPluginIsSavedPlaylistProvider =
+    FutureProvider.family<bool, String>(
+  (ref, id) => ref.watch(savedPlaylistLookupProvider)(id),
 );

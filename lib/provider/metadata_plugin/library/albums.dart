@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:riverpod/riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
+import 'package:spotube/provider/metadata_plugin/library/is_saved_batcher.dart';
+import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/utils/paginated.dart';
+import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/services/metadata/library_snapshot.dart';
 
 class MetadataPluginSavedAlbumNotifier
@@ -51,6 +54,9 @@ class MetadataPluginSavedAlbumNotifier
       state = AsyncData(oldState!);
       rethrow;
     }
+    for (final album in albums) {
+      ref.invalidate(metadataPluginIsSavedAlbumProvider(album.id));
+    }
     unawaited(persistSnapshot());
   }
 
@@ -75,6 +81,9 @@ class MetadataPluginSavedAlbumNotifier
       state = AsyncData(oldState!);
       rethrow;
     }
+    for (final album in albums) {
+      ref.invalidate(metadataPluginIsSavedAlbumProvider(album.id));
+    }
     unawaited(persistSnapshot());
   }
 }
@@ -85,30 +94,22 @@ final metadataPluginSavedAlbumsProvider = AsyncNotifierProvider<
   () => MetadataPluginSavedAlbumNotifier(),
 );
 
-/// Fetches the full set of saved-album IDs once and shares it across every
-/// per-album lookup (same shape as `metadataPluginSavedTrackIdsProvider`).
-/// Previously each per-id family instance ran its own whole-library
-/// `fetchAll()` loop, multiplying Spotify requests — a direct cause of 429s.
-final metadataPluginSavedAlbumIdsProvider =
-    FutureProvider.autoDispose<Set<String>>(
-  (ref) async {
-    final savedAlbums =
-        await ref.watch(metadataPluginSavedAlbumsProvider.future);
-
-    final allSavedAlbums = savedAlbums.hasMore
-        ? await ref.read(metadataPluginSavedAlbumsProvider.notifier).fetchAll()
-        : savedAlbums.items;
-
-    return allSavedAlbums.map((album) => album.id).toSet();
-  },
-);
+/// Batches per-album "is this saved?" lookups into `isSavedAlbums(ids)` calls
+/// of at most 50 ids — same shape as Spotify's
+/// `GET /me/albums/contains?ids=`. Replaces the previous pattern where every
+/// family instance walked the whole saved-albums list. Overridable so tests
+/// can substitute a fake query without a live plugin.
+final savedAlbumBatcherProvider = Provider<IsSavedBatcher>((ref) {
+  return IsSavedBatcher((ids) async {
+    final plugin = await ref.read(metadataPluginProvider.future);
+    if (plugin == null) {
+      throw MetadataPluginException.noDefaultMetadataPlugin();
+    }
+    return plugin.user.isSavedAlbums(ids);
+  });
+});
 
 final metadataPluginIsSavedAlbumProvider =
     FutureProvider.autoDispose.family<bool, String>(
-  (ref, albumId) async {
-    final allSavedAlbumIds =
-        await ref.watch(metadataPluginSavedAlbumIdsProvider.future);
-
-    return allSavedAlbumIds.contains(albumId);
-  },
+  (ref, albumId) => ref.watch(savedAlbumBatcherProvider).request(albumId),
 );

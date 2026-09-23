@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
+import 'package:spotube/provider/metadata_plugin/library/is_saved_batcher.dart';
+import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/utils/common.dart';
 import 'package:spotube/provider/metadata_plugin/utils/paginated.dart';
+import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/services/metadata/library_snapshot.dart';
 
 class MetadataPluginSavedTracksNotifier
@@ -58,6 +61,9 @@ class MetadataPluginSavedTracksNotifier
       state = AsyncData(oldState!);
       rethrow;
     }
+    for (final track in tracks) {
+      ref.invalidate(metadataPluginIsSavedTrackProvider(track.id));
+    }
     unawaited(persistSnapshot());
   }
 
@@ -85,6 +91,9 @@ class MetadataPluginSavedTracksNotifier
       state = AsyncData(oldState!);
       rethrow;
     }
+    for (final track in tracks) {
+      ref.invalidate(metadataPluginIsSavedTrackProvider(track.id));
+    }
     unawaited(persistSnapshot());
   }
 }
@@ -95,32 +104,22 @@ final metadataPluginSavedTracksProvider = AutoDisposeAsyncNotifierProvider<
   () => MetadataPluginSavedTracksNotifier(),
 );
 
-/// Fetches the full set of saved-track IDs once and shares it across every
-/// per-track lookup. Previously each track's heart-button lookup could trigger
-/// its own whole-library `fetchAll()` loop — multiple concurrent loops on the
-/// same notifier interleaved state appends and blew up memory on large
-/// libraries. Riverpod deduplicates all family instances watching this
-/// provider into a single fetch.
-final metadataPluginSavedTrackIdsProvider =
-    FutureProvider.autoDispose<Set<String>>(
-  (ref) async {
-    final savedTracks =
-        await ref.watch(metadataPluginSavedTracksProvider.future);
-
-    final allSavedTracks = savedTracks.hasMore
-        ? await ref.read(metadataPluginSavedTracksProvider.notifier).fetchAll()
-        : savedTracks.items;
-
-    return allSavedTracks.map((track) => track.id).toSet();
-  },
-);
+/// Batches per-track "is this liked?" lookups into `isSavedTracks(ids)` calls
+/// of at most 50 ids — the same shape as Spotify's
+/// `GET /me/tracks/contains?ids=`. Replaces the previous pattern where every
+/// family instance triggered a full `fetchAll()` walk of the liked library.
+/// Overridable so tests can substitute a fake query without a live plugin.
+final savedTrackBatcherProvider = Provider<IsSavedBatcher>((ref) {
+  return IsSavedBatcher((ids) async {
+    final plugin = await ref.read(metadataPluginProvider.future);
+    if (plugin == null) {
+      throw MetadataPluginException.noDefaultMetadataPlugin();
+    }
+    return plugin.user.isSavedTracks(ids);
+  });
+});
 
 final metadataPluginIsSavedTrackProvider =
     FutureProvider.autoDispose.family<bool, String>(
-  (ref, trackId) async {
-    final allSavedTrackIds =
-        await ref.watch(metadataPluginSavedTrackIdsProvider.future);
-
-    return allSavedTrackIds.contains(trackId);
-  },
+  (ref, trackId) => ref.watch(savedTrackBatcherProvider).request(trackId),
 );
