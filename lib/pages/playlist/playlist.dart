@@ -7,7 +7,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/components/dialogs/prompt_dialog.dart';
 import 'package:spotube/components/track_presentation/presentation_props.dart';
 import 'package:spotube/components/track_presentation/track_presentation.dart';
-import 'package:spotube/components/track_presentation/use_is_user_playlist.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
@@ -53,7 +52,7 @@ class PlaylistPage extends HookConsumerWidget {
     final favoritePlaylistsNotifier =
         ref.watch(metadataPluginSavedPlaylistsProvider.notifier);
 
-    final isUserPlaylist = useIsUserPlaylist(ref, playlist.id);
+    final isUserPlaylist = ref.watch(isUserPlaylistProvider(playlist.id));
 
     // A mirrored playlist is kept in sync by the page that shows it. Listening
     // instead of watching: this is a side effect on the first page arriving, and
@@ -79,10 +78,15 @@ class PlaylistPage extends HookConsumerWidget {
     // for — which is every track ever downloaded from it — in Spotify's order.
     // Shown while the network view is not available rather than on top of it, so
     // a playlist that was never mirrored keeps showing exactly what it did.
-    final cachedTracks =
-        ref.watch(mirroredPlaylistTracksProvider(playlist.id)).asData?.value ??
-            const [];
+    // Watched only in that case: while the network has answered this page would
+    // rebuild on every download-progress tick of the mirror stream just to throw
+    // the result away. The presentation state keeps its own subscription for the
+    // offline list, so nothing here stops the mirror from being ready to show.
     final hasFreshTracks = tracks.asData != null;
+    final cachedTracks = hasFreshTracks
+        ? const <SpotubeFullTrackObject>[]
+        : ref.watch(mirroredPlaylistTracksProvider(playlist.id)).asData?.value ??
+            const [];
     final visibleTracks =
         hasFreshTracks ? tracks.asData!.value.items : cachedTracks;
 
@@ -126,6 +130,7 @@ class PlaylistPage extends HookConsumerWidget {
           error: hasFreshTracks || cachedTracks.isEmpty ? tracks.error : null,
           routePath: '/playlist/${playlist.id}',
           isLiked: isFavoritePlaylist.asData?.value ?? false,
+          isUserPlaylist: isUserPlaylist,
           shareUrl: playlist.externalUri,
           onHeart: isFavoritePlaylist.asData?.value == null
               ? null

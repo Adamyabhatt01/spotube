@@ -11,7 +11,6 @@ import 'package:spotube/components/track_presentation/presentation_props.dart';
 import 'package:spotube/components/track_presentation/presentation_state.dart';
 import 'package:spotube/components/track_presentation/use_track_tile_play_callback.dart';
 import 'package:spotube/components/track_tile/track_tile.dart';
-import 'package:spotube/components/track_presentation/use_is_user_playlist.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:very_good_infinite_list/very_good_infinite_list.dart';
@@ -29,7 +28,7 @@ class PresentationListSection extends HookConsumerWidget {
     final state = ref.watch(presentationStateProvider(options.collection));
     final notifier =
         ref.read(presentationStateProvider(options.collection).notifier);
-    final isUserPlaylist = useIsUserPlaylist(ref, options.collectionId);
+    final isUserPlaylist = options.isUserPlaylist;
 
     final onTileTap = useTrackTilePlayCallback(ref);
 

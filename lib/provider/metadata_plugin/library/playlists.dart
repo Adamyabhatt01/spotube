@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
+import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/playlist.dart';
 import 'package:spotube/provider/metadata_plugin/utils/paginated.dart';
@@ -161,4 +162,22 @@ final savedPlaylistLookupProvider = Provider<IsSavedPlaylistLookup>((ref) {
 final metadataPluginIsSavedPlaylistProvider =
     FutureProvider.family<bool, String>(
   (ref, id) => ref.watch(savedPlaylistLookupProvider)(id),
+);
+
+/// Whether [playlistId] is one of the signed-in user's own playlists — i.e.
+/// the one they can delete from the heart, rather than merely unsave.
+///
+/// This is the single subscription the playlist header, its action row and its
+/// track list used to open separately (each widget watched the whole
+/// saved-playlists list just to answer one boolean). Deriving it once here
+/// means every consumer reads one cached answer instead of re-walking the list
+/// on each unrelated library update.
+final isUserPlaylistProvider = Provider.autoDispose.family<bool, String>(
+  (ref, playlistId) {
+    final items =
+        ref.watch(metadataPluginSavedPlaylistsProvider).asData?.value.items;
+    final meId = ref.watch(metadataPluginUserProvider).asData?.value?.id;
+    if (items == null || meId == null) return false;
+    return items.any((e) => e.id == playlistId && e.owner.id == meId);
+  },
 );

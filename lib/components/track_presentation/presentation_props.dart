@@ -52,6 +52,12 @@ class TrackPresentationOptions {
   final String? shareUrl;
   final Object? error;
 
+  /// Whether the collection is a playlist the signed-in user owns. The page
+  /// resolves it once from [isUserPlaylistProvider] and hands it to the action
+  /// row and the track list, so those do not re-watch the whole saved-playlists
+  /// library for one boolean.
+  final bool isUserPlaylist;
+
   // events
   final FutureOr<bool?> Function()? onHeart; // if null heart button will hidden
 
@@ -67,6 +73,7 @@ class TrackPresentationOptions {
     required this.routePath,
     this.shareUrl,
     this.isLiked = false,
+    this.isUserPlaylist = false,
     this.onHeart,
     this.error,
   }) : assert(collection is SpotubeSimpleAlbumObject ||
@@ -91,6 +98,7 @@ class TrackPresentationOptions {
         other.tracks == tracks &&
         other.pagination == pagination &&
         other.isLiked == isLiked &&
+        other.isUserPlaylist == isUserPlaylist &&
         other.shareUrl == shareUrl &&
         other.onHeart == onHeart &&
         other.error == error;
@@ -107,6 +115,7 @@ class TrackPresentationOptions {
       tracks.hashCode ^
       pagination.hashCode ^
       isLiked.hashCode ^
+      isUserPlaylist.hashCode ^
       shareUrl.hashCode ^
       onHeart.hashCode ^
       error.hashCode;
