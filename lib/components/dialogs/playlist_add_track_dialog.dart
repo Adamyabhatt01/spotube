@@ -1,3 +1,4 @@
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
@@ -43,12 +44,43 @@ class PlaylistAddTrackDialog extends HookConsumerWidget {
 
     final playlistsCheck = useState(<String, bool>{});
 
+    // The picker used to walk every page of the saved-playlists collection the
+    // moment it opened. It paginates instead: page one renders immediately and
+    // later pages load on demand.
+    final scrollController = useScrollController();
+    final hasMore = userPlaylists.asData?.value.hasMore ?? false;
+
+    // Fetch the next page as the list nears its end. `fetchMore` is a no-op
+    // while a page is in flight or the collection is exhausted, so this can
+    // fire on every scroll event.
     useEffect(() {
-      if (userPlaylists.asData?.value != null) {
-        favoritePlaylistsNotifier.fetchAll();
+      void onScroll() {
+        if (!hasMore || !scrollController.hasClients) return;
+        final position = scrollController.position;
+        if (position.pixels >= position.maxScrollExtent - 100) {
+          favoritePlaylistsNotifier.fetchMore();
+        }
       }
+
+      scrollController.addListener(onScroll);
+      return () => scrollController.removeListener(onScroll);
+    }, [hasMore]);
+
+    // Owned playlists are interleaved with followed ones, so a filtered first
+    // page can be shorter than the dialog and leave nothing to scroll — the
+    // event that would have loaded the next page never fires. When the list
+    // cannot scroll but pages remain, pull the next one; it stops on its own
+    // once the picker fills or the collection is exhausted.
+    useEffect(() {
+      if (!hasMore) return null;
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (!scrollController.hasClients) return;
+        if (scrollController.position.maxScrollExtent <= 0) {
+          favoritePlaylistsNotifier.fetchMore();
+        }
+      });
       return null;
-    }, [userPlaylists.asData?.value]);
+    }, [hasMore, filteredPlaylists.length]);
 
     Future<void> onAdd() async {
       final selectedPlaylists = playlistsCheck.value.entries
@@ -97,9 +129,16 @@ class PlaylistAddTrackDialog extends HookConsumerWidget {
           child: userPlaylists.isLoading
               ? const Center(child: CircularProgressIndicator())
               : ListView.builder(
+                  controller: scrollController,
                   shrinkWrap: true,
-                  itemCount: filteredPlaylists.length,
+                  itemCount: filteredPlaylists.length + (hasMore ? 1 : 0),
                   itemBuilder: (context, index) {
+                    if (index >= filteredPlaylists.length) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
                     final playlist = filteredPlaylists.elementAt(index);
                     return Button.ghost(
                       style: ButtonVariance.ghost.copyWith(

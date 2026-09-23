@@ -94,7 +94,9 @@ class PlaylistPage extends HookConsumerWidget {
     return material.RefreshIndicator.adaptive(
       onRefresh: () async {
         ref.invalidate(metadataPluginPlaylistTracksProvider(playlist.id));
-        ref.invalidate(metadataPluginSavedPlaylistsProvider);
+        // The favorite state lives in its own per-id provider; refreshing this
+        // page must not rebuild the whole saved-playlists library just to
+        // re-check one heart.
         ref.invalidate(metadataPluginIsSavedPlaylistProvider(playlist.id));
       },
       child: TrackPresentation(

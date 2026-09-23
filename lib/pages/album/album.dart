@@ -36,7 +36,6 @@ class AlbumPage extends HookConsumerWidget {
       onRefresh: () async {
         ref.invalidate(metadataPluginAlbumTracksProvider(album.id));
         ref.invalidate(metadataPluginIsSavedAlbumProvider(album.id));
-        ref.invalidate(metadataPluginSavedAlbumsProvider);
       },
       child: TrackPresentation(
         options: TrackPresentationOptions(
