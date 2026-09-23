@@ -42,19 +42,25 @@ class PlayerActions extends HookConsumerWidget {
     final activeTrack =
         ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
     final isLocalTrack = activeTrack is SpotubeLocalTrackObject;
-    ref.watch(downloadManagerProvider);
-    final downloader = ref.watch(downloadManagerProvider.notifier);
-    final isInQueue = useMemoized(() {
-      if (activeTrack is! SpotubeFullTrackObject) return false;
-      final downloadTask = downloader.getTaskByTrackId(activeTrack.id);
-      return const [
-        DownloadStatus.queued,
-        DownloadStatus.downloading,
-      ].contains(downloadTask?.status);
-    }, [
-      activeTrack,
-      downloader,
-    ]);
+    // A select on the *pair* (this track, its queue state) so an unrelated
+    // task's progress event does not rebuild the whole player bar. The
+    // previous `ref.watch(downloadManagerProvider)` fired on every tick and
+    // the memoized predicate that followed read the same list out of the
+    // notifier, so the whole thing was effectively list-scoped.
+    final isInQueue = activeTrack is! SpotubeFullTrackObject
+        ? false
+        : ref.watch(
+            downloadManagerProvider.select((tasks) {
+              for (final t in tasks) {
+                if (t.track.id == activeTrack.id) {
+                  return t.status == DownloadStatus.queued ||
+                      t.status == DownloadStatus.downloading;
+                }
+              }
+              return false;
+            }),
+          );
+    final downloader = ref.read(downloadManagerProvider.notifier);
 
     final authenticated = ref.watch(metadataPluginAuthenticatedProvider);
     final sleepTimer = ref.watch(sleepTimerProvider);

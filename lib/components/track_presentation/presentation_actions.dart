@@ -67,8 +67,10 @@ class TrackPresentationActionsSection extends HookConsumerWidget {
   Widget build(BuildContext context, ref) {
     final options = TrackPresentationOptions.of(context);
 
-    ref.watch(downloadManagerProvider);
-    final downloader = ref.watch(downloadManagerProvider.notifier);
+    // Notifier only. Nothing here reads the task list, and the previous
+    // `ref.watch(downloadManagerProvider)` rebuilt this whole actions bar on
+    // every in-flight download's byte-counter tick.
+    final downloader = ref.read(downloadManagerProvider.notifier);
     final playlistNotifier = ref.watch(audioPlayerProvider.notifier);
     final historyNotifier = ref.watch(playbackHistoryActionsProvider);
 
