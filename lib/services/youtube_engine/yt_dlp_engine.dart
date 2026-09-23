@@ -158,51 +158,60 @@ class YtDlpEngine implements YouTubeEngine {
 
   @override
   Future<StreamManifest> getStreamManifest(String videoId) async {
-    final formats = await YtDlp.instance.extractInfo(
-      "https://www.youtube.com/watch?v=$videoId",
-      formatSpecifiers: "%(formats)j",
-      extraArgs: [
-        "--no-check-certificate",
-        "--geo-bypass",
-        "--quiet",
-        "--ignore-errors"
-      ],
-    ) as List;
+    final formats = await withinEngineCallBudget(
+      'yt_dlp.getStreamManifest',
+      () => YtDlp.instance.extractInfo(
+        "https://www.youtube.com/watch?v=$videoId",
+        formatSpecifiers: "%(formats)j",
+        extraArgs: const [
+          "--no-check-certificate",
+          "--geo-bypass",
+          "--quiet",
+          "--ignore-errors"
+        ],
+      ) as Future<List>,
+    );
 
     return _parseFormats(formats, videoId);
   }
 
   @override
   Future<Video> getVideo(String videoId) async {
-    final info = await YtDlp.instance.extractInfo(
-      "https://www.youtube.com/watch?v=$videoId",
-      formatSpecifiers: "%()j",
-      extraArgs: [
-        "--skip-download",
-        "--no-check-certificate",
-        "--geo-bypass",
-        "--quiet",
-        "--ignore-errors",
-      ],
-    ) as Map<String, dynamic>;
+    final info = await withinEngineCallBudget(
+      'yt_dlp.getVideo',
+      () => YtDlp.instance.extractInfo(
+        "https://www.youtube.com/watch?v=$videoId",
+        formatSpecifiers: "%()j",
+        extraArgs: const [
+          "--skip-download",
+          "--no-check-certificate",
+          "--geo-bypass",
+          "--quiet",
+          "--ignore-errors",
+        ],
+      ) as Future<Map<String, dynamic>>,
+    );
 
     return _parseInfo(info);
   }
 
   @override
   Future<List<YouTubeSearchResult>> searchVideos(String query) async {
-    final stdout = await YtDlp.instance.extractInfoString(
-      "ytsearch10:$query",
-      formatSpecifiers: "%()j",
-      extraArgs: [
-        "--skip-download",
-        "--no-check-certificate",
-        "--geo-bypass",
-        "--quiet",
-        "--ignore-errors",
-        "--flat-playlist",
-        "--no-playlist",
-      ],
+    final stdout = await withinEngineCallBudget(
+      'yt_dlp.searchVideos',
+      () => YtDlp.instance.extractInfoString(
+        "ytsearch10:$query",
+        formatSpecifiers: "%()j",
+        extraArgs: const [
+          "--skip-download",
+          "--no-check-certificate",
+          "--geo-bypass",
+          "--quiet",
+          "--ignore-errors",
+          "--flat-playlist",
+          "--no-playlist",
+        ],
+      ),
     );
 
     final json = jsonDecode(

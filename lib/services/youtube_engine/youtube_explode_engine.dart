@@ -2,6 +2,7 @@ import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
 import 'package:spotube/services/youtube_engine/youtube_engine.dart';
+import 'package:spotube/utils/perf_counters.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 import 'dart:async';
@@ -232,7 +233,22 @@ class IsolatedYoutubeExplode {
     });
 
     _sendPort.send([responsePort.sendPort, methodName, args]);
-    return (await completer.future) as T;
+
+    final stopwatch = Stopwatch()..start();
+    try {
+      return (await completer.future.timeout(engineCallBudget)) as T;
+    } on TimeoutException {
+      // The worker still holds this reply port and will eventually send to it,
+      // so the bookkeeping has to go or the entry and the port both leak. The
+      // worker's own send is already guarded against a closed port.
+      _pendingCalls.remove(responsePort.sendPort);
+      unawaited(subscription.cancel());
+      responsePort.close();
+      PerfCounters.note('engine.youtube_explode.$methodName.timeout');
+      rethrow;
+    } finally {
+      PerfCounters.time('engine.youtube_explode.$methodName', stopwatch.elapsed);
+    }
   }
 
   void _failPendingCalls(Object error) {

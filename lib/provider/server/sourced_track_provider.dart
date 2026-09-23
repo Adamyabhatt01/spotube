@@ -5,6 +5,7 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/services/sourced_track/sourced_track.dart';
+import 'package:spotube/utils/perf_counters.dart';
 
 class SourcedTrackNotifier
     extends AutoDisposeFamilyAsyncNotifier<SourcedTrack, SpotubeFullTrackObject> {
@@ -19,7 +20,12 @@ class SourcedTrackNotifier
     // is behavior-preserving. See test/sourced_track_presets_test.dart.
     ref.watch(audioSourcePluginProvider);
 
-    return SourcedTrack.fetchFromTrack(query: query, ref: ref);
+    // Observation only, on the one span a listener feels: pressing play until a
+    // resolved stream exists. Everything the cascade measures sits inside it.
+    final stopwatch = Stopwatch()..start();
+    return SourcedTrack.fetchFromTrack(query: query, ref: ref).whenComplete(
+      () => PerfCounters.time('source.resolve', stopwatch.elapsed),
+    );
   }
 
   Future<SourcedTrack> refreshStreamingUrl() async {

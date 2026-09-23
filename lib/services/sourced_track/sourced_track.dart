@@ -443,6 +443,7 @@ class SourcedTrack extends BasicSourcedTrack {
       sources: sources,
       info: info,
       query: query,
+      sourceCandidateKey: sourceCandidateKey,
     );
   }
 
@@ -498,6 +499,7 @@ class SourcedTrack extends BasicSourcedTrack {
       sources: manifest,
       info: newSourceInfo,
       query: query,
+      sourceCandidateKey: sourceCandidateKey,
     );
   }
 
@@ -580,6 +582,7 @@ class SourcedTrack extends BasicSourcedTrack {
       sources: validStreams,
       info: info,
       query: query,
+      sourceCandidateKey: sourceCandidateKey,
     );
 
     AppLogger.log.i("Refreshing ${query.name}: ${sourcedTrack.url}");

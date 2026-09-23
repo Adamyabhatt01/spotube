@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 // ignore: depend_on_referenced_packages
 import 'package:meta/meta.dart';
@@ -13,6 +15,7 @@ import 'package:spotube/services/youtube_engine/newpipe_engine.dart';
 import 'package:spotube/services/youtube_engine/youtube_engine.dart';
 import 'package:spotube/services/youtube_engine/youtube_explode_engine.dart';
 import 'package:spotube/services/youtube_engine/yt_dlp_engine.dart';
+import 'package:spotube/utils/perf_counters.dart';
 
 /// A single source candidate: one audio-source plugin paired with one
 /// YouTube engine. Plugin instances are created lazily per (config, engine)
@@ -28,6 +31,22 @@ class SourceCandidate {
   /// compiled from the previous version's bytecode.
   String get key => '${config.slug}@${config.version}:${engine.runtimeType}';
 }
+
+/// One attempt in the resolution cascade: resolve [track] through
+/// [candidate]. Signature-identical to [SourceResolver.resolve] on purpose —
+/// see the note on [SourceResolver.resolveFirstAvailable].
+typedef SourceResolutionAttempt = Future<SourcedTrack> Function(
+  SourceCandidate candidate,
+  SpotubeFullTrackObject track,
+);
+
+/// Wall-clock ceiling for one candidate: a search across query variants plus
+/// one manifest fetch. ~10x the 1.456–1.806 s a healthy manifest takes
+/// (`.ai/PERFORMANCE.md`), so on a working network this never fires.
+///
+/// A timeout abandons the Dart future; the CLI process the engine spawned
+/// keeps running to its own completion, since `Process.run` exposes no handle.
+const sourceCandidateBudget = Duration(seconds: 20);
 
 /// Ordered, lazy source resolution for a track. This is the single source
 /// of truth for candidate ordering across downloads and playback fallbacks,
@@ -217,22 +236,42 @@ class SourceResolver {
   /// the absence; if any candidate threw and none resolved, that error is
   /// rethrown instead, so a rate limit or a broken backend cannot be recorded
   /// as "this track does not exist".
+  ///
+  /// [attempt] defaults to [resolve] and exists only so tests can drive the
+  /// cascade without a plugin VM. It must stay signature-identical to
+  /// [resolve]: an earlier version declared it as a one-parameter function and
+  /// fell back to the two-parameter [resolve] tear-off, which made `run` a bare
+  /// `Function` and `run(candidate)` a dynamic call that threw
+  /// [NoSuchMethodError] on every production use — invisible to tests, because
+  /// every test passed [attempt] and production never did.
   Future<SourcedTrack> resolveFirstAvailable(
     SpotubeFullTrackObject track, {
     required List<SourceCandidate> candidates,
     @visibleForTesting
-    Future<SourcedTrack> Function(SourceCandidate candidate)? attempt,
+    SourceResolutionAttempt? attempt,
   }) async {
-    final run = attempt ?? resolve;
+    Future<SourcedTrack> run(SourceCandidate candidate) => attempt != null
+        ? attempt(candidate, track)
+        : resolve(candidate, track);
 
     TrackNotFoundError? nothingFound;
     Object? engineFailure;
 
     for (final candidate in candidates) {
       try {
-        return await run(candidate);
+        return await run(candidate).timeout(sourceCandidateBudget);
       } on TrackNotFoundError catch (error) {
         nothingFound = error;
+      } on TimeoutException {
+        // A hang is a blockage, never an absence: recorded as an engine failure
+        // so a stalled backend cannot be written to the cache as "this track
+        // does not exist".
+        PerfCounters.note('source.resolve.timeout');
+        engineFailure ??= TimeoutException(
+          'Source candidate ${candidate.key} exceeded '
+          '$sourceCandidateBudget',
+          sourceCandidateBudget,
+        );
       } catch (error) {
         engineFailure ??= error;
       }
@@ -297,6 +336,9 @@ class SourceResolver {
   }
 }
 
+/// Wall-clock ceiling for building the whole fallback list on its own.
+const fallbackCascadeBudget = Duration(seconds: 45);
+
 /// Ordered, de-duplicated stream URLs to try for playback when the primary
 /// URL fails. [primary] is the already-resolved default source (yielded
 /// first, so the success path pays no extra work); the remaining URLs come
@@ -305,6 +347,10 @@ class SourceResolver {
 /// Built lazily per request and only consulted on failure, so normal
 /// playback latency is unaffected. Limited to top 3 fallback candidates
 /// to bound network/search work.
+///
+/// [fallbackCascadeBudget] bounds the walk itself: a candidate that misses or
+/// hangs does not count against [maxFallbacks], so the loop can still visit
+/// every plugin × engine, each up to [sourceCandidateBudget] on its own.
 Future<List<String>> playbackFallbackUrls(
   Ref ref,
   SourcedTrack primary,
@@ -322,10 +368,18 @@ Future<List<String>> playbackFallbackUrls(
 
   int fallbackCount = 0;
   const maxFallbacks = 3;
+  final elapsed = Stopwatch()..start();
 
   for (final candidate in candidates) {
     if (fallbackCount >= maxFallbacks) break;
     if (candidate.key == primaryKey) continue;
+    if (elapsed.elapsed > fallbackCascadeBudget) {
+      // Slow, not stalled: hand back what was found. mpv has a shorter wait
+      // for the proxy than a whole cascade takes, and a partial list still
+      // gives it something to play.
+      PerfCounters.note('playback.fallbackCascade.budget');
+      break;
+    }
 
     try {
       final resolved = await resolver.resolve(candidate, primary.query);
@@ -349,5 +403,6 @@ Future<List<String>> playbackFallbackUrls(
     }
   }
 
+  PerfCounters.time('playback.fallbackCascade', elapsed.elapsed);
   return urls.toList();
 }

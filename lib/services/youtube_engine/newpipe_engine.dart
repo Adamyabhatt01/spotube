@@ -112,7 +112,10 @@ class NewPipeEngine implements YouTubeEngine {
 
   @override
   Future<StreamManifest> getStreamManifest(String videoId) async {
-    final video = await NewPipeExtractor.getVideoInfo(videoId);
+    final video = await withinEngineCallBudget(
+      'newpipe.getStreamManifest',
+      () => NewPipeExtractor.getVideoInfo(videoId),
+    );
 
     final streams =
         video.audioStreams.map((stream) => _parseAudioStream(stream, videoId));
@@ -130,47 +133,52 @@ class NewPipeEngine implements YouTubeEngine {
 
   @override
   Future<Video> getVideo(String videoId) async {
-    final video = await NewPipeExtractor.getVideoInfo(videoId);
+    final video = await withinEngineCallBudget(
+      'newpipe.getVideo',
+      () => NewPipeExtractor.getVideoInfo(videoId),
+    );
 
     return _parseVideo(video);
   }
 
   @override
   Future<List<YouTubeSearchResult>> searchVideos(String query) async {
-    // The `videos` filter is load-bearing, not an optimization: NewPipe's
-    // channel rows carry `description` as a plain String, and
-    // flutter_new_pipe_extractor's ChannelSearchResultItem.fromJson casts it
-    // to Map<String, dynamic> - so a single channel row makes the whole
-    // search throw. Unfiltered, "Wassup Flawed" returns 5 such rows; with the
-    // filter it returns 0. Recall for credit-noisy queries is recovered by
-    // SourcedTrack.matchWithQueryVariants instead. `music_songs` was measured
-    // over the same pages and also returns 0 channel rows.
-    //
-    // An ISRC keeps going to `videos` alone. YouTube treats it as free text,
-    // so the songs category answers a junk page of 11-20 unrelated songs where
-    // the videos category correctly answers nothing - and a clean empty answer
-    // is exactly what lets the plugin fall back to the text query. Turning a
-    // miss into a confident wrong match is the one regression to avoid here.
-    if (_isIsrcQuery(query)) {
-      return _parseRows(await _search(query, _videoFilters));
-    }
+    return withinEngineCallBudget('newpipe.searchVideos', () async {
+      // The `videos` filter is load-bearing, not an optimization: NewPipe's
+      // channel rows carry `description` as a plain String, and
+      // flutter_new_pipe_extractor's ChannelSearchResultItem.fromJson casts it
+      // to Map<String, dynamic> - so a single channel row makes the whole
+      // search throw. Unfiltered, "Wassup Flawed" returns 5 such rows; with the
+      // filter it returns 0. Recall for credit-noisy queries is recovered by
+      // SourcedTrack.matchWithQueryVariants instead. `music_songs` was measured
+      // over the same pages and also returns 0 channel rows.
+      //
+      // An ISRC keeps going to `videos` alone. YouTube treats it as free text,
+      // so the songs category answers a junk page of 11-20 unrelated songs where
+      // the videos category correctly answers nothing - and a clean empty answer
+      // is exactly what lets the plugin fall back to the text query. Turning a
+      // miss into a confident wrong match is the one regression to avoid here.
+      if (_isIsrcQuery(query)) {
+        return _parseRows(await _search(query, _videoFilters));
+      }
 
-    final List<YouTubeSearchResult> songs;
-    try {
-      songs = _parseRows(await _search(query, _songFilters));
-    } catch (_) {
-      // A songs page that fails outright should cost nothing but the extra
-      // call: `videos` is the page this engine used unconditionally before and
-      // remains correct.
-      return _parseRows(await _search(query, _videoFilters));
-    }
+      final List<YouTubeSearchResult> songs;
+      try {
+        songs = _parseRows(await _search(query, _songFilters));
+      } catch (_) {
+        // A songs page that fails outright should cost nothing but the extra
+        // call: `videos` is the page this engine used unconditionally before and
+        // remains correct.
+        return _parseRows(await _search(query, _videoFilters));
+      }
 
-    if (!_isIrrelevantSongsPage(query, songs)) return songs;
+      if (!_isIrrelevantSongsPage(query, songs)) return songs;
 
-    // Merged, not replaced: tracks outside the YouTube Music catalog only
-    // exist in the videos page, so recall is kept.
-    final videos = _parseRows(await _search(query, _videoFilters));
-    return orderTiers(query: query, songs: songs, videos: videos);
+      // Merged, not replaced: tracks outside the YouTube Music catalog only
+      // exist in the videos page, so recall is kept.
+      final videos = _parseRows(await _search(query, _videoFilters));
+      return orderTiers(query: query, songs: songs, videos: videos);
+    });
   }
 
   /// Places the two tiers against each other and drops rows the other tier

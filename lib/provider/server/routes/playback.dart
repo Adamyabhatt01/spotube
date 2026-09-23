@@ -271,6 +271,43 @@ class ServerPlaybackRoutes {
         _HeadProbe(contentType, DateTime.now());
   }
 
+  /// How long a computed fallback list may stand in for the next one. The HEAD
+  /// preflight and the stream GET ask seconds apart, for the same broken
+  /// stream; past that gap the cascade may have new information.
+  static const fallbackUrlsReuseWindow = Duration(seconds: 5);
+
+  /// Fallback lists already built, keyed by `track id|primary url`.
+  final Map<String, _FallbackUrls> _fallbackUrlLists = {};
+
+  /// [playbackFallbackUrls] with the one cost both failure paths share. The
+  /// key is the primary URL, so a re-signed stream misses rather than reusing
+  /// a list resolved against a dead URL.
+  ///
+  /// Public only so the memo can be driven the way both handlers drive it;
+  /// nothing outside this file calls it.
+  @visibleForTesting
+  Future<List<String>> fallbackUrlsFor(SourcedTrack track) async {
+    final primaryUrl = track.url;
+    final key = primaryUrl == null ? null : _headProbeKey(track, primaryUrl);
+
+    final memo = key == null ? null : _fallbackUrlLists[key];
+    if (memo != null &&
+        DateTime.now().difference(memo.computedAt) <=
+            fallbackUrlsReuseWindow) {
+      PerfCounters.note('playback.fallbackUrlsReused');
+      return memo.urls;
+    }
+
+    final urls = await playbackFallbackUrls(ref, track);
+    if (key != null) {
+      // Same bound as the HEAD probes: a handful of live tracks, cleared
+      // wholesale rather than aged.
+      if (_fallbackUrlLists.length > 16) _fallbackUrlLists.clear();
+      _fallbackUrlLists[key] = _FallbackUrls(urls, DateTime.now());
+    }
+    return urls;
+  }
+
   Future<String> _getTrackCacheFilePath(SourcedTrack track) async {
     PerfCounters.note('playback.musicCacheDirLookup');
     return join(
@@ -389,7 +426,7 @@ class ServerPlaybackRoutes {
 
     Object? lastError;
     StackTrace? lastStack;
-    for (final candidateUrl in await playbackFallbackUrls(ref, track)) {
+    for (final candidateUrl in await fallbackUrlsFor(track)) {
       if (candidateUrl == url) continue;
       try {
         final res = await dio.head(
@@ -522,7 +559,7 @@ class ServerPlaybackRoutes {
     }
 
     if (res == null) {
-      for (final fallbackUrl in await playbackFallbackUrls(ref, track)) {
+      for (final fallbackUrl in await fallbackUrlsFor(track)) {
         if (fallbackUrl == url) continue;
         try {
           res = await dio.get<ResponseBody>(
@@ -750,6 +787,15 @@ class _HeadProbe {
 
   final String contentType;
   final DateTime probedAt;
+}
+
+/// One cascade walk, kept only long enough for the request that follows it.
+/// See [ServerPlaybackRoutes._fallbackUrlLists].
+class _FallbackUrls {
+  const _FallbackUrls(this.urls, this.computedAt);
+
+  final List<String> urls;
+  final DateTime computedAt;
 }
 
 /// Debug-only tally of upstream media requests (`playback.upstream.head` /

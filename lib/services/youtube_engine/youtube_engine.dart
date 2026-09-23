@@ -1,9 +1,37 @@
+import 'dart:async';
+
+import 'package:spotube/utils/perf_counters.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 abstract interface class YouTubeEngine {
   Future<Video> getVideo(String videoId);
   Future<StreamManifest> getStreamManifest(String videoId);
   Future<List<YouTubeSearchResult>> searchVideos(String query);
+}
+
+/// Wall-clock ceiling for a single call into a YouTube backend.
+///
+/// NewPipe and yt-dlp shell out to a CLI through `Process.run`, which exposes
+/// no handle, and explode waits on an isolate reply. None of those cancel on
+/// their own, so an unresponsive backend hung the caller forever. A timeout
+/// here abandons the await: the process or isolate keeps running to its own
+/// completion and its answer is discarded.
+const engineCallBudget = Duration(seconds: 15);
+
+/// Runs one engine [request] under [engineCallBudget], timing it either way.
+Future<T> withinEngineCallBudget<T>(
+  String call,
+  Future<T> Function() request,
+) async {
+  final stopwatch = Stopwatch()..start();
+  try {
+    return await request().timeout(engineCallBudget);
+  } on TimeoutException {
+    PerfCounters.note('engine.$call.timeout');
+    rethrow;
+  } finally {
+    PerfCounters.time('engine.$call', stopwatch.elapsed);
+  }
 }
 
 /// One row of a search result page.
