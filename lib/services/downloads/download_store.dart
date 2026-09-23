@@ -76,19 +76,21 @@ Set<DownloadPersistedStatus>? _overwritableFrom(DownloadPersistedStatus to) {
 /// describes work that is in flight or already finished, and re-queuing the same
 /// track (it can arrive from a second playlist, or from a re-opened playlist)
 /// must not reset that to `queued` and make a completed file look pending.
+///
+/// One `batch()` per call so a 500-track enqueue is 500 prepared-statement
+/// rows over one round-trip instead of 500 sequential awaits.
 Future<void> recordQueuedDownloads(
   AppDatabase database,
   List<DownloadRecord> records,
 ) async {
   if (records.isEmpty) return;
-  await database.transaction(() async {
+  await database.batch((batch) {
     final now = DateTime.now().millisecondsSinceEpoch;
-    for (final record in records) {
-      await database.into(database.trackDownloadTable).insert(
-            record.toCompanion(now),
-            mode: InsertMode.insertOrIgnore,
-          );
-    }
+    batch.insertAll(
+      database.trackDownloadTable,
+      [for (final record in records) record.toCompanion(now)],
+      mode: InsertMode.insertOrIgnore,
+    );
   });
 }
 
@@ -212,24 +214,31 @@ Future<void> attachTracksToPlaylist(
   final lastPosition = existing.isEmpty ? -1 : existing.last.position;
   final now = DateTime.now().millisecondsSinceEpoch;
 
-  await database.transaction(() async {
-    var position = lastPosition + 1;
-    for (final trackId in trackIds) {
-      if (held.contains(trackId)) continue;
-      await database.into(database.playlistDownloadTable).insert(
-            PlaylistDownloadTableCompanion.insert(
-              playlistId: playlistId,
-              trackId: trackId,
-              position: position++,
-              addedAtMs: now,
-            ),
-            // The composite unique index makes a duplicate membership impossible
-            // rather than merely unlikely; a second download of the same track
-            // from the same playlist is a no-op.
-            mode: InsertMode.insertOrIgnore,
-          );
-    }
-  });
+  var position = lastPosition + 1;
+  final toInsert = <PlaylistDownloadTableCompanion>[];
+  for (final trackId in trackIds) {
+    if (held.contains(trackId)) continue;
+    toInsert.add(
+      PlaylistDownloadTableCompanion.insert(
+        playlistId: playlistId,
+        trackId: trackId,
+        position: position++,
+        addedAtMs: now,
+      ),
+    );
+  }
+  if (toInsert.isEmpty) return;
+
+  // The composite unique index makes a duplicate membership impossible rather
+  // than merely unlikely; a second download of the same track from the same
+  // playlist is a no-op.
+  await database.batch(
+    (batch) => batch.insertAll(
+      database.playlistDownloadTable,
+      toInsert,
+      mode: InsertMode.insertOrIgnore,
+    ),
+  );
 }
 
 /// Replaces a playlist's membership with [trackIds], in that order.
@@ -253,24 +262,27 @@ Future<void> writePlaylistMembership(
   };
   final now = DateTime.now().millisecondsSinceEpoch;
 
-  await database.transaction(() async {
-    await (database.delete(database.playlistDownloadTable)
-          ..where((t) => t.playlistId.equals(playlistId)))
-        .go();
-    for (var position = 0; position < trackIds.length; position++) {
-      final trackId = trackIds[position];
-      await database.into(database.playlistDownloadTable).insert(
-            PlaylistDownloadTableCompanion.insert(
-              playlistId: playlistId,
-              trackId: trackId,
-              position: position,
-              addedAtMs: addedAtByTrackId[trackId] ?? now,
-            ),
-            // A caller repeating a track id is a listing that mentions it
-            // twice; the first occurrence keeps its place.
-            mode: InsertMode.insertOrIgnore,
-          );
-    }
+  // One delete + one prepared-statement insert per row, over a single
+  // round-trip. A 500-track rewrite is 500 rows in the batch instead of
+  // 500 sequential `await insert` calls inside a transaction.
+  final membership = database.playlistDownloadTable;
+  await database.batch((batch) {
+    batch.deleteWhere(membership, (t) => t.playlistId.equals(playlistId));
+    batch.insertAll(
+      membership,
+      [
+        for (var position = 0; position < trackIds.length; position++)
+          // A caller repeating a track id is a listing that mentions it twice;
+          // the first occurrence keeps its place.
+          PlaylistDownloadTableCompanion.insert(
+            playlistId: playlistId,
+            trackId: trackIds[position],
+            position: position,
+            addedAtMs: addedAtByTrackId[trackIds[position]] ?? now,
+          ),
+      ],
+      mode: InsertMode.insertOrIgnore,
+    );
   });
 }
 
