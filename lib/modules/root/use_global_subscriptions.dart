@@ -9,6 +9,7 @@ import 'package:spotube/modules/metadata_plugins/plugin_update_available_dialog.
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/updater/update_checker.dart';
 import 'package:spotube/provider/server/routes/connect.dart';
+import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/connectivity_adapter.dart';
 import 'package:spotube/services/logger/logger.dart';
@@ -27,6 +28,17 @@ void useGlobalSubscriptions(WidgetRef ref) {
   useEffect(() {
     final idleTimer = Timer(_startupIdleDelay, () async {
       if (!context.mounted) return;
+      // One burst a day, not one per launch: skip all three checks when the
+      // interval has not elapsed. The stamp records the attempt (not success)
+      // so an offline week does not queue a burst per launch either.
+      final lastCheck = ref.read(
+        userPreferencesProvider.select((p) => p.lastUpdateCheckMs),
+      );
+      if (!isUpdateCheckDue(lastCheck, DateTime.now())) return;
+      ref
+          .read(userPreferencesProvider.notifier)
+          .setLastUpdateCheckMs(DateTime.now().millisecondsSinceEpoch);
+
       ServiceUtils.checkForUpdates(context, ref);
 
       try {

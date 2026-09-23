@@ -113,6 +113,7 @@ class PreferencesTable extends Table {
       integer().withDefault(const Constant(250))();
   TextColumn get volumeControlMode => textEnum<VolumeControlMode>()
       .withDefault(const Constant("always"))();
+  IntColumn get lastUpdateCheckMs => integer().withDefault(const Constant(0))();
 
   static PreferencesTableData defaults() {
     return PreferencesTableData(
@@ -147,6 +148,7 @@ class PreferencesTable extends Table {
       themeTransition: false,
       themeTransitionMs: 250,
       volumeControlMode: VolumeControlMode.always,
+      lastUpdateCheckMs: 0,
     );
   }
 }

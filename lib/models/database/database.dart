@@ -83,7 +83,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   /// Raw DDL for the quarantine table, kept as a constant so the v11->v12
   /// step can create it idempotently (`IF NOT EXISTS`) without depending
@@ -693,6 +693,22 @@ class AppDatabase extends _$AppDatabase {
               await m.addColumn(
                 schema.preferencesTable,
                 schema.preferencesTable.volumeControlMode,
+              );
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from17To18: (m, schema) async {
+          try {
+            // Same kill-between-ALTERs guard as every step since v12:
+            // user_version only advances after the strategy returns.
+            if (!(await _tableColumns('preferences_table'))
+                .contains('last_update_check_ms')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.lastUpdateCheckMs,
               );
             }
           } catch (e, stack) {

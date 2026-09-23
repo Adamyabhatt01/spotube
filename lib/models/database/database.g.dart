@@ -807,9 +807,17 @@ class $PreferencesTableTable extends PreferencesTable
               'volume_control_mode', aliasedName, false,
               type: DriftSqlType.string,
               requiredDuringInsert: false,
-              defaultValue: const Constant("hover"))
+              defaultValue: const Constant("always"))
           .withConverter<VolumeControlMode>(
               $PreferencesTableTable.$convertervolumeControlMode);
+  static const VerificationMeta _lastUpdateCheckMsMeta =
+      const VerificationMeta('lastUpdateCheckMs');
+  @override
+  late final GeneratedColumn<int> lastUpdateCheckMs = GeneratedColumn<int>(
+      'last_update_check_ms', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -840,7 +848,8 @@ class $PreferencesTableTable extends PreferencesTable
         autoDownloadQuality,
         themeTransition,
         themeTransitionMs,
-        volumeControlMode
+        volumeControlMode,
+        lastUpdateCheckMs
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -958,6 +967,12 @@ class $PreferencesTableTable extends PreferencesTable
           themeTransitionMs.isAcceptableOrUnknown(
               data['theme_transition_ms']!, _themeTransitionMsMeta));
     }
+    if (data.containsKey('last_update_check_ms')) {
+      context.handle(
+          _lastUpdateCheckMsMeta,
+          lastUpdateCheckMs.isAcceptableOrUnknown(
+              data['last_update_check_ms']!, _lastUpdateCheckMsMeta));
+    }
     return context;
   }
 
@@ -1037,6 +1052,8 @@ class $PreferencesTableTable extends PreferencesTable
       volumeControlMode: $PreferencesTableTable.$convertervolumeControlMode
           .fromSql(attachedDatabase.typeMapping.read(DriftSqlType.string,
               data['${effectivePrefix}volume_control_mode'])!),
+      lastUpdateCheckMs: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}last_update_check_ms'])!,
     );
   }
 
@@ -1103,6 +1120,7 @@ class PreferencesTableData extends DataClass
   final bool themeTransition;
   final int themeTransitionMs;
   final VolumeControlMode volumeControlMode;
+  final int lastUpdateCheckMs;
   const PreferencesTableData(
       {required this.id,
       required this.albumColorSync,
@@ -1132,7 +1150,8 @@ class PreferencesTableData extends DataClass
       required this.autoDownloadQuality,
       required this.themeTransition,
       required this.themeTransitionMs,
-      required this.volumeControlMode});
+      required this.volumeControlMode,
+      required this.lastUpdateCheckMs});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1205,6 +1224,7 @@ class PreferencesTableData extends DataClass
           .$convertervolumeControlMode
           .toSql(volumeControlMode));
     }
+    map['last_update_check_ms'] = Variable<int>(lastUpdateCheckMs);
     return map;
   }
 
@@ -1241,6 +1261,7 @@ class PreferencesTableData extends DataClass
       themeTransition: Value(themeTransition),
       themeTransitionMs: Value(themeTransitionMs),
       volumeControlMode: Value(volumeControlMode),
+      lastUpdateCheckMs: Value(lastUpdateCheckMs),
     );
   }
 
@@ -1287,6 +1308,7 @@ class PreferencesTableData extends DataClass
       themeTransitionMs: serializer.fromJson<int>(json['themeTransitionMs']),
       volumeControlMode: $PreferencesTableTable.$convertervolumeControlMode
           .fromJson(serializer.fromJson<String>(json['volumeControlMode'])),
+      lastUpdateCheckMs: serializer.fromJson<int>(json['lastUpdateCheckMs']),
     );
   }
   @override
@@ -1332,6 +1354,7 @@ class PreferencesTableData extends DataClass
       'volumeControlMode': serializer.toJson<String>($PreferencesTableTable
           .$convertervolumeControlMode
           .toJson(volumeControlMode)),
+      'lastUpdateCheckMs': serializer.toJson<int>(lastUpdateCheckMs),
     };
   }
 
@@ -1364,7 +1387,8 @@ class PreferencesTableData extends DataClass
           bool? autoDownloadQuality,
           bool? themeTransition,
           int? themeTransitionMs,
-          VolumeControlMode? volumeControlMode}) =>
+          VolumeControlMode? volumeControlMode,
+          int? lastUpdateCheckMs}) =>
       PreferencesTableData(
         id: id ?? this.id,
         albumColorSync: albumColorSync ?? this.albumColorSync,
@@ -1396,6 +1420,7 @@ class PreferencesTableData extends DataClass
         themeTransition: themeTransition ?? this.themeTransition,
         themeTransitionMs: themeTransitionMs ?? this.themeTransitionMs,
         volumeControlMode: volumeControlMode ?? this.volumeControlMode,
+        lastUpdateCheckMs: lastUpdateCheckMs ?? this.lastUpdateCheckMs,
       );
   PreferencesTableData copyWithCompanion(PreferencesTableCompanion data) {
     return PreferencesTableData(
@@ -1473,6 +1498,9 @@ class PreferencesTableData extends DataClass
       volumeControlMode: data.volumeControlMode.present
           ? data.volumeControlMode.value
           : this.volumeControlMode,
+      lastUpdateCheckMs: data.lastUpdateCheckMs.present
+          ? data.lastUpdateCheckMs.value
+          : this.lastUpdateCheckMs,
     );
   }
 
@@ -1507,7 +1535,8 @@ class PreferencesTableData extends DataClass
           ..write('autoDownloadQuality: $autoDownloadQuality, ')
           ..write('themeTransition: $themeTransition, ')
           ..write('themeTransitionMs: $themeTransitionMs, ')
-          ..write('volumeControlMode: $volumeControlMode')
+          ..write('volumeControlMode: $volumeControlMode, ')
+          ..write('lastUpdateCheckMs: $lastUpdateCheckMs')
           ..write(')'))
         .toString();
   }
@@ -1542,7 +1571,8 @@ class PreferencesTableData extends DataClass
         autoDownloadQuality,
         themeTransition,
         themeTransitionMs,
-        volumeControlMode
+        volumeControlMode,
+        lastUpdateCheckMs
       ]);
   @override
   bool operator ==(Object other) =>
@@ -1576,7 +1606,8 @@ class PreferencesTableData extends DataClass
           other.autoDownloadQuality == this.autoDownloadQuality &&
           other.themeTransition == this.themeTransition &&
           other.themeTransitionMs == this.themeTransitionMs &&
-          other.volumeControlMode == this.volumeControlMode);
+          other.volumeControlMode == this.volumeControlMode &&
+          other.lastUpdateCheckMs == this.lastUpdateCheckMs);
 }
 
 class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
@@ -1609,6 +1640,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
   final Value<bool> themeTransition;
   final Value<int> themeTransitionMs;
   final Value<VolumeControlMode> volumeControlMode;
+  final Value<int> lastUpdateCheckMs;
   const PreferencesTableCompanion({
     this.id = const Value.absent(),
     this.albumColorSync = const Value.absent(),
@@ -1639,6 +1671,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.themeTransition = const Value.absent(),
     this.themeTransitionMs = const Value.absent(),
     this.volumeControlMode = const Value.absent(),
+    this.lastUpdateCheckMs = const Value.absent(),
   });
   PreferencesTableCompanion.insert({
     this.id = const Value.absent(),
@@ -1670,6 +1703,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.themeTransition = const Value.absent(),
     this.themeTransitionMs = const Value.absent(),
     this.volumeControlMode = const Value.absent(),
+    this.lastUpdateCheckMs = const Value.absent(),
   });
   static Insertable<PreferencesTableData> custom({
     Expression<int>? id,
@@ -1701,6 +1735,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     Expression<bool>? themeTransition,
     Expression<int>? themeTransitionMs,
     Expression<String>? volumeControlMode,
+    Expression<int>? lastUpdateCheckMs,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1736,6 +1771,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       if (themeTransition != null) 'theme_transition': themeTransition,
       if (themeTransitionMs != null) 'theme_transition_ms': themeTransitionMs,
       if (volumeControlMode != null) 'volume_control_mode': volumeControlMode,
+      if (lastUpdateCheckMs != null) 'last_update_check_ms': lastUpdateCheckMs,
     });
   }
 
@@ -1768,7 +1804,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       Value<bool>? autoDownloadQuality,
       Value<bool>? themeTransition,
       Value<int>? themeTransitionMs,
-      Value<VolumeControlMode>? volumeControlMode}) {
+      Value<VolumeControlMode>? volumeControlMode,
+      Value<int>? lastUpdateCheckMs}) {
     return PreferencesTableCompanion(
       id: id ?? this.id,
       albumColorSync: albumColorSync ?? this.albumColorSync,
@@ -1799,6 +1836,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       themeTransition: themeTransition ?? this.themeTransition,
       themeTransitionMs: themeTransitionMs ?? this.themeTransitionMs,
       volumeControlMode: volumeControlMode ?? this.volumeControlMode,
+      lastUpdateCheckMs: lastUpdateCheckMs ?? this.lastUpdateCheckMs,
     );
   }
 
@@ -1909,6 +1947,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           .$convertervolumeControlMode
           .toSql(volumeControlMode.value));
     }
+    if (lastUpdateCheckMs.present) {
+      map['last_update_check_ms'] = Variable<int>(lastUpdateCheckMs.value);
+    }
     return map;
   }
 
@@ -1943,7 +1984,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           ..write('autoDownloadQuality: $autoDownloadQuality, ')
           ..write('themeTransition: $themeTransition, ')
           ..write('themeTransitionMs: $themeTransitionMs, ')
-          ..write('volumeControlMode: $volumeControlMode')
+          ..write('volumeControlMode: $volumeControlMode, ')
+          ..write('lastUpdateCheckMs: $lastUpdateCheckMs')
           ..write(')'))
         .toString();
   }
@@ -6425,6 +6467,7 @@ typedef $$PreferencesTableTableCreateCompanionBuilder
   Value<bool> themeTransition,
   Value<int> themeTransitionMs,
   Value<VolumeControlMode> volumeControlMode,
+  Value<int> lastUpdateCheckMs,
 });
 typedef $$PreferencesTableTableUpdateCompanionBuilder
     = PreferencesTableCompanion Function({
@@ -6457,6 +6500,7 @@ typedef $$PreferencesTableTableUpdateCompanionBuilder
   Value<bool> themeTransition,
   Value<int> themeTransitionMs,
   Value<VolumeControlMode> volumeControlMode,
+  Value<int> lastUpdateCheckMs,
 });
 
 class $$PreferencesTableTableFilterComposer
@@ -6588,6 +6632,10 @@ class $$PreferencesTableTableFilterComposer
       get volumeControlMode => $composableBuilder(
           column: $table.volumeControlMode,
           builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnFilters<int> get lastUpdateCheckMs => $composableBuilder(
+      column: $table.lastUpdateCheckMs,
+      builder: (column) => ColumnFilters(column));
 }
 
 class $$PreferencesTableTableOrderingComposer
@@ -6705,6 +6753,10 @@ class $$PreferencesTableTableOrderingComposer
   ColumnOrderings<String> get volumeControlMode => $composableBuilder(
       column: $table.volumeControlMode,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get lastUpdateCheckMs => $composableBuilder(
+      column: $table.lastUpdateCheckMs,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$PreferencesTableTableAnnotationComposer
@@ -6810,6 +6862,9 @@ class $$PreferencesTableTableAnnotationComposer
   GeneratedColumnWithTypeConverter<VolumeControlMode, String>
       get volumeControlMode => $composableBuilder(
           column: $table.volumeControlMode, builder: (column) => column);
+
+  GeneratedColumn<int> get lastUpdateCheckMs => $composableBuilder(
+      column: $table.lastUpdateCheckMs, builder: (column) => column);
 }
 
 class $$PreferencesTableTableTableManager extends RootTableManager<
@@ -6870,6 +6925,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<bool> themeTransition = const Value.absent(),
             Value<int> themeTransitionMs = const Value.absent(),
             Value<VolumeControlMode> volumeControlMode = const Value.absent(),
+            Value<int> lastUpdateCheckMs = const Value.absent(),
           }) =>
               PreferencesTableCompanion(
             id: id,
@@ -6901,6 +6957,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             themeTransition: themeTransition,
             themeTransitionMs: themeTransitionMs,
             volumeControlMode: volumeControlMode,
+            lastUpdateCheckMs: lastUpdateCheckMs,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -6933,6 +6990,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<bool> themeTransition = const Value.absent(),
             Value<int> themeTransitionMs = const Value.absent(),
             Value<VolumeControlMode> volumeControlMode = const Value.absent(),
+            Value<int> lastUpdateCheckMs = const Value.absent(),
           }) =>
               PreferencesTableCompanion.insert(
             id: id,
@@ -6964,6 +7022,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             themeTransition: themeTransition,
             themeTransitionMs: themeTransitionMs,
             volumeControlMode: volumeControlMode,
+            lastUpdateCheckMs: lastUpdateCheckMs,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

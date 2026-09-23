@@ -244,6 +244,10 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
     setData(PreferencesTableCompanion(volumeControlMode: Value(mode)));
   }
 
+  void setLastUpdateCheckMs(int atMs) {
+    setData(PreferencesTableCompanion(lastUpdateCheckMs: Value(atMs)));
+  }
+
   void setShowSystemTrayIcon(bool show) {
     setData(PreferencesTableCompanion(showSystemTrayIcon: Value(show)));
   }
