@@ -624,7 +624,9 @@ class ServerPlaybackRoutes {
   Future<void> _finalizeCachedTrack(SourcedTrack track, int fileLength) async {
     if (track.qualityPreset!.getFileExtension() == "weba") return;
 
-    final imageBytes = await ServiceUtils.downloadImage(
+    // Shared bytes with the download worker and the palette hook: one fetch
+    // per URL no matter how many of them want this cover at once.
+    final imageBytes = await ServiceUtils.artworkBytes(
       track.query.album.images.asUrlString(
         placeholder: ImagePlaceholder.albumArt,
         index: 1,

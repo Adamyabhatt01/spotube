@@ -196,6 +196,44 @@ abstract class ServiceUtils {
     }
   }
 
+  /// In-memory artwork bytes keyed by URL, shared by every consumer.
+  ///
+  /// The download worker, the playback-cache finalizer and the palette hook
+  /// all asked for the same album art through [downloadImage], which shares
+  /// only the on-disk cache: each caller re-read the file, and concurrent
+  /// callers each started their own fetch. This memo serves repeat and
+  /// concurrent requests from one future. Failures are not retained (a null
+  /// result evicts its own entry) so a transient outage stays retryable.
+  /// Bounded by entry count; the oldest entry goes first.
+  static final Map<String, Future<Uint8List?>> _artworkBytesMemo = {};
+  static const int _maxArtworkMemoEntries = 64;
+
+  static Future<Uint8List?> artworkBytes(String imageUrl) {
+    return _artworkBytesMemo.putIfAbsent(imageUrl, () {
+      // [downloadImage] never throws (it reports and returns null), so this
+      // derived future always completes cleanly and cannot surface as an
+      // unhandled zone error.
+      return downloadImage(imageUrl).then((bytes) {
+        if (bytes == null) {
+          _artworkBytesMemo.remove(imageUrl);
+        } else {
+          while (_artworkBytesMemo.length > _maxArtworkMemoEntries) {
+            final oldest = _artworkBytesMemo.keys.first;
+            if (oldest == imageUrl) break;
+            _artworkBytesMemo.remove(oldest);
+          }
+        }
+        return bytes;
+      });
+    });
+  }
+
+  @visibleForTesting
+  static int get debugArtworkMemoLength => _artworkBytesMemo.length;
+
+  @visibleForTesting
+  static void debugClearArtworkMemo() => _artworkBytesMemo.clear();
+
   static int randomNumber(int min, int max) {
     return min + Random().nextInt(max - min);
   }
