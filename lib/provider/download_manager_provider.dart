@@ -104,6 +104,15 @@ class DownloadTask {
   final DownloadStatus status;
   final CancelToken cancelToken;
   final int? totalSizeBytes;
+
+  /// The `SpotubeFullTrackObject.toJson()` this task's database row stores.
+  /// Encoded once at enqueue and reused for every later status write; the row
+  /// payload is what the mirror parses to render a playlist offline, and it
+  /// cannot drift from what the task started with. Nullable so an ad-hoc task
+  /// (a test constructing one directly, for example) can omit it and fall back
+  /// to encoding on the first write.
+  final String? trackData;
+
   final StreamController<int> _downloadedBytesStreamController;
 
   Stream<int> get downloadedBytesStream =>
@@ -114,6 +123,7 @@ class DownloadTask {
     required this.status,
     required this.cancelToken,
     this.totalSizeBytes,
+    this.trackData,
     StreamController<int>? downloadedBytesStreamController,
   }) : _downloadedBytesStreamController =
             downloadedBytesStreamController ?? StreamController.broadcast();
@@ -123,6 +133,7 @@ class DownloadTask {
     DownloadStatus? status,
     CancelToken? cancelToken,
     int? totalSizeBytes,
+    String? trackData,
     StreamController<int>? downloadedBytesStreamController,
   }) {
     return DownloadTask(
@@ -130,6 +141,7 @@ class DownloadTask {
       status: status ?? this.status,
       cancelToken: cancelToken ?? this.cancelToken,
       totalSizeBytes: totalSizeBytes ?? this.totalSizeBytes,
+      trackData: trackData ?? this.trackData,
       downloadedBytesStreamController:
           downloadedBytesStreamController ?? _downloadedBytesStreamController,
     );
@@ -251,18 +263,22 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     }
     if (incoming.isEmpty) return false;
 
-    state = [
-      ...state,
-      ...incoming.map(
-        (track) => DownloadTask(
+    // Encode each track's JSON exactly once, and store it on the task. Every
+    // later status write (_persistStatus for downloading / completed / failed
+    // / canceled) reuses this string, so a 500-track batch does 500 encodes
+    // total instead of 500 × transitions.
+    final newTasks = [
+      for (final track in incoming)
+        DownloadTask(
           track: track,
           status: DownloadStatus.queued,
           cancelToken: CancelToken(),
+          trackData: jsonEncode(track.toJson()),
         ),
-      ),
     ];
+    state = [...state, ...newTasks];
 
-    unawaited(_recordQueued(incoming));
+    unawaited(_recordQueued(newTasks));
 
     // The prefetch stays on the first track only, as it was for batches;
     // a per-track prefetch would resolve every row of a playlist at once.
@@ -297,17 +313,20 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     DownloadStatus.canceled: DownloadPersistedStatus.canceled,
   };
 
-  /// Where [track] is going on disk, plus everything the row needs.
+  /// Where [task]'s track is going on disk, plus everything the row needs.
   ///
   /// Always via [_savePathFor], so the path in the database and the path a
   /// worker writes to cannot drift, and `baseName` is the same string
-  /// `DownloadedFileIndex` keys on.
+  /// `DownloadedFileIndex` keys on. The `trackData` payload comes from the
+  /// task's cached encode; a task without one falls back to encoding on
+  /// demand, so an ad-hoc construction still works.
   DownloadRecord _recordFor(
-    SpotubeFullTrackObject track,
+    DownloadTask task,
     DownloadPersistedStatus status, {
     String? error,
     int? sizeBytes,
   }) {
+    final track = task.track;
     final presets = ref.read(audioSourcePresetsProvider);
     final container =
         presets.presets[presets.selectedDownloadingContainerIndex];
@@ -320,19 +339,19 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       filePath: savePath,
       baseName: basenameWithoutExtension(savePath),
       status: status,
-      trackData: jsonEncode(track.toJson()),
+      trackData: task.trackData ?? jsonEncode(track.toJson()),
       error: error,
       sizeBytes: sizeBytes,
     );
   }
 
-  Future<void> _recordQueued(List<SpotubeFullTrackObject> tracks) async {
+  Future<void> _recordQueued(List<DownloadTask> tasks) async {
     await _writing('queue', () async {
       await recordQueuedDownloads(
         ref.read(databaseProvider),
         [
-          for (final track in tracks)
-            _recordFor(track, DownloadPersistedStatus.queued),
+          for (final task in tasks)
+            _recordFor(task, DownloadPersistedStatus.queued),
         ],
       );
     });
@@ -358,7 +377,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       await writeDownloadStatus(
         ref.read(databaseProvider),
         _recordFor(
-          task.track,
+          task,
           _statusByDownloadStatus[status]!,
           sizeBytes: task.totalSizeBytes,
           // An exception string can carry a whole response body, and it is
