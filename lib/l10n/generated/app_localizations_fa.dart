@@ -1460,6 +1460,10 @@ class AppLocalizationsFa extends AppLocalizations {
       'Spotify rate limit reached. Wait about a minute and try again.';
 
   @override
+  String get spotify_login_expired =>
+      'Spotify rejected this login. Re-authenticate in Settings > Metadata plugins, then try again.';
+
+  @override
   String get copy_to_clipboard => 'کپی به کلیپ‌بورد';
 
   @override

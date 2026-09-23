@@ -2805,6 +2805,12 @@ abstract class AppLocalizations {
   /// **'Spotify rate limit reached. Wait about a minute and try again.'**
   String get rate_limited_please_retry;
 
+  /// No description provided for @spotify_login_expired.
+  ///
+  /// In en, this message translates to:
+  /// **'Spotify rejected this login. Re-authenticate in Settings > Metadata plugins, then try again.'**
+  String get spotify_login_expired;
+
   /// No description provided for @copy_to_clipboard.
   ///
   /// In en, this message translates to:

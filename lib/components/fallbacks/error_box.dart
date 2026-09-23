@@ -7,6 +7,15 @@ import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/services/metadata/errors/rate_limit.dart';
 
+/// What to show in place of the raw error. Both branches replace a dump that
+/// no user can act on: a 429 needs waiting, a 401 needs the login fixed in
+/// settings, and only the log view should ever say `DioException`.
+String _explainError(BuildContext context, Object error) {
+  if (isRateLimitedError(error)) return context.l10n.rate_limited_please_retry;
+  if (isCredentialError(error)) return context.l10n.spotify_login_expired;
+  return error.toString();
+}
+
 class ErrorBox extends StatelessWidget {
   final Object error;
   final VoidCallback? onRetry;
@@ -39,9 +48,7 @@ class ErrorBox extends StatelessWidget {
                 filled: true,
                 fillColor: context.theme.colorScheme.muted,
                 child: Text(
-                  isRateLimitedError(error)
-                      ? context.l10n.rate_limited_please_retry
-                      : error.toString(),
+                  _explainError(context, error),
                   style: TextStyle(
                     // Use monospace
                     fontFamily: 'Ubuntu Mono',

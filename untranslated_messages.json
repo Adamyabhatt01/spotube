@@ -22,6 +22,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -49,6 +50,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -76,6 +78,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -103,6 +106,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -130,6 +134,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -157,6 +162,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -184,6 +190,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -211,6 +218,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -238,6 +246,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -265,6 +274,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -292,6 +302,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -319,6 +330,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -346,6 +358,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -373,6 +386,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -400,6 +414,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -427,6 +442,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -454,6 +470,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -481,6 +498,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -508,6 +526,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -535,6 +554,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -562,6 +582,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -589,6 +610,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -616,6 +638,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -643,6 +666,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -670,6 +694,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -697,6 +722,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -724,6 +750,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -751,6 +778,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ],
@@ -778,6 +806,7 @@
     "source_priority",
     "source_priority_description",
     "rate_limited_please_retry",
+    "spotify_login_expired",
     "default_theme",
     "set_default_theme"
   ]
