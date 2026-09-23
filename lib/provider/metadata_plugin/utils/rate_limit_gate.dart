@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/services/metadata/errors/rate_limit.dart';
+import 'package:spotube/utils/perf_counters.dart';
 
 /// Session-wide gate that stops metadata requests from re-probing Spotify's
 /// rate limiter after a 429. Each strike closes the gate for an escalating
@@ -48,21 +51,39 @@ final rateLimitGateProvider =
 /// makes the next read fail fast without re-probing Spotify. Callers that
 /// would rather wait than fail (saved-list builds) pass
 /// [maxRateLimitAutoRetries].
+///
+/// Every attempt is additionally capped by [metadataRequestBudget], because
+/// the plugin's own HTTP client has no timeouts at all.
 Future<T> runGated<T>(
   RateLimitGate gate,
   Future<T> Function() request, {
   int maxRetries = 0,
   Duration cooldown = rateLimitRetryCooldown,
+  Duration budget = metadataRequestBudget,
 }) async {
   gate.ensureOpen();
+
+  Future<T> oneAttempt() async {
+    final stopwatch = Stopwatch()..start();
+    try {
+      return await request().timeout(budget);
+    } finally {
+      PerfCounters.time('metadata.request', stopwatch.elapsed);
+    }
+  }
 
   var attempt = 0;
   while (true) {
     try {
-      final result = await request();
+      final result = await oneAttempt();
       gate.recordSuccess();
       return result;
     } catch (e) {
+      if (e is TimeoutException) {
+        // A stall is not a throttle: no strike, so unrelated reads keep
+        // working instead of being suppressed for a backoff window.
+        PerfCounters.note('metadata.request.timeout');
+      }
       if (!isRateLimitedError(e)) rethrow;
       if (e is! RateLimitedUntilException) gate.recordRateLimit();
       if (!shouldRetryAfterRateLimit(e, attempt, maxRetries: maxRetries)) {

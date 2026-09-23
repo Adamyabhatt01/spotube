@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 // ignore: implementation_imports
@@ -165,48 +166,114 @@ abstract class AutoDisposePaginatedAsyncNotifier<K>
     extends AutoDisposeAsyncNotifier<SpotubePaginationResponseObject<K>>
     with PaginatedAsyncNotifierMixin<K>, MetadataPluginMixin<K> {}
 
-/// Build-time helper for the four Spotify saved-list notifiers: rate-limit
-/// retried first page, with a fallback to the persisted last-known-good
-/// snapshot when the fetch fails (429, gate closed, network, plugin error).
+/// Build-time helper for the four Spotify saved-list notifiers.
+///
+/// Warm (a snapshot exists) the list is served from SQLite and the network
+/// revalidation runs *behind* it. Cold it is fetched the blocking way, because
+/// there is nothing to show yet. Serving first is the whole point: a build used
+/// to sit on `fetchWithRateLimitRetry`'s cooldowns — and on a closed gate it
+/// only reached the snapshot inside the `catch`, after all that waiting.
 mixin SavedListCacheMixin<K>
     on PaginatedAsyncNotifierMixin<K>, MetadataPluginMixin<K> {
+  /// Set once this notifier is gone. The revalidation a warm build started
+  /// outlives the page that asked for it, and writing to a disposed provider
+  /// is an assertion, not a no-op.
+  bool _discarded = false;
+
+  /// The revalidation this instance already has running, so a second warm
+  /// build cannot stack a second walk onto the same list.
+  Future<void>? _revalidating;
+
+  /// Exposed only so a test can wait for the background refresh instead of
+  /// guessing at it with event-loop rounds.
+  @visibleForTesting
+  Future<void>? get revalidation => _revalidating;
+
+  /// The persisted list as a complete page, or null when there is no usable
+  /// snapshot. A failing cache is simply no cache.
+  Future<SpotubePaginationResponseObject<K>?> _readSnapshotPage() async {
+    final key = snapshotKey;
+    final decoder = snapshotDecoder;
+    if (key == null || decoder == null) return null;
+
+    final List<K>? items;
+    try {
+      items = await readLibrarySnapshot(
+        ref.read(databaseProvider),
+        key,
+        decoder,
+      );
+    } catch (_) {
+      // A failing cache is simply no cache; the blocking fetch follows and
+      // surfaces whatever error is worth seeing.
+      return null;
+    }
+    if (items == null || items.isEmpty) return null;
+
+    return SpotubePaginationResponseObject(
+      limit: items.length,
+      nextOffset: null,
+      total: items.length,
+      hasMore: false,
+      items: items,
+    );
+  }
+
   Future<SpotubePaginationResponseObject<K>> buildSavedList({
     Duration cooldown = rateLimitRetryCooldown,
   }) async {
+    final cached = await _readSnapshotPage();
+    if (cached != null) {
+      ref.onDispose(() => _discarded = true);
+      // Deliberately not awaited: completing this build is what puts the list
+      // on screen, and the refresh result arrives through `state` instead.
+      _revalidating ??= _revalidate(cooldown, cached).whenComplete(() {
+        _revalidating = null;
+      });
+      return cached;
+    }
+
+    final page = await fetchWithRateLimitRetry(
+      () => fetch(0, 20),
+      cooldown: cooldown,
+    );
+    // A single-page library is already complete; cache it right away.
+    if (!page.hasMore) unawaited(persistSnapshot());
+    return page;
+  }
+
+  /// Refreshes the first page behind a served snapshot. [served] is the page
+  /// this build handed back, used as the identity of "nothing else has touched
+  /// the list since".
+  ///
+  /// Failure leaves the list on screen untouched: it is last-known-good data,
+  /// and an `ErrorBox` replacing it would be a worse trade than a stale list.
+  /// So the error is only logged — which is also the only place a stale
+  /// library is discoverable, hence `reportError` rather than silence.
+  Future<void> _revalidate(
+    Duration cooldown,
+    SpotubePaginationResponseObject<K> served,
+  ) async {
+    final SpotubePaginationResponseObject<K> fresh;
     try {
-      final page = await fetchWithRateLimitRetry(
+      fresh = await fetchWithRateLimitRetry(
         () => fetch(0, 20),
         cooldown: cooldown,
       );
-      // A single-page library is already complete; cache it right away.
-      if (!page.hasMore) unawaited(persistSnapshot());
-      return page;
-    } catch (e) {
-      final key = snapshotKey;
-      final decoder = snapshotDecoder;
-      if (key != null && decoder != null) {
-        List<K>? stale;
-        try {
-          stale = await readLibrarySnapshot(
-            ref.read(databaseProvider),
-            key,
-            decoder,
-          );
-        } catch (_) {
-          // A failing cache is simply no cache; the original fetch error
-          // is what the user should see.
-        }
-        if (stale != null && stale.isNotEmpty) {
-          return SpotubePaginationResponseObject(
-            limit: stale.length,
-            nextOffset: null,
-            total: stale.length,
-            hasMore: false,
-            items: stale,
-          );
-        }
-      }
-      rethrow;
+    } catch (e, stack) {
+      AppLogger.reportError(e, stack);
+      return;
     }
+
+    // Anything that already moved the list owns it: an optimistic favorite, a
+    // page walk, or a build that has not delivered [served] yet (then
+    // `state.value` is still null and this result would be clobbered anyway).
+    // Page one of a fetch started before such a change must not roll it back.
+    if (_discarded || _isFetching || !identical(state.value, served)) return;
+
+    state = AsyncData(fresh);
+    // Awaited, so a caller that waits for `revalidation` also knows the
+    // snapshot on disk matches the list on screen.
+    await persistSnapshot();
   }
 }
