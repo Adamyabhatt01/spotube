@@ -195,27 +195,53 @@ final downloadStateOfProvider =
 ) =>
         watchDownloadOfTrack(ref.watch(databaseProvider), trackId));
 
-/// A mirrored playlist as stored: order, metadata and per-track download state,
-/// with no network involved.
-final mirroredPlaylistProvider =
-    StreamProvider.autoDispose.family<List<MirroredPlaylistTrack>, String>((
-  ref,
-  playlistId,
-) =>
-        watchMirroredPlaylist(ref.watch(databaseProvider), playlistId));
+/// How many decoded [SpotubeFullTrackObject]s one playlist page keeps in
+/// memory. A mirrored playlist re-emits its whole row set whenever any of
+/// its tracks changes, and each emission used to pay one JSON decode per
+/// row — a 500-track playlist completing downloads one at a time did
+/// 500×500 = 250,000 decodes for one screen.
+const int _maxDecodeCacheEntries = 2048;
 
 /// The tracks of a mirrored playlist, ready for a list of rows to render.
 ///
 /// Empty when the playlist was never mirrored. A track whose stored JSON this
 /// build cannot read is skipped rather than shown as an empty row: the list
 /// stays coherent, and the next sync replaces it.
+///
+/// The decode cache is keyed by `(trackId, updatedAtMs)` because that pair is
+/// the whole input to the decode — the same two values always produce the
+/// same object, and either changing means the row's payload may have changed
+/// too. LRU via insertion order keeps a walk across many playlists bounded.
+///
+/// One subscription per playlist: the join lives here, and the per-row
+/// download status lives on [downloadStateOfProvider], which is a separate
+/// drift stream on the primary key. A consumer that needs the whole
+/// `MirroredPlaylistTrack` (membership + download row together) should read
+/// the raw stream here rather than open a second one.
 final mirroredPlaylistTracksProvider = StreamProvider.autoDispose
     .family<List<SpotubeFullTrackObject>, String>((ref, playlistId) {
+  final cache = <String, SpotubeFullTrackObject?>{};
   return watchMirroredPlaylist(ref.watch(databaseProvider), playlistId)
-      .map((rows) => [
-            for (final row in rows)
-              if (row.track case final track?) track,
-          ]);
+      .map((rows) {
+    final tracks = <SpotubeFullTrackObject>[];
+    for (final row in rows) {
+      final download = row.download;
+      if (download == null) continue;
+      final key = '${download.trackId}#${download.updatedAtMs}';
+      SpotubeFullTrackObject? decoded;
+      if (cache.containsKey(key)) {
+        decoded = cache.remove(key);
+      } else {
+        decoded = row.track;
+        if (cache.length >= _maxDecodeCacheEntries) {
+          cache.remove(cache.keys.first);
+        }
+      }
+      cache[key] = decoded;
+      if (decoded != null) tracks.add(decoded);
+    }
+    return tracks;
+  });
 });
 
 /// Every playlist the user mirrored, as the objects the Playlists section lists.
