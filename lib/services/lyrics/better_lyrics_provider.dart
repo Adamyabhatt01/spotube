@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:spotube/models/lyrics.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/services/dio/dio.dart';
@@ -75,6 +75,20 @@ List<LyricSlice> parseBetterLyricsTtml(String ttml) {
   return slices;
 }
 
+/// Same threshold rule as the LRCLib side: small documents parse inline,
+/// large ones go through [compute] so a pathological document cannot jank
+/// the UI thread.
+const _isolateParseThresholdBytes = 16384;
+
+/// Parses a Better Lyrics TTML document, off the calling isolate when it is
+/// large enough for the parse to matter. Small documents parse inline.
+Future<List<LyricSlice>> parseTtmlDocument(String ttml) {
+  if (ttml.length < _isolateParseThresholdBytes) {
+    return Future.value(parseBetterLyricsTtml(ttml));
+  }
+  return compute(parseBetterLyricsTtml, ttml);
+}
+
 /// Better Lyrics lyrics source.
 ///
 /// Hits the public Better Lyrics API
@@ -92,7 +106,7 @@ class BetterLyricsLyricsProvider implements LyricsProvider {
 
   @override
   Future<SubtitleSimple> fetchLyrics(SpotubeFullTrackObject track) async {
-    final packageInfo = await PackageInfo.fromPlatform();
+    final userAgent = await lyricsUserAgent();
 
     final res = await globalDio.getUri(
       Uri(
@@ -105,10 +119,7 @@ class BetterLyricsLyricsProvider implements LyricsProvider {
         },
       ),
       options: Options(
-        headers: {
-          "User-Agent":
-              "Spotube v${packageInfo.version} (https://github.com/KRTirtho/spotube)"
-        },
+        headers: {"User-Agent": userAgent},
         responseType: ResponseType.json,
         receiveTimeout: const Duration(seconds: 8),
         // The public endpoint answers 401 ("uncached queries require a valid
@@ -126,7 +137,7 @@ class BetterLyricsLyricsProvider implements LyricsProvider {
     final ttml = json is Map<String, dynamic> ? json["ttml"] as String? : null;
     if (ttml == null || ttml.trim().isEmpty) return _empty(track, res.realUri);
 
-    final lyrics = parseBetterLyricsTtml(ttml);
+    final lyrics = await parseTtmlDocument(ttml);
     if (lyrics.isEmpty) return _empty(track, res.realUri);
 
     return SubtitleSimple(

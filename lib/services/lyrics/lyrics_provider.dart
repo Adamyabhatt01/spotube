@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/models/lyrics.dart';
 
@@ -23,3 +25,28 @@ abstract interface class LyricsProvider {
 /// within the rules above. Providers may be added at runtime by inserting into
 /// this list (typically at [init]).
 final List<LyricsProvider> lyricsProviders = [];
+
+/// Reads the app version for lyric-provider User-Agent headers.
+///
+/// A process-wide memo: the version is a constant, but every provider used to
+/// pay its own `PackageInfo.fromPlatform()` platform-channel round trip per
+/// track (two per uncached track once LRCLib missed into Better Lyrics).
+/// Browsers cache their UA string for the same reason; so do we.
+Future<String> Function() _userAgentReader = _readUserAgent;
+Future<String>? _memoizedUserAgent;
+
+/// Descriptive User-Agent shared by all lyric providers, read once per
+/// process. Test seam: [debugOverrideLyricsUserAgent] swaps the reader.
+Future<String> lyricsUserAgent() => _memoizedUserAgent ??= _userAgentReader();
+
+Future<String> _readUserAgent() async {
+  final packageInfo = await PackageInfo.fromPlatform();
+  return "Spotube v${packageInfo.version} "
+      "(https://github.com/KRTirtho/spotube)";
+}
+
+@visibleForTesting
+void debugOverrideLyricsUserAgent(Future<String> Function()? reader) {
+  _userAgentReader = reader ?? _readUserAgent;
+  _memoizedUserAgent = null;
+}

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/lyrics.dart';
@@ -17,10 +18,88 @@ void registerLyricsProviders() {
   lyricsProviders.add(BetterLyricsLyricsProvider());
 }
 
+/// Resolutions currently running, keyed by track id.
+///
+/// Two family instances for the same track (different track objects, same id)
+/// share one fetch instead of doubling the provider chain. Entries remove
+/// themselves on completion, so the map holds only live work.
+final Map<String, Future<SubtitleSimple>> _lyricsInFlight = {};
+
+/// Tracks whose providers all missed recently, mapped to when the miss was
+/// recorded. A miss is stable ("no lyrics" rarely becomes lyrics), so a
+/// revisit within [_lyricsMissTtl] skips the whole provider chain — the way
+/// HTTP clients cache 404s. Bounded; the oldest entry goes first.
+final Map<String, DateTime> _lyricsMisses = {};
+
+/// How long a recorded miss suppresses refetching.
+const _lyricsMissTtl = Duration(hours: 24);
+
+/// Cap on remembered misses, so pathological browsing cannot grow the map
+/// without bound.
+const _maxLyricsMisses = 200;
+
+@visibleForTesting
+bool isFreshLyricsMiss(String trackId) {
+  final recordedAt = _lyricsMisses[trackId];
+  if (recordedAt == null) return false;
+  if (DateTime.now().difference(recordedAt) > _lyricsMissTtl) {
+    _lyricsMisses.remove(trackId);
+    return false;
+  }
+  return true;
+}
+
+void _recordLyricsMiss(String trackId) {
+  _lyricsMisses[trackId] = DateTime.now();
+  while (_lyricsMisses.length > _maxLyricsMisses) {
+    _lyricsMisses.remove(_lyricsMisses.keys.first);
+  }
+}
+
+/// Clears the miss and in-flight maps. Test-only: static lyric state would
+/// otherwise leak between cases the way the provider registry already guards
+/// against with `lyricsProviders.clear()`.
+@visibleForTesting
+void clearLyricsFetchState() {
+  _lyricsMisses.clear();
+  _lyricsInFlight.clear();
+}
+
 class SyncedLyricsNotifier
     extends FamilyAsyncNotifier<SubtitleSimple, SpotubeTrackObject?> {
   @override
-  FutureOr<SubtitleSimple> build(track) async {
+  FutureOr<SubtitleSimple> build(track) {
+    if (track == null) return _load(null);
+    final running = _lyricsInFlight[track.id];
+    if (running != null) return running;
+    final future = _load(track);
+    _lyricsInFlight[track.id] = future;
+    _releaseWhenDone(track.id, future);
+    return future;
+  }
+
+  /// Removes a finished resolution from [_lyricsInFlight].
+  ///
+  /// Both handlers swallow (the entry removal is the whole result), so this
+  /// telemetric future always completes cleanly: a `whenComplete` here would
+  /// rethrow a failed resolution into an unobserved future and surface it as
+  /// an unhandled zone error.
+  void _releaseWhenDone(String trackId, Future<SubtitleSimple> future) {
+    future.then(
+      (_) {
+        if (identical(_lyricsInFlight[trackId], future)) {
+          _lyricsInFlight.remove(trackId);
+        }
+      },
+      onError: (_) {
+        if (identical(_lyricsInFlight[trackId], future)) {
+          _lyricsInFlight.remove(trackId);
+        }
+      },
+    );
+  }
+
+  Future<SubtitleSimple> _load(SpotubeTrackObject? track) async {
     try {
       final database = ref.watch(databaseProvider);
 
@@ -41,6 +120,13 @@ class SyncedLyricsNotifier
       // be stored and then treated as a hit forever.
       final fromCache = cached != null && cached.hasContent ? cached : null;
       var lyrics = fromCache;
+
+      // A recent miss short-circuits the whole chain: no provider, no HTTP.
+      if (lyrics == null &&
+          track is SpotubeFullTrackObject &&
+          isFreshLyricsMiss(track.id)) {
+        throw Exception("Unable to find lyrics");
+      }
 
       if (lyrics == null && track is SpotubeFullTrackObject) {
         // Only online tracks have provider-backed lyrics; local files have
@@ -70,6 +156,9 @@ class SyncedLyricsNotifier
       }
 
       if (lyrics == null || !lyrics.hasContent) {
+        // Reachable only for a real track (a null track throws above), so
+        // the miss is always attributable to this id.
+        _recordLyricsMiss(track.id);
         throw Exception("Unable to find lyrics");
       }
 

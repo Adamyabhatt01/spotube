@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:lrc/lrc.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:spotube/models/lyrics.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/services/dio/dio.dart';
@@ -8,6 +8,24 @@ import 'package:spotube/services/dio/dio.dart';
 import 'lyrics_provider.dart';
 
 bool _hasText(String? raw) => raw != null && raw.trim().isNotEmpty;
+
+/// Documents at or above this size parse off the calling isolate.
+///
+/// Lyric documents are usually a few KB (sub-millisecond to parse, cheaper
+/// than spawning an isolate); unusually large ones go through [compute] so a
+/// pathological document cannot jank the UI thread.
+const _isolateParseThresholdBytes = 16384;
+
+List<LyricSlice>? _parseSyncedEntry(String raw) => _parseSynced(raw);
+
+/// Parses an LRCLib `syncedLyrics` document, off the calling isolate when it
+/// is large enough for the parse to matter. Small documents parse inline.
+Future<List<LyricSlice>?> parseLrcDocument(String raw) {
+  if (raw.length < _isolateParseThresholdBytes) {
+    return Future.value(_parseSynced(raw));
+  }
+  return compute(_parseSyncedEntry, raw);
+}
 
 List<LyricSlice>? _parseSynced(String raw) {
   try {
@@ -93,17 +111,17 @@ class LRCLibLyricsProvider implements LyricsProvider {
 
   @override
   Future<SubtitleSimple> fetchLyrics(SpotubeFullTrackObject track) async {
-    final packageInfo = await PackageInfo.fromPlatform();
+    final userAgent = await lyricsUserAgent();
 
     // A miss is an answer, not a crash: lrclib 404s everything its exact
     // match does not recognise and 503s when it is loaded, and both are
     // reasons to try its search endpoint rather than to give up.
     final options = Options(
-      headers: {
-        "User-Agent":
-            "Spotube v${packageInfo.version} (https://github.com/KRTirtho/spotube)"
-      },
+      headers: {"User-Agent": userAgent},
       responseType: ResponseType.json,
+      // Bounded like Better Lyrics (8s) instead of inheriting the 30s global
+      // receive timeout: a hung lyrics lookup must not outlast the song.
+      receiveTimeout: const Duration(seconds: 10),
       validateStatus: (_) => true,
     );
 
@@ -157,7 +175,8 @@ class LRCLibLyricsProvider implements LyricsProvider {
       return _empty(track, uri);
     }
 
-    final synced = _parseSynced(entry['syncedLyrics'] as String? ?? "");
+    final synced =
+        await parseLrcDocument(entry['syncedLyrics'] as String? ?? "");
     if (synced != null) {
       return SubtitleSimple(
         lyrics: synced,
