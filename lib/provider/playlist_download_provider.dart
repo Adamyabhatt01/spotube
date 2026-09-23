@@ -60,12 +60,16 @@ class PlaylistMirrorService {
     }
   }
 
-  /// Refreshes a mirrored playlist from [firstPage], then pages through the rest
-  /// in the background at the same page size.
+  /// Refreshes a mirrored playlist from [firstPage], then pages through the
+  /// rest in the background at the same page size.
   ///
   /// Never fetches for a playlist the user did not mirror. A page that fails
   /// leaves behind the membership the earlier pages wrote, so the cached view is
   /// never replaced with a hole.
+  ///
+  /// One membership write, one `persistedStatuses` query and one
+  /// `addAllToQueue` per reconcile — not one per page. A 500-track walk costs
+  /// 5 fetches and 3 writes, not 5×3 writes.
   Future<void> reconcile(
     SpotubeSimplePlaylistObject playlist,
     SpotubePaginationResponseObject<SpotubeFullTrackObject> firstPage,
@@ -79,27 +83,44 @@ class PlaylistMirrorService {
 
     _inFlight.add(playlist.id);
     try {
+      // Header alone: this makes a rename or new total visible even if the
+      // paging walk below dies halfway, without paying a full membership
+      // rewrite at first paint.
+      await writePlaylistMirror(
+        database,
+        playlistId: playlist.id,
+        playlistData: jsonEncode(playlist.toJson()),
+        trackCount: firstPage.total,
+      );
+
+      // A `Set` of track ids across every page: Spotify's paging is not
+      // guaranteed disjoint when a collection changes mid-read, and one track
+      // claiming two positions is the bug this prevents.
       final seen = List<SpotubeFullTrackObject>.of(firstPage.items);
+      final seenIds = seen.map((track) => track.id).toSet();
       var page = firstPage;
 
-      // What is on screen is settled first, so a playlist renamed or reordered
-      // upstream is right within a request of being opened.
-      await _settle(playlist, tracks: seen, total: page.total);
-      await _queueUnrecorded(playlist, seen);
-
-      while (page.hasMore) {
-        page = await fetchPage(page.nextOffset ?? seen.length, page.limit);
-        seen.addAll(_withoutDuplicates(seen, page.items));
-        // Later pages start work but do not rewrite the order: the full list is
-        // written once, after the last page, so a playlist of n tracks costs two
-        // membership writes instead of one growing write per page.
-        await _queueUnrecorded(playlist, page.items);
+      try {
+        while (page.hasMore) {
+          page = await fetchPage(page.nextOffset ?? seen.length, page.limit);
+          for (final track in page.items) {
+            if (seenIds.add(track.id)) seen.add(track);
+          }
+        }
+      } catch (e, stack) {
+        // Offline, rate-limited, or a plugin with no more pages to give: `seen`
+        // holds the prefix that arrived, and the single write below records
+        // exactly what the last successful open would have shown.
+        AppLogger.reportError(e, stack);
       }
-      await _settle(playlist, tracks: seen, total: page.total);
+
+      await writePlaylistMembership(
+        database,
+        playlistId: playlist.id,
+        trackIds: [for (final track in seen) track.id],
+      );
+      await _queueUnrecorded(playlist, seen);
     } catch (e, stack) {
-      // Offline, rate-limited, or a plugin with no more pages to give: the rows
-      // already written are the playlist as last known, which is exactly what an
-      // open in airplane mode is supposed to show.
       AppLogger.reportError(e, stack);
     } finally {
       _inFlight.remove(playlist.id);
@@ -152,21 +173,6 @@ class PlaylistMirrorService {
     if (missing.isEmpty) return;
 
     downloads.addAllToQueue(missing, collectionId: playlist.id);
-  }
-
-  /// Tracks of [incoming] not already in [seen], by id.
-  ///
-  /// Spotify's paging is not guaranteed disjoint when a collection changes
-  /// mid-read, and one track claiming two positions is the bug this prevents.
-  List<SpotubeFullTrackObject> _withoutDuplicates(
-    List<SpotubeFullTrackObject> seen,
-    List<SpotubeFullTrackObject> incoming,
-  ) {
-    final held = seen.map((track) => track.id).toSet();
-    return [
-      for (final track in incoming)
-        if (held.add(track.id)) track,
-    ];
   }
 }
 
