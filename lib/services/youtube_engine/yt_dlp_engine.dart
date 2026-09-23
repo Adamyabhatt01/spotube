@@ -160,16 +160,19 @@ class YtDlpEngine implements YouTubeEngine {
   Future<StreamManifest> getStreamManifest(String videoId) async {
     final formats = await withinEngineCallBudget(
       'yt_dlp.getStreamManifest',
-      () => YtDlp.instance.extractInfo(
-        "https://www.youtube.com/watch?v=$videoId",
-        formatSpecifiers: "%(formats)j",
-        extraArgs: const [
-          "--no-check-certificate",
-          "--geo-bypass",
-          "--quiet",
-          "--ignore-errors"
-        ],
-      ) as Future<List>,
+      () async {
+        final extracted = await YtDlp.instance.extractInfo(
+          "https://www.youtube.com/watch?v=$videoId",
+          formatSpecifiers: "%(formats)j",
+          extraArgs: const [
+            "--no-check-certificate",
+            "--geo-bypass",
+            "--quiet",
+            "--ignore-errors"
+          ],
+        );
+        return extracted as List;
+      },
     );
 
     return _parseFormats(formats, videoId);
@@ -179,17 +182,20 @@ class YtDlpEngine implements YouTubeEngine {
   Future<Video> getVideo(String videoId) async {
     final info = await withinEngineCallBudget(
       'yt_dlp.getVideo',
-      () => YtDlp.instance.extractInfo(
-        "https://www.youtube.com/watch?v=$videoId",
-        formatSpecifiers: "%()j",
-        extraArgs: const [
-          "--skip-download",
-          "--no-check-certificate",
-          "--geo-bypass",
-          "--quiet",
-          "--ignore-errors",
-        ],
-      ) as Future<Map<String, dynamic>>,
+      () async {
+        final extracted = await YtDlp.instance.extractInfo(
+          "https://www.youtube.com/watch?v=$videoId",
+          formatSpecifiers: "%()j",
+          extraArgs: const [
+            "--skip-download",
+            "--no-check-certificate",
+            "--geo-bypass",
+            "--quiet",
+            "--ignore-errors",
+          ],
+        );
+        return extracted as Map<String, dynamic>;
+      },
     );
 
     return _parseInfo(info);
