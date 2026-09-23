@@ -271,9 +271,48 @@ mixin SavedListCacheMixin<K>
     // Page one of a fetch started before such a change must not roll it back.
     if (_discarded || _isFetching || !identical(state.value, served)) return;
 
-    state = AsyncData(fresh);
+    state = AsyncData(_mergeRevalidation(served, fresh));
     // Awaited, so a caller that waits for `revalidation` also knows the
     // snapshot on disk matches the list on screen.
     await persistSnapshot();
+  }
+
+  /// Stale-while-revalidate merge for the page-1 probe in [_revalidate].
+  ///
+  /// The probe asked for the first page only. When the network says there is no
+  /// second page (`fresh.hasMore == false`) what it returned *is* the complete
+  /// saved list, so it is authoritative and replaces the snapshot outright —
+  /// anything the snapshot held beyond it was genuinely unsaved.
+  ///
+  /// When there is a second page, only the top of the list was confirmed. The
+  /// served snapshot (a full walk from an earlier session) supplies everything
+  /// beyond it: page 1 is prepended in the network's order, and snapshot items
+  /// the network did not return are kept in their existing tail order — they
+  /// may simply sit on a later page. Not walking every page on every app start
+  /// is the point; the tail is confirmed when the user actually opens the list.
+  ///
+  /// Assumes [served] is fully materialized (`hasMore == false`) — the only
+  /// case [_revalidate] is reached, since `buildSavedList` triggers it after
+  /// `_readSnapshotPage`, which is always the entire persisted list.
+  SpotubePaginationResponseObject<K> _mergeRevalidation(
+    SpotubePaginationResponseObject<K> served,
+    SpotubePaginationResponseObject<K> fresh,
+  ) {
+    if (!fresh.hasMore) return fresh;
+
+    final freshKeys = fresh.items.map(_itemKey).toSet();
+    final mergedItems = <K>[
+      ...fresh.items,
+      for (final item in served.items)
+        if (!freshKeys.contains(_itemKey(item))) item,
+    ];
+    final total = mergedItems.length;
+    return SpotubePaginationResponseObject<K>(
+      limit: total,
+      nextOffset: null,
+      total: total,
+      hasMore: false,
+      items: mergedItems,
+    );
   }
 }
