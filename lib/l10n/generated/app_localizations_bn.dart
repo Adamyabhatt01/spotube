@@ -538,6 +538,18 @@ class AppLocalizationsBn extends AppLocalizations {
   String get minimize_to_tray => 'সিস্টেম ট্রেতে রাখুন';
 
   @override
+  String get volume_control => 'Volume control';
+
+  @override
+  String get volume_control_always => 'Always visible';
+
+  @override
+  String get volume_control_hover => 'Show on hover';
+
+  @override
+  String get volume_control_hidden => 'Hidden';
+
+  @override
   String get show_tray_icon => 'সিস্টেম ট্রে আইকন দেখান';
 
   @override

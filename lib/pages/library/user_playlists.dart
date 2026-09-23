@@ -20,7 +20,9 @@ import 'package:spotube/extensions/context.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
+import 'package:spotube/provider/playlist_download_provider.dart';
 import 'package:auto_route/auto_route.dart';
+import 'package:spotube/services/connectivity_adapter.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 
 @RoutePage()
@@ -58,25 +60,47 @@ class UserPlaylistsPage extends HookConsumerWidget {
       [context.l10n, me.asData?.value],
     );
 
+    final mirroredPlaylists =
+        ref.watch(mirroredPlaylistsProvider).asData?.value ?? const [];
+
+    // Offline the disk snapshot still lists every Spotify playlist the user
+    // ever saved, but only the mirrored ones can render their songs. Showing
+    // the rest as tappable cards is a promise the page cannot keep.
+    final isOnline = ref.watch(isOnlineProvider).asData?.value ?? true;
+
     final playlists = useMemoized(
       () {
+        final online = isOnline
+            ? [
+                if (likedTracksPlaylist != null) likedTracksPlaylist,
+                ...?playlistsQuery.asData?.value.items,
+              ]
+            : const <SpotubeSimplePlaylistObject>[];
+        // A downloaded playlist is usually also in the Spotify list, so the
+        // mirror rows only have to supply what the network did not: merged by
+        // id, never a second card for one playlist.
+        final seen = online.map((playlist) => playlist.id).toSet();
+        final combined = [
+          ...online,
+          for (final mirrored in mirroredPlaylists)
+            if (seen.add(mirrored.id)) mirrored,
+        ];
         if (searchText.value.isEmpty) {
-          return [
-            if (likedTracksPlaylist != null) likedTracksPlaylist,
-            ...?playlistsQuery.asData?.value.items,
-          ];
+          return combined;
         }
-        return [
-          if (likedTracksPlaylist != null) likedTracksPlaylist,
-          ...?playlistsQuery.asData?.value.items,
-        ]
+        return combined
             .map((e) => (weightedRatio(e.name, searchText.value), e))
             .sorted((a, b) => b.$1.compareTo(a.$1))
             .where((e) => e.$1 > 50)
             .map((e) => e.$2)
             .toList();
       },
-      [playlistsQuery, searchText.value],
+      [
+        playlistsQuery,
+        searchText.value,
+        mirroredPlaylists,
+        isOnline,
+      ],
     );
 
     final controller = useScrollController();
@@ -89,11 +113,17 @@ class UserPlaylistsPage extends HookConsumerWidget {
       return const Center(child: NoDefaultMetadataPlugin());
     }
 
-    if (authenticated.asData?.value != true) {
+    // A mirrored playlist is entirely local; nothing about it depends on
+    // Spotify answering. When the auth gate cannot be reached — offline, or
+    // a token refresh still in flight — the mirror still has to render.
+    if (authenticated.asData?.value != true && mirroredPlaylists.isEmpty) {
       return const AnonymousFallback();
     }
 
-    if (playlistsQuery.hasError) {
+    // The failure still hides the page for anyone with nothing cached, but a
+    // mirrored playlist lives in the database and is exactly what an offline
+    // visit came to find.
+    if (playlistsQuery.hasError && mirroredPlaylists.isEmpty) {
       return ErrorBox(
         error: playlistsQuery.error!,
         onRetry: () {
@@ -151,7 +181,7 @@ class UserPlaylistsPage extends HookConsumerWidget {
                   ),
                   controller: controller,
                   hasMore: playlistsQuery.asData?.value.hasMore == true,
-                  isLoading: playlistsQuery.isLoading,
+                  isLoading: isOnline && playlistsQuery.isLoading,
                   onRequestMore: playlistsQueryNotifier.fetchMore,
                   itemCount: playlists.length,
                   gridItemBuilder: (context, index) {

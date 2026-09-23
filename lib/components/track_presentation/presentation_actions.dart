@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
@@ -11,6 +13,7 @@ import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
 import 'package:spotube/provider/history/history.dart';
+import 'package:spotube/provider/playlist_download_provider.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 
 ToastOverlay showToastForAction(
@@ -78,6 +81,7 @@ class TrackPresentationActionsSection extends HookConsumerWidget {
       required BuildContext context,
       required List<SpotubeTrackObject> tracks,
       required String action,
+      required bool wholeCollection,
     }) async {
       final fullTrackObjects =
           tracks.whereType<SpotubeFullTrackObject>().toList();
@@ -89,7 +93,26 @@ class TrackPresentationActionsSection extends HookConsumerWidget {
           ) ??
           false;
       if (confirmed != true) return;
-      downloader.addAllToQueue(fullTrackObjects);
+      final collection = options.collection;
+      // An album is not a playlist: it records no membership.
+      final playlist =
+          collection is SpotubeSimplePlaylistObject ? collection : null;
+      downloader.addAllToQueue(
+        fullTrackObjects,
+        // The playlist these rows came from, so the download records its
+        // membership and a track shared with another playlist stays one file.
+        collectionId: playlist?.id,
+      );
+      if (wholeCollection && playlist != null) {
+        // Downloading the collection as a whole is what makes it a mirror. From
+        // then on the page keeps its membership and order in sync with Spotify,
+        // which is also what lets it render offline.
+        unawaited(
+          ref
+              .read(playlistMirrorServiceProvider)
+              .mirror(playlist, fullTrackObjects),
+        );
+      }
       notifier.deselectAllTracks();
       if (!context.mounted) return;
       showToastForAction(context, action, fullTrackObjects.length);
@@ -120,6 +143,9 @@ class TrackPresentationActionsSection extends HookConsumerWidget {
               context: context,
               tracks: tracks,
               action: action,
+              // An empty selection means the rows came from `onFetchAll`, i.e.
+              // this was a download of the collection and not of a few tracks.
+              wholeCollection: selectedTracks.isEmpty,
             );
             break;
           case "add-to-playlist":

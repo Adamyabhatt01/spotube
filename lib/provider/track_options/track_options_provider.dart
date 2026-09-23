@@ -16,6 +16,7 @@ import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/blacklist_provider.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
 import 'package:spotube/provider/local_tracks/local_tracks_provider.dart';
+import 'package:spotube/provider/playlist_download_provider.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 import 'package:spotube/provider/metadata_plugin/library/tracks.dart';
@@ -244,7 +245,10 @@ class TrackOptionsActions {
         break;
       case TrackOptionValue.download:
         if (track is SpotubeLocalTrackObject) break;
-        downloadManager.addToQueue(track as SpotubeFullTrackObject);
+        downloadManager.addToQueue(
+          track as SpotubeFullTrackObject,
+          collectionId: playlistId,
+        );
         break;
       case TrackOptionValue.startRadio:
         actionStartRadio(context);
@@ -257,6 +261,7 @@ typedef TrackOptionFlags = ({
   bool isInQueue,
   bool isBlacklisted,
   bool isInDownloadQueue,
+  bool isDownloaded,
   bool isActiveTrack,
   bool isAuthenticated,
   bool isLiked,
@@ -282,17 +287,19 @@ final trackOptionsStateProvider =
       ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
   final queueTracks = ref.watch(audioPlayerProvider.select((s) => s.tracks));
   final authenticated = ref.watch(metadataPluginAuthenticatedProvider);
-  final isSavedTrack =
-      ref.watch(metadataPluginIsSavedTrackProvider(track.id));
+  final isSavedTrack = ref.watch(metadataPluginIsSavedTrackProvider(track.id));
 
   // Both lists are watched through a `select` that already applies this row's
   // predicate: watching them whole made every download-progress tick and every
   // blacklist write rebuild the menu state of every mounted row.
   final activeTrackId = activeTrack?.id;
+  // This row's own transfer, keyed by this row's id rather than by whatever is
+  // playing: the predicate is what keeps another track's progress tick from
+  // rebuilding this menu, and keying on the row is what lets a download show
+  // its progress on the row that started it.
   final downloadTask = ref.watch(downloadManagerProvider.select((tasks) {
-    if (activeTrackId == null) return null;
     for (final task in tasks) {
-      if (task.track.id == activeTrackId) return task;
+      if (task.track.id == track.id) return task;
     }
     return null;
   }));
@@ -303,25 +310,41 @@ final trackOptionsStateProvider =
     ),
   );
 
-  final isInDownloadQueue = activeTrack == null ||
-          activeTrack is SpotubeLocalTrackObject
+  // The record of this track's file, which is what survives a restart. The
+  // in-memory task below is only ever a live view of the same work, so the
+  // database answers "is this downloaded" and the task answers "how far along
+  // is it" — the one question the rows cannot answer.
+  final downloadState = track is SpotubeLocalTrackObject
+      ? null
+      : ref.watch(downloadStateOfProvider(track.id)).asData?.value;
+  final isDownloaded =
+      downloadState?.status == DownloadPersistedStatus.completed;
+
+  final isInDownloadQueue = track is SpotubeLocalTrackObject
       ? false
-      : const [
-          DownloadStatus.queued,
-          DownloadStatus.downloading,
-        ].contains(downloadTask?.status);
+      : downloadTask != null &&
+              const [
+                DownloadStatus.queued,
+                DownloadStatus.downloading,
+              ].contains(downloadTask.status) ||
+          const [
+            DownloadPersistedStatus.queued,
+            DownloadPersistedStatus.downloading,
+          ].contains(downloadState?.status);
 
   return (
     // Mirrors AudioPlayerState.containsTrack(track); kept inline so this
     // provider subscribes to `tracks` only instead of the full player state.
     isInQueue: queueTracks.isNotEmpty &&
         queueTracks.any(
-          (t) => t is SpotubeLocalTrackObject && track is SpotubeLocalTrackObject
-              ? t.path == track.path
-              : t.id == track.id,
+          (t) =>
+              t is SpotubeLocalTrackObject && track is SpotubeLocalTrackObject
+                  ? t.path == track.path
+                  : t.id == track.id,
         ),
     isBlacklisted: isBlacklisted,
     isInDownloadQueue: isInDownloadQueue,
+    isDownloaded: isDownloaded,
     isActiveTrack: activeTrackId == track.id,
     isAuthenticated: authenticated.asData?.value ?? false,
     isLiked: isSavedTrack.asData?.value ?? false,

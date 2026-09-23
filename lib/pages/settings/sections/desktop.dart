@@ -40,6 +40,30 @@ class SettingsDesktopSection extends HookConsumerWidget {
             }
           },
         ),
+        AdaptiveSelectTile<VolumeControlMode>(
+          secondary: const Icon(SpotubeIcons.volumeHigh),
+          title: Text(context.l10n.volume_control),
+          value: preferences.volumeControlMode,
+          options: [
+            SelectItemButton(
+              value: VolumeControlMode.always,
+              child: Text(context.l10n.volume_control_always),
+            ),
+            SelectItemButton(
+              value: VolumeControlMode.hover,
+              child: Text(context.l10n.volume_control_hover),
+            ),
+            SelectItemButton(
+              value: VolumeControlMode.hidden,
+              child: Text(context.l10n.volume_control_hidden),
+            ),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              preferencesNotifier.setVolumeControlMode(value);
+            }
+          },
+        ),
         ListTile(
           leading: const Icon(SpotubeIcons.tray),
           title: Text(context.l10n.show_tray_icon),

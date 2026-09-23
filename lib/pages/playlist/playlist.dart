@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' as material;
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart' hide Page;
@@ -12,6 +14,8 @@ import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/playlist.dart';
 import 'package:spotube/provider/metadata_plugin/utils/common.dart';
+import 'package:spotube/provider/playlist_download_provider.dart';
+import 'package:spotube/services/connectivity_adapter.dart';
 
 @RoutePage()
 class PlaylistPage extends HookConsumerWidget {
@@ -51,6 +55,42 @@ class PlaylistPage extends HookConsumerWidget {
 
     final isUserPlaylist = useIsUserPlaylist(ref, playlist.id);
 
+    // A mirrored playlist is kept in sync by the page that shows it. Listening
+    // instead of watching: this is a side effect on the first page arriving, and
+    // must not rebuild the page every time the mirror writes.
+    ref.listen(
+      metadataPluginPlaylistTracksProvider(playlist.id),
+      (previous, next) {
+        final page = next.asData?.value;
+        // Only the arrival of data, not the pages the user scrolls through —
+        // the mirror walks the rest of the collection itself.
+        if (page == null || previous is AsyncData) return;
+        unawaited(
+          ref.read(playlistMirrorServiceProvider).reconcile(
+                playlist,
+                page,
+                (offset, limit) => tracksNotifier.fetch(offset, limit),
+              ),
+        );
+      },
+    );
+
+    // What the mirror holds for this playlist: every track it has a payload
+    // for — which is every track ever downloaded from it — in Spotify's order.
+    // Shown while the network view is not available rather than on top of it, so
+    // a playlist that was never mirrored keeps showing exactly what it did.
+    final cachedTracks =
+        ref.watch(mirroredPlaylistTracksProvider(playlist.id)).asData?.value ??
+            const [];
+    final hasFreshTracks = tracks.asData != null;
+    final visibleTracks =
+        hasFreshTracks ? tracks.asData!.value.items : cachedTracks;
+
+    // Offline the network view will never arrive: the auth check that gates
+    // it is stuck. Showing its spinner over a mirror that has already
+    // loaded would tell the user the page is still working when it isn't.
+    final isOnline = ref.watch(isOnlineProvider).asData?.value ?? true;
+
     return material.RefreshIndicator.adaptive(
       onRefresh: () async {
         ref.invalidate(metadataPluginPlaylistTracksProvider(playlist.id));
@@ -65,7 +105,9 @@ class PlaylistPage extends HookConsumerWidget {
           ),
           pagination: PaginationProps(
             hasNextPage: tracks.asData?.value.hasMore ?? false,
-            isLoading: tracks.isLoading || tracks.isLoadingNextPage,
+            isLoading: isOnline &&
+                ((!hasFreshTracks && tracks.isLoading) ||
+                    tracks.isLoadingNextPage),
             onFetchMore: tracksNotifier.fetchMore,
             onRefresh: () async {
               ref.invalidate(metadataPluginPlaylistTracksProvider(playlist.id));
@@ -78,8 +120,8 @@ class PlaylistPage extends HookConsumerWidget {
           description: playlist.description,
           owner: playlist.owner.name,
           ownerImage: playlist.owner.images.lastOrNull?.url,
-          tracks: tracks.asData?.value.items ?? [],
-          error: tracks.error,
+          tracks: visibleTracks,
+          error: hasFreshTracks || cachedTracks.isEmpty ? tracks.error : null,
           routePath: '/playlist/${playlist.id}',
           isLiked: isFavoritePlaylist.asData?.value ?? false,
           shareUrl: playlist.externalUri,

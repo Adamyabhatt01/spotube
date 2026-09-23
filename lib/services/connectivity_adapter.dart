@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/services/logger/logger.dart';
 
 class ConnectionCheckerService {
@@ -132,3 +133,11 @@ class ConnectionCheckerService {
 
   Stream<bool> get onConnectivityChanged => _connectionStreamController.stream;
 }
+
+/// Latest connectivity answer the service has committed to. Warm-started from
+/// the singleton so a page that mounts already-online does not flicker, then
+/// tracks every probe that changes the answer.
+final isOnlineProvider = StreamProvider<bool>((ref) async* {
+  yield ConnectionCheckerService.instance.isConnectedSync;
+  yield* ConnectionCheckerService.instance.onConnectivityChanged;
+});

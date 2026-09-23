@@ -11,6 +11,15 @@ enum CloseBehavior {
   close,
 }
 
+/// How much of the desktop bottom player the volume control takes up when it is
+/// not being used. Only the wide layouts draw that bar, so this is inert on
+/// touch and in compact mode.
+enum VolumeControlMode {
+  always,
+  hover,
+  hidden,
+}
+
 enum YoutubeClientEngine {
   ytDlp("yt-dlp"),
   youtubeExplode("YouTubeExplode"),
@@ -102,6 +111,8 @@ class PreferencesTable extends Table {
       boolean().withDefault(const Constant(false))();
   IntColumn get themeTransitionMs =>
       integer().withDefault(const Constant(250))();
+  TextColumn get volumeControlMode => textEnum<VolumeControlMode>()
+      .withDefault(const Constant("always"))();
 
   static PreferencesTableData defaults() {
     return PreferencesTableData(
@@ -135,6 +146,7 @@ class PreferencesTable extends Table {
       autoDownloadQuality: false,
       themeTransition: false,
       themeTransitionMs: 250,
+      volumeControlMode: VolumeControlMode.always,
     );
   }
 }

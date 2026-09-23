@@ -8,6 +8,7 @@ import 'package:spotube/collections/routes.gr.dart';
 
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/extensions/constrains.dart';
+import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/player/player_queue.dart';
 import 'package:spotube/modules/player/sibling_tracks_sheet.dart';
@@ -17,8 +18,8 @@ import 'package:spotube/extensions/context.dart';
 import 'package:spotube/extensions/duration.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
-import 'package:spotube/provider/local_tracks/local_tracks_provider.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
+import 'package:spotube/provider/playlist_download_provider.dart';
 import 'package:spotube/provider/sleep_timer_provider.dart';
 
 class PlayerActions extends HookConsumerWidget {
@@ -45,8 +46,7 @@ class PlayerActions extends HookConsumerWidget {
     final downloader = ref.watch(downloadManagerProvider.notifier);
     final isInQueue = useMemoized(() {
       if (activeTrack is! SpotubeFullTrackObject) return false;
-      final downloadTask =
-          downloader.getTaskByTrackId(activeTrack.id);
+      final downloadTask = downloader.getTaskByTrackId(activeTrack.id);
       return const [
         DownloadStatus.queued,
         DownloadStatus.downloading,
@@ -56,21 +56,20 @@ class PlayerActions extends HookConsumerWidget {
       downloader,
     ]);
 
-    final localTracks = ref.watch(localTracksProvider).value;
     final authenticated = ref.watch(metadataPluginAuthenticatedProvider);
     final sleepTimer = ref.watch(sleepTimerProvider);
     final sleepTimerNotifier = ref.watch(sleepTimerProvider.notifier);
 
-    final isDownloaded = useMemoized(() {
-      return localTracks?.values.expand((e) => e).any(
-                (element) =>
-                    element.name == activeTrack?.name &&
-                    element.album.name == activeTrack?.album.name &&
-                    element.artists.asString() ==
-                        activeTrack?.artists.asString(),
-              ) ==
-          true;
-    }, [localTracks, activeTrack]);
+    // This track's own download record, which is the fact that survives a
+    // restart. It used to be a scan of every local file comparing name, album
+    // and artists — so a re-tagged or renamed file read as "not downloaded",
+    // and the scan cost grew with the library instead of staying one lookup.
+    final downloadState =
+        activeTrack == null || activeTrack is SpotubeLocalTrackObject
+            ? null
+            : ref.watch(downloadStateOfProvider(activeTrack.id)).asData?.value;
+    final isDownloaded =
+        downloadState?.status == DownloadPersistedStatus.completed;
 
     final sleepTimerEntries = useMemoized(
       () => {
@@ -176,8 +175,8 @@ class PlayerActions extends HookConsumerWidget {
                   isDownloaded ? SpotubeIcons.done : SpotubeIcons.download,
                 ),
                 onPressed: activeTrack != null
-                    ? () => downloader.addToQueue(
-                        activeTrack as SpotubeFullTrackObject)
+                    ? () => downloader
+                        .addToQueue(activeTrack as SpotubeFullTrackObject)
                     : null,
               ),
             ),

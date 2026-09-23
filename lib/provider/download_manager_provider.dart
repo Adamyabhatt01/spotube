@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:collection/collection.dart';
@@ -10,10 +11,13 @@ import 'package:shadcn_flutter/shadcn_flutter.dart' hide join;
 import 'package:spotube/collections/routes.dart';
 import 'package:spotube/components/dialogs/replace_downloaded_dialog.dart';
 import 'package:spotube/extensions/dio.dart';
+import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/metadata_plugin/audio_source/quality_presets.dart';
 import 'package:spotube/provider/server/sourced_track_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
+import 'package:spotube/services/downloads/download_store.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/sourced_track/source_resolver.dart';
 import 'package:spotube/services/sourced_track/sourced_track.dart';
@@ -153,49 +157,236 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       }
     });
 
+    // Nothing in `state` survived the process boundary, but `track_download`
+    // did: it may still be claiming a transfer that died with the last process,
+    // and it is the only record that a file downloaded in an earlier session
+    // exists at all.
+    unawaited(reconcilePersisted());
+
     return [];
   }
+
+  /// Brings the persisted view in line with a process that started over.
+  ///
+  /// Two things can only be settled from outside the row: a status still
+  /// `queued`/`downloading` belongs to a worker that no longer exists, and a
+  /// `completed` row whose file has gone is no longer a completed download.
+  /// Existence checks run in waves of 32 — the batching
+  /// `localTracksProvider` uses — so a large download folder does not open
+  /// every handle at once.
+  @visibleForTesting
+  Future<void> reconcilePersisted() async {
+    final database = ref.read(databaseProvider);
+    try {
+      await database.transaction(
+        () => markInFlightAsInterrupted(database),
+      );
+
+      final completed = await downloadsIn(
+        database,
+        const {DownloadPersistedStatus.completed},
+      );
+      for (var start = 0;
+          start < completed.length;
+          start += _existenceWaveSize) {
+        final wave = completed.sublist(
+          start,
+          (start + _existenceWaveSize).clamp(0, completed.length),
+        );
+        final vanished = <String>[];
+        await Future.wait(
+          wave.map((row) async {
+            if (!await File(row.filePath).exists()) vanished.add(row.trackId);
+          }),
+        );
+        // Losing the file is reported, never repaired: nothing here deletes or
+        // re-creates an audio file.
+        await markDownloadsMissing(database, vanished);
+      }
+    } catch (e, stack) {
+      AppLogger.reportError(e, stack);
+    }
+  }
+
+  static const int _existenceWaveSize = 32;
 
   DownloadTask? getTaskByTrackId(String trackId) {
     return state.firstWhereOrNull((element) => element.track.id == trackId);
   }
 
-  void addToQueue(SpotubeFullTrackObject track) {
-    if (state.any((element) => element.track.id == track.id)) return;
+  /// The one entry point for every download request, single track or batch.
+  ///
+  /// [collectionId] is the Spotify playlist a request came from, when it came
+  /// from one. It becomes a membership row and nothing else: ownership of the
+  /// file stays with [DownloadRecord.trackId], which is why the same track
+  /// reached from two playlists is one download.
+  ///
+  /// Returns whether anything was accepted. The caller decides how to start it:
+  /// a single track goes straight to the pool, while a batch runs
+  /// [_prefilterAndStart] first so one existence check and one replace-policy
+  /// dialog cover the whole set.
+  bool _enqueue(
+    List<SpotubeFullTrackObject> tracks, {
+    String? collectionId,
+  }) {
+    if (tracks.isEmpty) return false;
+
+    // One guard for both shapes. `addAllToQueue` used to append without it, so a
+    // batch re-queued whatever was already in flight, and the same track
+    // requested from two playlists started two transfers. `live` accumulates, so
+    // it also collapses duplicates inside a single batch.
+    final live = state.map((e) => e.track.id).toSet();
+    final incoming = [
+      for (final track in tracks)
+        if (live.add(track.id)) track,
+    ];
+
+    if (collectionId != null) {
+      unawaited(
+        _attachMembership(
+          collectionId,
+          [for (final track in tracks) track.id],
+        ),
+      );
+    }
+    if (incoming.isEmpty) return false;
+
     state = [
       ...state,
-      DownloadTask(
-        track: track,
-        status: DownloadStatus.queued,
-        cancelToken: CancelToken(),
+      ...incoming.map(
+        (track) => DownloadTask(
+          track: track,
+          status: DownloadStatus.queued,
+          cancelToken: CancelToken(),
+        ),
       ),
     ];
 
-    ref.read(sourcedTrackProvider(track));
+    unawaited(_recordQueued(incoming));
 
+    // The prefetch stays on the first track only, as it was for batches;
+    // a per-track prefetch would resolve every row of a playlist at once.
+    ref.read(sourcedTrackProvider(incoming.first));
+
+    return true;
+  }
+
+  void addToQueue(
+    SpotubeFullTrackObject track, {
+    String? collectionId,
+  }) {
+    if (!_enqueue([track], collectionId: collectionId)) return;
     _pumpDownloadPool(); // No await should be invoked to avoid stuck UI
   }
 
-  void addAllToQueue(List<SpotubeFullTrackObject> tracks) {
-    if (tracks.isEmpty) return;
-    state = [
-      ...state,
-      ...tracks.map((e) => DownloadTask(
-            track: e,
-            status: DownloadStatus.queued,
-            cancelToken: CancelToken(),
-          )),
-    ];
-
-    ref.read(sourcedTrackProvider(tracks.first));
+  void addAllToQueue(
+    List<SpotubeFullTrackObject> tracks, {
+    String? collectionId,
+  }) {
+    if (!_enqueue(tracks, collectionId: collectionId)) return;
     // Phase 1 (batched existence check) runs async, then pumps the pool.
     // No await should be invoked to avoid stuck UI
     _prefilterAndStart();
   }
 
+  static const _statusByDownloadStatus = {
+    DownloadStatus.queued: DownloadPersistedStatus.queued,
+    DownloadStatus.downloading: DownloadPersistedStatus.downloading,
+    DownloadStatus.completed: DownloadPersistedStatus.completed,
+    DownloadStatus.failed: DownloadPersistedStatus.failed,
+    DownloadStatus.canceled: DownloadPersistedStatus.canceled,
+  };
+
+  /// Where [track] is going on disk, plus everything the row needs.
+  ///
+  /// Always via [_savePathFor], so the path in the database and the path a
+  /// worker writes to cannot drift, and `baseName` is the same string
+  /// `DownloadedFileIndex` keys on.
+  DownloadRecord _recordFor(
+    SpotubeFullTrackObject track,
+    DownloadPersistedStatus status, {
+    String? error,
+    int? sizeBytes,
+  }) {
+    final presets = ref.read(audioSourcePresetsProvider);
+    final container =
+        presets.presets[presets.selectedDownloadingContainerIndex];
+    final downloadLocation = ref.read(
+        userPreferencesProvider.select((value) => value.downloadLocation));
+    final savePath = _savePathFor(track, downloadLocation, container);
+
+    return DownloadRecord(
+      trackId: track.id,
+      filePath: savePath,
+      baseName: basenameWithoutExtension(savePath),
+      status: status,
+      trackData: jsonEncode(track.toJson()),
+      error: error,
+      sizeBytes: sizeBytes,
+    );
+  }
+
+  Future<void> _recordQueued(List<SpotubeFullTrackObject> tracks) async {
+    await _writing('queue', () async {
+      await recordQueuedDownloads(
+        ref.read(databaseProvider),
+        [
+          for (final track in tracks)
+            _recordFor(track, DownloadPersistedStatus.queued),
+        ],
+      );
+    });
+  }
+
+  Future<void> _attachMembership(
+      String playlistId, List<String> trackIds) async {
+    await _writing('membership', () async {
+      await attachTracksToPlaylist(
+        ref.read(databaseProvider),
+        playlistId: playlistId,
+        trackIds: trackIds,
+      );
+    });
+  }
+
+  Future<void> _persistStatus(
+    DownloadTask task,
+    DownloadStatus status, {
+    String? error,
+  }) async {
+    await _writing('status', () async {
+      await writeDownloadStatus(
+        ref.read(databaseProvider),
+        _recordFor(
+          task.track,
+          _statusByDownloadStatus[status]!,
+          sizeBytes: task.totalSizeBytes,
+          // An exception string can carry a whole response body, and it is
+          // stored per row in a database the UI reads on every list build.
+          error: error == null ? null : _take(error, 500),
+        ),
+      );
+    });
+  }
+
+  static String _take(String value, int maxLength) =>
+      value.length <= maxLength ? value : value.substring(0, maxLength);
+
+  /// A database write that fails must not cost the user their download.
+  ///
+  /// The rows are a record of transfers, not a gate on them: if the write is
+  /// lost, the next session's [reconcilePersisted] and the filesystem checks in
+  /// [_prefilterAndStart] still describe reality.
+  Future<void> _writing(String what, Future<void> Function() write) async {
+    try {
+      await write();
+    } catch (e, stack) {
+      AppLogger.reportError('Could not record download $what: $e', stack);
+    }
+  }
+
   void retry(SpotubeFullTrackObject track) {
-    final existing =
-        state.firstWhereOrNull((e) => e.track.id == track.id);
+    final existing = state.firstWhereOrNull((e) => e.track.id == track.id);
     if (existing == null ||
         (existing.status != DownloadStatus.canceled &&
             existing.status != DownloadStatus.failed)) {
@@ -233,11 +424,23 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   /// live entry has since been re-created with a fresh token (e.g. cancel →
   /// retry): the still-finishing old worker must never act on the new
   /// generation — it would re-cancel and revert the retried download.
+  ///
+  /// This is the only writer of download status, in memory and on disk. The
+  /// database write is derived from the entry that actually won the transition
+  /// below and runs unawaited, so a slow disk cannot stall a transfer and a
+  /// refused transition is never persisted.
+  ///
+  /// That includes [_prefilterAndStart]'s already-on-disk completions, which are
+  /// matched by sanitized file name: the row records the same file the rest of
+  /// the app already treats as this track's download, so the database, the row
+  /// state and first playback cannot disagree about it.
   void _setStatus(
     SpotubeFullTrackObject track,
     DownloadStatus status, {
     CancelToken? sourceToken,
+    String? error,
   }) {
+    DownloadTask? winner;
     state = state.map((e) {
       if (e.track.id == track.id) {
         if (sourceToken != null && !identical(e.cancelToken, sourceToken)) {
@@ -255,10 +458,15 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
           return e;
         }
 
+        winner = e;
         return e.copyWith(status: status);
       }
       return e;
     }).toList();
+
+    if (winner case final DownloadTask task) {
+      unawaited(_persistStatus(task, status, error: error));
+    }
 
     if (status == DownloadStatus.completed ||
         status == DownloadStatus.failed ||
@@ -348,7 +556,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     DownloadTask task,
     Future<T> Function() operation,
   ) async {
-    for (var attempt = 0; ; attempt++) {
+    for (var attempt = 0;; attempt++) {
       if (task.cancelToken.isCancelled) {
         throw DioException(
           requestOptions: RequestOptions(path: ''),
@@ -370,7 +578,8 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   Future<void> _downloadTrack(DownloadTask task) async {
     try {
       if (task.cancelToken.isCancelled) {
-        _setStatus(task.track, DownloadStatus.canceled, sourceToken: task.cancelToken);
+        _setStatus(task.track, DownloadStatus.canceled,
+            sourceToken: task.cancelToken);
         return;
       }
       _setStatus(task.track, DownloadStatus.downloading);
@@ -385,14 +594,14 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
 
       await Directory(downloadLocation).create(recursive: true);
 
-      final savePath =
-          _savePathFor(task.track, downloadLocation, container);
+      final savePath = _savePathFor(task.track, downloadLocation, container);
 
       final savePathFile = File(savePath);
       if (await savePathFile.exists()) {
         // dio automatically replaces the file if it exists so no deletion required
         if (!await _shouldReplaceFileOnExist(task)) {
-          _setStatus(task.track, DownloadStatus.completed, sourceToken: task.cancelToken);
+          _setStatus(task.track, DownloadStatus.completed,
+              sourceToken: task.cancelToken);
           return;
         }
       }
@@ -403,8 +612,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       // 1. Primary attempt: the default plugin + user-selected engine,
       //    preserving the original behavior exactly.
       try {
-        final primary =
-            await ref.read(sourcedTrackProvider(task.track).future);
+        final primary = await ref.read(sourcedTrackProvider(task.track).future);
         final url = _pickDownloadUrl(primary, container, presets, autoQuality);
         if (url != null) {
           await _chunkDownloadTrack(
@@ -423,7 +631,8 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       }
 
       if (task.cancelToken.isCancelled) {
-        _setStatus(task.track, DownloadStatus.canceled, sourceToken: task.cancelToken);
+        _setStatus(task.track, DownloadStatus.canceled,
+            sourceToken: task.cancelToken);
         return;
       }
 
@@ -434,7 +643,8 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
 
       for (final candidate in candidates) {
         if (task.cancelToken.isCancelled) {
-          _setStatus(task.track, DownloadStatus.canceled, sourceToken: task.cancelToken);
+          _setStatus(task.track, DownloadStatus.canceled,
+              sourceToken: task.cancelToken);
           return;
         }
 
@@ -448,7 +658,8 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
 
           for (final resolved in candidatesToTry) {
             if (task.cancelToken.isCancelled) {
-              _setStatus(task.track, DownloadStatus.canceled, sourceToken: task.cancelToken);
+              _setStatus(task.track, DownloadStatus.canceled,
+                  sourceToken: task.cancelToken);
               return;
             }
             final url = _pickDownloadUrl(
@@ -488,11 +699,17 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
         // Cancellation (including retry-loop abort) is not a failure.
         return;
       }
-      _setStatus(task.track, DownloadStatus.failed, sourceToken: task.cancelToken);
+      _setStatus(
+        task.track,
+        DownloadStatus.failed,
+        sourceToken: task.cancelToken,
+        error: e.toString(),
+      );
       if (isNoSpaceError(e)) {
         AppLogger.reportError('Download out of disk space: $e', stack);
       } else {
-        AppLogger.reportError('Download failed for ${task.track.name}: $e', stack);
+        AppLogger.reportError(
+            'Download failed for ${task.track.name}: $e', stack);
       }
     }
   }
@@ -577,7 +794,8 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
         // Canceled mid-transfer — leave the task in `canceled`.
         return;
       }
-      _setStatus(task.track, DownloadStatus.completed, sourceToken: task.cancelToken);
+      _setStatus(task.track, DownloadStatus.completed,
+          sourceToken: task.cancelToken);
     } else {
       throw Exception("Download failed with status ${response.statusCode}");
     }
@@ -688,8 +906,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   /// Marks a task completed, but only if a worker hasn't claimed it in the
   /// meantime (phase 1 runs async and may overlap with a running pool).
   void _markCompletedIfQueued(SpotubeFullTrackObject track) {
-    final current =
-        state.firstWhereOrNull((e) => e.track.id == track.id);
+    final current = state.firstWhereOrNull((e) => e.track.id == track.id);
     if (current?.status == DownloadStatus.queued) {
       _setStatus(track, DownloadStatus.completed);
     }
@@ -700,8 +917,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   /// whatever is queued when they become free.
   void _pumpDownloadPool() {
     while (_activeWorkers < _maxConcurrentDownloads) {
-      final hasQueued =
-          state.any((e) => e.status == DownloadStatus.queued);
+      final hasQueued = state.any((e) => e.status == DownloadStatus.queued);
       if (!hasQueued) return;
       _activeWorkers++;
       _downloadWorker().whenComplete(() {

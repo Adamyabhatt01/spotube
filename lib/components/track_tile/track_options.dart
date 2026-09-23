@@ -38,6 +38,7 @@ class TrackOptions extends HookConsumerWidget {
     final (
       :isBlacklisted,
       :isInDownloadQueue,
+      :isDownloaded,
       :isInQueue,
       :isActiveTrack,
       :isAuthenticated,
@@ -207,7 +208,7 @@ class TrackOptions extends HookConsumerWidget {
               );
               onTapItem?.call();
             },
-            enabled: !isInDownloadQueue,
+            enabled: !isInDownloadQueue && !isDownloaded,
             leading: isInDownloadQueue
                 ? StreamBuilder(
                     stream: downloadTask?.downloadedBytesStream,
@@ -222,7 +223,12 @@ class TrackOptions extends HookConsumerWidget {
                       );
                     },
                   )
-                : const Icon(SpotubeIcons.download),
+                : Icon(
+                    // The same mark `player_actions` uses for a downloaded
+                    // track, so a completion survives a restart instead of
+                    // being a fact only the running queue knew.
+                    isDownloaded ? SpotubeIcons.done : SpotubeIcons.download,
+                  ),
             title: Text(context.l10n.download_track),
           ),
         if (!isLocalTrack)

@@ -8,6 +8,7 @@ import 'package:spotube/pages/library/user_local_tracks/user_local_tracks.dart';
 import 'package:spotube/provider/metadata_plugin/library/tracks.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/album.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/playlist.dart';
+import 'package:spotube/provider/playlist_download_provider.dart';
 import 'package:spotube/utils/service_utils.dart';
 
 class PresentationState {
@@ -80,6 +81,26 @@ class PresentationStateNotifier
             });
           },
         );
+
+        // A mirrored playlist still has rows when its network page does not:
+        // without this listener, going offline turns every song row into
+        // nothing, because the network provider above only fires on data.
+        if (arg case SpotubeSimplePlaylistObject(:final id)) {
+          ref.listen(mirroredPlaylistTracksProvider(id), (previous, next) {
+            if (ref.read(metadataPluginPlaylistTracksProvider(id)).asData !=
+                null) {
+              return;
+            }
+            next.whenData((value) {
+              state = state.copyWith(
+                presentationTracks: ServiceUtils.sortTracks(
+                  value,
+                  state.sortBy,
+                ),
+              );
+            });
+          });
+        }
       }
     }
 
@@ -110,7 +131,12 @@ class PresentationStateNotifier
                   (arg as SpotubeSimplePlaylistObject).id))
               .asData
               ?.value
-              .items,
+              .items ??
+            ref
+                .read(mirroredPlaylistTracksProvider(
+                    (arg as SpotubeSimplePlaylistObject).id))
+                .asData
+                ?.value,
           _ => ref
               .read(metadataPluginAlbumTracksProvider(
                   (arg as SpotubeSimpleAlbumObject).id))

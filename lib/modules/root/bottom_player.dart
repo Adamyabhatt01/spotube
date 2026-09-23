@@ -110,21 +110,7 @@ class BottomPlayer extends HookConsumerWidget {
                 ),
               ],
             ),
-            Container(
-              height: 40,
-              constraints: const BoxConstraints(maxWidth: 250),
-              padding: const EdgeInsets.only(right: 10),
-              child: Consumer(builder: (context, ref, _) {
-                final volume = ref.watch(volumeProvider);
-                return VolumeSlider(
-                  fullWidth: true,
-                  value: volume,
-                  onChanged: (value) {
-                    ref.read(volumeProvider.notifier).setVolume(value);
-                  },
-                );
-              }),
-            )
+            const BottomPlayerVolume()
           ],
         ),
       ],
@@ -142,6 +128,37 @@ class BottomPlayer extends HookConsumerWidget {
                 const PlayerProgress(inline: false),
               ],
             ),
+    );
+  }
+}
+
+/// The bottom bar's volume control, which is the only part of it whose
+/// visibility the user can change. Its own widget so the preference watch and
+/// the volume watch stay off [BottomPlayer]'s rebuild path.
+class BottomPlayerVolume extends HookConsumerWidget {
+  const BottomPlayerVolume({super.key});
+
+  @override
+  Widget build(BuildContext context, ref) {
+    final mode =
+        ref.watch(userPreferencesProvider.select((s) => s.volumeControlMode));
+    if (mode == VolumeControlMode.hidden) return const SizedBox.shrink();
+
+    final volume = ref.watch(volumeProvider);
+    return Container(
+      height: 40,
+      // The bar's third column sits in the Row's unbounded main axis, so this
+      // bound is what lets the slider row resolve a width at all.
+      constraints: const BoxConstraints(maxWidth: 250),
+      padding: const EdgeInsets.only(right: 10),
+      child: VolumeSlider(
+        fullWidth: true,
+        revealOnHover: mode == VolumeControlMode.hover,
+        value: volume,
+        onChanged: (value) {
+          ref.read(volumeProvider.notifier).setVolume(value);
+        },
+      ),
     );
   }
 }

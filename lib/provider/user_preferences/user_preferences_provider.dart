@@ -240,6 +240,10 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
     setData(PreferencesTableCompanion(closeBehavior: Value(behavior)));
   }
 
+  void setVolumeControlMode(VolumeControlMode mode) {
+    setData(PreferencesTableCompanion(volumeControlMode: Value(mode)));
+  }
+
   void setShowSystemTrayIcon(bool show) {
     setData(PreferencesTableCompanion(showSystemTrayIcon: Value(show)));
   }

@@ -533,6 +533,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get minimize_to_tray => '트레이로 최소화';
 
   @override
+  String get volume_control => 'Volume control';
+
+  @override
+  String get volume_control_always => 'Always visible';
+
+  @override
+  String get volume_control_hover => 'Show on hover';
+
+  @override
+  String get volume_control_hidden => 'Hidden';
+
+  @override
   String get show_tray_icon => '시스템 트레이 아이콘 표시';
 
   @override

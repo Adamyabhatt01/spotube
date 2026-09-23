@@ -41,6 +41,9 @@ part 'tables/history.dart';
 part 'tables/lyrics.dart';
 part 'tables/metadata_plugins.dart';
 part 'tables/library_snapshot.dart';
+part 'tables/track_download.dart';
+part 'tables/playlist_download.dart';
+part 'tables/playlist_download_mirror.dart';
 
 part 'typeconverters/color.dart';
 part 'typeconverters/locale.dart';
@@ -64,6 +67,9 @@ part 'typeconverters/subtitle.dart';
     LyricsTable,
     PluginsTable,
     LibrarySnapshotTable,
+    TrackDownloadTable,
+    PlaylistDownloadTable,
+    PlaylistDownloadMirrorTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -77,7 +83,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 17;
 
   /// Raw DDL for the quarantine table, kept as a constant so the v11->v12
   /// step can create it idempotently (`IF NOT EXISTS`) without depending
@@ -101,6 +107,18 @@ class AppDatabase extends _$AppDatabase {
   Future<bool> _tableExists(String table) async {
     final rows = await customSelect(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name = '$table'",
+    ).get();
+    return rows.isNotEmpty;
+  }
+
+  /// Drift's `Migrator.createTable` does not create the indexes declared as
+  /// `@TableIndex` (only a fresh `createAll` walks those entities), and the DDL
+  /// it generates for them carries no `IF NOT EXISTS`. A migration step that
+  /// re-enters after the CREATE TABLE succeeded would therefore throw on the
+  /// index, so index creation needs this guard where a table guard does not.
+  Future<bool> _indexExists(String index) async {
+    final rows = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'index' AND name = '$index'",
     ).get();
     return rows.isNotEmpty;
   }
@@ -203,7 +221,8 @@ class AppDatabase extends _$AppDatabase {
   Future<void> rebuildTablePreservingDataForTesting(
     String table,
     String? Function(String ddl) patchDdl,
-  ) => _rebuildTablePreservingData(table, patchDdl);
+  ) =>
+      _rebuildTablePreservingData(table, patchDdl);
 
   /// Ensures `plugin_api_version` carries the given `DEFAULT` (v8 wants
   /// `'1.0.0'`, v9+ wants `'2.0.0'`). The column predates both defaults,
@@ -237,8 +256,7 @@ class AppDatabase extends _$AppDatabase {
   /// this normalization. Data preserved.
   Future<void> _dropSourceTypeDefault() async {
     await _rebuildTablePreservingData('source_match_table', (ddl) {
-      final clause =
-          RegExp('"source_type"[^,)]*').firstMatch(ddl)?.group(0);
+      final clause = RegExp('"source_type"[^,)]*').firstMatch(ddl)?.group(0);
       if (clause == null) {
         throw StateError(
             'source_type missing in source_match_table during migration');
@@ -257,9 +275,11 @@ class AppDatabase extends _$AppDatabase {
   /// is never lost silently. Idempotent: re-running moves zero rows.
   @visibleForTesting
   static Future<int> moveQuarantineMarkersToTable(AppDatabase db) async {
-    final rows = await db.customSelect(
-      'SELECT id, track_id, source_info, source_type FROM source_match_table',
-    ).get();
+    final rows = await db
+        .customSelect(
+          'SELECT id, track_id, source_info, source_type FROM source_match_table',
+        )
+        .get();
     var moved = 0;
     for (final row in rows) {
       Map<String, dynamic>? marker;
@@ -324,8 +344,8 @@ class AppDatabase extends _$AppDatabase {
       String? failure;
       try {
         final decoded = jsonDecode(raw);
-        final info = (decoded as Map<String, dynamic>)['info']
-            as Map<String, dynamic>;
+        final info =
+            (decoded as Map<String, dynamic>)['info'] as Map<String, dynamic>;
         final match = SpotubeAudioSourceMatchObject.fromJson(
           Map<String, dynamic>.from(info),
         );
@@ -428,8 +448,8 @@ class AppDatabase extends _$AppDatabase {
             // Columns added in v8; guarded by existence checks instead of
             // string-matching catchError, so unexpected failures surface.
             final pluginColumns = {
-              schema.metadataPluginsTable.entryPoint.name: schema
-                  .metadataPluginsTable.entryPoint,
+              schema.metadataPluginsTable.entryPoint.name:
+                  schema.metadataPluginsTable.entryPoint,
               schema.metadataPluginsTable.apis.name:
                   schema.metadataPluginsTable.apis,
               schema.metadataPluginsTable.abilities.name:
@@ -478,8 +498,7 @@ class AppDatabase extends _$AppDatabase {
                 newColumns.contains('selected_for_audio_source')) {
               return; // Already migrated (idempotent re-run).
             }
-            if (!hasNewTable &&
-                await _tableExists('metadata_plugins_table')) {
+            if (!hasNewTable && await _tableExists('metadata_plugins_table')) {
               await customStatement(
                 'ALTER TABLE metadata_plugins_table RENAME TO plugins_table',
               );
@@ -634,6 +653,46 @@ class AppDatabase extends _$AppDatabase {
               await m.addColumn(
                 schema.preferencesTable,
                 schema.preferencesTable.themeTransitionMs,
+              );
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from15To16: (m, schema) async {
+          try {
+            // Three new tables, each guarded the same way library_snapshot
+            // was at v14: user_version only advances after the strategy
+            // returns, so a process killed between the CREATEs re-enters this
+            // step with some tables already present.
+            if (!await _tableExists('track_download_table')) {
+              await m.createTable(schema.trackDownloadTable);
+            }
+            if (!await _tableExists('playlist_download_table')) {
+              await m.createTable(schema.playlistDownloadTable);
+            }
+            if (!await _indexExists('unique_playlist_download')) {
+              await m.createIndex(schema.uniquePlaylistDownload);
+            }
+            if (!await _indexExists('playlist_download_order')) {
+              await m.createIndex(schema.playlistDownloadOrder);
+            }
+            if (!await _tableExists('playlist_download_mirror_table')) {
+              await m.createTable(schema.playlistDownloadMirrorTable);
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from16To17: (m, schema) async {
+          try {
+            if (!(await _tableColumns('preferences_table'))
+                .contains('volume_control_mode')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.volumeControlMode,
               );
             }
           } catch (e, stack) {

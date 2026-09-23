@@ -536,6 +536,18 @@ class AppLocalizationsNl extends AppLocalizations {
   String get minimize_to_tray => 'Minimaliseren naar systeemvak';
 
   @override
+  String get volume_control => 'Volume control';
+
+  @override
+  String get volume_control_always => 'Always visible';
+
+  @override
+  String get volume_control_hover => 'Show on hover';
+
+  @override
+  String get volume_control_hidden => 'Hidden';
+
+  @override
   String get show_tray_icon => 'Systeemvakpictogram tonen';
 
   @override

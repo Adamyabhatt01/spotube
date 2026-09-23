@@ -802,6 +802,15 @@ class $PreferencesTableTable extends PreferencesTable
       requiredDuringInsert: false,
       defaultValue: const Constant(250));
   @override
+  late final GeneratedColumnWithTypeConverter<VolumeControlMode, String>
+      volumeControlMode = GeneratedColumn<String>(
+              'volume_control_mode', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant("hover"))
+          .withConverter<VolumeControlMode>(
+              $PreferencesTableTable.$convertervolumeControlMode);
+  @override
   List<GeneratedColumn> get $columns => [
         id,
         albumColorSync,
@@ -830,7 +839,8 @@ class $PreferencesTableTable extends PreferencesTable
         sourcePriority,
         autoDownloadQuality,
         themeTransition,
-        themeTransitionMs
+        themeTransitionMs,
+        volumeControlMode
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1024,6 +1034,9 @@ class $PreferencesTableTable extends PreferencesTable
           .read(DriftSqlType.bool, data['${effectivePrefix}theme_transition'])!,
       themeTransitionMs: attachedDatabase.typeMapping.read(
           DriftSqlType.int, data['${effectivePrefix}theme_transition_ms'])!,
+      volumeControlMode: $PreferencesTableTable.$convertervolumeControlMode
+          .fromSql(attachedDatabase.typeMapping.read(DriftSqlType.string,
+              data['${effectivePrefix}volume_control_mode'])!),
     );
   }
 
@@ -1054,6 +1067,9 @@ class $PreferencesTableTable extends PreferencesTable
       const EnumNameConverter<YoutubeClientEngine>(YoutubeClientEngine.values);
   static TypeConverter<List<String>, String> $convertersourcePriority =
       const StringListConverter();
+  static JsonTypeConverter2<VolumeControlMode, String, String>
+      $convertervolumeControlMode =
+      const EnumNameConverter<VolumeControlMode>(VolumeControlMode.values);
 }
 
 class PreferencesTableData extends DataClass
@@ -1086,6 +1102,7 @@ class PreferencesTableData extends DataClass
   final bool autoDownloadQuality;
   final bool themeTransition;
   final int themeTransitionMs;
+  final VolumeControlMode volumeControlMode;
   const PreferencesTableData(
       {required this.id,
       required this.albumColorSync,
@@ -1114,7 +1131,8 @@ class PreferencesTableData extends DataClass
       required this.sourcePriority,
       required this.autoDownloadQuality,
       required this.themeTransition,
-      required this.themeTransitionMs});
+      required this.themeTransitionMs,
+      required this.volumeControlMode});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1182,6 +1200,11 @@ class PreferencesTableData extends DataClass
     map['auto_download_quality'] = Variable<bool>(autoDownloadQuality);
     map['theme_transition'] = Variable<bool>(themeTransition);
     map['theme_transition_ms'] = Variable<int>(themeTransitionMs);
+    {
+      map['volume_control_mode'] = Variable<String>($PreferencesTableTable
+          .$convertervolumeControlMode
+          .toSql(volumeControlMode));
+    }
     return map;
   }
 
@@ -1217,6 +1240,7 @@ class PreferencesTableData extends DataClass
       autoDownloadQuality: Value(autoDownloadQuality),
       themeTransition: Value(themeTransition),
       themeTransitionMs: Value(themeTransitionMs),
+      volumeControlMode: Value(volumeControlMode),
     );
   }
 
@@ -1261,6 +1285,8 @@ class PreferencesTableData extends DataClass
           serializer.fromJson<bool>(json['autoDownloadQuality']),
       themeTransition: serializer.fromJson<bool>(json['themeTransition']),
       themeTransitionMs: serializer.fromJson<int>(json['themeTransitionMs']),
+      volumeControlMode: $PreferencesTableTable.$convertervolumeControlMode
+          .fromJson(serializer.fromJson<String>(json['volumeControlMode'])),
     );
   }
   @override
@@ -1303,6 +1329,9 @@ class PreferencesTableData extends DataClass
       'autoDownloadQuality': serializer.toJson<bool>(autoDownloadQuality),
       'themeTransition': serializer.toJson<bool>(themeTransition),
       'themeTransitionMs': serializer.toJson<int>(themeTransitionMs),
+      'volumeControlMode': serializer.toJson<String>($PreferencesTableTable
+          .$convertervolumeControlMode
+          .toJson(volumeControlMode)),
     };
   }
 
@@ -1334,7 +1363,8 @@ class PreferencesTableData extends DataClass
           List<String>? sourcePriority,
           bool? autoDownloadQuality,
           bool? themeTransition,
-          int? themeTransitionMs}) =>
+          int? themeTransitionMs,
+          VolumeControlMode? volumeControlMode}) =>
       PreferencesTableData(
         id: id ?? this.id,
         albumColorSync: albumColorSync ?? this.albumColorSync,
@@ -1365,6 +1395,7 @@ class PreferencesTableData extends DataClass
         autoDownloadQuality: autoDownloadQuality ?? this.autoDownloadQuality,
         themeTransition: themeTransition ?? this.themeTransition,
         themeTransitionMs: themeTransitionMs ?? this.themeTransitionMs,
+        volumeControlMode: volumeControlMode ?? this.volumeControlMode,
       );
   PreferencesTableData copyWithCompanion(PreferencesTableCompanion data) {
     return PreferencesTableData(
@@ -1439,6 +1470,9 @@ class PreferencesTableData extends DataClass
       themeTransitionMs: data.themeTransitionMs.present
           ? data.themeTransitionMs.value
           : this.themeTransitionMs,
+      volumeControlMode: data.volumeControlMode.present
+          ? data.volumeControlMode.value
+          : this.volumeControlMode,
     );
   }
 
@@ -1472,7 +1506,8 @@ class PreferencesTableData extends DataClass
           ..write('sourcePriority: $sourcePriority, ')
           ..write('autoDownloadQuality: $autoDownloadQuality, ')
           ..write('themeTransition: $themeTransition, ')
-          ..write('themeTransitionMs: $themeTransitionMs')
+          ..write('themeTransitionMs: $themeTransitionMs, ')
+          ..write('volumeControlMode: $volumeControlMode')
           ..write(')'))
         .toString();
   }
@@ -1506,7 +1541,8 @@ class PreferencesTableData extends DataClass
         sourcePriority,
         autoDownloadQuality,
         themeTransition,
-        themeTransitionMs
+        themeTransitionMs,
+        volumeControlMode
       ]);
   @override
   bool operator ==(Object other) =>
@@ -1539,7 +1575,8 @@ class PreferencesTableData extends DataClass
           other.sourcePriority == this.sourcePriority &&
           other.autoDownloadQuality == this.autoDownloadQuality &&
           other.themeTransition == this.themeTransition &&
-          other.themeTransitionMs == this.themeTransitionMs);
+          other.themeTransitionMs == this.themeTransitionMs &&
+          other.volumeControlMode == this.volumeControlMode);
 }
 
 class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
@@ -1571,6 +1608,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
   final Value<bool> autoDownloadQuality;
   final Value<bool> themeTransition;
   final Value<int> themeTransitionMs;
+  final Value<VolumeControlMode> volumeControlMode;
   const PreferencesTableCompanion({
     this.id = const Value.absent(),
     this.albumColorSync = const Value.absent(),
@@ -1600,6 +1638,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.autoDownloadQuality = const Value.absent(),
     this.themeTransition = const Value.absent(),
     this.themeTransitionMs = const Value.absent(),
+    this.volumeControlMode = const Value.absent(),
   });
   PreferencesTableCompanion.insert({
     this.id = const Value.absent(),
@@ -1630,6 +1669,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.autoDownloadQuality = const Value.absent(),
     this.themeTransition = const Value.absent(),
     this.themeTransitionMs = const Value.absent(),
+    this.volumeControlMode = const Value.absent(),
   });
   static Insertable<PreferencesTableData> custom({
     Expression<int>? id,
@@ -1660,6 +1700,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     Expression<bool>? autoDownloadQuality,
     Expression<bool>? themeTransition,
     Expression<int>? themeTransitionMs,
+    Expression<String>? volumeControlMode,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1694,6 +1735,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
         'auto_download_quality': autoDownloadQuality,
       if (themeTransition != null) 'theme_transition': themeTransition,
       if (themeTransitionMs != null) 'theme_transition_ms': themeTransitionMs,
+      if (volumeControlMode != null) 'volume_control_mode': volumeControlMode,
     });
   }
 
@@ -1725,7 +1767,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       Value<List<String>>? sourcePriority,
       Value<bool>? autoDownloadQuality,
       Value<bool>? themeTransition,
-      Value<int>? themeTransitionMs}) {
+      Value<int>? themeTransitionMs,
+      Value<VolumeControlMode>? volumeControlMode}) {
     return PreferencesTableCompanion(
       id: id ?? this.id,
       albumColorSync: albumColorSync ?? this.albumColorSync,
@@ -1755,6 +1798,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       autoDownloadQuality: autoDownloadQuality ?? this.autoDownloadQuality,
       themeTransition: themeTransition ?? this.themeTransition,
       themeTransitionMs: themeTransitionMs ?? this.themeTransitionMs,
+      volumeControlMode: volumeControlMode ?? this.volumeControlMode,
     );
   }
 
@@ -1860,6 +1904,11 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     if (themeTransitionMs.present) {
       map['theme_transition_ms'] = Variable<int>(themeTransitionMs.value);
     }
+    if (volumeControlMode.present) {
+      map['volume_control_mode'] = Variable<String>($PreferencesTableTable
+          .$convertervolumeControlMode
+          .toSql(volumeControlMode.value));
+    }
     return map;
   }
 
@@ -1893,7 +1942,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           ..write('sourcePriority: $sourcePriority, ')
           ..write('autoDownloadQuality: $autoDownloadQuality, ')
           ..write('themeTransition: $themeTransition, ')
-          ..write('themeTransitionMs: $themeTransitionMs')
+          ..write('themeTransitionMs: $themeTransitionMs, ')
+          ..write('volumeControlMode: $volumeControlMode')
           ..write(')'))
         .toString();
   }
@@ -4939,6 +4989,1033 @@ class LibrarySnapshotTableCompanion
   }
 }
 
+class $TrackDownloadTableTable extends TrackDownloadTable
+    with TableInfo<$TrackDownloadTableTable, TrackDownloadTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TrackDownloadTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _trackIdMeta =
+      const VerificationMeta('trackId');
+  @override
+  late final GeneratedColumn<String> trackId = GeneratedColumn<String>(
+      'track_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _filePathMeta =
+      const VerificationMeta('filePath');
+  @override
+  late final GeneratedColumn<String> filePath = GeneratedColumn<String>(
+      'file_path', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _baseNameMeta =
+      const VerificationMeta('baseName');
+  @override
+  late final GeneratedColumn<String> baseName = GeneratedColumn<String>(
+      'base_name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  @override
+  late final GeneratedColumnWithTypeConverter<DownloadPersistedStatus, String>
+      status = GeneratedColumn<String>('status', aliasedName, false,
+              type: DriftSqlType.string, requiredDuringInsert: true)
+          .withConverter<DownloadPersistedStatus>(
+              $TrackDownloadTableTable.$converterstatus);
+  static const VerificationMeta _errorMeta = const VerificationMeta('error');
+  @override
+  late final GeneratedColumn<String> error = GeneratedColumn<String>(
+      'error', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _sizeBytesMeta =
+      const VerificationMeta('sizeBytes');
+  @override
+  late final GeneratedColumn<int> sizeBytes = GeneratedColumn<int>(
+      'size_bytes', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _updatedAtMsMeta =
+      const VerificationMeta('updatedAtMs');
+  @override
+  late final GeneratedColumn<int> updatedAtMs = GeneratedColumn<int>(
+      'updated_at_ms', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _trackDataMeta =
+      const VerificationMeta('trackData');
+  @override
+  late final GeneratedColumn<String> trackData = GeneratedColumn<String>(
+      'track_data', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        trackId,
+        filePath,
+        baseName,
+        status,
+        error,
+        sizeBytes,
+        updatedAtMs,
+        trackData
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'track_download_table';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<TrackDownloadTableData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('track_id')) {
+      context.handle(_trackIdMeta,
+          trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta));
+    } else if (isInserting) {
+      context.missing(_trackIdMeta);
+    }
+    if (data.containsKey('file_path')) {
+      context.handle(_filePathMeta,
+          filePath.isAcceptableOrUnknown(data['file_path']!, _filePathMeta));
+    } else if (isInserting) {
+      context.missing(_filePathMeta);
+    }
+    if (data.containsKey('base_name')) {
+      context.handle(_baseNameMeta,
+          baseName.isAcceptableOrUnknown(data['base_name']!, _baseNameMeta));
+    } else if (isInserting) {
+      context.missing(_baseNameMeta);
+    }
+    if (data.containsKey('error')) {
+      context.handle(
+          _errorMeta, error.isAcceptableOrUnknown(data['error']!, _errorMeta));
+    }
+    if (data.containsKey('size_bytes')) {
+      context.handle(_sizeBytesMeta,
+          sizeBytes.isAcceptableOrUnknown(data['size_bytes']!, _sizeBytesMeta));
+    }
+    if (data.containsKey('updated_at_ms')) {
+      context.handle(
+          _updatedAtMsMeta,
+          updatedAtMs.isAcceptableOrUnknown(
+              data['updated_at_ms']!, _updatedAtMsMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMsMeta);
+    }
+    if (data.containsKey('track_data')) {
+      context.handle(_trackDataMeta,
+          trackData.isAcceptableOrUnknown(data['track_data']!, _trackDataMeta));
+    } else if (isInserting) {
+      context.missing(_trackDataMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => const {};
+  @override
+  TrackDownloadTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TrackDownloadTableData(
+      trackId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}track_id'])!,
+      filePath: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}file_path'])!,
+      baseName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}base_name'])!,
+      status: $TrackDownloadTableTable.$converterstatus.fromSql(attachedDatabase
+          .typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!),
+      error: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}error']),
+      sizeBytes: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}size_bytes']),
+      updatedAtMs: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}updated_at_ms'])!,
+      trackData: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}track_data'])!,
+    );
+  }
+
+  @override
+  $TrackDownloadTableTable createAlias(String alias) {
+    return $TrackDownloadTableTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<DownloadPersistedStatus, String, String>
+      $converterstatus = const EnumNameConverter<DownloadPersistedStatus>(
+          DownloadPersistedStatus.values);
+}
+
+class TrackDownloadTableData extends DataClass
+    implements Insertable<TrackDownloadTableData> {
+  final String trackId;
+  final String filePath;
+  final String baseName;
+  final DownloadPersistedStatus status;
+  final String? error;
+  final int? sizeBytes;
+  final int updatedAtMs;
+  final String trackData;
+  const TrackDownloadTableData(
+      {required this.trackId,
+      required this.filePath,
+      required this.baseName,
+      required this.status,
+      this.error,
+      this.sizeBytes,
+      required this.updatedAtMs,
+      required this.trackData});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['track_id'] = Variable<String>(trackId);
+    map['file_path'] = Variable<String>(filePath);
+    map['base_name'] = Variable<String>(baseName);
+    {
+      map['status'] = Variable<String>(
+          $TrackDownloadTableTable.$converterstatus.toSql(status));
+    }
+    if (!nullToAbsent || error != null) {
+      map['error'] = Variable<String>(error);
+    }
+    if (!nullToAbsent || sizeBytes != null) {
+      map['size_bytes'] = Variable<int>(sizeBytes);
+    }
+    map['updated_at_ms'] = Variable<int>(updatedAtMs);
+    map['track_data'] = Variable<String>(trackData);
+    return map;
+  }
+
+  TrackDownloadTableCompanion toCompanion(bool nullToAbsent) {
+    return TrackDownloadTableCompanion(
+      trackId: Value(trackId),
+      filePath: Value(filePath),
+      baseName: Value(baseName),
+      status: Value(status),
+      error:
+          error == null && nullToAbsent ? const Value.absent() : Value(error),
+      sizeBytes: sizeBytes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sizeBytes),
+      updatedAtMs: Value(updatedAtMs),
+      trackData: Value(trackData),
+    );
+  }
+
+  factory TrackDownloadTableData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TrackDownloadTableData(
+      trackId: serializer.fromJson<String>(json['trackId']),
+      filePath: serializer.fromJson<String>(json['filePath']),
+      baseName: serializer.fromJson<String>(json['baseName']),
+      status: $TrackDownloadTableTable.$converterstatus
+          .fromJson(serializer.fromJson<String>(json['status'])),
+      error: serializer.fromJson<String?>(json['error']),
+      sizeBytes: serializer.fromJson<int?>(json['sizeBytes']),
+      updatedAtMs: serializer.fromJson<int>(json['updatedAtMs']),
+      trackData: serializer.fromJson<String>(json['trackData']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'trackId': serializer.toJson<String>(trackId),
+      'filePath': serializer.toJson<String>(filePath),
+      'baseName': serializer.toJson<String>(baseName),
+      'status': serializer.toJson<String>(
+          $TrackDownloadTableTable.$converterstatus.toJson(status)),
+      'error': serializer.toJson<String?>(error),
+      'sizeBytes': serializer.toJson<int?>(sizeBytes),
+      'updatedAtMs': serializer.toJson<int>(updatedAtMs),
+      'trackData': serializer.toJson<String>(trackData),
+    };
+  }
+
+  TrackDownloadTableData copyWith(
+          {String? trackId,
+          String? filePath,
+          String? baseName,
+          DownloadPersistedStatus? status,
+          Value<String?> error = const Value.absent(),
+          Value<int?> sizeBytes = const Value.absent(),
+          int? updatedAtMs,
+          String? trackData}) =>
+      TrackDownloadTableData(
+        trackId: trackId ?? this.trackId,
+        filePath: filePath ?? this.filePath,
+        baseName: baseName ?? this.baseName,
+        status: status ?? this.status,
+        error: error.present ? error.value : this.error,
+        sizeBytes: sizeBytes.present ? sizeBytes.value : this.sizeBytes,
+        updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+        trackData: trackData ?? this.trackData,
+      );
+  TrackDownloadTableData copyWithCompanion(TrackDownloadTableCompanion data) {
+    return TrackDownloadTableData(
+      trackId: data.trackId.present ? data.trackId.value : this.trackId,
+      filePath: data.filePath.present ? data.filePath.value : this.filePath,
+      baseName: data.baseName.present ? data.baseName.value : this.baseName,
+      status: data.status.present ? data.status.value : this.status,
+      error: data.error.present ? data.error.value : this.error,
+      sizeBytes: data.sizeBytes.present ? data.sizeBytes.value : this.sizeBytes,
+      updatedAtMs:
+          data.updatedAtMs.present ? data.updatedAtMs.value : this.updatedAtMs,
+      trackData: data.trackData.present ? data.trackData.value : this.trackData,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrackDownloadTableData(')
+          ..write('trackId: $trackId, ')
+          ..write('filePath: $filePath, ')
+          ..write('baseName: $baseName, ')
+          ..write('status: $status, ')
+          ..write('error: $error, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('trackData: $trackData')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(trackId, filePath, baseName, status, error,
+      sizeBytes, updatedAtMs, trackData);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TrackDownloadTableData &&
+          other.trackId == this.trackId &&
+          other.filePath == this.filePath &&
+          other.baseName == this.baseName &&
+          other.status == this.status &&
+          other.error == this.error &&
+          other.sizeBytes == this.sizeBytes &&
+          other.updatedAtMs == this.updatedAtMs &&
+          other.trackData == this.trackData);
+}
+
+class TrackDownloadTableCompanion
+    extends UpdateCompanion<TrackDownloadTableData> {
+  final Value<String> trackId;
+  final Value<String> filePath;
+  final Value<String> baseName;
+  final Value<DownloadPersistedStatus> status;
+  final Value<String?> error;
+  final Value<int?> sizeBytes;
+  final Value<int> updatedAtMs;
+  final Value<String> trackData;
+  final Value<int> rowid;
+  const TrackDownloadTableCompanion({
+    this.trackId = const Value.absent(),
+    this.filePath = const Value.absent(),
+    this.baseName = const Value.absent(),
+    this.status = const Value.absent(),
+    this.error = const Value.absent(),
+    this.sizeBytes = const Value.absent(),
+    this.updatedAtMs = const Value.absent(),
+    this.trackData = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TrackDownloadTableCompanion.insert({
+    required String trackId,
+    required String filePath,
+    required String baseName,
+    required DownloadPersistedStatus status,
+    this.error = const Value.absent(),
+    this.sizeBytes = const Value.absent(),
+    required int updatedAtMs,
+    required String trackData,
+    this.rowid = const Value.absent(),
+  })  : trackId = Value(trackId),
+        filePath = Value(filePath),
+        baseName = Value(baseName),
+        status = Value(status),
+        updatedAtMs = Value(updatedAtMs),
+        trackData = Value(trackData);
+  static Insertable<TrackDownloadTableData> custom({
+    Expression<String>? trackId,
+    Expression<String>? filePath,
+    Expression<String>? baseName,
+    Expression<String>? status,
+    Expression<String>? error,
+    Expression<int>? sizeBytes,
+    Expression<int>? updatedAtMs,
+    Expression<String>? trackData,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (trackId != null) 'track_id': trackId,
+      if (filePath != null) 'file_path': filePath,
+      if (baseName != null) 'base_name': baseName,
+      if (status != null) 'status': status,
+      if (error != null) 'error': error,
+      if (sizeBytes != null) 'size_bytes': sizeBytes,
+      if (updatedAtMs != null) 'updated_at_ms': updatedAtMs,
+      if (trackData != null) 'track_data': trackData,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TrackDownloadTableCompanion copyWith(
+      {Value<String>? trackId,
+      Value<String>? filePath,
+      Value<String>? baseName,
+      Value<DownloadPersistedStatus>? status,
+      Value<String?>? error,
+      Value<int?>? sizeBytes,
+      Value<int>? updatedAtMs,
+      Value<String>? trackData,
+      Value<int>? rowid}) {
+    return TrackDownloadTableCompanion(
+      trackId: trackId ?? this.trackId,
+      filePath: filePath ?? this.filePath,
+      baseName: baseName ?? this.baseName,
+      status: status ?? this.status,
+      error: error ?? this.error,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      updatedAtMs: updatedAtMs ?? this.updatedAtMs,
+      trackData: trackData ?? this.trackData,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (trackId.present) {
+      map['track_id'] = Variable<String>(trackId.value);
+    }
+    if (filePath.present) {
+      map['file_path'] = Variable<String>(filePath.value);
+    }
+    if (baseName.present) {
+      map['base_name'] = Variable<String>(baseName.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(
+          $TrackDownloadTableTable.$converterstatus.toSql(status.value));
+    }
+    if (error.present) {
+      map['error'] = Variable<String>(error.value);
+    }
+    if (sizeBytes.present) {
+      map['size_bytes'] = Variable<int>(sizeBytes.value);
+    }
+    if (updatedAtMs.present) {
+      map['updated_at_ms'] = Variable<int>(updatedAtMs.value);
+    }
+    if (trackData.present) {
+      map['track_data'] = Variable<String>(trackData.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrackDownloadTableCompanion(')
+          ..write('trackId: $trackId, ')
+          ..write('filePath: $filePath, ')
+          ..write('baseName: $baseName, ')
+          ..write('status: $status, ')
+          ..write('error: $error, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('updatedAtMs: $updatedAtMs, ')
+          ..write('trackData: $trackData, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PlaylistDownloadTableTable extends PlaylistDownloadTable
+    with TableInfo<$PlaylistDownloadTableTable, PlaylistDownloadTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PlaylistDownloadTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _playlistIdMeta =
+      const VerificationMeta('playlistId');
+  @override
+  late final GeneratedColumn<String> playlistId = GeneratedColumn<String>(
+      'playlist_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _trackIdMeta =
+      const VerificationMeta('trackId');
+  @override
+  late final GeneratedColumn<String> trackId = GeneratedColumn<String>(
+      'track_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _positionMeta =
+      const VerificationMeta('position');
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+      'position', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _addedAtMsMeta =
+      const VerificationMeta('addedAtMs');
+  @override
+  late final GeneratedColumn<int> addedAtMs = GeneratedColumn<int>(
+      'added_at_ms', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [playlistId, trackId, position, addedAtMs];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'playlist_download_table';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<PlaylistDownloadTableData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('playlist_id')) {
+      context.handle(
+          _playlistIdMeta,
+          playlistId.isAcceptableOrUnknown(
+              data['playlist_id']!, _playlistIdMeta));
+    } else if (isInserting) {
+      context.missing(_playlistIdMeta);
+    }
+    if (data.containsKey('track_id')) {
+      context.handle(_trackIdMeta,
+          trackId.isAcceptableOrUnknown(data['track_id']!, _trackIdMeta));
+    } else if (isInserting) {
+      context.missing(_trackIdMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(_positionMeta,
+          position.isAcceptableOrUnknown(data['position']!, _positionMeta));
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('added_at_ms')) {
+      context.handle(
+          _addedAtMsMeta,
+          addedAtMs.isAcceptableOrUnknown(
+              data['added_at_ms']!, _addedAtMsMeta));
+    } else if (isInserting) {
+      context.missing(_addedAtMsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => const {};
+  @override
+  PlaylistDownloadTableData map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PlaylistDownloadTableData(
+      playlistId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}playlist_id'])!,
+      trackId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}track_id'])!,
+      position: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}position'])!,
+      addedAtMs: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}added_at_ms'])!,
+    );
+  }
+
+  @override
+  $PlaylistDownloadTableTable createAlias(String alias) {
+    return $PlaylistDownloadTableTable(attachedDatabase, alias);
+  }
+}
+
+class PlaylistDownloadTableData extends DataClass
+    implements Insertable<PlaylistDownloadTableData> {
+  final String playlistId;
+  final String trackId;
+  final int position;
+  final int addedAtMs;
+  const PlaylistDownloadTableData(
+      {required this.playlistId,
+      required this.trackId,
+      required this.position,
+      required this.addedAtMs});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['playlist_id'] = Variable<String>(playlistId);
+    map['track_id'] = Variable<String>(trackId);
+    map['position'] = Variable<int>(position);
+    map['added_at_ms'] = Variable<int>(addedAtMs);
+    return map;
+  }
+
+  PlaylistDownloadTableCompanion toCompanion(bool nullToAbsent) {
+    return PlaylistDownloadTableCompanion(
+      playlistId: Value(playlistId),
+      trackId: Value(trackId),
+      position: Value(position),
+      addedAtMs: Value(addedAtMs),
+    );
+  }
+
+  factory PlaylistDownloadTableData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PlaylistDownloadTableData(
+      playlistId: serializer.fromJson<String>(json['playlistId']),
+      trackId: serializer.fromJson<String>(json['trackId']),
+      position: serializer.fromJson<int>(json['position']),
+      addedAtMs: serializer.fromJson<int>(json['addedAtMs']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'playlistId': serializer.toJson<String>(playlistId),
+      'trackId': serializer.toJson<String>(trackId),
+      'position': serializer.toJson<int>(position),
+      'addedAtMs': serializer.toJson<int>(addedAtMs),
+    };
+  }
+
+  PlaylistDownloadTableData copyWith(
+          {String? playlistId,
+          String? trackId,
+          int? position,
+          int? addedAtMs}) =>
+      PlaylistDownloadTableData(
+        playlistId: playlistId ?? this.playlistId,
+        trackId: trackId ?? this.trackId,
+        position: position ?? this.position,
+        addedAtMs: addedAtMs ?? this.addedAtMs,
+      );
+  PlaylistDownloadTableData copyWithCompanion(
+      PlaylistDownloadTableCompanion data) {
+    return PlaylistDownloadTableData(
+      playlistId:
+          data.playlistId.present ? data.playlistId.value : this.playlistId,
+      trackId: data.trackId.present ? data.trackId.value : this.trackId,
+      position: data.position.present ? data.position.value : this.position,
+      addedAtMs: data.addedAtMs.present ? data.addedAtMs.value : this.addedAtMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlaylistDownloadTableData(')
+          ..write('playlistId: $playlistId, ')
+          ..write('trackId: $trackId, ')
+          ..write('position: $position, ')
+          ..write('addedAtMs: $addedAtMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(playlistId, trackId, position, addedAtMs);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PlaylistDownloadTableData &&
+          other.playlistId == this.playlistId &&
+          other.trackId == this.trackId &&
+          other.position == this.position &&
+          other.addedAtMs == this.addedAtMs);
+}
+
+class PlaylistDownloadTableCompanion
+    extends UpdateCompanion<PlaylistDownloadTableData> {
+  final Value<String> playlistId;
+  final Value<String> trackId;
+  final Value<int> position;
+  final Value<int> addedAtMs;
+  final Value<int> rowid;
+  const PlaylistDownloadTableCompanion({
+    this.playlistId = const Value.absent(),
+    this.trackId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.addedAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PlaylistDownloadTableCompanion.insert({
+    required String playlistId,
+    required String trackId,
+    required int position,
+    required int addedAtMs,
+    this.rowid = const Value.absent(),
+  })  : playlistId = Value(playlistId),
+        trackId = Value(trackId),
+        position = Value(position),
+        addedAtMs = Value(addedAtMs);
+  static Insertable<PlaylistDownloadTableData> custom({
+    Expression<String>? playlistId,
+    Expression<String>? trackId,
+    Expression<int>? position,
+    Expression<int>? addedAtMs,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (playlistId != null) 'playlist_id': playlistId,
+      if (trackId != null) 'track_id': trackId,
+      if (position != null) 'position': position,
+      if (addedAtMs != null) 'added_at_ms': addedAtMs,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PlaylistDownloadTableCompanion copyWith(
+      {Value<String>? playlistId,
+      Value<String>? trackId,
+      Value<int>? position,
+      Value<int>? addedAtMs,
+      Value<int>? rowid}) {
+    return PlaylistDownloadTableCompanion(
+      playlistId: playlistId ?? this.playlistId,
+      trackId: trackId ?? this.trackId,
+      position: position ?? this.position,
+      addedAtMs: addedAtMs ?? this.addedAtMs,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (playlistId.present) {
+      map['playlist_id'] = Variable<String>(playlistId.value);
+    }
+    if (trackId.present) {
+      map['track_id'] = Variable<String>(trackId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (addedAtMs.present) {
+      map['added_at_ms'] = Variable<int>(addedAtMs.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlaylistDownloadTableCompanion(')
+          ..write('playlistId: $playlistId, ')
+          ..write('trackId: $trackId, ')
+          ..write('position: $position, ')
+          ..write('addedAtMs: $addedAtMs, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PlaylistDownloadMirrorTableTable extends PlaylistDownloadMirrorTable
+    with
+        TableInfo<$PlaylistDownloadMirrorTableTable,
+            PlaylistDownloadMirrorTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PlaylistDownloadMirrorTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _playlistIdMeta =
+      const VerificationMeta('playlistId');
+  @override
+  late final GeneratedColumn<String> playlistId = GeneratedColumn<String>(
+      'playlist_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'));
+  static const VerificationMeta _playlistDataMeta =
+      const VerificationMeta('playlistData');
+  @override
+  late final GeneratedColumn<String> playlistData = GeneratedColumn<String>(
+      'playlist_data', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _trackCountMeta =
+      const VerificationMeta('trackCount');
+  @override
+  late final GeneratedColumn<int> trackCount = GeneratedColumn<int>(
+      'track_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _syncedAtMsMeta =
+      const VerificationMeta('syncedAtMs');
+  @override
+  late final GeneratedColumn<int> syncedAtMs = GeneratedColumn<int>(
+      'synced_at_ms', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [playlistId, playlistData, trackCount, syncedAtMs];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'playlist_download_mirror_table';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<PlaylistDownloadMirrorTableData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('playlist_id')) {
+      context.handle(
+          _playlistIdMeta,
+          playlistId.isAcceptableOrUnknown(
+              data['playlist_id']!, _playlistIdMeta));
+    } else if (isInserting) {
+      context.missing(_playlistIdMeta);
+    }
+    if (data.containsKey('playlist_data')) {
+      context.handle(
+          _playlistDataMeta,
+          playlistData.isAcceptableOrUnknown(
+              data['playlist_data']!, _playlistDataMeta));
+    } else if (isInserting) {
+      context.missing(_playlistDataMeta);
+    }
+    if (data.containsKey('track_count')) {
+      context.handle(
+          _trackCountMeta,
+          trackCount.isAcceptableOrUnknown(
+              data['track_count']!, _trackCountMeta));
+    }
+    if (data.containsKey('synced_at_ms')) {
+      context.handle(
+          _syncedAtMsMeta,
+          syncedAtMs.isAcceptableOrUnknown(
+              data['synced_at_ms']!, _syncedAtMsMeta));
+    } else if (isInserting) {
+      context.missing(_syncedAtMsMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => const {};
+  @override
+  PlaylistDownloadMirrorTableData map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PlaylistDownloadMirrorTableData(
+      playlistId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}playlist_id'])!,
+      playlistData: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}playlist_data'])!,
+      trackCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}track_count'])!,
+      syncedAtMs: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}synced_at_ms'])!,
+    );
+  }
+
+  @override
+  $PlaylistDownloadMirrorTableTable createAlias(String alias) {
+    return $PlaylistDownloadMirrorTableTable(attachedDatabase, alias);
+  }
+}
+
+class PlaylistDownloadMirrorTableData extends DataClass
+    implements Insertable<PlaylistDownloadMirrorTableData> {
+  final String playlistId;
+  final String playlistData;
+
+  /// Spotify's own count, which can exceed the number of membership rows after
+  /// a cheap first-page-only background resync.
+  final int trackCount;
+  final int syncedAtMs;
+  const PlaylistDownloadMirrorTableData(
+      {required this.playlistId,
+      required this.playlistData,
+      required this.trackCount,
+      required this.syncedAtMs});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['playlist_id'] = Variable<String>(playlistId);
+    map['playlist_data'] = Variable<String>(playlistData);
+    map['track_count'] = Variable<int>(trackCount);
+    map['synced_at_ms'] = Variable<int>(syncedAtMs);
+    return map;
+  }
+
+  PlaylistDownloadMirrorTableCompanion toCompanion(bool nullToAbsent) {
+    return PlaylistDownloadMirrorTableCompanion(
+      playlistId: Value(playlistId),
+      playlistData: Value(playlistData),
+      trackCount: Value(trackCount),
+      syncedAtMs: Value(syncedAtMs),
+    );
+  }
+
+  factory PlaylistDownloadMirrorTableData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PlaylistDownloadMirrorTableData(
+      playlistId: serializer.fromJson<String>(json['playlistId']),
+      playlistData: serializer.fromJson<String>(json['playlistData']),
+      trackCount: serializer.fromJson<int>(json['trackCount']),
+      syncedAtMs: serializer.fromJson<int>(json['syncedAtMs']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'playlistId': serializer.toJson<String>(playlistId),
+      'playlistData': serializer.toJson<String>(playlistData),
+      'trackCount': serializer.toJson<int>(trackCount),
+      'syncedAtMs': serializer.toJson<int>(syncedAtMs),
+    };
+  }
+
+  PlaylistDownloadMirrorTableData copyWith(
+          {String? playlistId,
+          String? playlistData,
+          int? trackCount,
+          int? syncedAtMs}) =>
+      PlaylistDownloadMirrorTableData(
+        playlistId: playlistId ?? this.playlistId,
+        playlistData: playlistData ?? this.playlistData,
+        trackCount: trackCount ?? this.trackCount,
+        syncedAtMs: syncedAtMs ?? this.syncedAtMs,
+      );
+  PlaylistDownloadMirrorTableData copyWithCompanion(
+      PlaylistDownloadMirrorTableCompanion data) {
+    return PlaylistDownloadMirrorTableData(
+      playlistId:
+          data.playlistId.present ? data.playlistId.value : this.playlistId,
+      playlistData: data.playlistData.present
+          ? data.playlistData.value
+          : this.playlistData,
+      trackCount:
+          data.trackCount.present ? data.trackCount.value : this.trackCount,
+      syncedAtMs:
+          data.syncedAtMs.present ? data.syncedAtMs.value : this.syncedAtMs,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlaylistDownloadMirrorTableData(')
+          ..write('playlistId: $playlistId, ')
+          ..write('playlistData: $playlistData, ')
+          ..write('trackCount: $trackCount, ')
+          ..write('syncedAtMs: $syncedAtMs')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(playlistId, playlistData, trackCount, syncedAtMs);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PlaylistDownloadMirrorTableData &&
+          other.playlistId == this.playlistId &&
+          other.playlistData == this.playlistData &&
+          other.trackCount == this.trackCount &&
+          other.syncedAtMs == this.syncedAtMs);
+}
+
+class PlaylistDownloadMirrorTableCompanion
+    extends UpdateCompanion<PlaylistDownloadMirrorTableData> {
+  final Value<String> playlistId;
+  final Value<String> playlistData;
+  final Value<int> trackCount;
+  final Value<int> syncedAtMs;
+  final Value<int> rowid;
+  const PlaylistDownloadMirrorTableCompanion({
+    this.playlistId = const Value.absent(),
+    this.playlistData = const Value.absent(),
+    this.trackCount = const Value.absent(),
+    this.syncedAtMs = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PlaylistDownloadMirrorTableCompanion.insert({
+    required String playlistId,
+    required String playlistData,
+    this.trackCount = const Value.absent(),
+    required int syncedAtMs,
+    this.rowid = const Value.absent(),
+  })  : playlistId = Value(playlistId),
+        playlistData = Value(playlistData),
+        syncedAtMs = Value(syncedAtMs);
+  static Insertable<PlaylistDownloadMirrorTableData> custom({
+    Expression<String>? playlistId,
+    Expression<String>? playlistData,
+    Expression<int>? trackCount,
+    Expression<int>? syncedAtMs,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (playlistId != null) 'playlist_id': playlistId,
+      if (playlistData != null) 'playlist_data': playlistData,
+      if (trackCount != null) 'track_count': trackCount,
+      if (syncedAtMs != null) 'synced_at_ms': syncedAtMs,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PlaylistDownloadMirrorTableCompanion copyWith(
+      {Value<String>? playlistId,
+      Value<String>? playlistData,
+      Value<int>? trackCount,
+      Value<int>? syncedAtMs,
+      Value<int>? rowid}) {
+    return PlaylistDownloadMirrorTableCompanion(
+      playlistId: playlistId ?? this.playlistId,
+      playlistData: playlistData ?? this.playlistData,
+      trackCount: trackCount ?? this.trackCount,
+      syncedAtMs: syncedAtMs ?? this.syncedAtMs,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (playlistId.present) {
+      map['playlist_id'] = Variable<String>(playlistId.value);
+    }
+    if (playlistData.present) {
+      map['playlist_data'] = Variable<String>(playlistData.value);
+    }
+    if (trackCount.present) {
+      map['track_count'] = Variable<int>(trackCount.value);
+    }
+    if (syncedAtMs.present) {
+      map['synced_at_ms'] = Variable<int>(syncedAtMs.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlaylistDownloadMirrorTableCompanion(')
+          ..write('playlistId: $playlistId, ')
+          ..write('playlistData: $playlistData, ')
+          ..write('trackCount: $trackCount, ')
+          ..write('syncedAtMs: $syncedAtMs, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4961,8 +6038,18 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PluginsTableTable pluginsTable = $PluginsTableTable(this);
   late final $LibrarySnapshotTableTable librarySnapshotTable =
       $LibrarySnapshotTableTable(this);
+  late final $TrackDownloadTableTable trackDownloadTable =
+      $TrackDownloadTableTable(this);
+  late final $PlaylistDownloadTableTable playlistDownloadTable =
+      $PlaylistDownloadTableTable(this);
+  late final $PlaylistDownloadMirrorTableTable playlistDownloadMirrorTable =
+      $PlaylistDownloadMirrorTableTable(this);
   late final Index uniqueBlacklist = Index('unique_blacklist',
       'CREATE UNIQUE INDEX unique_blacklist ON blacklist_table (element_type, element_id)');
+  late final Index uniquePlaylistDownload = Index('unique_playlist_download',
+      'CREATE UNIQUE INDEX unique_playlist_download ON playlist_download_table (playlist_id, track_id)');
+  late final Index playlistDownloadOrder = Index('playlist_download_order',
+      'CREATE INDEX playlist_download_order ON playlist_download_table (playlist_id, position)');
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4980,7 +6067,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         lyricsTable,
         pluginsTable,
         librarySnapshotTable,
-        uniqueBlacklist
+        trackDownloadTable,
+        playlistDownloadTable,
+        playlistDownloadMirrorTable,
+        uniqueBlacklist,
+        uniquePlaylistDownload,
+        playlistDownloadOrder
       ];
 }
 
@@ -5332,6 +6424,7 @@ typedef $$PreferencesTableTableCreateCompanionBuilder
   Value<bool> autoDownloadQuality,
   Value<bool> themeTransition,
   Value<int> themeTransitionMs,
+  Value<VolumeControlMode> volumeControlMode,
 });
 typedef $$PreferencesTableTableUpdateCompanionBuilder
     = PreferencesTableCompanion Function({
@@ -5363,6 +6456,7 @@ typedef $$PreferencesTableTableUpdateCompanionBuilder
   Value<bool> autoDownloadQuality,
   Value<bool> themeTransition,
   Value<int> themeTransitionMs,
+  Value<VolumeControlMode> volumeControlMode,
 });
 
 class $$PreferencesTableTableFilterComposer
@@ -5489,6 +6583,11 @@ class $$PreferencesTableTableFilterComposer
   ColumnFilters<int> get themeTransitionMs => $composableBuilder(
       column: $table.themeTransitionMs,
       builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<VolumeControlMode, VolumeControlMode, String>
+      get volumeControlMode => $composableBuilder(
+          column: $table.volumeControlMode,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
 }
 
 class $$PreferencesTableTableOrderingComposer
@@ -5602,6 +6701,10 @@ class $$PreferencesTableTableOrderingComposer
   ColumnOrderings<int> get themeTransitionMs => $composableBuilder(
       column: $table.themeTransitionMs,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get volumeControlMode => $composableBuilder(
+      column: $table.volumeControlMode,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$PreferencesTableTableAnnotationComposer
@@ -5703,6 +6806,10 @@ class $$PreferencesTableTableAnnotationComposer
 
   GeneratedColumn<int> get themeTransitionMs => $composableBuilder(
       column: $table.themeTransitionMs, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<VolumeControlMode, String>
+      get volumeControlMode => $composableBuilder(
+          column: $table.volumeControlMode, builder: (column) => column);
 }
 
 class $$PreferencesTableTableTableManager extends RootTableManager<
@@ -5762,6 +6869,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<bool> autoDownloadQuality = const Value.absent(),
             Value<bool> themeTransition = const Value.absent(),
             Value<int> themeTransitionMs = const Value.absent(),
+            Value<VolumeControlMode> volumeControlMode = const Value.absent(),
           }) =>
               PreferencesTableCompanion(
             id: id,
@@ -5792,6 +6900,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             autoDownloadQuality: autoDownloadQuality,
             themeTransition: themeTransition,
             themeTransitionMs: themeTransitionMs,
+            volumeControlMode: volumeControlMode,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -5823,6 +6932,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<bool> autoDownloadQuality = const Value.absent(),
             Value<bool> themeTransition = const Value.absent(),
             Value<int> themeTransitionMs = const Value.absent(),
+            Value<VolumeControlMode> volumeControlMode = const Value.absent(),
           }) =>
               PreferencesTableCompanion.insert(
             id: id,
@@ -5853,6 +6963,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             autoDownloadQuality: autoDownloadQuality,
             themeTransition: themeTransition,
             themeTransitionMs: themeTransitionMs,
+            volumeControlMode: volumeControlMode,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -7538,6 +8649,563 @@ typedef $$LibrarySnapshotTableTableProcessedTableManager
         ),
         LibrarySnapshotTableData,
         PrefetchHooks Function()>;
+typedef $$TrackDownloadTableTableCreateCompanionBuilder
+    = TrackDownloadTableCompanion Function({
+  required String trackId,
+  required String filePath,
+  required String baseName,
+  required DownloadPersistedStatus status,
+  Value<String?> error,
+  Value<int?> sizeBytes,
+  required int updatedAtMs,
+  required String trackData,
+  Value<int> rowid,
+});
+typedef $$TrackDownloadTableTableUpdateCompanionBuilder
+    = TrackDownloadTableCompanion Function({
+  Value<String> trackId,
+  Value<String> filePath,
+  Value<String> baseName,
+  Value<DownloadPersistedStatus> status,
+  Value<String?> error,
+  Value<int?> sizeBytes,
+  Value<int> updatedAtMs,
+  Value<String> trackData,
+  Value<int> rowid,
+});
+
+class $$TrackDownloadTableTableFilterComposer
+    extends Composer<_$AppDatabase, $TrackDownloadTableTable> {
+  $$TrackDownloadTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get trackId => $composableBuilder(
+      column: $table.trackId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get filePath => $composableBuilder(
+      column: $table.filePath, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get baseName => $composableBuilder(
+      column: $table.baseName, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<DownloadPersistedStatus,
+          DownloadPersistedStatus, String>
+      get status => $composableBuilder(
+          column: $table.status,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnFilters<String> get error => $composableBuilder(
+      column: $table.error, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sizeBytes => $composableBuilder(
+      column: $table.sizeBytes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get updatedAtMs => $composableBuilder(
+      column: $table.updatedAtMs, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get trackData => $composableBuilder(
+      column: $table.trackData, builder: (column) => ColumnFilters(column));
+}
+
+class $$TrackDownloadTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $TrackDownloadTableTable> {
+  $$TrackDownloadTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get trackId => $composableBuilder(
+      column: $table.trackId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get filePath => $composableBuilder(
+      column: $table.filePath, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get baseName => $composableBuilder(
+      column: $table.baseName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get error => $composableBuilder(
+      column: $table.error, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sizeBytes => $composableBuilder(
+      column: $table.sizeBytes, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAtMs => $composableBuilder(
+      column: $table.updatedAtMs, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get trackData => $composableBuilder(
+      column: $table.trackData, builder: (column) => ColumnOrderings(column));
+}
+
+class $$TrackDownloadTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TrackDownloadTableTable> {
+  $$TrackDownloadTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get trackId =>
+      $composableBuilder(column: $table.trackId, builder: (column) => column);
+
+  GeneratedColumn<String> get filePath =>
+      $composableBuilder(column: $table.filePath, builder: (column) => column);
+
+  GeneratedColumn<String> get baseName =>
+      $composableBuilder(column: $table.baseName, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DownloadPersistedStatus, String>
+      get status => $composableBuilder(
+          column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get error =>
+      $composableBuilder(column: $table.error, builder: (column) => column);
+
+  GeneratedColumn<int> get sizeBytes =>
+      $composableBuilder(column: $table.sizeBytes, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAtMs => $composableBuilder(
+      column: $table.updatedAtMs, builder: (column) => column);
+
+  GeneratedColumn<String> get trackData =>
+      $composableBuilder(column: $table.trackData, builder: (column) => column);
+}
+
+class $$TrackDownloadTableTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $TrackDownloadTableTable,
+    TrackDownloadTableData,
+    $$TrackDownloadTableTableFilterComposer,
+    $$TrackDownloadTableTableOrderingComposer,
+    $$TrackDownloadTableTableAnnotationComposer,
+    $$TrackDownloadTableTableCreateCompanionBuilder,
+    $$TrackDownloadTableTableUpdateCompanionBuilder,
+    (
+      TrackDownloadTableData,
+      BaseReferences<_$AppDatabase, $TrackDownloadTableTable,
+          TrackDownloadTableData>
+    ),
+    TrackDownloadTableData,
+    PrefetchHooks Function()> {
+  $$TrackDownloadTableTableTableManager(
+      _$AppDatabase db, $TrackDownloadTableTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TrackDownloadTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TrackDownloadTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TrackDownloadTableTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> trackId = const Value.absent(),
+            Value<String> filePath = const Value.absent(),
+            Value<String> baseName = const Value.absent(),
+            Value<DownloadPersistedStatus> status = const Value.absent(),
+            Value<String?> error = const Value.absent(),
+            Value<int?> sizeBytes = const Value.absent(),
+            Value<int> updatedAtMs = const Value.absent(),
+            Value<String> trackData = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TrackDownloadTableCompanion(
+            trackId: trackId,
+            filePath: filePath,
+            baseName: baseName,
+            status: status,
+            error: error,
+            sizeBytes: sizeBytes,
+            updatedAtMs: updatedAtMs,
+            trackData: trackData,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String trackId,
+            required String filePath,
+            required String baseName,
+            required DownloadPersistedStatus status,
+            Value<String?> error = const Value.absent(),
+            Value<int?> sizeBytes = const Value.absent(),
+            required int updatedAtMs,
+            required String trackData,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TrackDownloadTableCompanion.insert(
+            trackId: trackId,
+            filePath: filePath,
+            baseName: baseName,
+            status: status,
+            error: error,
+            sizeBytes: sizeBytes,
+            updatedAtMs: updatedAtMs,
+            trackData: trackData,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$TrackDownloadTableTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $TrackDownloadTableTable,
+    TrackDownloadTableData,
+    $$TrackDownloadTableTableFilterComposer,
+    $$TrackDownloadTableTableOrderingComposer,
+    $$TrackDownloadTableTableAnnotationComposer,
+    $$TrackDownloadTableTableCreateCompanionBuilder,
+    $$TrackDownloadTableTableUpdateCompanionBuilder,
+    (
+      TrackDownloadTableData,
+      BaseReferences<_$AppDatabase, $TrackDownloadTableTable,
+          TrackDownloadTableData>
+    ),
+    TrackDownloadTableData,
+    PrefetchHooks Function()>;
+typedef $$PlaylistDownloadTableTableCreateCompanionBuilder
+    = PlaylistDownloadTableCompanion Function({
+  required String playlistId,
+  required String trackId,
+  required int position,
+  required int addedAtMs,
+  Value<int> rowid,
+});
+typedef $$PlaylistDownloadTableTableUpdateCompanionBuilder
+    = PlaylistDownloadTableCompanion Function({
+  Value<String> playlistId,
+  Value<String> trackId,
+  Value<int> position,
+  Value<int> addedAtMs,
+  Value<int> rowid,
+});
+
+class $$PlaylistDownloadTableTableFilterComposer
+    extends Composer<_$AppDatabase, $PlaylistDownloadTableTable> {
+  $$PlaylistDownloadTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get playlistId => $composableBuilder(
+      column: $table.playlistId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get trackId => $composableBuilder(
+      column: $table.trackId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get addedAtMs => $composableBuilder(
+      column: $table.addedAtMs, builder: (column) => ColumnFilters(column));
+}
+
+class $$PlaylistDownloadTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $PlaylistDownloadTableTable> {
+  $$PlaylistDownloadTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get playlistId => $composableBuilder(
+      column: $table.playlistId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get trackId => $composableBuilder(
+      column: $table.trackId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get position => $composableBuilder(
+      column: $table.position, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get addedAtMs => $composableBuilder(
+      column: $table.addedAtMs, builder: (column) => ColumnOrderings(column));
+}
+
+class $$PlaylistDownloadTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PlaylistDownloadTableTable> {
+  $$PlaylistDownloadTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get playlistId => $composableBuilder(
+      column: $table.playlistId, builder: (column) => column);
+
+  GeneratedColumn<String> get trackId =>
+      $composableBuilder(column: $table.trackId, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<int> get addedAtMs =>
+      $composableBuilder(column: $table.addedAtMs, builder: (column) => column);
+}
+
+class $$PlaylistDownloadTableTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $PlaylistDownloadTableTable,
+    PlaylistDownloadTableData,
+    $$PlaylistDownloadTableTableFilterComposer,
+    $$PlaylistDownloadTableTableOrderingComposer,
+    $$PlaylistDownloadTableTableAnnotationComposer,
+    $$PlaylistDownloadTableTableCreateCompanionBuilder,
+    $$PlaylistDownloadTableTableUpdateCompanionBuilder,
+    (
+      PlaylistDownloadTableData,
+      BaseReferences<_$AppDatabase, $PlaylistDownloadTableTable,
+          PlaylistDownloadTableData>
+    ),
+    PlaylistDownloadTableData,
+    PrefetchHooks Function()> {
+  $$PlaylistDownloadTableTableTableManager(
+      _$AppDatabase db, $PlaylistDownloadTableTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PlaylistDownloadTableTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PlaylistDownloadTableTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PlaylistDownloadTableTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> playlistId = const Value.absent(),
+            Value<String> trackId = const Value.absent(),
+            Value<int> position = const Value.absent(),
+            Value<int> addedAtMs = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              PlaylistDownloadTableCompanion(
+            playlistId: playlistId,
+            trackId: trackId,
+            position: position,
+            addedAtMs: addedAtMs,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String playlistId,
+            required String trackId,
+            required int position,
+            required int addedAtMs,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              PlaylistDownloadTableCompanion.insert(
+            playlistId: playlistId,
+            trackId: trackId,
+            position: position,
+            addedAtMs: addedAtMs,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$PlaylistDownloadTableTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $PlaylistDownloadTableTable,
+        PlaylistDownloadTableData,
+        $$PlaylistDownloadTableTableFilterComposer,
+        $$PlaylistDownloadTableTableOrderingComposer,
+        $$PlaylistDownloadTableTableAnnotationComposer,
+        $$PlaylistDownloadTableTableCreateCompanionBuilder,
+        $$PlaylistDownloadTableTableUpdateCompanionBuilder,
+        (
+          PlaylistDownloadTableData,
+          BaseReferences<_$AppDatabase, $PlaylistDownloadTableTable,
+              PlaylistDownloadTableData>
+        ),
+        PlaylistDownloadTableData,
+        PrefetchHooks Function()>;
+typedef $$PlaylistDownloadMirrorTableTableCreateCompanionBuilder
+    = PlaylistDownloadMirrorTableCompanion Function({
+  required String playlistId,
+  required String playlistData,
+  Value<int> trackCount,
+  required int syncedAtMs,
+  Value<int> rowid,
+});
+typedef $$PlaylistDownloadMirrorTableTableUpdateCompanionBuilder
+    = PlaylistDownloadMirrorTableCompanion Function({
+  Value<String> playlistId,
+  Value<String> playlistData,
+  Value<int> trackCount,
+  Value<int> syncedAtMs,
+  Value<int> rowid,
+});
+
+class $$PlaylistDownloadMirrorTableTableFilterComposer
+    extends Composer<_$AppDatabase, $PlaylistDownloadMirrorTableTable> {
+  $$PlaylistDownloadMirrorTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get playlistId => $composableBuilder(
+      column: $table.playlistId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get playlistData => $composableBuilder(
+      column: $table.playlistData, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get trackCount => $composableBuilder(
+      column: $table.trackCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get syncedAtMs => $composableBuilder(
+      column: $table.syncedAtMs, builder: (column) => ColumnFilters(column));
+}
+
+class $$PlaylistDownloadMirrorTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $PlaylistDownloadMirrorTableTable> {
+  $$PlaylistDownloadMirrorTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get playlistId => $composableBuilder(
+      column: $table.playlistId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get playlistData => $composableBuilder(
+      column: $table.playlistData,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get trackCount => $composableBuilder(
+      column: $table.trackCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get syncedAtMs => $composableBuilder(
+      column: $table.syncedAtMs, builder: (column) => ColumnOrderings(column));
+}
+
+class $$PlaylistDownloadMirrorTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PlaylistDownloadMirrorTableTable> {
+  $$PlaylistDownloadMirrorTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get playlistId => $composableBuilder(
+      column: $table.playlistId, builder: (column) => column);
+
+  GeneratedColumn<String> get playlistData => $composableBuilder(
+      column: $table.playlistData, builder: (column) => column);
+
+  GeneratedColumn<int> get trackCount => $composableBuilder(
+      column: $table.trackCount, builder: (column) => column);
+
+  GeneratedColumn<int> get syncedAtMs => $composableBuilder(
+      column: $table.syncedAtMs, builder: (column) => column);
+}
+
+class $$PlaylistDownloadMirrorTableTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $PlaylistDownloadMirrorTableTable,
+    PlaylistDownloadMirrorTableData,
+    $$PlaylistDownloadMirrorTableTableFilterComposer,
+    $$PlaylistDownloadMirrorTableTableOrderingComposer,
+    $$PlaylistDownloadMirrorTableTableAnnotationComposer,
+    $$PlaylistDownloadMirrorTableTableCreateCompanionBuilder,
+    $$PlaylistDownloadMirrorTableTableUpdateCompanionBuilder,
+    (
+      PlaylistDownloadMirrorTableData,
+      BaseReferences<_$AppDatabase, $PlaylistDownloadMirrorTableTable,
+          PlaylistDownloadMirrorTableData>
+    ),
+    PlaylistDownloadMirrorTableData,
+    PrefetchHooks Function()> {
+  $$PlaylistDownloadMirrorTableTableTableManager(
+      _$AppDatabase db, $PlaylistDownloadMirrorTableTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PlaylistDownloadMirrorTableTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PlaylistDownloadMirrorTableTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PlaylistDownloadMirrorTableTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> playlistId = const Value.absent(),
+            Value<String> playlistData = const Value.absent(),
+            Value<int> trackCount = const Value.absent(),
+            Value<int> syncedAtMs = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              PlaylistDownloadMirrorTableCompanion(
+            playlistId: playlistId,
+            playlistData: playlistData,
+            trackCount: trackCount,
+            syncedAtMs: syncedAtMs,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String playlistId,
+            required String playlistData,
+            Value<int> trackCount = const Value.absent(),
+            required int syncedAtMs,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              PlaylistDownloadMirrorTableCompanion.insert(
+            playlistId: playlistId,
+            playlistData: playlistData,
+            trackCount: trackCount,
+            syncedAtMs: syncedAtMs,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$PlaylistDownloadMirrorTableTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $PlaylistDownloadMirrorTableTable,
+        PlaylistDownloadMirrorTableData,
+        $$PlaylistDownloadMirrorTableTableFilterComposer,
+        $$PlaylistDownloadMirrorTableTableOrderingComposer,
+        $$PlaylistDownloadMirrorTableTableAnnotationComposer,
+        $$PlaylistDownloadMirrorTableTableCreateCompanionBuilder,
+        $$PlaylistDownloadMirrorTableTableUpdateCompanionBuilder,
+        (
+          PlaylistDownloadMirrorTableData,
+          BaseReferences<_$AppDatabase, $PlaylistDownloadMirrorTableTable,
+              PlaylistDownloadMirrorTableData>
+        ),
+        PlaylistDownloadMirrorTableData,
+        PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7568,4 +9236,12 @@ class $AppDatabaseManager {
       $$PluginsTableTableTableManager(_db, _db.pluginsTable);
   $$LibrarySnapshotTableTableTableManager get librarySnapshotTable =>
       $$LibrarySnapshotTableTableTableManager(_db, _db.librarySnapshotTable);
+  $$TrackDownloadTableTableTableManager get trackDownloadTable =>
+      $$TrackDownloadTableTableTableManager(_db, _db.trackDownloadTable);
+  $$PlaylistDownloadTableTableTableManager get playlistDownloadTable =>
+      $$PlaylistDownloadTableTableTableManager(_db, _db.playlistDownloadTable);
+  $$PlaylistDownloadMirrorTableTableTableManager
+      get playlistDownloadMirrorTable =>
+          $$PlaylistDownloadMirrorTableTableTableManager(
+              _db, _db.playlistDownloadMirrorTable);
 }

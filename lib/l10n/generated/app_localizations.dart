@@ -1131,6 +1131,30 @@ abstract class AppLocalizations {
   /// **'Minimize to tray'**
   String get minimize_to_tray;
 
+  /// No description provided for @volume_control.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume control'**
+  String get volume_control;
+
+  /// No description provided for @volume_control_always.
+  ///
+  /// In en, this message translates to:
+  /// **'Always visible'**
+  String get volume_control_always;
+
+  /// No description provided for @volume_control_hover.
+  ///
+  /// In en, this message translates to:
+  /// **'Show on hover'**
+  String get volume_control_hover;
+
+  /// No description provided for @volume_control_hidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden'**
+  String get volume_control_hidden;
+
   /// No description provided for @show_tray_icon.
   ///
   /// In en, this message translates to:

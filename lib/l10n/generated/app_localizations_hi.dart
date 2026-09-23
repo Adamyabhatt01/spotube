@@ -537,6 +537,18 @@ class AppLocalizationsHi extends AppLocalizations {
   String get minimize_to_tray => 'ट्रे में कम करें';
 
   @override
+  String get volume_control => 'Volume control';
+
+  @override
+  String get volume_control_always => 'Always visible';
+
+  @override
+  String get volume_control_hover => 'Show on hover';
+
+  @override
+  String get volume_control_hidden => 'Hidden';
+
+  @override
   String get show_tray_icon => 'सिस्टम ट्रे आइकन दिखाएं';
 
   @override

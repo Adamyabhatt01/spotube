@@ -541,6 +541,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get minimize_to_tray => 'Réduire dans la zone de notification';
 
   @override
+  String get volume_control => 'Volume control';
+
+  @override
+  String get volume_control_always => 'Always visible';
+
+  @override
+  String get volume_control_hover => 'Show on hover';
+
+  @override
+  String get volume_control_hidden => 'Hidden';
+
+  @override
   String get show_tray_icon => 'Afficher l\'icône de la zone de notification';
 
   @override
