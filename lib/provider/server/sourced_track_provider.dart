@@ -60,10 +60,12 @@ final sourcedTrackProvider = AutoDisposeAsyncNotifierProviderFamily<
   () => SourcedTrackNotifier(),
 );
 
-/// Tracks whose resolved manifests stay in memory: the active track plus
-/// the next-up track. Everything else in [sourcedTrackProvider] is
-/// transient (one-shot resolutions auto-dispose when unlistened), so a
-/// long session cannot accumulate every manifest ever resolved.
+/// Tracks whose resolved manifests stay in memory: the previous track (back
+/// skips and repeat-previous land without re-resolving), the active track
+/// and the next two (queue advance and skip-ahead stay warm). Everything else
+/// in [sourcedTrackProvider] is transient (one-shot resolutions auto-dispose
+/// when unlistened), so a long session cannot accumulate every manifest
+/// ever resolved.
 ///
 /// Playback lifecycle this protects:
 /// resolve A → pre-warm A → resolve others → A stays (retained here) →
@@ -75,7 +77,12 @@ List<SpotubeFullTrackObject> retainedSourcedTracks({
   required int currentIndex,
 }) {
   final retained = <SpotubeFullTrackObject>[];
-  for (final index in [currentIndex, currentIndex + 1]) {
+  for (final index in [
+    currentIndex - 1,
+    currentIndex,
+    currentIndex + 1,
+    currentIndex + 2,
+  ]) {
     if (index < 0 || index >= tracks.length) continue;
     final track = tracks[index];
     // Local tracks never enter the family (argument is Full-only).

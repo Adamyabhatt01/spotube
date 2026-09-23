@@ -603,11 +603,13 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   }) async {
     _assertAllowedTracks(tracks);
 
+    // Keyed dedupe: same first-occurrence result as the nested scan, but
+    // O(n) — a 2k-track load did ~n²/2 URI compares here before audio start.
     final medias = _blacklist
         .filter(tracks)
         .toList()
         .asMediaList()
-        .unique((a, b) => a.uri == b.uri);
+        .uniqueByKey((media) => media.uri);
 
     if (medias.isEmpty) return;
 
@@ -689,8 +691,10 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   }
 
   Future<void> jumpToTrack(SpotubeTrackObject track) async {
+    // No defensive copy: indexWhere never mutates, and cloning the whole
+    // queue per jump costs O(queue) allocation on every seek.
     final index =
-        state.tracks.toList().indexWhere((element) => element.id == track.id);
+        state.tracks.indexWhere((element) => element.id == track.id);
     if (index == -1) return;
     await audioPlayer.jumpTo(index);
   }

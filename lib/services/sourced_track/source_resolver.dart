@@ -57,6 +57,15 @@ class SourceResolver {
 
   SourceResolver(this.ref);
 
+  /// The primary candidate, computed once per resolver.
+  ///
+  /// `_pluginFor` re-derives it for every candidate just to compare keys, so
+  /// without this a fallback cascade of N candidates pays N identical plugin
+  /// + engine orderings. Instances are short-lived (one resolve or cascade),
+  /// so no invalidation story is needed: a plugin switch creates a new
+  /// resolver through a fresh provider read.
+  SourceCandidate? _primaryMemo;
+
   /// Audio-source plugins in priority order. Honors the user's configured
   /// [sourcePriority] (list of plugin slugs) when present; otherwise the
   /// selected default first, then every other installed audio-source plugin
@@ -146,12 +155,14 @@ class SourceResolver {
   /// [playbackFallbackUrls] never skipped the primary: it re-searched the
   /// engine that had just failed and burned one of its three fallback slots.
   Future<SourceCandidate> primaryCandidate() async {
+    final memo = _primaryMemo;
+    if (memo != null) return memo;
     final plugins = await _orderedPlugins();
     final engines = _orderedEngines();
     if (plugins.isEmpty || engines.isEmpty) {
       throw MetadataPluginException.noDefaultAudioSourcePlugin();
     }
-    return SourceCandidate(plugins.first, engines.first);
+    return _primaryMemo = SourceCandidate(plugins.first, engines.first);
   }
 
   /// Lazily builds (and caches via provider) a live plugin for a config, bound

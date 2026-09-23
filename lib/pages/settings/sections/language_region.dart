@@ -26,7 +26,14 @@ class SettingsLanguageRegionSection extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, ref) {
-    final preferences = ref.watch(userPreferencesProvider);
+    // Narrow slice: a write to any other preference must not rebuild
+    // this whole section (the row notifier emits on every write).
+    final preferences = ref.watch(userPreferencesProvider.select(
+      (p) => (
+        locale: p.locale,
+        market: p.market,
+      ),
+    ));
     final preferencesNotifier = ref.watch(userPreferencesProvider.notifier);
     final mediaQuery = MediaQuery.of(context);
 

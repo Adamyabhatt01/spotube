@@ -236,8 +236,10 @@ class ServerPlaybackRoutes {
 
   /// How long an upstream HEAD answer may stand in for the next request for the
   /// same URL. mpv probes a stream with HEAD and asks for its body moments
-  /// later; the window only has to cover that gap.
-  static const headProbeReuseWindow = Duration(seconds: 5);
+  /// later, but pauses and seeks can stretch that gap: the key is the full
+  /// signed URL, which is immutable, so a wider window cannot serve a stale
+  /// answer for different content — only skip a repeated probe of the same.
+  static const headProbeReuseWindow = Duration(seconds: 30);
 
   /// Content types answered by a recent HEAD, keyed by `track id|url`.
   final Map<String, _HeadProbe> _headProbes = {};
@@ -269,6 +271,51 @@ class ServerPlaybackRoutes {
     if (_headProbes.length > 16) _headProbes.clear();
     _headProbes[_headProbeKey(track, url)] =
         _HeadProbe(contentType, DateTime.now());
+  }
+
+  /// Stream-URL refreshes currently running, keyed by track id.
+  ///
+  /// `resolveServingUrl` (proactive expiry check, called from both the HEAD
+  /// and the GET handler) and the GET handler's reactive failure path can
+  /// otherwise each run a full `refreshStream` — manifest-wide HEAD sweep
+  /// plus re-fetch — for the same track back to back. Sharing the in-flight
+  /// refresh collapses that pair into one; entries remove themselves on
+  /// completion, so the map holds only live work.
+  final Map<String, Future<SourcedTrack>> _refreshInFlight = {};
+
+  /// [SourcedTrackNotifier.refreshStreamingUrl] with the pair above folded
+  /// into one flight. Failures propagate to every sharer, and every sharer
+  /// keeps its existing fallback (stale URL / cascade), exactly as if each
+  /// had run its own refresh and failed it.
+  Future<SourcedTrack> _refreshStreamingUrlOnce(
+    SpotubeFullTrackObject query,
+  ) {
+    final running = _refreshInFlight[query.id];
+    if (running != null) {
+      PerfCounters.note('playback.refreshShared');
+      return running;
+    }
+    final future = ref
+        .read(sourcedTrackProvider(query).notifier)
+        .refreshStreamingUrl();
+    _refreshInFlight[query.id] = future;
+    // Both handlers swallow (entry removal is the whole result), so this
+    // telemetric future always completes cleanly and can never surface a
+    // failed refresh as an unhandled zone error. (A `whenComplete` here
+    // would rethrow into an unobserved future.)
+    future.then(
+      (_) {
+        if (identical(_refreshInFlight[query.id], future)) {
+          _refreshInFlight.remove(query.id);
+        }
+      },
+      onError: (_) {
+        if (identical(_refreshInFlight[query.id], future)) {
+          _refreshInFlight.remove(query.id);
+        }
+      },
+    );
+    return future;
   }
 
   /// How long a computed fallback list may stand in for the next one. The HEAD
@@ -336,9 +383,9 @@ class ServerPlaybackRoutes {
 
     if (isStreamUrlExpired(url)) {
       try {
-        final refreshed = await ref
-            .read(sourcedTrackProvider(track.query).notifier)
-            .refreshStreamingUrl();
+        // Shared with the GET handler's reactive refresh below: one flight
+        // per track, not one per handler.
+        final refreshed = await _refreshStreamingUrlOnce(track.query);
         final freshUrl = refreshed.url;
         if (freshUrl != null) {
           url = freshUrl;
@@ -513,9 +560,9 @@ class ServerPlaybackRoutes {
       } catch (e, stack) {
         AppLogger.reportError(e, stack);
 
-        final sourcedTrack = await ref
-            .read(sourcedTrackProvider(track.query).notifier)
-            .refreshStreamingUrl();
+        // Shared with the proactive refresh in resolveServingUrl above.
+        final sourcedTrack =
+            await _refreshStreamingUrlOnce(track.query);
 
         url = sourcedTrack.url!;
 

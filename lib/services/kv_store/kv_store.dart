@@ -27,8 +27,14 @@ abstract class KVStoreService {
   static List<String> get recentSearches =>
       sharedPreferences.getStringList('recentSearches') ?? [];
 
+  /// Cap on retained recent searches. The list was prepend-only, so it grew
+  /// for the app's whole lifetime in SharedPreferences — and the per-keystroke
+  /// autocomplete filter re-read and fuzzy-matched all of it.
+  static const int maxRecentSearches = 20;
+
   static Future<void> setRecentSearches(List<String> value) async =>
-      await sharedPreferences.setStringList('recentSearches', value);
+      await sharedPreferences.setStringList(
+          'recentSearches', value.take(maxRecentSearches).toList());
 
   static WindowSize? get windowSize {
     final raw = sharedPreferences.getString('windowSize');

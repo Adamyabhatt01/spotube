@@ -16,8 +16,10 @@ import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 
 import 'package:spotube/services/sourced_track/exceptions.dart';
+import 'package:spotube/services/sourced_track/manifest_cache.dart';
 import 'package:spotube/services/sourced_track/source_resolver.dart';
 import 'package:spotube/services/sourced_track/validation.dart';
+import 'package:spotube/utils/stream_url_expiry.dart';
 
 /// Uploads that are an official *music* release. Deliberately narrower than it
 /// looks: `(Official Lyric Video)` used to match here and collect the same
@@ -171,6 +173,10 @@ class SourcedTrack extends BasicSourcedTrack {
     required SpotubeFullTrackObject query,
     required Ref ref,
   }) async {
+    // The cached-row read and the primary candidate are independent: overlap
+    // them instead of paying two sequential awaits on every track start,
+    // hit or miss. The plugin/config pair above stays sequential on purpose:
+    // a missing audio plugin must throw before any plugin-list work starts.
     final audioSource = await ref.read(audioSourcePluginProvider.future);
     final audioSourceConfig = await ref.read(metadataPluginsProvider
         .selectAsync((data) => data.defaultAudioSourcePluginConfig));
@@ -181,17 +187,21 @@ class SourcedTrack extends BasicSourcedTrack {
     }
 
     final database = ref.read(databaseProvider);
-    var cachedSource = await (database.select(database.sourceMatchTable)
-          ..where((s) =>
-              s.trackId.equals(query.id) &
-              s.sourceType.equals(audioSourceConfig.slug))
-          ..limit(1)
-          ..orderBy([
-            (s) =>
-                OrderingTerm(expression: s.createdAt, mode: OrderingMode.desc),
-          ]))
-        .get()
-        .then((s) => s.firstOrNull);
+    final resolver = SourceResolver(ref);
+    final (cachedRows, candidateKey) = await (
+      (database.select(database.sourceMatchTable)
+            ..where((s) =>
+                s.trackId.equals(query.id) &
+                s.sourceType.equals(audioSourceConfig.slug))
+            ..limit(1)
+            ..orderBy([
+              (s) => OrderingTerm(
+                  expression: s.createdAt, mode: OrderingMode.desc),
+            ]))
+          .get(),
+      resolver.primaryCandidate().then((candidate) => candidate.key),
+    ).wait;
+    var cachedSource = cachedRows.firstOrNull;
 
     if (cachedSource != null) {
       switch (classifyCachedSourceMatch(
@@ -212,9 +222,6 @@ class SourcedTrack extends BasicSourcedTrack {
           throw TrackNotFoundError(query);
       }
     }
-
-    final resolver = SourceResolver(ref);
-    final candidateKey = (await resolver.primaryCandidate()).key;
 
     if (cachedSource == null) {
       // A primary-engine failure comes in two kinds and they must not be
@@ -299,7 +306,33 @@ class SourcedTrack extends BasicSourcedTrack {
     final item = SpotubeAudioSourceMatchObject.fromJson(
       jsonDecode(cachedSource.sourceInfo),
     );
-    final manifest = await audioSource.audioSource.streams(item);
+    // A cached match still costs a full manifest extraction on every serve.
+    // Skip it while every URL in a previously extracted manifest is
+    // unexpired; anything else (miss, expiry, unknown expiry) falls through
+    // to today's re-extract path, and failures there propagate exactly as
+    // before — a failed extraction never populates the cache.
+    final manifest = manifestCache.lookup(
+          trackId: query.id,
+          sourceSlug: audioSourceConfig.slug,
+          matchId: item.id,
+          now: DateTime.now(),
+        ) ??
+        await (() async {
+          final extracted = await audioSource.audioSource.streams(item);
+          final minExpire = manifestMinExpireSeconds(
+            [for (final source in extracted) source.url],
+          );
+          if (minExpire != null) {
+            manifestCache.store(
+              trackId: query.id,
+              sourceSlug: audioSourceConfig.slug,
+              matchId: item.id,
+              sources: extracted,
+              minExpireSeconds: minExpire,
+            );
+          }
+          return extracted;
+        })();
 
     final sourcedTrack = SourcedTrack(
       ref: ref,

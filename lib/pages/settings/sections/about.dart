@@ -18,7 +18,13 @@ class SettingsAboutSection extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, ref) {
-    final preferences = ref.watch(userPreferencesProvider);
+    // Narrow slice: a write to any other preference must not rebuild
+    // this whole section (the row notifier emits on every write).
+    final preferences = ref.watch(userPreferencesProvider.select(
+      (p) => (
+        checkUpdate: p.checkUpdate,
+      ),
+    ));
     final preferencesNotifier = ref.watch(userPreferencesProvider.notifier);
 
     return SectionCardWithHeading(

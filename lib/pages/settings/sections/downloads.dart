@@ -16,7 +16,13 @@ class SettingsDownloadsSection extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, ref) {
     final preferencesNotifier = ref.watch(userPreferencesProvider.notifier);
-    final preferences = ref.watch(userPreferencesProvider);
+    // Narrow slice: a write to any other preference must not rebuild
+    // this whole section (the row notifier emits on every write).
+    final preferences = ref.watch(userPreferencesProvider.select(
+      (p) => (
+        downloadLocation: p.downloadLocation,
+      ),
+    ));
 
     final pickDownloadLocation = useCallback(() async {
       if (kIsMobile || kIsMacOS) {

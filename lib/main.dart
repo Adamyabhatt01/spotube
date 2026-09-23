@@ -160,6 +160,18 @@ Future<void> _initDeferredServices() async {
       await localNotifier.setup(appName: "Spotube");
     }
   });
+  await guardedStartupInit('tz.initializeTimeZones', () async {
+    // No host code reads tz data (only the plugin API enum names it); the
+    // ~500KB parse has no business on the pre-frame path.
+    tz.initializeTimeZones();
+  });
+  await guardedStartupInit('MetadataGod.initialize', () async {
+    // Only local-library scans and metadata writes touch the bridge, all
+    // post-startup. Initializing with first paint instead of before it.
+    if (!kIsWeb) {
+      MetadataGod.initialize();
+    }
+  });
 }
 
 Future<void> main(List<String> rawArgs) async {
@@ -206,36 +218,48 @@ Future<void> main(List<String> rawArgs) async {
       ..maximumSize = 700
       ..maximumSizeBytes = 64 * 1024 * 1024;
 
-    tz.initializeTimeZones();
-
+    // Timezone data moved to _initDeferredServices (post-paint): nothing on
+    // the pre-frame path consumes it.
+    // Kept pre-frame on purpose, with reasons:
+    // - MediaKit: the queue-restore provider build can reach the backend on
+    //   first frame (syncSavedState is fire-and-forget at build).
+    // - EncryptedKvStore: the first DB read (first frame) decrypts through
+    //   encryptionKeySync, which throws on a null key.
+    // - migrateMacOs: must precede AppDatabase construction (already
+    //   fast-paths when there is nothing to migrate).
+    // - MetadataGod: only local scans/metadata writes use it (post-startup),
+    //   initialized post-paint in _initDeferredServices.
     FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
     MediaKit.ensureInitialized();
 
     await migrateMacOsFromSandboxToNoSandbox();
 
-    // force High Refresh Rate on some Android devices (like One Plus)
+    // force High Refresh Rate on some Android devices (like One Plus).
+    // Fire-and-forget: the mode applies whenever the platform gets to it;
+    // nothing frames on it.
     if (kIsAndroid) {
-      await FlutterDisplayMode.setHighRefreshRate();
-    }
-    if (!kIsWeb) {
-      MetadataGod.initialize();
+      unawaited(guardedStartupInit(
+        'FlutterDisplayMode.setHighRefreshRate',
+        () => FlutterDisplayMode.setHighRefreshRate(),
+      ));
     }
 
     await KVStoreService.initialize();
 
-    // Best-effort desktop integrations: a failure here must degrade the
-    // feature (tray/close-behavior/media keys), never abort launch.
+    // Best-effort desktop integrations: failures degrade the feature
+    // (tray/close-behavior/media keys), never abort launch — and none of
+    // them block first frame either.
     if (kIsDesktop) {
-      await guardedStartupInit('windowManager.setPreventClose', () async {
+      unawaited(guardedStartupInit('windowManager.setPreventClose', () async {
         await windowManager.setPreventClose(true);
-      });
+      }));
     }
 
     if (kIsWindows) {
-      await guardedStartupInit('SMTCWindows.initialize', () async {
+      unawaited(guardedStartupInit('SMTCWindows.initialize', () async {
         await SMTCWindows.initialize();
-      });
+      }));
     }
 
     try {

@@ -27,7 +27,18 @@ class SettingsPlaybackSection extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, ref) {
-    final preferences = ref.watch(userPreferencesProvider);
+    // Narrow slice: a write to any other preference must not rebuild
+    // this whole section (the row notifier emits on every write).
+    final preferences = ref.watch(userPreferencesProvider.select(
+      (p) => (
+        youtubeClientEngine: p.youtubeClientEngine,
+        autoDownloadQuality: p.autoDownloadQuality,
+        cacheMusic: p.cacheMusic,
+        normalizeAudio: p.normalizeAudio,
+        endlessPlayback: p.endlessPlayback,
+        enableConnect: p.enableConnect,
+      ),
+    ));
     final preferencesNotifier = ref.watch(userPreferencesProvider.notifier);
     final sourcePresets = ref.watch(audioSourcePresetsProvider);
     final sourcePresetsNotifier =
