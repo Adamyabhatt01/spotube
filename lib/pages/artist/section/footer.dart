@@ -20,7 +20,9 @@ class ArtistPageFooter extends ConsumerWidget {
     final artistImage = artist.images.asUrlString(
       placeholder: ImagePlaceholder.artist,
     );
-    final summary = ref.watch(artistWikipediaSummaryProvider(artist));
+    final summary = ref.watch(
+      artistWikipediaSummaryProvider((id: artist.id, name: artist.name)),
+    );
     if (summary.asData?.value == null) return const SizedBox.shrink();
 
     return Container(

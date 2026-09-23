@@ -58,8 +58,10 @@ class ArtistPage extends HookConsumerWidget {
             ref.invalidate(metadataPluginIsSavedArtistProvider(artistId));
             ref.invalidate(metadataPluginArtistTopTracksProvider(artistId));
             if (artistQuery.hasValue) {
+              final artist = artistQuery.asData!.value;
               ref.invalidate(
-                artistWikipediaSummaryProvider(artistQuery.asData!.value),
+                artistWikipediaSummaryProvider(
+                    (id: artist.id, name: artist.name)),
               );
             }
           },

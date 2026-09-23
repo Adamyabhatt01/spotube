@@ -34,7 +34,11 @@ class MetadataPluginSearchPlaylistsNotifier
   build(arg) async {
     ref.cacheFor();
 
-    ref.watch(metadataPluginProvider);
+    // The future, not the AsyncValue: watching the value rebuilds (and
+    // refetches page 1) once for the loading emission and again for data.
+    // A recreated plugin VM still yields a new future, so invalidation on
+    // plugin switch is preserved.
+    await ref.watch(metadataPluginProvider.future);
     return await fetchGated(() => fetch(0, 20));
   }
 }
