@@ -16,6 +16,7 @@ import 'package:spotube/modules/album/album_card.dart';
 import 'package:spotube/components/inter_scrollbar/inter_scrollbar.dart';
 import 'package:spotube/components/fallbacks/anonymous_fallback.dart';
 import 'package:spotube/extensions/context.dart';
+import 'package:spotube/hooks/utils/use_debounce.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/library/albums.dart';
 import 'package:auto_route/auto_route.dart';
@@ -36,14 +37,21 @@ class UserAlbumsPage extends HookConsumerWidget {
     final controller = useScrollController();
 
     final searchText = useState('');
+    // Collapses a burst of keystrokes into one fuzzy pass; clearing the box
+    // still filters instantly via the empty fast path below.
+    final searchQuery = useDebounce(
+      searchText.value,
+      const Duration(milliseconds: 200),
+    );
+    final effectiveQuery = searchText.value.isEmpty ? '' : searchQuery;
 
     final albums = useMemoized(() {
-      if (searchText.value.isEmpty) {
+      if (effectiveQuery.isEmpty) {
         return albumsQuery.asData?.value.items ?? [];
       }
       return albumsQuery.asData?.value.items
               .map((e) => (
-                    weightedRatio(e.name, searchText.value),
+                    weightedRatio(e.name, effectiveQuery),
                     e,
                   ))
               .sorted((a, b) => b.$1.compareTo(a.$1))
@@ -51,7 +59,11 @@ class UserAlbumsPage extends HookConsumerWidget {
               .map((e) => e.$2)
               .toList() ??
           [];
-    }, [albumsQuery.asData?.value, searchText.value]);
+    }, [
+      albumsQuery.asData?.value,
+      effectiveQuery,
+      searchText.value.isEmpty,
+    ]);
 
     if (albumsQuery.error
         case MetadataPluginException(

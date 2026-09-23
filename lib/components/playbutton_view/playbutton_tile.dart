@@ -1,3 +1,4 @@
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/collections/spotube_icons.dart';
@@ -5,7 +6,7 @@ import 'package:spotube/components/image/universal_image.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/extensions/string.dart';
 
-class PlaybuttonTile extends StatelessWidget {
+class PlaybuttonTile extends HookWidget {
   final void Function()? onTap;
   final void Function()? onPlaybuttonPressed;
   final void Function()? onAddToQueuePressed;
@@ -40,6 +41,21 @@ class PlaybuttonTile extends StatelessWidget {
     final cleanDescription = description.strippedHtml();
     final scale = context.theme.scaling;
 
+    // Memoized like the card/tile siblings: building a fresh provider per
+    // build re-resolves the image cache on every row rebuild while
+    // scrolling. Rounded to whole px so float noise can't fragment keys.
+    final decodeSide = (100 * scale).roundToDouble();
+    final tileArt = useMemoized(
+      () => imageUrl == null
+          ? null
+          : UniversalImage.imageProvider(
+              imageUrl!,
+              height: decodeSide,
+              width: decodeSide,
+            ),
+      [imageUrl, decodeSide],
+    );
+
     return Button(
       leading: imageUrl != null
           ? Container(
@@ -50,11 +66,7 @@ class PlaybuttonTile extends StatelessWidget {
                 image: DecorationImage(
                   // Phase 2 perf (IMG.2): decode at 2x the 50x50 display
                   // size instead of full resolution.
-                  image: UniversalImage.imageProvider(
-                    imageUrl!,
-                    height: 100 * scale,
-                    width: 100 * scale,
-                  ),
+                  image: tileArt!,
                   fit: BoxFit.cover,
                 ),
               ),

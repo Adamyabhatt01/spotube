@@ -15,8 +15,10 @@ import 'package:spotube/components/track_tile/track_options_button.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/extensions/list.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/theme_background/theme_background_image_provider.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/track.dart';
+import 'package:spotube/provider/scroll_motion.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 
 import 'package:spotube/extensions/constrains.dart';
@@ -51,6 +53,13 @@ class TrackPage extends HookConsumerWidget {
 
     final track = trackQuery.asData?.value ?? FakeData.track;
 
+    // Same quantization rule as the lyrics backdrop: the decode key includes
+    // the size, so a resize re-decodes per 256px band, not per pixel.
+    final backdropSide = quantizeBackdropSide(mediaQuery.size.longestSide);
+    // Frozen while scrolling (sigma 0 draws plain until settle); gradient,
+    // tint and sigma at rest are unchanged.
+    final blurFrozen = ref.watch(scrollInFlightProvider);
+
     void onPlay() async {
       if (isActive) {
         audioPlayer.pause();
@@ -79,6 +88,8 @@ class TrackPage extends HookConsumerWidget {
                       track.album.images.asUrlString(
                         placeholder: ImagePlaceholder.albumArt,
                       ),
+                      width: backdropSide,
+                      height: backdropSide,
                     ),
                     fit: BoxFit.cover,
                     colorFilter: ColorFilter.mode(
@@ -92,7 +103,8 @@ class TrackPage extends HookConsumerWidget {
             ),
             Positioned.fill(
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                filter: ImageFilter.blur(
+                    sigmaX: blurFrozen ? 0 : 10, sigmaY: blurFrozen ? 0 : 10),
                 child: Skeletonizer(
                   enabled: trackQuery.isLoading,
                   child: Container(

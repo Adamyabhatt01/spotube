@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/theme_background/theme_background_image_provider.dart';
+import 'package:spotube/modules/root/spotube_navigation_bar.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/utils/theme_converter.dart';
 
@@ -20,7 +21,14 @@ class ThemeBackgroundLayer extends ConsumerWidget {
     final background = ref.watch(
       themeDefinitionProvider.select((s) => s.asData?.value?.background),
     );
-    final image = ref.watch(themeBackgroundImageProvider);
+    // Same quantization rule as the lyrics backdrop: one shared decode per
+    // 256px window band instead of a re-decode per pixel of resizing.
+    final side = quantizeBackdropSide(MediaQuery.sizeOf(context).longestSide);
+    final image = ref.watch(themeBackgroundImageProvider(side));
+    // A BackdropFilter re-blurs everything behind it on every frame the
+    // content moves; while scrolling the frost is skipped and restored when
+    // the content settles. Sigma, overlay and opacity at rest are unchanged.
+    final blurFrozen = ref.watch(chromeBlurFrozen);
 
     if (background == null ||
         background.source == ThemeBackgroundSource.none ||
@@ -61,9 +69,12 @@ class ThemeBackgroundLayer extends ConsumerWidget {
           if (background.blur > 0)
             Positioned.fill(
               child: BackdropFilter(
+                // Frozen while scrolling: sigma 0 draws plain until the
+                // content settles, instead of re-blurring every frame.
+                // Same convention as the nav-bar/chrome frost.
                 filter: ImageFilter.blur(
-                  sigmaX: background.blur,
-                  sigmaY: background.blur,
+                  sigmaX: blurFrozen ? 0 : background.blur,
+                  sigmaY: blurFrozen ? 0 : background.blur,
                 ),
                 // Sized-expand only sizes the filter region; using a
                 // Container(color:) here would add a ColoredBox that the

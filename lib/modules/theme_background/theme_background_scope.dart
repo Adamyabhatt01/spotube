@@ -25,7 +25,13 @@ class ThemeBackgroundScope extends ConsumerWidget {
         (s) => s.asData?.value?.background.source,
       ),
     );
-    final image = ref.watch(themeBackgroundImageProvider);
+    final image = ref.watch(
+      themeBackgroundImageProvider(
+        // Same quantized key the layer watches, so both share one cached
+        // instance (and one decode). Null-ness is size-independent.
+        quantizeBackdropSide(MediaQuery.sizeOf(context).longestSide),
+      ),
+    );
 
     final active =
         source != null && source != ThemeBackgroundSource.none && image != null;

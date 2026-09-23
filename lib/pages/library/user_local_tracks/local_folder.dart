@@ -18,6 +18,7 @@ import 'package:spotube/components/track_presentation/presentation_actions.dart'
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/string.dart';
 import 'package:spotube/hooks/controllers/use_shadcn_text_editing_controller.dart';
+import 'package:spotube/hooks/utils/use_debounce.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/library/local_folder/cache_export_dialog.dart';
 import 'package:spotube/pages/library/user_local_tracks/user_local_tracks.dart';
@@ -121,6 +122,13 @@ class LocalLibraryPage extends HookConsumerWidget {
 
     final searchController = useShadcnTextEditingController();
     useValueListenable(searchController);
+    // Collapses a burst of keystrokes into one fuzzy pass; clearing the box
+    // still filters instantly via the empty fast path below.
+    final searchQuery = useDebounce(
+      searchController.text,
+      const Duration(milliseconds: 200),
+    );
+    final effectiveQuery = searchController.text.isEmpty ? '' : searchQuery;
     final searchFocus = useFocusNode();
     final isFiltering = useState(false);
 
@@ -396,14 +404,14 @@ class LocalLibraryPage extends HookConsumerWidget {
                     }, [sortBy.value, tracks]);
 
                     final filteredTracks = useMemoized(() {
-                      if (searchController.text.isEmpty) {
+                      if (effectiveQuery.isEmpty) {
                         return sortedTracks;
                       }
                       return sortedTracks
                           .map((e) => (
                                 weightedRatio(
                                   "${e.name} - ${e.artists.asString()}",
-                                  searchController.text,
+                                  effectiveQuery,
                                 ),
                                 e,
                               ))
@@ -415,7 +423,7 @@ class LocalLibraryPage extends HookConsumerWidget {
                           .map((e) => e.$2)
                           .toList()
                           .toList();
-                    }, [searchController.text, sortedTracks]);
+                    }, [effectiveQuery, sortedTracks]);
 
                     if (!trackSnapshot.isLoading && filteredTracks.isEmpty) {
                       return Expanded(

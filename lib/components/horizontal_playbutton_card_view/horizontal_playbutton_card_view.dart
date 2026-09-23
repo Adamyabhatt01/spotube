@@ -5,6 +5,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:spotube/collections/fake.dart';
+import 'package:spotube/components/scroll_motion_scope.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/album/album_card.dart';
@@ -78,7 +79,12 @@ class HorizontalPlaybuttonCardView<T> extends HookWidget {
               child: NotificationListener(
                 // disable multiple scrollbar to use this
                 onNotification: (notification) => true,
-                child: ScrollConfiguration(
+                // Reports carousel motion to the shared scroll signal below
+                // the swallow above: horizontal flings otherwise never reach
+                // the app scope, and chrome keeps re-blurring through them.
+                // Mobile-gated like the app scope; desktop behavior unchanged.
+                child: ScrollMotionScope(
+                  child: ScrollConfiguration(
                   behavior: ScrollConfiguration.of(context).copyWith(
                     dragDevices: PointerDeviceKind.values.toSet(),
                   ),
@@ -119,6 +125,7 @@ class HorizontalPlaybuttonCardView<T> extends HookWidget {
                               _ => const SizedBox.shrink(),
                             };
                           }),
+                  ),
                 ),
               ),
             ),

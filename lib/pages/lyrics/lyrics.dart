@@ -12,6 +12,7 @@ import 'package:spotube/pages/lyrics/plain_lyrics.dart';
 import 'package:spotube/pages/lyrics/synced_lyrics.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/lyrics/synced.dart';
+import 'package:spotube/provider/scroll_motion.dart';
 import 'package:spotube/utils/platform.dart';
 import 'package:auto_route/auto_route.dart';
 
@@ -112,7 +113,10 @@ class LyricsPage extends HookConsumerWidget {
           ),
           margin: const EdgeInsets.only(bottom: 10),
           child: SurfaceCard(
-            surfaceBlur: context.theme.surfaceBlur,
+            // Frozen while the lyrics scroll (sigma 0 draws plain until
+            // settle); blur and opacity at rest are unchanged.
+            surfaceBlur:
+                ref.watch(scrollInFlightProvider) ? 0 : context.theme.surfaceBlur,
             surfaceOpacity: context.theme.surfaceOpacity,
             padding: EdgeInsets.zero,
             borderRadius: BorderRadius.zero,

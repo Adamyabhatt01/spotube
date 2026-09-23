@@ -124,6 +124,10 @@ class ConnectControlPage extends HookConsumerWidget {
                                 .asUrlString(
                               placeholder: ImagePlaceholder.albumArt,
                             ),
+                            // Capped at the 350px display box instead of
+                            // decoding full resolution.
+                            height: 350,
+                            width: 350,
                             fit: BoxFit.cover,
                           ),
                         ),

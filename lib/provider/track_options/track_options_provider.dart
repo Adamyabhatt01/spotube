@@ -13,6 +13,7 @@ import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/queue_membership.dart';
 import 'package:spotube/provider/blacklist_provider.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
 import 'package:spotube/provider/local_tracks/local_tracks_provider.dart';
@@ -285,7 +286,10 @@ final trackOptionsStateProvider =
   // Subscribe to consumed player slices only (see test/track_options_select_test.dart).
   final activeTrack =
       ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
-  final queueTracks = ref.watch(audioPlayerProvider.select((s) => s.tracks));
+  // Membership as one boolean per row rather than one O(queue) scan per row:
+  // the set is rebuilt once per queue revision, and only a row whose own
+  // membership flips rebuilds (see test/track_options_select_test.dart).
+  final isInQueue = ref.watch(trackMembershipOfProvider(track));
   final authenticated = ref.watch(metadataPluginAuthenticatedProvider);
   final isSavedTrack = ref.watch(metadataPluginIsSavedTrackProvider(track.id));
 
@@ -333,15 +337,7 @@ final trackOptionsStateProvider =
           ].contains(downloadState?.status);
 
   return (
-    // Mirrors AudioPlayerState.containsTrack(track); kept inline so this
-    // provider subscribes to `tracks` only instead of the full player state.
-    isInQueue: queueTracks.isNotEmpty &&
-        queueTracks.any(
-          (t) =>
-              t is SpotubeLocalTrackObject && track is SpotubeLocalTrackObject
-                  ? t.path == track.path
-                  : t.id == track.id,
-        ),
+    isInQueue: isInQueue,
     isBlacklisted: isBlacklisted,
     isInDownloadQueue: isInDownloadQueue,
     isDownloaded: isDownloaded,

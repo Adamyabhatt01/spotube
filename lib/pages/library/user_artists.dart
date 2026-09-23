@@ -19,6 +19,7 @@ import 'package:spotube/components/inter_scrollbar/inter_scrollbar.dart';
 import 'package:spotube/components/waypoint.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/extensions/context.dart';
+import 'package:spotube/hooks/utils/use_debounce.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/library/artists.dart';
 import 'package:auto_route/auto_route.dart';
@@ -38,23 +39,34 @@ class UserArtistsPage extends HookConsumerWidget {
         ref.watch(metadataPluginSavedArtistsProvider.notifier);
 
     final searchText = useState('');
+    // Collapses a burst of keystrokes into one fuzzy pass; clearing the box
+    // still filters instantly via the empty fast path below.
+    final searchQuery = useDebounce(
+      searchText.value,
+      const Duration(milliseconds: 200),
+    );
+    final effectiveQuery = searchText.value.isEmpty ? '' : searchQuery;
 
     final filteredArtists = useMemoized(() {
       final artists = artistQuery.asData?.value.items ?? [];
 
-      if (searchText.value.isEmpty) {
+      if (effectiveQuery.isEmpty) {
         return artists.toList();
       }
       return artists
           .map((e) => (
-                weightedRatio(e.name, searchText.value),
+                weightedRatio(e.name, effectiveQuery),
                 e,
               ))
           .sorted((a, b) => b.$1.compareTo(a.$1))
           .where((e) => e.$1 > 50)
           .map((e) => e.$2)
           .toList();
-    }, [artistQuery.asData?.value.items, searchText.value]);
+    }, [
+      artistQuery.asData?.value.items,
+      effectiveQuery,
+      searchText.value.isEmpty,
+    ]);
 
     final controller = useScrollController();
 

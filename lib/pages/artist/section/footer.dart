@@ -5,6 +5,7 @@ import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/image/universal_image.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/theme_background/theme_background_image_provider.dart';
 import 'package:spotube/provider/metadata_plugin/artist/wikipedia.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -25,6 +26,13 @@ class ArtistPageFooter extends ConsumerWidget {
     );
     if (summary.asData?.value == null) return const SizedBox.shrink();
 
+    // Wikipedia often omits thumbnail dimensions; null sizes used to fall
+    // through to a full-resolution decode for a 300px-tall container. Fall
+    // back to the quantized viewport band instead.
+    final thumbnail = summary.asData?.value!.thumbnail;
+    final fallbackSide =
+        quantizeBackdropSide(mediaQuery.size.longestSide);
+
     return Container(
       margin: const EdgeInsets.all(8),
       padding: mediaQuery.smAndDown
@@ -39,9 +47,9 @@ class ArtistPageFooter extends ConsumerWidget {
             BlendMode.darken,
           ),
           image: UniversalImage.imageProvider(
-            summary.asData?.value!.thumbnail?.source_ ?? artistImage,
-            height: summary.asData?.value!.thumbnail?.height.toDouble(),
-            width: summary.asData?.value!.thumbnail?.width.toDouble(),
+            thumbnail?.source_ ?? artistImage,
+            height: thumbnail?.height.toDouble() ?? fallbackSide,
+            width: thumbnail?.width.toDouble() ?? fallbackSide,
           ),
           fit: BoxFit.cover,
           alignment: Alignment.center,

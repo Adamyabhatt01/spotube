@@ -10,6 +10,7 @@ import 'package:spotube/collections/assets.gen.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/fallbacks/error_box.dart';
 import 'package:spotube/components/fallbacks/no_default_metadata_plugin.dart';
+import 'package:spotube/hooks/utils/use_debounce.dart';
 import 'package:spotube/components/playbutton_view/playbutton_view.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/playlist/playlist_create_dialog.dart';
@@ -33,6 +34,13 @@ class UserPlaylistsPage extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, ref) {
     final searchText = useState('');
+    // Collapses a burst of keystrokes into one fuzzy pass; clearing the box
+    // still filters instantly via the empty fast path below.
+    final searchQuery = useDebounce(
+      searchText.value,
+      const Duration(milliseconds: 200),
+    );
+    final effectiveQuery = searchText.value.isEmpty ? '' : searchQuery;
 
     final authenticated = ref.watch(metadataPluginAuthenticatedProvider);
 
@@ -85,11 +93,11 @@ class UserPlaylistsPage extends HookConsumerWidget {
           for (final mirrored in mirroredPlaylists)
             if (seen.add(mirrored.id)) mirrored,
         ];
-        if (searchText.value.isEmpty) {
+        if (effectiveQuery.isEmpty) {
           return combined;
         }
         return combined
-            .map((e) => (weightedRatio(e.name, searchText.value), e))
+            .map((e) => (weightedRatio(e.name, effectiveQuery), e))
             .sorted((a, b) => b.$1.compareTo(a.$1))
             .where((e) => e.$1 > 50)
             .map((e) => e.$2)
@@ -97,7 +105,8 @@ class UserPlaylistsPage extends HookConsumerWidget {
       },
       [
         playlistsQuery,
-        searchText.value,
+        effectiveQuery,
+        searchText.value.isEmpty,
         mirroredPlaylists,
         isOnline,
       ],
