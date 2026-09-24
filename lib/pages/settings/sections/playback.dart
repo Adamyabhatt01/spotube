@@ -37,6 +37,7 @@ class SettingsPlaybackSection extends HookConsumerWidget {
         normalizeAudio: p.normalizeAudio,
         endlessPlayback: p.endlessPlayback,
         enableConnect: p.enableConnect,
+        playerDock: p.playerDock,
       ),
     ));
     final preferencesNotifier = ref.watch(userPreferencesProvider.notifier);
@@ -90,6 +91,27 @@ class SettingsPlaybackSection extends HookConsumerWidget {
             );
           },
           trailing: const Icon(SpotubeIcons.angleRight),
+        ),
+        AdaptiveSelectTile<PlayerDock>(
+          secondary: const Icon(SpotubeIcons.miniPlayer),
+          title: Text(context.l10n.player_position),
+          subtitle: Text(context.l10n.player_position_description),
+          value: preferences.playerDock,
+          onChanged: (value) {
+            if (value != null) {
+              preferencesNotifier.setPlayerDock(value);
+            }
+          },
+          options: [
+            SelectItemButton(
+              value: PlayerDock.fullWidth,
+              child: Text(context.l10n.player_dock_full_width),
+            ),
+            SelectItemButton(
+              value: PlayerDock.docked,
+              child: Text(context.l10n.player_dock_docked),
+            ),
+          ],
         ),
         if (sourcePresets.presets.isNotEmpty) ...[
           AdaptiveSelectTile(

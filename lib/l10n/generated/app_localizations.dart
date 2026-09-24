@@ -2607,6 +2607,90 @@ abstract class AppLocalizations {
   /// **'Order determines which audio source (engine or plugin) is tried first. Reorder to change priority; empty entries fall back to defaults.'**
   String get source_priority_description;
 
+  /// No description provided for @player_position.
+  ///
+  /// In en, this message translates to:
+  /// **'Player position'**
+  String get player_position;
+
+  /// No description provided for @player_position_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Full width stretches the player bar across the whole window. Docked stops it at the sidebar so the sidebar runs full height.'**
+  String get player_position_description;
+
+  /// No description provided for @player_dock_full_width.
+  ///
+  /// In en, this message translates to:
+  /// **'Full width'**
+  String get player_dock_full_width;
+
+  /// No description provided for @player_dock_docked.
+  ///
+  /// In en, this message translates to:
+  /// **'Docked'**
+  String get player_dock_docked;
+
+  /// No description provided for @sidebar.
+  ///
+  /// In en, this message translates to:
+  /// **'Sidebar'**
+  String get sidebar;
+
+  /// No description provided for @sidebar_order.
+  ///
+  /// In en, this message translates to:
+  /// **'Sidebar order'**
+  String get sidebar_order;
+
+  /// No description provided for @sidebar_order_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Reorder the Library section of the sidebar. The top navigation stays fixed.'**
+  String get sidebar_order_description;
+
+  /// No description provided for @pinned_playlists.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned playlists'**
+  String get pinned_playlists;
+
+  /// No description provided for @pinned_playlists_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlists pinned under the Library section. Drag to reorder.'**
+  String get pinned_playlists_description;
+
+  /// No description provided for @pin_to_sidebar.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin to sidebar'**
+  String get pin_to_sidebar;
+
+  /// No description provided for @unpin_from_sidebar.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin from sidebar'**
+  String get unpin_from_sidebar;
+
+  /// No description provided for @pinned_to_sidebar.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned to sidebar'**
+  String get pinned_to_sidebar;
+
+  /// No description provided for @reset_sidebar.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset sidebar'**
+  String get reset_sidebar;
+
+  /// No description provided for @show_all_playlists.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all playlists'**
+  String get show_all_playlists;
+
   /// No description provided for @open.
   ///
   /// In en, this message translates to:

@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/hooks/configurators/use_check_yt_dlp_installed.dart';
+import 'package:spotube/models/database/database.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/root/bottom_player.dart';
 import 'package:spotube/modules/root/sidebar/sidebar.dart';
@@ -12,6 +13,7 @@ import 'package:spotube/modules/root/spotube_navigation_bar.dart';
 import 'package:spotube/hooks/configurators/use_endless_playback.dart';
 import 'package:spotube/modules/root/use_global_subscriptions.dart';
 import 'package:spotube/provider/glance/glance.dart';
+import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 
 /// The shell around the router can legitimately gain or lose layers — a
 /// background image, a surface tint, a collapsing sidebar, an inset-chrome
@@ -35,6 +37,22 @@ class RootAppPage extends HookConsumerWidget {
     useEndlessPlayback(ref);
     useCheckYtDlpInstalled(ref);
 
+    // Bottom-player dock style. Full width is the historic floating footer
+    // spanning the whole window; docked lays the bar out under the content
+    // only (as Sidebar's content footer) so the sidebar runs full height.
+    //
+    // The dock only applies where that bar actually exists. Where
+    // [BottomPlayer] instead renders `PlayerOverlay` - compact mode, and
+    // adaptive below `mdAndDown` - the overlay needs the full-window footer
+    // slot to slide in, so taking it away would leave no player at all:
+    // Sidebar discards [contentFooter] on its own compact early return.
+    final layoutMode =
+        ref.watch(userPreferencesProvider.select((s) => s.layoutMode));
+    final playerDock =
+        ref.watch(userPreferencesProvider.select((s) => s.playerDock));
+    final isDocked = playerDock == PlayerDock.docked &&
+        bottomPlayerVisibleOf(context, layoutMode);
+
     useEffect(() {
       SystemChrome.setSystemUIOverlayStyle(
         SystemUiOverlayStyle(
@@ -48,20 +66,25 @@ class RootAppPage extends HookConsumerWidget {
     }, [backgroundColor, brightness]);
 
     final content = Sidebar(
+      contentFooter: isDocked ? const BottomPlayer() : null,
       child: MediaQuery(
         key: appRouterSlotKey,
         data: MediaQuery.of(context).copyWith(
-          padding: MediaQuery.paddingOf(context)
-              .copyWith(bottom: 100 * context.theme.scaling),
+          // Reserve for the floating footer only. The docked bar is laid
+          // out in flow under the content, so it cannot cover anything.
+          padding: MediaQuery.paddingOf(context).copyWith(
+            bottom: (isDocked ? 12 : 100) * context.theme.scaling,
+          ),
         ),
         child: const AutoRouter(),
       ),
     );
 
     // `chrome: inset` floats the shell in a rounded panel over a darkened
-    // shade of the theme's own background. The player is a scaffold footer, so
-    // it stays full width on that shade — the one move that makes an otherwise
-    // unchanged UI read as a different application.
+    // shade of the theme's own background. The full-width player is a
+    // scaffold footer, so it stays full width on that shade — the one move
+    // that makes an otherwise unchanged UI read as a different application.
+    // The docked player instead rides inside the panel with the content.
     final insetChrome = context.insetChrome;
     final scaffold = MediaQuery.removeViewInsets(
       context: context,
@@ -69,9 +92,9 @@ class RootAppPage extends HookConsumerWidget {
       child: SafeArea(
         top: false,
         child: Scaffold(
-          footers: const [
-            BottomPlayer(),
-            SpotubeNavigationBar(),
+          footers: [
+            if (!isDocked) const BottomPlayer(),
+            const SpotubeNavigationBar(),
           ],
           floatingFooter: true,
           backgroundColor: insetChrome ? context.chromeInkColor : null,

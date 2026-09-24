@@ -10,12 +10,14 @@ class PlaybuttonTile extends HookWidget {
   final void Function()? onTap;
   final void Function()? onPlaybuttonPressed;
   final void Function()? onAddToQueuePressed;
+  final void Function()? onPinPressed;
   final String? description;
 
   final String? imageUrl;
   final Widget? image;
   final bool isPlaying;
   final bool isLoading;
+  final bool isPinned;
   final String title;
   final bool isOwner;
 
@@ -26,8 +28,10 @@ class PlaybuttonTile extends HookWidget {
     this.description,
     this.onPlaybuttonPressed,
     this.onAddToQueuePressed,
+    this.onPinPressed,
     this.onTap,
     this.isOwner = false,
+    this.isPinned = false,
     this.imageUrl,
     this.image,
     super.key,
@@ -88,6 +92,23 @@ class PlaybuttonTile extends HookWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (onPinPressed != null) ...[
+            Tooltip(
+              tooltip: TooltipContainer(
+                child: Text(isPinned
+                    ? context.l10n.unpin_from_sidebar
+                    : context.l10n.pin_to_sidebar),
+              ).call,
+              child: IconButton.outline(
+                icon: Icon(
+                  isPinned ? SpotubeIcons.pinOn : SpotubeIcons.pinOff,
+                ),
+                onPressed: onPinPressed,
+                enabled: !isLoading,
+              ),
+            ),
+            const Gap(8),
+          ],
           Tooltip(
             tooltip: TooltipContainer(child: Text(context.l10n.add_to_queue)).call,
             child: IconButton.outline(

@@ -13,6 +13,7 @@ import 'package:spotube/pages/settings/sections/developers.dart';
 import 'package:spotube/pages/settings/sections/downloads.dart';
 import 'package:spotube/pages/settings/sections/language_region.dart';
 import 'package:spotube/pages/settings/sections/playback.dart';
+import 'package:spotube/pages/settings/sections/sidebar.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/utils/platform.dart';
 import 'package:auto_route/auto_route.dart';
@@ -51,6 +52,7 @@ class SettingsPage extends HookConsumerWidget {
                       const SettingsAccountSection(),
                       const SettingsLanguageRegionSection(),
                       const SettingsAppearanceSection(),
+                      const SettingsSidebarSection(),
                       const SettingsPlaybackSection(),
                       const SettingsDownloadsSection(),
                       if (kIsDesktop) const SettingsDesktopSection(),

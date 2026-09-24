@@ -773,6 +773,24 @@ class $PreferencesTableTable extends PreferencesTable
               defaultValue: const Constant(""))
           .withConverter<List<String>>(
               $PreferencesTableTable.$convertersourcePriority);
+  @override
+  late final GeneratedColumnWithTypeConverter<List<String>, String>
+      sidebarLibraryOrder = GeneratedColumn<String>(
+              'sidebar_library_order', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant(""))
+          .withConverter<List<String>>(
+              $PreferencesTableTable.$convertersidebarLibraryOrder);
+  @override
+  late final GeneratedColumnWithTypeConverter<List<String>, String>
+      pinnedPlaylistIds = GeneratedColumn<String>(
+              'pinned_playlist_ids', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant(""))
+          .withConverter<List<String>>(
+              $PreferencesTableTable.$converterpinnedPlaylistIds);
   static const VerificationMeta _autoDownloadQualityMeta =
       const VerificationMeta('autoDownloadQuality');
   @override
@@ -810,6 +828,14 @@ class $PreferencesTableTable extends PreferencesTable
               defaultValue: const Constant("always"))
           .withConverter<VolumeControlMode>(
               $PreferencesTableTable.$convertervolumeControlMode);
+  @override
+  late final GeneratedColumnWithTypeConverter<PlayerDock, String> playerDock =
+      GeneratedColumn<String>('player_dock', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant("fullWidth"))
+          .withConverter<PlayerDock>(
+              $PreferencesTableTable.$converterplayerDock);
   static const VerificationMeta _lastUpdateCheckMsMeta =
       const VerificationMeta('lastUpdateCheckMs');
   @override
@@ -845,10 +871,13 @@ class $PreferencesTableTable extends PreferencesTable
         connectPort,
         cacheMusic,
         sourcePriority,
+        sidebarLibraryOrder,
+        pinnedPlaylistIds,
         autoDownloadQuality,
         themeTransition,
         themeTransitionMs,
         volumeControlMode,
+        playerDock,
         lastUpdateCheckMs
       ];
   @override
@@ -1043,6 +1072,12 @@ class $PreferencesTableTable extends PreferencesTable
       sourcePriority: $PreferencesTableTable.$convertersourcePriority.fromSql(
           attachedDatabase.typeMapping.read(
               DriftSqlType.string, data['${effectivePrefix}source_priority'])!),
+      sidebarLibraryOrder: $PreferencesTableTable.$convertersidebarLibraryOrder
+          .fromSql(attachedDatabase.typeMapping.read(DriftSqlType.string,
+              data['${effectivePrefix}sidebar_library_order'])!),
+      pinnedPlaylistIds: $PreferencesTableTable.$converterpinnedPlaylistIds
+          .fromSql(attachedDatabase.typeMapping.read(DriftSqlType.string,
+              data['${effectivePrefix}pinned_playlist_ids'])!),
       autoDownloadQuality: attachedDatabase.typeMapping.read(
           DriftSqlType.bool, data['${effectivePrefix}auto_download_quality'])!,
       themeTransition: attachedDatabase.typeMapping
@@ -1052,6 +1087,9 @@ class $PreferencesTableTable extends PreferencesTable
       volumeControlMode: $PreferencesTableTable.$convertervolumeControlMode
           .fromSql(attachedDatabase.typeMapping.read(DriftSqlType.string,
               data['${effectivePrefix}volume_control_mode'])!),
+      playerDock: $PreferencesTableTable.$converterplayerDock.fromSql(
+          attachedDatabase.typeMapping.read(
+              DriftSqlType.string, data['${effectivePrefix}player_dock'])!),
       lastUpdateCheckMs: attachedDatabase.typeMapping.read(
           DriftSqlType.int, data['${effectivePrefix}last_update_check_ms'])!,
     );
@@ -1084,9 +1122,15 @@ class $PreferencesTableTable extends PreferencesTable
       const EnumNameConverter<YoutubeClientEngine>(YoutubeClientEngine.values);
   static TypeConverter<List<String>, String> $convertersourcePriority =
       const StringListConverter();
+  static TypeConverter<List<String>, String> $convertersidebarLibraryOrder =
+      const StringListConverter();
+  static TypeConverter<List<String>, String> $converterpinnedPlaylistIds =
+      const StringListConverter();
   static JsonTypeConverter2<VolumeControlMode, String, String>
       $convertervolumeControlMode =
       const EnumNameConverter<VolumeControlMode>(VolumeControlMode.values);
+  static JsonTypeConverter2<PlayerDock, String, String> $converterplayerDock =
+      const EnumNameConverter<PlayerDock>(PlayerDock.values);
 }
 
 class PreferencesTableData extends DataClass
@@ -1116,10 +1160,13 @@ class PreferencesTableData extends DataClass
   final int connectPort;
   final bool cacheMusic;
   final List<String> sourcePriority;
+  final List<String> sidebarLibraryOrder;
+  final List<String> pinnedPlaylistIds;
   final bool autoDownloadQuality;
   final bool themeTransition;
   final int themeTransitionMs;
   final VolumeControlMode volumeControlMode;
+  final PlayerDock playerDock;
   final int lastUpdateCheckMs;
   const PreferencesTableData(
       {required this.id,
@@ -1147,10 +1194,13 @@ class PreferencesTableData extends DataClass
       required this.connectPort,
       required this.cacheMusic,
       required this.sourcePriority,
+      required this.sidebarLibraryOrder,
+      required this.pinnedPlaylistIds,
       required this.autoDownloadQuality,
       required this.themeTransition,
       required this.themeTransitionMs,
       required this.volumeControlMode,
+      required this.playerDock,
       required this.lastUpdateCheckMs});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1216,6 +1266,16 @@ class PreferencesTableData extends DataClass
           .$convertersourcePriority
           .toSql(sourcePriority));
     }
+    {
+      map['sidebar_library_order'] = Variable<String>($PreferencesTableTable
+          .$convertersidebarLibraryOrder
+          .toSql(sidebarLibraryOrder));
+    }
+    {
+      map['pinned_playlist_ids'] = Variable<String>($PreferencesTableTable
+          .$converterpinnedPlaylistIds
+          .toSql(pinnedPlaylistIds));
+    }
     map['auto_download_quality'] = Variable<bool>(autoDownloadQuality);
     map['theme_transition'] = Variable<bool>(themeTransition);
     map['theme_transition_ms'] = Variable<int>(themeTransitionMs);
@@ -1223,6 +1283,10 @@ class PreferencesTableData extends DataClass
       map['volume_control_mode'] = Variable<String>($PreferencesTableTable
           .$convertervolumeControlMode
           .toSql(volumeControlMode));
+    }
+    {
+      map['player_dock'] = Variable<String>(
+          $PreferencesTableTable.$converterplayerDock.toSql(playerDock));
     }
     map['last_update_check_ms'] = Variable<int>(lastUpdateCheckMs);
     return map;
@@ -1257,10 +1321,13 @@ class PreferencesTableData extends DataClass
       connectPort: Value(connectPort),
       cacheMusic: Value(cacheMusic),
       sourcePriority: Value(sourcePriority),
+      sidebarLibraryOrder: Value(sidebarLibraryOrder),
+      pinnedPlaylistIds: Value(pinnedPlaylistIds),
       autoDownloadQuality: Value(autoDownloadQuality),
       themeTransition: Value(themeTransition),
       themeTransitionMs: Value(themeTransitionMs),
       volumeControlMode: Value(volumeControlMode),
+      playerDock: Value(playerDock),
       lastUpdateCheckMs: Value(lastUpdateCheckMs),
     );
   }
@@ -1302,12 +1369,18 @@ class PreferencesTableData extends DataClass
       connectPort: serializer.fromJson<int>(json['connectPort']),
       cacheMusic: serializer.fromJson<bool>(json['cacheMusic']),
       sourcePriority: serializer.fromJson<List<String>>(json['sourcePriority']),
+      sidebarLibraryOrder:
+          serializer.fromJson<List<String>>(json['sidebarLibraryOrder']),
+      pinnedPlaylistIds:
+          serializer.fromJson<List<String>>(json['pinnedPlaylistIds']),
       autoDownloadQuality:
           serializer.fromJson<bool>(json['autoDownloadQuality']),
       themeTransition: serializer.fromJson<bool>(json['themeTransition']),
       themeTransitionMs: serializer.fromJson<int>(json['themeTransitionMs']),
       volumeControlMode: $PreferencesTableTable.$convertervolumeControlMode
           .fromJson(serializer.fromJson<String>(json['volumeControlMode'])),
+      playerDock: $PreferencesTableTable.$converterplayerDock
+          .fromJson(serializer.fromJson<String>(json['playerDock'])),
       lastUpdateCheckMs: serializer.fromJson<int>(json['lastUpdateCheckMs']),
     );
   }
@@ -1348,12 +1421,17 @@ class PreferencesTableData extends DataClass
       'connectPort': serializer.toJson<int>(connectPort),
       'cacheMusic': serializer.toJson<bool>(cacheMusic),
       'sourcePriority': serializer.toJson<List<String>>(sourcePriority),
+      'sidebarLibraryOrder':
+          serializer.toJson<List<String>>(sidebarLibraryOrder),
+      'pinnedPlaylistIds': serializer.toJson<List<String>>(pinnedPlaylistIds),
       'autoDownloadQuality': serializer.toJson<bool>(autoDownloadQuality),
       'themeTransition': serializer.toJson<bool>(themeTransition),
       'themeTransitionMs': serializer.toJson<int>(themeTransitionMs),
       'volumeControlMode': serializer.toJson<String>($PreferencesTableTable
           .$convertervolumeControlMode
           .toJson(volumeControlMode)),
+      'playerDock': serializer.toJson<String>(
+          $PreferencesTableTable.$converterplayerDock.toJson(playerDock)),
       'lastUpdateCheckMs': serializer.toJson<int>(lastUpdateCheckMs),
     };
   }
@@ -1384,10 +1462,13 @@ class PreferencesTableData extends DataClass
           int? connectPort,
           bool? cacheMusic,
           List<String>? sourcePriority,
+          List<String>? sidebarLibraryOrder,
+          List<String>? pinnedPlaylistIds,
           bool? autoDownloadQuality,
           bool? themeTransition,
           int? themeTransitionMs,
           VolumeControlMode? volumeControlMode,
+          PlayerDock? playerDock,
           int? lastUpdateCheckMs}) =>
       PreferencesTableData(
         id: id ?? this.id,
@@ -1416,10 +1497,13 @@ class PreferencesTableData extends DataClass
         connectPort: connectPort ?? this.connectPort,
         cacheMusic: cacheMusic ?? this.cacheMusic,
         sourcePriority: sourcePriority ?? this.sourcePriority,
+        sidebarLibraryOrder: sidebarLibraryOrder ?? this.sidebarLibraryOrder,
+        pinnedPlaylistIds: pinnedPlaylistIds ?? this.pinnedPlaylistIds,
         autoDownloadQuality: autoDownloadQuality ?? this.autoDownloadQuality,
         themeTransition: themeTransition ?? this.themeTransition,
         themeTransitionMs: themeTransitionMs ?? this.themeTransitionMs,
         volumeControlMode: volumeControlMode ?? this.volumeControlMode,
+        playerDock: playerDock ?? this.playerDock,
         lastUpdateCheckMs: lastUpdateCheckMs ?? this.lastUpdateCheckMs,
       );
   PreferencesTableData copyWithCompanion(PreferencesTableCompanion data) {
@@ -1486,6 +1570,12 @@ class PreferencesTableData extends DataClass
       sourcePriority: data.sourcePriority.present
           ? data.sourcePriority.value
           : this.sourcePriority,
+      sidebarLibraryOrder: data.sidebarLibraryOrder.present
+          ? data.sidebarLibraryOrder.value
+          : this.sidebarLibraryOrder,
+      pinnedPlaylistIds: data.pinnedPlaylistIds.present
+          ? data.pinnedPlaylistIds.value
+          : this.pinnedPlaylistIds,
       autoDownloadQuality: data.autoDownloadQuality.present
           ? data.autoDownloadQuality.value
           : this.autoDownloadQuality,
@@ -1498,6 +1588,8 @@ class PreferencesTableData extends DataClass
       volumeControlMode: data.volumeControlMode.present
           ? data.volumeControlMode.value
           : this.volumeControlMode,
+      playerDock:
+          data.playerDock.present ? data.playerDock.value : this.playerDock,
       lastUpdateCheckMs: data.lastUpdateCheckMs.present
           ? data.lastUpdateCheckMs.value
           : this.lastUpdateCheckMs,
@@ -1532,10 +1624,13 @@ class PreferencesTableData extends DataClass
           ..write('connectPort: $connectPort, ')
           ..write('cacheMusic: $cacheMusic, ')
           ..write('sourcePriority: $sourcePriority, ')
+          ..write('sidebarLibraryOrder: $sidebarLibraryOrder, ')
+          ..write('pinnedPlaylistIds: $pinnedPlaylistIds, ')
           ..write('autoDownloadQuality: $autoDownloadQuality, ')
           ..write('themeTransition: $themeTransition, ')
           ..write('themeTransitionMs: $themeTransitionMs, ')
           ..write('volumeControlMode: $volumeControlMode, ')
+          ..write('playerDock: $playerDock, ')
           ..write('lastUpdateCheckMs: $lastUpdateCheckMs')
           ..write(')'))
         .toString();
@@ -1568,10 +1663,13 @@ class PreferencesTableData extends DataClass
         connectPort,
         cacheMusic,
         sourcePriority,
+        sidebarLibraryOrder,
+        pinnedPlaylistIds,
         autoDownloadQuality,
         themeTransition,
         themeTransitionMs,
         volumeControlMode,
+        playerDock,
         lastUpdateCheckMs
       ]);
   @override
@@ -1603,10 +1701,13 @@ class PreferencesTableData extends DataClass
           other.connectPort == this.connectPort &&
           other.cacheMusic == this.cacheMusic &&
           other.sourcePriority == this.sourcePriority &&
+          other.sidebarLibraryOrder == this.sidebarLibraryOrder &&
+          other.pinnedPlaylistIds == this.pinnedPlaylistIds &&
           other.autoDownloadQuality == this.autoDownloadQuality &&
           other.themeTransition == this.themeTransition &&
           other.themeTransitionMs == this.themeTransitionMs &&
           other.volumeControlMode == this.volumeControlMode &&
+          other.playerDock == this.playerDock &&
           other.lastUpdateCheckMs == this.lastUpdateCheckMs);
 }
 
@@ -1636,10 +1737,13 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
   final Value<int> connectPort;
   final Value<bool> cacheMusic;
   final Value<List<String>> sourcePriority;
+  final Value<List<String>> sidebarLibraryOrder;
+  final Value<List<String>> pinnedPlaylistIds;
   final Value<bool> autoDownloadQuality;
   final Value<bool> themeTransition;
   final Value<int> themeTransitionMs;
   final Value<VolumeControlMode> volumeControlMode;
+  final Value<PlayerDock> playerDock;
   final Value<int> lastUpdateCheckMs;
   const PreferencesTableCompanion({
     this.id = const Value.absent(),
@@ -1667,10 +1771,13 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.connectPort = const Value.absent(),
     this.cacheMusic = const Value.absent(),
     this.sourcePriority = const Value.absent(),
+    this.sidebarLibraryOrder = const Value.absent(),
+    this.pinnedPlaylistIds = const Value.absent(),
     this.autoDownloadQuality = const Value.absent(),
     this.themeTransition = const Value.absent(),
     this.themeTransitionMs = const Value.absent(),
     this.volumeControlMode = const Value.absent(),
+    this.playerDock = const Value.absent(),
     this.lastUpdateCheckMs = const Value.absent(),
   });
   PreferencesTableCompanion.insert({
@@ -1699,10 +1806,13 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.connectPort = const Value.absent(),
     this.cacheMusic = const Value.absent(),
     this.sourcePriority = const Value.absent(),
+    this.sidebarLibraryOrder = const Value.absent(),
+    this.pinnedPlaylistIds = const Value.absent(),
     this.autoDownloadQuality = const Value.absent(),
     this.themeTransition = const Value.absent(),
     this.themeTransitionMs = const Value.absent(),
     this.volumeControlMode = const Value.absent(),
+    this.playerDock = const Value.absent(),
     this.lastUpdateCheckMs = const Value.absent(),
   });
   static Insertable<PreferencesTableData> custom({
@@ -1731,10 +1841,13 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     Expression<int>? connectPort,
     Expression<bool>? cacheMusic,
     Expression<String>? sourcePriority,
+    Expression<String>? sidebarLibraryOrder,
+    Expression<String>? pinnedPlaylistIds,
     Expression<bool>? autoDownloadQuality,
     Expression<bool>? themeTransition,
     Expression<int>? themeTransitionMs,
     Expression<String>? volumeControlMode,
+    Expression<String>? playerDock,
     Expression<int>? lastUpdateCheckMs,
   }) {
     return RawValuesInsertable({
@@ -1766,11 +1879,15 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       if (connectPort != null) 'connect_port': connectPort,
       if (cacheMusic != null) 'cache_music': cacheMusic,
       if (sourcePriority != null) 'source_priority': sourcePriority,
+      if (sidebarLibraryOrder != null)
+        'sidebar_library_order': sidebarLibraryOrder,
+      if (pinnedPlaylistIds != null) 'pinned_playlist_ids': pinnedPlaylistIds,
       if (autoDownloadQuality != null)
         'auto_download_quality': autoDownloadQuality,
       if (themeTransition != null) 'theme_transition': themeTransition,
       if (themeTransitionMs != null) 'theme_transition_ms': themeTransitionMs,
       if (volumeControlMode != null) 'volume_control_mode': volumeControlMode,
+      if (playerDock != null) 'player_dock': playerDock,
       if (lastUpdateCheckMs != null) 'last_update_check_ms': lastUpdateCheckMs,
     });
   }
@@ -1801,10 +1918,13 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       Value<int>? connectPort,
       Value<bool>? cacheMusic,
       Value<List<String>>? sourcePriority,
+      Value<List<String>>? sidebarLibraryOrder,
+      Value<List<String>>? pinnedPlaylistIds,
       Value<bool>? autoDownloadQuality,
       Value<bool>? themeTransition,
       Value<int>? themeTransitionMs,
       Value<VolumeControlMode>? volumeControlMode,
+      Value<PlayerDock>? playerDock,
       Value<int>? lastUpdateCheckMs}) {
     return PreferencesTableCompanion(
       id: id ?? this.id,
@@ -1832,10 +1952,13 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       connectPort: connectPort ?? this.connectPort,
       cacheMusic: cacheMusic ?? this.cacheMusic,
       sourcePriority: sourcePriority ?? this.sourcePriority,
+      sidebarLibraryOrder: sidebarLibraryOrder ?? this.sidebarLibraryOrder,
+      pinnedPlaylistIds: pinnedPlaylistIds ?? this.pinnedPlaylistIds,
       autoDownloadQuality: autoDownloadQuality ?? this.autoDownloadQuality,
       themeTransition: themeTransition ?? this.themeTransition,
       themeTransitionMs: themeTransitionMs ?? this.themeTransitionMs,
       volumeControlMode: volumeControlMode ?? this.volumeControlMode,
+      playerDock: playerDock ?? this.playerDock,
       lastUpdateCheckMs: lastUpdateCheckMs ?? this.lastUpdateCheckMs,
     );
   }
@@ -1933,6 +2056,16 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           .$convertersourcePriority
           .toSql(sourcePriority.value));
     }
+    if (sidebarLibraryOrder.present) {
+      map['sidebar_library_order'] = Variable<String>($PreferencesTableTable
+          .$convertersidebarLibraryOrder
+          .toSql(sidebarLibraryOrder.value));
+    }
+    if (pinnedPlaylistIds.present) {
+      map['pinned_playlist_ids'] = Variable<String>($PreferencesTableTable
+          .$converterpinnedPlaylistIds
+          .toSql(pinnedPlaylistIds.value));
+    }
     if (autoDownloadQuality.present) {
       map['auto_download_quality'] = Variable<bool>(autoDownloadQuality.value);
     }
@@ -1946,6 +2079,10 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       map['volume_control_mode'] = Variable<String>($PreferencesTableTable
           .$convertervolumeControlMode
           .toSql(volumeControlMode.value));
+    }
+    if (playerDock.present) {
+      map['player_dock'] = Variable<String>(
+          $PreferencesTableTable.$converterplayerDock.toSql(playerDock.value));
     }
     if (lastUpdateCheckMs.present) {
       map['last_update_check_ms'] = Variable<int>(lastUpdateCheckMs.value);
@@ -1981,10 +2118,13 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           ..write('connectPort: $connectPort, ')
           ..write('cacheMusic: $cacheMusic, ')
           ..write('sourcePriority: $sourcePriority, ')
+          ..write('sidebarLibraryOrder: $sidebarLibraryOrder, ')
+          ..write('pinnedPlaylistIds: $pinnedPlaylistIds, ')
           ..write('autoDownloadQuality: $autoDownloadQuality, ')
           ..write('themeTransition: $themeTransition, ')
           ..write('themeTransitionMs: $themeTransitionMs, ')
           ..write('volumeControlMode: $volumeControlMode, ')
+          ..write('playerDock: $playerDock, ')
           ..write('lastUpdateCheckMs: $lastUpdateCheckMs')
           ..write(')'))
         .toString();
@@ -6463,10 +6603,13 @@ typedef $$PreferencesTableTableCreateCompanionBuilder
   Value<int> connectPort,
   Value<bool> cacheMusic,
   Value<List<String>> sourcePriority,
+  Value<List<String>> sidebarLibraryOrder,
+  Value<List<String>> pinnedPlaylistIds,
   Value<bool> autoDownloadQuality,
   Value<bool> themeTransition,
   Value<int> themeTransitionMs,
   Value<VolumeControlMode> volumeControlMode,
+  Value<PlayerDock> playerDock,
   Value<int> lastUpdateCheckMs,
 });
 typedef $$PreferencesTableTableUpdateCompanionBuilder
@@ -6496,10 +6639,13 @@ typedef $$PreferencesTableTableUpdateCompanionBuilder
   Value<int> connectPort,
   Value<bool> cacheMusic,
   Value<List<String>> sourcePriority,
+  Value<List<String>> sidebarLibraryOrder,
+  Value<List<String>> pinnedPlaylistIds,
   Value<bool> autoDownloadQuality,
   Value<bool> themeTransition,
   Value<int> themeTransitionMs,
   Value<VolumeControlMode> volumeControlMode,
+  Value<PlayerDock> playerDock,
   Value<int> lastUpdateCheckMs,
 });
 
@@ -6616,6 +6762,16 @@ class $$PreferencesTableTableFilterComposer
           column: $table.sourcePriority,
           builder: (column) => ColumnWithTypeConverterFilters(column));
 
+  ColumnWithTypeConverterFilters<List<String>, List<String>, String>
+      get sidebarLibraryOrder => $composableBuilder(
+          column: $table.sidebarLibraryOrder,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnWithTypeConverterFilters<List<String>, List<String>, String>
+      get pinnedPlaylistIds => $composableBuilder(
+          column: $table.pinnedPlaylistIds,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
   ColumnFilters<bool> get autoDownloadQuality => $composableBuilder(
       column: $table.autoDownloadQuality,
       builder: (column) => ColumnFilters(column));
@@ -6631,6 +6787,11 @@ class $$PreferencesTableTableFilterComposer
   ColumnWithTypeConverterFilters<VolumeControlMode, VolumeControlMode, String>
       get volumeControlMode => $composableBuilder(
           column: $table.volumeControlMode,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnWithTypeConverterFilters<PlayerDock, PlayerDock, String>
+      get playerDock => $composableBuilder(
+          column: $table.playerDock,
           builder: (column) => ColumnWithTypeConverterFilters(column));
 
   ColumnFilters<int> get lastUpdateCheckMs => $composableBuilder(
@@ -6738,6 +6899,14 @@ class $$PreferencesTableTableOrderingComposer
       column: $table.sourcePriority,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get sidebarLibraryOrder => $composableBuilder(
+      column: $table.sidebarLibraryOrder,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get pinnedPlaylistIds => $composableBuilder(
+      column: $table.pinnedPlaylistIds,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get autoDownloadQuality => $composableBuilder(
       column: $table.autoDownloadQuality,
       builder: (column) => ColumnOrderings(column));
@@ -6753,6 +6922,9 @@ class $$PreferencesTableTableOrderingComposer
   ColumnOrderings<String> get volumeControlMode => $composableBuilder(
       column: $table.volumeControlMode,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get playerDock => $composableBuilder(
+      column: $table.playerDock, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get lastUpdateCheckMs => $composableBuilder(
       column: $table.lastUpdateCheckMs,
@@ -6850,6 +7022,14 @@ class $$PreferencesTableTableAnnotationComposer
       $composableBuilder(
           column: $table.sourcePriority, builder: (column) => column);
 
+  GeneratedColumnWithTypeConverter<List<String>, String>
+      get sidebarLibraryOrder => $composableBuilder(
+          column: $table.sidebarLibraryOrder, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<List<String>, String>
+      get pinnedPlaylistIds => $composableBuilder(
+          column: $table.pinnedPlaylistIds, builder: (column) => column);
+
   GeneratedColumn<bool> get autoDownloadQuality => $composableBuilder(
       column: $table.autoDownloadQuality, builder: (column) => column);
 
@@ -6862,6 +7042,10 @@ class $$PreferencesTableTableAnnotationComposer
   GeneratedColumnWithTypeConverter<VolumeControlMode, String>
       get volumeControlMode => $composableBuilder(
           column: $table.volumeControlMode, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<PlayerDock, String> get playerDock =>
+      $composableBuilder(
+          column: $table.playerDock, builder: (column) => column);
 
   GeneratedColumn<int> get lastUpdateCheckMs => $composableBuilder(
       column: $table.lastUpdateCheckMs, builder: (column) => column);
@@ -6921,10 +7105,13 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<int> connectPort = const Value.absent(),
             Value<bool> cacheMusic = const Value.absent(),
             Value<List<String>> sourcePriority = const Value.absent(),
+            Value<List<String>> sidebarLibraryOrder = const Value.absent(),
+            Value<List<String>> pinnedPlaylistIds = const Value.absent(),
             Value<bool> autoDownloadQuality = const Value.absent(),
             Value<bool> themeTransition = const Value.absent(),
             Value<int> themeTransitionMs = const Value.absent(),
             Value<VolumeControlMode> volumeControlMode = const Value.absent(),
+            Value<PlayerDock> playerDock = const Value.absent(),
             Value<int> lastUpdateCheckMs = const Value.absent(),
           }) =>
               PreferencesTableCompanion(
@@ -6953,10 +7140,13 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             connectPort: connectPort,
             cacheMusic: cacheMusic,
             sourcePriority: sourcePriority,
+            sidebarLibraryOrder: sidebarLibraryOrder,
+            pinnedPlaylistIds: pinnedPlaylistIds,
             autoDownloadQuality: autoDownloadQuality,
             themeTransition: themeTransition,
             themeTransitionMs: themeTransitionMs,
             volumeControlMode: volumeControlMode,
+            playerDock: playerDock,
             lastUpdateCheckMs: lastUpdateCheckMs,
           ),
           createCompanionCallback: ({
@@ -6986,10 +7176,13 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<int> connectPort = const Value.absent(),
             Value<bool> cacheMusic = const Value.absent(),
             Value<List<String>> sourcePriority = const Value.absent(),
+            Value<List<String>> sidebarLibraryOrder = const Value.absent(),
+            Value<List<String>> pinnedPlaylistIds = const Value.absent(),
             Value<bool> autoDownloadQuality = const Value.absent(),
             Value<bool> themeTransition = const Value.absent(),
             Value<int> themeTransitionMs = const Value.absent(),
             Value<VolumeControlMode> volumeControlMode = const Value.absent(),
+            Value<PlayerDock> playerDock = const Value.absent(),
             Value<int> lastUpdateCheckMs = const Value.absent(),
           }) =>
               PreferencesTableCompanion.insert(
@@ -7018,10 +7211,13 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             connectPort: connectPort,
             cacheMusic: cacheMusic,
             sourcePriority: sourcePriority,
+            sidebarLibraryOrder: sidebarLibraryOrder,
+            pinnedPlaylistIds: pinnedPlaylistIds,
             autoDownloadQuality: autoDownloadQuality,
             themeTransition: themeTransition,
             themeTransitionMs: themeTransitionMs,
             volumeControlMode: volumeControlMode,
+            playerDock: playerDock,
             lastUpdateCheckMs: lastUpdateCheckMs,
           ),
           withReferenceMapper: (p0) => p0

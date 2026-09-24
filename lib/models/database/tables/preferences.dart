@@ -20,6 +20,18 @@ enum VolumeControlMode {
   hidden,
 }
 
+/// Where the desktop bottom player bar docks.
+///
+/// `fullWidth` is the historic look: a floating scaffold footer spanning the
+/// whole window, painted over the sidebar's bottom edge (which is why the
+/// sidebar reserves clearance for it). `docked` stops the bar at the sidebar
+/// edge and lays it out under the content only, letting the sidebar run full
+/// height. Inert on compact/mobile layouts, which render `PlayerOverlay`.
+enum PlayerDock {
+  fullWidth,
+  docked,
+}
+
 enum YoutubeClientEngine {
   ytDlp("yt-dlp"),
   youtubeExplode("YouTubeExplode"),
@@ -105,6 +117,10 @@ class PreferencesTable extends Table {
   BoolColumn get cacheMusic => boolean().withDefault(const Constant(true))();
   TextColumn get sourcePriority => text().withDefault(const Constant(""))
       .map(const StringListConverter())();
+  TextColumn get sidebarLibraryOrder => text().withDefault(const Constant(""))
+      .map(const StringListConverter())();
+  TextColumn get pinnedPlaylistIds => text().withDefault(const Constant(""))
+      .map(const StringListConverter())();
   BoolColumn get autoDownloadQuality =>
       boolean().withDefault(const Constant(false))();
   BoolColumn get themeTransition =>
@@ -113,6 +129,8 @@ class PreferencesTable extends Table {
       integer().withDefault(const Constant(250))();
   TextColumn get volumeControlMode => textEnum<VolumeControlMode>()
       .withDefault(const Constant("always"))();
+  TextColumn get playerDock => textEnum<PlayerDock>()
+      .withDefault(const Constant("fullWidth"))();
   IntColumn get lastUpdateCheckMs => integer().withDefault(const Constant(0))();
 
   static PreferencesTableData defaults() {
@@ -144,10 +162,13 @@ class PreferencesTable extends Table {
       cacheMusic: true,
       connectPort: -1,
       sourcePriority: [],
+      sidebarLibraryOrder: [],
+      pinnedPlaylistIds: [],
       autoDownloadQuality: false,
       themeTransition: false,
       themeTransitionMs: 250,
       volumeControlMode: VolumeControlMode.always,
+      playerDock: PlayerDock.fullWidth,
       lastUpdateCheckMs: 0,
     );
   }

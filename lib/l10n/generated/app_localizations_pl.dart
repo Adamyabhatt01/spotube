@@ -1347,6 +1347,51 @@ class AppLocalizationsPl extends AppLocalizations {
       'Order determines which audio source (engine or plugin) is tried first. Reorder to change priority; empty entries fall back to defaults.';
 
   @override
+  String get player_position => 'Player position';
+
+  @override
+  String get player_position_description =>
+      'Full width stretches the player bar across the whole window. Docked stops it at the sidebar so the sidebar runs full height.';
+
+  @override
+  String get player_dock_full_width => 'Full width';
+
+  @override
+  String get player_dock_docked => 'Docked';
+
+  @override
+  String get sidebar => 'Sidebar';
+
+  @override
+  String get sidebar_order => 'Sidebar order';
+
+  @override
+  String get sidebar_order_description =>
+      'Reorder the Library section of the sidebar. The top navigation stays fixed.';
+
+  @override
+  String get pinned_playlists => 'Pinned playlists';
+
+  @override
+  String get pinned_playlists_description =>
+      'Playlists pinned under the Library section. Drag to reorder.';
+
+  @override
+  String get pin_to_sidebar => 'Pin to sidebar';
+
+  @override
+  String get unpin_from_sidebar => 'Unpin from sidebar';
+
+  @override
+  String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get reset_sidebar => 'Reset sidebar';
+
+  @override
+  String get show_all_playlists => 'Show all playlists';
+
+  @override
   String get open => 'Otwórz';
 
   @override

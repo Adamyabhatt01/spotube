@@ -244,6 +244,10 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
     setData(PreferencesTableCompanion(volumeControlMode: Value(mode)));
   }
 
+  void setPlayerDock(PlayerDock dock) {
+    setData(PreferencesTableCompanion(playerDock: Value(dock)));
+  }
+
   void setLastUpdateCheckMs(int atMs) {
     setData(PreferencesTableCompanion(lastUpdateCheckMs: Value(atMs)));
   }
@@ -270,6 +274,27 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
 
   void setSourcePriority(List<String> priority) {
     setData(PreferencesTableCompanion(sourcePriority: Value(priority)));
+  }
+
+  void setSidebarLibraryOrder(List<String> order) {
+    setData(PreferencesTableCompanion(sidebarLibraryOrder: Value(order)));
+  }
+
+  void setPinnedPlaylistIds(List<String> ids) {
+    setData(PreferencesTableCompanion(pinnedPlaylistIds: Value(ids)));
+  }
+
+  /// Pins [id] to the sidebar when absent, unpins it when present.
+  /// Appends pins so a newly pinned playlist lands at the end of the
+  /// pinned block (below Local Library by default).
+  void togglePinnedPlaylist(String id) {
+    final ids = List<String>.of(state.pinnedPlaylistIds);
+    if (ids.contains(id)) {
+      ids.remove(id);
+    } else {
+      ids.add(id);
+    }
+    setPinnedPlaylistIds(ids);
   }
 
   void setAutoDownloadQuality(bool auto) {

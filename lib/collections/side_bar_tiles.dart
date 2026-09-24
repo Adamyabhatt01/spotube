@@ -11,12 +11,18 @@ class SideBarTiles {
   final String pathPrefix;
   final PageRouteInfo route;
 
+  /// Optional small cover art. Null for the static tiles; set for pinned
+  /// playlist tiles, which render the cover in the icon slot so the
+  /// sidebar width never changes.
+  final String? imageUrl;
+
   SideBarTiles({
     required this.icon,
     required this.title,
     required this.id,
     required this.route,
     required this.pathPrefix,
+    this.imageUrl,
   });
 }
 

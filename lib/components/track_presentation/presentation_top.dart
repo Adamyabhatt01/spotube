@@ -10,8 +10,10 @@ import 'package:spotube/components/track_presentation/presentation_props.dart';
 import 'package:spotube/components/track_presentation/use_action_callbacks.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
+import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/playlist/playlist_create_dialog.dart';
 import 'package:spotube/provider/scroll_motion.dart';
+import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 
 class TrackPresentationTopSection extends HookConsumerWidget {
   const TrackPresentationTopSection({super.key});
@@ -39,6 +41,15 @@ class TrackPresentationTopSection extends HookConsumerWidget {
 
     final (:isLoading, :isActive, :onPlay, :onShuffle, :onAddToQueue) =
         useActionCallbacks(ref);
+
+    // Sidebar pins apply to playlists only; albums share this header.
+    final isPinnableCollection =
+        options.collection is SpotubeSimplePlaylistObject;
+    final pinnedPlaylistIds = ref.watch(
+      userPreferencesProvider.select((s) => s.pinnedPlaylistIds),
+    );
+    final isPinned = isPinnableCollection &&
+        pinnedPlaylistIds.contains(options.collectionId);
 
     final playbackActions = Row(
       spacing: 8 * scale,
@@ -150,6 +161,36 @@ class TrackPresentationTopSection extends HookConsumerWidget {
             variance: ButtonVariance.outline,
             size: ButtonSize.small,
             onPressed: options.onHeart,
+          ),
+        if (isPinnableCollection)
+          Tooltip(
+            tooltip: TooltipContainer(
+              child: Text(isPinned
+                  ? context.l10n.unpin_from_sidebar
+                  : context.l10n.pin_to_sidebar),
+            ).call,
+            child: IconButton.outline(
+              icon: Icon(
+                isPinned ? SpotubeIcons.pinOn : SpotubeIcons.pinOff,
+              ),
+              size: ButtonSize.small,
+              onPressed: () {
+                ref
+                    .read(userPreferencesProvider.notifier)
+                    .togglePinnedPlaylist(options.collectionId);
+                if (!isPinned && context.mounted) {
+                  showToast(
+                    context: context,
+                    location: ToastLocation.topRight,
+                    builder: (context, overlay) {
+                      return SurfaceCard(
+                        child: Text(context.l10n.pinned_to_sidebar).small(),
+                      );
+                    },
+                  );
+                }
+              },
+            ),
           ),
       ],
     );

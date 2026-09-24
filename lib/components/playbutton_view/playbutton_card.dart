@@ -1,6 +1,7 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/image/universal_image.dart';
+import 'package:spotube/extensions/context.dart';
 import 'package:spotube/extensions/string.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/utils/platform.dart';
@@ -41,12 +42,14 @@ class PlaybuttonCard extends StatelessWidget {
   final void Function()? onTap;
   final void Function()? onPlaybuttonPressed;
   final void Function()? onAddToQueuePressed;
+  final void Function()? onPinPressed;
   final String? description;
 
   final String? imageUrl;
   final Widget? image;
   final bool isPlaying;
   final bool isLoading;
+  final bool isPinned;
   final String title;
   final bool isOwner;
 
@@ -57,8 +60,10 @@ class PlaybuttonCard extends StatelessWidget {
     this.description,
     this.onPlaybuttonPressed,
     this.onAddToQueuePressed,
+    this.onPinPressed,
     this.onTap,
     this.isOwner = false,
+    this.isPinned = false,
     this.imageUrl,
     this.image,
     super.key,
@@ -158,6 +163,39 @@ class PlaybuttonCard extends StatelessWidget {
                   ),
                   child: Icon(SpotubeIcons.user),
                 ),
+              ),
+            // Pin affordance, mirroring the play button's hover reveal.
+            // Top-left: top-right carries the owner badge. On touch there is
+            // no hover, so the button only exists when pinned — an invisible
+            // Opacity-zero button would still swallow taps on the cover.
+            if (onPinPressed != null && (isPinned || !kIsMobile))
+              StatedWidget.builder(
+                builder: (context, states) {
+                  final hovered = states.contains(WidgetState.hovered);
+                  return Positioned(
+                    left: 8,
+                    top: 8,
+                    child: hoverReveal(
+                      shown: isPinned || hovered,
+                      duration: const Duration(milliseconds: 150),
+                      animated: !kIsMobile,
+                      child: Tooltip(
+                        tooltip: TooltipContainer(
+                          child: Text(isPinned
+                              ? context.l10n.unpin_from_sidebar
+                              : context.l10n.pin_to_sidebar),
+                        ).call,
+                        child: IconButton.secondary(
+                          icon: Icon(
+                            isPinned ? SpotubeIcons.pinOn : SpotubeIcons.pinOff,
+                          ),
+                          onPressed: onPinPressed,
+                          size: ButtonSize.small,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
           ],
         ),

@@ -15,6 +15,7 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/audio_player/querying_track_info.dart';
 import 'package:spotube/provider/connect/connect.dart';
 import 'package:spotube/provider/history/history.dart';
+import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/metadata_plugin/library/tracks.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/playlist.dart';
@@ -204,6 +205,30 @@ class PlaylistCard extends HookConsumerWidget {
     final isOwner = playlist.owner.id == me.asData?.value?.id &&
         me.asData?.value?.id != null;
 
+    final isPinned = ref.watch(
+      userPreferencesProvider
+          .select((s) => s.pinnedPlaylistIds.contains(playlist.id)),
+    );
+    final onPinPressed = useCallback(() {
+      final wasPinned = ref
+          .read(userPreferencesProvider)
+          .pinnedPlaylistIds
+          .contains(playlist.id);
+      ref
+          .read(userPreferencesProvider.notifier)
+          .togglePinnedPlaylist(playlist.id);
+      if (!wasPinned && context.mounted) {
+        showToast(
+          context: context,
+          builder: (context, overlay) {
+            return SurfaceCard(
+              child: Text(context.l10n.pinned_to_sidebar),
+            );
+          },
+        );
+      }
+    }, [playlist.id, ref, context]);
+
     if (_isTile) {
       return PlaybuttonTile(
         title: playlist.name,
@@ -213,9 +238,11 @@ class PlaylistCard extends HookConsumerWidget {
         isPlaying: isPlaylistPlaying,
         isLoading: isLoading,
         isOwner: isOwner,
+        isPinned: isPinned,
         onTap: onTap,
         onPlaybuttonPressed: onPlaybuttonPressed,
         onAddToQueuePressed: onAddToQueuePressed,
+        onPinPressed: onPinPressed,
       );
     }
 
@@ -227,9 +254,11 @@ class PlaylistCard extends HookConsumerWidget {
       isPlaying: isPlaylistPlaying,
       isLoading: isLoading,
       isOwner: isOwner,
+      isPinned: isPinned,
       onTap: onTap,
       onPlaybuttonPressed: onPlaybuttonPressed,
       onAddToQueuePressed: onAddToQueuePressed,
+      onPinPressed: onPinPressed,
     );
   }
 }

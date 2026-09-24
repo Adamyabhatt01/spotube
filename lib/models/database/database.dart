@@ -83,7 +83,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 20;
 
   /// Raw DDL for the quarantine table, kept as a constant so the v11->v12
   /// step can create it idempotently (`IF NOT EXISTS`) without depending
@@ -709,6 +709,45 @@ class AppDatabase extends _$AppDatabase {
               await m.addColumn(
                 schema.preferencesTable,
                 schema.preferencesTable.lastUpdateCheckMs,
+              );
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from18To19: (m, schema) async {
+          try {
+            // Sidebar customization: library-tile order + pinned playlist
+            // ids. Same kill-between-ALTERs guard as every step since v12.
+            if (!(await _tableColumns('preferences_table'))
+                .contains('sidebar_library_order')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.sidebarLibraryOrder,
+              );
+            }
+            if (!(await _tableColumns('preferences_table'))
+                .contains('pinned_playlist_ids')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.pinnedPlaylistIds,
+              );
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from19To20: (m, schema) async {
+          try {
+            // Bottom-player dock style. Same kill-between-ALTERs guard as
+            // every step since v12.
+            if (!(await _tableColumns('preferences_table'))
+                .contains('player_dock')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.playerDock,
               );
             }
           } catch (e, stack) {
