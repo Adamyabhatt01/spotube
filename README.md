@@ -66,8 +66,8 @@ Useful flags: `--skip-build` installs the bundle that's already in `build/linux/
 ## 🔧 What this fork changes
 
 Everything below is on top of upstream. The short version: this fork is mostly about the parts
-that break in daily use — source matching, rate limits, streams that expire, and long sessions on
-low-end devices.
+that break in daily use — source matching, rate limits, streams that expire, long sessions on
+low-end devices, and which interface your traffic leaves by.
 
 ### Finding the right recording
 
@@ -108,12 +108,50 @@ render from the last good snapshot while you're limited rather than going blank.
 - A bounded playback-server rebind chain, playback cache mirroring, and a source-priority picker.
 - Downloads are chunked and resumable, up to **3 concurrently**, with existing files on disk
   batch-checked first so a playlist import asks you once instead of per track.
+- The queue-end radio fires once per tail track instead of once per position tick, and the player
+  starts on the page already on screen while the rest of the queue streams in behind it.
+
+### Routing through your own VPN
+
+Strictly opt-in and **off by default** — with the setting untouched, every byte goes where it went
+before. When enabled for downloads, playback, or both, Spotube waits for the VPN you picked before
+a protected request, holds it for the duration, and fails *closed* rather than silently falling
+back to your normal connection when it can't be had.
+
+- Two kinds of target. A **system connection** (Linux + NetworkManager) is one of your own
+  `nmcli` connections, which Spotube may activate before an operation and bring down after. A
+  **tunnel device** is a live interface from your provider's app (`nordlynx`, `proton0`,
+  `mullvad-*`): cross-platform, and Spotube only *shares* it — it never connects or disconnects
+  something it doesn't own.
+- Concurrent downloads share **one** reference-counted lease, so the tunnel isn't flapped per track.
+- VPN you connected yourself is used but never torn down; only a connection Spotube activated is
+  brought down, and only with "Disconnect when done" on. No passwords, keys or tokens are stored —
+  authentication stays with the operating system.
+- Mid-download VPN loss **pauses and waits** (bounded, default 60 s, cancellable) instead of
+  retrying over the clear path; if recovery doesn't come, the download fails with an explicit error.
+- While a lease is held, Dio sockets are source-pinned to the tunnel's own address
+  (`Socket.connect(sourceAddress:)`) — qBittorrent-style hardening, since Dart has no
+  `SO_BINDTODEVICE`. Unpinnable means no traffic, not unpinned traffic.
+
+This is **not a VPN provider and not a system-wide kill switch**: there is no Spotube service,
+server or subscription, and kernel routing, DNS, other applications and the Hetu/yt-dlp/NewPipe
+transports are outside what the app can enforce. See
+[`docs/automatic-vpn.md`](docs/automatic-vpn.md) for exactly what is and isn't pinned.
 
 ### Lyrics
 
 A settings-driven provider registry with LRCLib as primary and Better Lyrics TTML as fallback,
 track-scoped caching behind a single-flight lock, and retry that targets only the providers that
-actually failed.
+actually failed. Concurrent fetches for one track collapse into one request, misses are memoized,
+and TTML parsing moved off the UI thread.
+
+### Getting around
+
+- Playlists can be **pinned** under the Library section of the sidebar, and the section itself is
+  reorderable (top navigation stays fixed).
+- The player bar can be **docked** to stop at the sidebar — so the sidebar runs full height — instead
+  of stretching across the whole window.
+- Volume control is a setting: always visible, show on hover, or hidden.
 
 ### Performance and stability
 
@@ -130,6 +168,22 @@ Mostly Android-focused, since that's the device where it hurt:
 - yt-dlp is located by **absolute path** rather than relying on the process `PATH`, which is why
   desktop detection no longer depends on how the app happened to be launched.
 
+Then a second pass over desktop, each item measured before and after:
+
+- Saved lists render from their on-disk snapshot immediately and revalidate behind the answer,
+  instead of paying a 2 × 30 s retry chain for data already in the database.
+- Playlist membership writes are batched and reconciled once per change: a queue rewrite that cost
+  74 ms per write at 5k rows and 263–713 ms at 25k now costs **0 writes** unless membership really
+  changed, and 10–33 ms when it does.
+- Download-queue subscriptions are scoped to the row that reads them, the local-library prefilter's
+  `stat` fan-out is bounded, and mirrored playlist decodes are cached by `(trackId, updatedAt)`.
+- One in-memory fetch per cover URL across callers, list search debounced, and scroll-time
+  re-blurring and re-decoding stopped per frame.
+- Every network path is now *timed* (`dio.<host>`, `metadata.request`, `source.resolve`,
+  `engine.<call>`, keyed by host so signed tokens never land in a key), which is how the 2026-09-23
+  round was diagnosed at all. A rejected Spotify login says so rather than spinning.
+- Update checks run once a day, not once a launch.
+
 ### Themes
 
 Plugins can ship a full theme (colour roles, glass surfaces, art or shell backgrounds, radius,
@@ -140,8 +194,9 @@ under Settings → Appearance.
 
 ### Plumbing
 
-Database schema through **v13** with per-step migration guards, dependency pinning with a CI job
-that detects drift, and a reproducible build script.
+Database schema through **v22** with per-step migration guards (each step re-checks the live column
+set, so a half-applied migration can be finished rather than only retried), dependency pinning with
+a CI job that detects drift, and a reproducible build script.
 
 ## 🛠 Build from source
 
@@ -183,6 +238,11 @@ Note this project defines Gradle product flavors, so `flutter build apk` needs `
   matters to you, build it yourself from the steps above.
 - **No signature continuity.** The test key means this fork's builds are only interchangeable with
   each other, never with official releases.
+- **The regression suite is not published.** 932 tests guard this fork's own code — the VPN lease
+  logic, download reconciliation, source ranking, snapshot revalidation — and none of them are in
+  this repo; `test/` is gitignored on purpose. So a clone has nothing to run, and the CI test gate
+  passes because it finds zero tests. Treat the shipped binary as better tested than the source
+  tree looks.
 
 ## 📄 License
 
