@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
+import 'package:spotube/services/vpn/pinned_client.dart';
+import 'package:spotube/services/vpn/vpn_pin.dart';
 import 'package:spotube/utils/perf_counters.dart';
 
 final globalDio = Dio(
@@ -7,7 +10,13 @@ final globalDio = Dio(
     receiveTimeout: const Duration(seconds: 30),
     sendTimeout: const Duration(seconds: 15),
   ),
-)..interceptors.add(_TimingInterceptor());
+)
+  // Source-pins sockets to the held VPN lease when one exists; delegates
+  // unpinned otherwise. Interceptors below are unaffected (adapter layer).
+  ..httpClientAdapter = IOHttpClientAdapter(
+    createHttpClient: () => createPinnedClient(VpnPinHolder.current),
+  )
+  ..interceptors.add(_TimingInterceptor());
 
 /// `dio.<host>=n (µs)` — the app's own HTTP traffic, which had no timing at all.
 /// Keyed by host, not path: paths carry signed tokens and per-video ids, so they

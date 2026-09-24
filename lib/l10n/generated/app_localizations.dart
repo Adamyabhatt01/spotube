@@ -2631,6 +2631,150 @@ abstract class AppLocalizations {
   /// **'Docked'**
   String get player_dock_docked;
 
+  /// No description provided for @automatic_vpn.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic VPN'**
+  String get automatic_vpn;
+
+  /// No description provided for @automatic_vpn_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Use your existing system VPN connection for the selected activity. Disabled leaves all traffic as before.'**
+  String get automatic_vpn_description;
+
+  /// No description provided for @vpn_disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get vpn_disabled;
+
+  /// No description provided for @vpn_downloads_only.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads'**
+  String get vpn_downloads_only;
+
+  /// No description provided for @vpn_playback_only.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback'**
+  String get vpn_playback_only;
+
+  /// No description provided for @vpn_downloads_and_playback.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads + playback'**
+  String get vpn_downloads_and_playback;
+
+  /// No description provided for @vpn_connection.
+  ///
+  /// In en, this message translates to:
+  /// **'VPN connection'**
+  String get vpn_connection;
+
+  /// No description provided for @vpn_connection_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Which of your system VPN connections Spotube may activate. Authentication stays with the system.'**
+  String get vpn_connection_description;
+
+  /// No description provided for @vpn_no_connection_selected.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection selected'**
+  String get vpn_no_connection_selected;
+
+  /// No description provided for @vpn_no_connections_found.
+  ///
+  /// In en, this message translates to:
+  /// **'No system VPN connections found'**
+  String get vpn_no_connections_found;
+
+  /// No description provided for @vpn_unsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic VPN is not supported on this platform yet'**
+  String get vpn_unsupported;
+
+  /// No description provided for @vpn_auto_disconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect when done'**
+  String get vpn_auto_disconnect;
+
+  /// No description provided for @vpn_auto_disconnect_description.
+  ///
+  /// In en, this message translates to:
+  /// **'When off, a VPN Spotube started stays connected after downloads finish. Connections you started yourself are never disconnected.'**
+  String get vpn_auto_disconnect_description;
+
+  /// No description provided for @vpn_wait_timeout.
+  ///
+  /// In en, this message translates to:
+  /// **'VPN wait timeout'**
+  String get vpn_wait_timeout;
+
+  /// No description provided for @vpn_wait_timeout_description.
+  ///
+  /// In en, this message translates to:
+  /// **'How long a protected download waits for the VPN before failing. The download pauses instead of switching to the normal connection.'**
+  String get vpn_wait_timeout_description;
+
+  /// No description provided for @vpn_system_connections.
+  ///
+  /// In en, this message translates to:
+  /// **'System connections'**
+  String get vpn_system_connections;
+
+  /// No description provided for @vpn_system_connections_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Connections Spotube may activate and deactivate itself.'**
+  String get vpn_system_connections_description;
+
+  /// No description provided for @vpn_active_tunnels.
+  ///
+  /// In en, this message translates to:
+  /// **'Active tunnels (app-managed)'**
+  String get vpn_active_tunnels;
+
+  /// No description provided for @vpn_active_tunnels_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Tunnels from your VPN app, shared as-is: Spotube waits for and uses the selected tunnel without connecting or disconnecting it.'**
+  String get vpn_active_tunnels_description;
+
+  /// No description provided for @vpn_no_tunnels_found.
+  ///
+  /// In en, this message translates to:
+  /// **'No tunnel interfaces found — connect your VPN first.'**
+  String get vpn_no_tunnels_found;
+
+  /// No description provided for @vpn_clear_selection.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get vpn_clear_selection;
+
+  /// No description provided for @vpn_tunnel_addresses.
+  ///
+  /// In en, this message translates to:
+  /// **'addresses'**
+  String get vpn_tunnel_addresses;
+
+  /// No description provided for @vpn_selected_tunnel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tunnel: {name}'**
+  String vpn_selected_tunnel(Object name);
+
+  /// No description provided for @vpn_selected_system.
+  ///
+  /// In en, this message translates to:
+  /// **'System connection'**
+  String get vpn_selected_system;
+
   /// No description provided for @sidebar.
   ///
   /// In en, this message translates to:

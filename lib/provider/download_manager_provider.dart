@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:metadata_god/metadata_god.dart';
 import 'package:path/path.dart';
@@ -17,10 +18,15 @@ import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/metadata_plugin/audio_source/quality_presets.dart';
 import 'package:spotube/provider/server/sourced_track_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
+import 'package:spotube/provider/vpn/vpn_provider.dart';
 import 'package:spotube/services/downloads/download_store.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/sourced_track/source_resolver.dart';
 import 'package:spotube/services/sourced_track/sourced_track.dart';
+import 'package:spotube/services/vpn/vpn_lease.dart';
+import 'package:spotube/services/vpn/vpn_manager.dart';
+import 'package:spotube/services/vpn/vpn_pin.dart';
+import 'package:spotube/services/vpn/pinned_client.dart';
 import 'package:spotube/utils/service_utils.dart';
 
 enum DownloadStatus {
@@ -63,6 +69,15 @@ bool isRetryableDownloadError(Object error) {
     }
   }
   return false;
+}
+
+/// Whether [error] is a VPN protection failure: either a [VpnException]
+/// directly, or one attached to a Dio error (Dio normalizes adapter throws
+/// to `DioExceptionType.unknown`, keeping the original in `.error`).
+/// Deterministic by nature — retrying cannot help and must never transmit.
+bool isVpnProtectionError(Object error) {
+  if (error is VpnException) return true;
+  return error is DioException && error.error is VpnException;
 }
 
 /// Whether [error] is an out-of-space filesystem failure (errno ENOSPC).
@@ -151,11 +166,16 @@ class DownloadTask {
 class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   final Dio dio;
   DownloadManagerNotifier()
-      : dio = Dio(BaseOptions(
+      : dio = (Dio(BaseOptions(
           connectTimeout: const Duration(seconds: 15),
           receiveTimeout: const Duration(seconds: 30),
           sendTimeout: const Duration(seconds: 15),
-        )),
+        ))
+          // Source-pins sockets to the held VPN lease when one exists;
+          // delegates unpinned otherwise (gate off = old behavior).
+          ..httpClientAdapter = IOHttpClientAdapter(
+            createHttpClient: () => createPinnedClient(VpnPinHolder.current),
+          )),
         super();
 
   @override
@@ -571,10 +591,16 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   /// retry); permanent errors fail fast via [isRetryableDownloadError].
   /// Returns only on success — failures propagate to [_downloadTrack]'s
   /// catch, which marks the task failed exactly once.
+  ///
+  /// [beforeAttempt] runs ahead of every attempt (including the first).
+  /// The VPN gate passes a wait-for-connection hook here so a mid-download
+  /// VPN loss pauses instead of retrying over the normal connection. Null
+  /// by default: ungated downloads behave exactly as before.
   Future<T> _chunkDownloadWithRetry<T>(
     DownloadTask task,
-    Future<T> Function() operation,
-  ) async {
+    Future<T> Function() operation, {
+    Future<void> Function()? beforeAttempt,
+  }) async {
     for (var attempt = 0;; attempt++) {
       if (task.cancelToken.isCancelled) {
         throw DioException(
@@ -583,8 +609,15 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
         );
       }
       try {
+        if (beforeAttempt != null) await beforeAttempt();
         return await operation();
       } catch (e) {
+        // VPN protection failures (e.g. proxy conflict, surfaced by Dio
+        // as `unknown` with the VpnException attached) are deterministic:
+        // retrying cannot help and must never transmit, so fail fast.
+        if (isVpnProtectionError(e)) {
+          rethrow;
+        }
         if (!isRetryableDownloadError(e) ||
             attempt >= downloadRetryDelays.length) {
           rethrow;
@@ -595,12 +628,56 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   }
 
   Future<void> _downloadTrack(DownloadTask task) async {
+    // Optional automatic-VPN gate (pause-and-wait). When the mode does not
+    // cover downloads — or nothing is configured — no lease is taken and
+    // the body below runs exactly as before. Otherwise one lease is held
+    // for the whole track attempt (resolve, retries, cascade, tag write)
+    // so concurrent downloads share a single VPN connection instead of
+    // flapping it, and the last release drops only what Spotube started.
+    VpnLease? vpnLease;
+    if (vpnGatesDownloads(ref)) {
+      try {
+        vpnLease = await ref.read(vpnManagerProvider).acquire(
+              isCancelled: () => task.cancelToken.isCancelled,
+            );
+      } on VpnCancelledException {
+        _setStatus(task.track, DownloadStatus.canceled,
+            sourceToken: task.cancelToken);
+        return;
+      } catch (e, stack) {
+        _setStatus(
+          task.track,
+          DownloadStatus.failed,
+          sourceToken: task.cancelToken,
+          error: e.toString(),
+        );
+        AppLogger.reportError(
+          'Download blocked for ${task.track.name}: '
+          'VPN required but unavailable: $e',
+          stack,
+        );
+        return;
+      }
+    }
     try {
       if (task.cancelToken.isCancelled) {
         _setStatus(task.track, DownloadStatus.canceled,
             sourceToken: task.cancelToken);
         return;
       }
+      // Re-verified before every chunk attempt (see _chunkDownloadTrack):
+      // a VPN that disappears mid-download pauses the retry loop instead
+      // of continuing over the normal connection. The pin is refreshed
+      // afterwards so a reconnect IP change heals on the next attempt.
+      final Future<void> Function()? vpnWaitHook = vpnLease == null
+          ? null
+          : () async {
+              final vpn = ref.read(vpnManagerProvider);
+              await vpn.waitUntilConnected(
+                isCancelled: () => task.cancelToken.isCancelled,
+              );
+              await vpn.refreshPin();
+            };
       _setStatus(task.track, DownloadStatus.downloading);
       final presets = ref.read(audioSourcePresetsProvider);
       final container =
@@ -640,6 +717,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
             savePath: savePath,
             savePathFile: savePathFile,
             container: container,
+            beforeAttempt: vpnWaitHook,
           );
           return;
         }
@@ -696,6 +774,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
                 savePath: savePath,
                 savePathFile: savePathFile,
                 container: container,
+                beforeAttempt: vpnWaitHook,
               );
               return;
             } catch (e, stack) {
@@ -718,6 +797,16 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
         // Cancellation (including retry-loop abort) is not a failure.
         return;
       }
+      if (e is VpnCancelledException) {
+        // VPN wait aborted because the download itself was cancelled:
+        // same terminal state as a direct cancel, never a failure.
+        _setStatus(
+          task.track,
+          DownloadStatus.canceled,
+          sourceToken: task.cancelToken,
+        );
+        return;
+      }
       _setStatus(
         task.track,
         DownloadStatus.failed,
@@ -730,6 +819,10 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
         AppLogger.reportError(
             'Download failed for ${task.track.name}: $e', stack);
       }
+    } finally {
+      // Idempotent and non-throwing: safe after cancel, failure, or the
+      // early completed/canceled returns above.
+      await vpnLease?.release();
     }
   }
 
@@ -759,6 +852,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     required String savePath,
     required File savePathFile,
     required SpotubeAudioSourceContainerPreset container,
+    Future<void> Function()? beforeAttempt,
   }) async {
     var lastProgressEmit = DateTime.fromMillisecondsSinceEpoch(0);
     final response = await _chunkDownloadWithRetry(
@@ -806,6 +900,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
         deleteOnError: true,
         fileAccessMode: FileAccessMode.write,
       ),
+      beforeAttempt: beforeAttempt,
     );
 
     if (response.statusCode != null && response.statusCode! < 400) {

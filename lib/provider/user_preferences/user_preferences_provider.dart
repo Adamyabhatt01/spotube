@@ -13,6 +13,7 @@ import 'package:spotube/modules/settings/color_scheme_picker_dialog.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
+import 'package:spotube/services/vpn/vpn_mode.dart';
 import 'package:spotube/utils/platform.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:open_file/open_file.dart';
@@ -350,6 +351,29 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
 
   void setThemeTransitionMs(int milliseconds) {
     setData(PreferencesTableCompanion(themeTransitionMs: Value(milliseconds)));
+  }
+
+  void setVpnMode(VpnMode mode) {
+    setData(PreferencesTableCompanion(vpnMode: Value(mode)));
+  }
+
+  void setVpnConnectionUuid(String? uuid) {
+    setData(PreferencesTableCompanion(vpnConnectionUuid: Value(uuid)));
+  }
+
+  void setVpnAutoDisconnect(bool autoDisconnect) {
+    setData(
+      PreferencesTableCompanion(vpnAutoDisconnect: Value(autoDisconnect)),
+    );
+  }
+
+  void setVpnWaitTimeoutSec(int seconds) {
+    final clamped = seconds.clamp(5, 600);
+    setData(PreferencesTableCompanion(vpnWaitTimeoutSec: Value(clamped)));
+  }
+
+  void setVpnDeviceName(String? deviceName) {
+    setData(PreferencesTableCompanion(vpnDeviceName: Value(deviceName)));
   }
 }
 

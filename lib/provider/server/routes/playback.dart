@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart' hide Response;
 import 'package:dio/dio.dart' as dio_lib;
+import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:mime/mime.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -19,11 +20,15 @@ import 'package:spotube/provider/audio_player/state.dart';
 import 'package:spotube/provider/server/active_track_sources.dart';
 import 'package:spotube/provider/server/sourced_track_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
+import 'package:spotube/provider/vpn/vpn_provider.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/playback_cache_mirror.dart';
 import 'package:spotube/services/sourced_track/source_resolver.dart';
 import 'package:spotube/services/sourced_track/sourced_track.dart';
+import 'package:spotube/services/vpn/vpn_lease.dart';
+import 'package:spotube/services/vpn/vpn_pin.dart';
+import 'package:spotube/services/vpn/pinned_client.dart';
 import 'package:spotube/utils/service_utils.dart';
 import 'package:spotube/utils/stream_url_expiry.dart';
 import 'package:spotube/utils/perf_counters.dart';
@@ -229,6 +234,11 @@ class ServerPlaybackRoutes {
           receiveTimeout: const Duration(seconds: 30),
           sendTimeout: const Duration(seconds: 15),
         )) {
+    // Source-pins sockets to the held VPN lease when one exists; delegates
+    // unpinned otherwise (gate off = old behavior).
+    dio.httpClientAdapter = IOHttpClientAdapter(
+      createHttpClient: () => createPinnedClient(VpnPinHolder.current),
+    );
     if (kPerfCountersEnabled) {
       dio.interceptors.add(const _UpstreamRequestCounter());
     }
@@ -420,6 +430,18 @@ class ServerPlaybackRoutes {
           );
   }
 
+  /// Acquires one VPN lease for a playback upstream fetch, or null when the
+  /// mode does not gate playback. Throws fail-closed when protection is
+  /// required but unavailable — the route handlers translate that into an
+  /// HTTP 500 (and never fall back to the normal connection).
+  ///
+  /// Local-file and cache-file serving happens before this point in both
+  /// handlers, so already-on-disk audio never takes a lease.
+  Future<VpnLease?> _acquirePlaybackLease() async {
+    if (!vpnGatesPlayback(ref)) return null;
+    return ref.read(vpnManagerProvider).acquire();
+  }
+
   Future<dio_lib.Response> streamTrackInformation(
     Request request,
     SourcedTrack track,
@@ -441,61 +463,66 @@ class ServerPlaybackRoutes {
       );
     }
 
-    String url = await resolveServingUrl(track);
-
-    final options = Options(
-      headers: {
-        "user-agent": _randomUserAgent,
-        "Cache-Control": "max-age=3600",
-        "Connection": "keep-alive",
-      },
-      validateStatus: (status) => status! < 400,
-    );
-
-    // HEAD preflight is advisory. Try the primary URL first; only on failure
-    // lazily resolve the cascade so the success path never builds plugins.
+    final VpnLease? vpnLease = await _acquirePlaybackLease();
     try {
-      final res = await dio.head(
-        url,
-        options: options.copyWith(
-          headers: {
-            ...?options.headers,
-            "host": Uri.parse(url).host,
-          },
-        ),
-      );
-      // The GET that follows would otherwise ask for this same answer again.
-      _rememberHeadProbe(track, url, res.headers.value("content-type"));
-      return res;
-    } catch (_) {
-      // fall through to cascade
-    }
+      String url = await resolveServingUrl(track);
 
-    Object? lastError;
-    StackTrace? lastStack;
-    for (final candidateUrl in await fallbackUrlsFor(track)) {
-      if (candidateUrl == url) continue;
+      final options = Options(
+        headers: {
+          "user-agent": _randomUserAgent,
+          "Cache-Control": "max-age=3600",
+          "Connection": "keep-alive",
+        },
+        validateStatus: (status) => status! < 400,
+      );
+
+      // HEAD preflight is advisory. Try the primary URL first; only on failure
+      // lazily resolve the cascade so the success path never builds plugins.
       try {
         final res = await dio.head(
-          candidateUrl,
+          url,
           options: options.copyWith(
             headers: {
               ...?options.headers,
-              "host": Uri.parse(candidateUrl).host,
+              "host": Uri.parse(url).host,
             },
           ),
         );
+        // The GET that follows would otherwise ask for this same answer again.
+        _rememberHeadProbe(track, url, res.headers.value("content-type"));
         return res;
-      } catch (e, stack) {
-        lastError = e;
-        lastStack = stack;
+      } catch (_) {
+        // fall through to cascade
       }
-    }
 
-    if (lastError case final Object error) {
-      Error.throwWithStackTrace(error, lastStack ?? StackTrace.current);
+      Object? lastError;
+      StackTrace? lastStack;
+      for (final candidateUrl in await fallbackUrlsFor(track)) {
+        if (candidateUrl == url) continue;
+        try {
+          final res = await dio.head(
+            candidateUrl,
+            options: options.copyWith(
+              headers: {
+                ...?options.headers,
+                "host": Uri.parse(candidateUrl).host,
+              },
+            ),
+          );
+          return res;
+        } catch (e, stack) {
+          lastError = e;
+          lastStack = stack;
+        }
+      }
+
+      if (lastError case final Object error) {
+        Error.throwWithStackTrace(error, lastStack ?? StackTrace.current);
+      }
+      throw Exception("All HEAD sources failed for ${track.query.name}");
+    } finally {
+      await vpnLease?.release();
     }
-    throw Exception("All HEAD sources failed for ${track.query.name}");
   }
 
   Future<dio_lib.Response> streamTrack(
@@ -522,148 +549,152 @@ class ServerPlaybackRoutes {
       );
     }
 
-    final primaryUrl = await resolveServingUrl(track);
-
-    final baseHeaders = <String, dynamic>{
-      ...headers,
-      "user-agent": _randomUserAgent,
-      "Cache-Control": "max-age=3600",
-      "Connection": "keep-alive",
-    };
-    final options = Options(
-      headers: baseHeaders,
-      responseType: ResponseType.stream,
-      validateStatus: (status) => status! < 400,
-    );
-    Options optionsFor(String url) => Options(
-          headers: headersWithHost(url, baseHeaders),
-          responseType: options.responseType,
-          validateStatus: options.validateStatus,
-        );
-
-    // HEAD preflight on the primary URL, including a one-time URL refresh
-    // on failure (preserves the original behavior). A detected m3u8 stream
-    // is redirected directly since it handles range requests internally.
-    //
-    // mpv HEADs a URL before it GETs it, so [streamTrackInformation] has
-    // usually already paid for this exact answer on the same URL — reuse it
-    // instead of spending a second upstream round trip before every stream.
-    var url = primaryUrl;
-    var probedContentType = _reuseHeadProbe(track, url);
-    if (probedContentType == null) {
-      try {
-        final probed = await dio.head(
-          url,
-          options: optionsFor(url).copyWith(responseType: ResponseType.bytes),
-        );
-        probedContentType = probed.headers.value("content-type");
-      } catch (e, stack) {
-        AppLogger.reportError(e, stack);
-
-        // Shared with the proactive refresh in resolveServingUrl above.
-        final sourcedTrack =
-            await _refreshStreamingUrlOnce(track.query);
-
-        url = sourcedTrack.url!;
-
-        probedContentType = (await dio.head(
-          url,
-          options: optionsFor(url),
-        ))
-            .headers
-            .value("content-type");
-      }
-      _rememberHeadProbe(track, url, probedContentType);
-    }
-
-    if (probedContentType == "application/vnd.apple.mpegurl") {
-      return dio_lib.Response<Uint8List>(
-        statusCode: 301,
-        statusMessage: "M3U8 Redirect",
-        headers: Headers.fromMap({
-          "location": [url],
-          "content-type": ["application/vnd.apple.mpegurl"],
-        }),
-        requestOptions: RequestOptions(path: request.requestedUri.toString()),
-        isRedirect: true,
-      );
-    }
-
-    // The actual stream GET is the real failure point. Try the primary URL
-    // first; only if it fails, lazily resolve the source cascade (siblings,
-    // other engines/plugins) so the expensive plugin construction never runs
-    // on the normal success path.
-    dio_lib.Response<ResponseBody>? res;
-    Object? lastError;
-    StackTrace? lastStack;
-
+    final VpnLease? vpnLease = await _acquirePlaybackLease();
     try {
-      res = await dio.get<ResponseBody>(url, options: optionsFor(url));
-    } catch (e, stack) {
-      lastError = e;
-      lastStack = stack;
-      AppLogger.reportError(e, stack);
-    }
+      final primaryUrl = await resolveServingUrl(track);
 
-    if (res == null) {
-      for (final fallbackUrl in await fallbackUrlsFor(track)) {
-        if (fallbackUrl == url) continue;
-        try {
-          res = await dio.get<ResponseBody>(
-            fallbackUrl,
-            options: optionsFor(fallbackUrl),
+      final baseHeaders = <String, dynamic>{
+        ...headers,
+        "user-agent": _randomUserAgent,
+        "Cache-Control": "max-age=3600",
+        "Connection": "keep-alive",
+      };
+      final options = Options(
+        headers: baseHeaders,
+        responseType: ResponseType.stream,
+        validateStatus: (status) => status! < 400,
+      );
+      Options optionsFor(String url) => Options(
+            headers: headersWithHost(url, baseHeaders),
+            responseType: options.responseType,
+            validateStatus: options.validateStatus,
           );
-          url = fallbackUrl;
-          break;
+
+      // HEAD preflight on the primary URL, including a one-time URL refresh
+      // on failure (preserves the original behavior). A detected m3u8 stream
+      // is redirected directly since it handles range requests internally.
+      //
+      // mpv HEADs a URL before it GETs it, so [streamTrackInformation] has
+      // usually already paid for this exact answer on the same URL — reuse it
+      // instead of spending a second upstream round trip before every stream.
+      var url = primaryUrl;
+      var probedContentType = _reuseHeadProbe(track, url);
+      if (probedContentType == null) {
+        try {
+          final probed = await dio.head(
+            url,
+            options: optionsFor(url).copyWith(responseType: ResponseType.bytes),
+          );
+          probedContentType = probed.headers.value("content-type");
         } catch (e, stack) {
-          lastError = e;
-          lastStack = stack;
           AppLogger.reportError(e, stack);
+
+          // Shared with the proactive refresh in resolveServingUrl above.
+          final sourcedTrack = await _refreshStreamingUrlOnce(track.query);
+
+          url = sourcedTrack.url!;
+
+          probedContentType = (await dio.head(
+            url,
+            options: optionsFor(url),
+          ))
+              .headers
+              .value("content-type");
+        }
+        _rememberHeadProbe(track, url, probedContentType);
+      }
+
+      if (probedContentType == "application/vnd.apple.mpegurl") {
+        return dio_lib.Response<Uint8List>(
+          statusCode: 301,
+          statusMessage: "M3U8 Redirect",
+          headers: Headers.fromMap({
+            "location": [url],
+            "content-type": ["application/vnd.apple.mpegurl"],
+          }),
+          requestOptions: RequestOptions(path: request.requestedUri.toString()),
+          isRedirect: true,
+        );
+      }
+
+      // The actual stream GET is the real failure point. Try the primary URL
+      // first; only if it fails, lazily resolve the source cascade (siblings,
+      // other engines/plugins) so the expensive plugin construction never runs
+      // on the normal success path.
+      dio_lib.Response<ResponseBody>? res;
+      Object? lastError;
+      StackTrace? lastStack;
+
+      try {
+        res = await dio.get<ResponseBody>(url, options: optionsFor(url));
+      } catch (e, stack) {
+        lastError = e;
+        lastStack = stack;
+        AppLogger.reportError(e, stack);
+      }
+
+      if (res == null) {
+        for (final fallbackUrl in await fallbackUrlsFor(track)) {
+          if (fallbackUrl == url) continue;
+          try {
+            res = await dio.get<ResponseBody>(
+              fallbackUrl,
+              options: optionsFor(fallbackUrl),
+            );
+            url = fallbackUrl;
+            break;
+          } catch (e, stack) {
+            lastError = e;
+            lastStack = stack;
+            AppLogger.reportError(e, stack);
+          }
         }
       }
-    }
 
-    if (res == null) {
-      if (lastError case final Object error) {
-        Error.throwWithStackTrace(error, lastStack ?? StackTrace.current);
+      if (res == null) {
+        if (lastError case final Object error) {
+          Error.throwWithStackTrace(error, lastStack ?? StackTrace.current);
+        }
+        throw Exception("All stream sources failed for ${track.query.name}");
       }
-      throw Exception("All stream sources failed for ${track.query.name}");
-    }
 
-    AppLogger.log.i(
-      "Response for track: ${track.query.name}\n"
-      "Status Code: ${res.statusCode}\n"
-      "Headers: ${res.headers.map}",
-    );
-
-    if (!userPreferences.cacheMusic) {
-      return res;
-    }
-
-    // Only responses that cover the whole file in one sequential write are
-    // safe to mirror into the cache; partial/seek ranges stream through
-    // untouched (see [PlaybackCacheMirror.completeCoverLength]).
-    final expectedTotal = PlaybackCacheMirror.completeCoverLength(
-      statusCode: res.statusCode,
-      contentRangeHeader: res.headers.value("content-range"),
-      contentLengthHeader: res.headers.value("content-length"),
-    );
-
-    PlaybackCacheMirror? mirror;
-    if (expectedTotal != null) {
-      mirror = PlaybackCacheMirror.tryBegin(
-        cacheFile: trackCacheFile,
-        expectedTotal: expectedTotal,
-        onComplete: (fileLength) => _finalizeCachedTrack(track, fileLength),
+      AppLogger.log.i(
+        "Response for track: ${track.query.name}\n"
+        "Status Code: ${res.statusCode}\n"
+        "Headers: ${res.headers.map}",
       );
-    }
 
-    if (mirror != null) {
-      res.data?.stream = await mirror.attach(res.data!.stream);
-    } else {
-      res.data?.stream = res.data!.stream.asBroadcastStream();
+      if (!userPreferences.cacheMusic) {
+        return res;
+      }
+
+      // Only responses that cover the whole file in one sequential write are
+      // safe to mirror into the cache; partial/seek ranges stream through
+      // untouched (see [PlaybackCacheMirror.completeCoverLength]).
+      final expectedTotal = PlaybackCacheMirror.completeCoverLength(
+        statusCode: res.statusCode,
+        contentRangeHeader: res.headers.value("content-range"),
+        contentLengthHeader: res.headers.value("content-length"),
+      );
+
+      PlaybackCacheMirror? mirror;
+      if (expectedTotal != null) {
+        mirror = PlaybackCacheMirror.tryBegin(
+          cacheFile: trackCacheFile,
+          expectedTotal: expectedTotal,
+          onComplete: (fileLength) => _finalizeCachedTrack(track, fileLength),
+        );
+      }
+
+      if (mirror != null) {
+        res.data?.stream = await mirror.attach(res.data!.stream);
+      } else {
+        res.data?.stream = res.data!.stream.asBroadcastStream();
+      }
+      return res;
+    } finally {
+      await vpnLease?.release();
     }
-    return res;
   }
 
   /// Runs after a complete cache file has been written and renamed:

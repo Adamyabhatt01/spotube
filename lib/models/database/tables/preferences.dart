@@ -83,8 +83,8 @@ class PreferencesTable extends Table {
   // this database (the model transitively imports dart:ui), and the
   // fallback stringifies `.name` expressions without their imports,
   // producing uncompilable snapshots. Literals keep codegen reproducible.
-  TextColumn get closeBehavior => textEnum<CloseBehavior>()
-      .withDefault(const Constant("close"))();
+  TextColumn get closeBehavior =>
+      textEnum<CloseBehavior>().withDefault(const Constant("close"))();
   TextColumn get accentColorScheme => text()
       .withDefault(const Constant("Slate:0xff64748b"))
       .map(const SpotubeColorConverter())();
@@ -115,23 +115,39 @@ class PreferencesTable extends Table {
       boolean().withDefault(const Constant(false))();
   IntColumn get connectPort => integer().withDefault(const Constant(-1))();
   BoolColumn get cacheMusic => boolean().withDefault(const Constant(true))();
-  TextColumn get sourcePriority => text().withDefault(const Constant(""))
-      .map(const StringListConverter())();
-  TextColumn get sidebarLibraryOrder => text().withDefault(const Constant(""))
-      .map(const StringListConverter())();
-  TextColumn get pinnedPlaylistIds => text().withDefault(const Constant(""))
-      .map(const StringListConverter())();
+  TextColumn get sourcePriority =>
+      text().withDefault(const Constant("")).map(const StringListConverter())();
+  TextColumn get sidebarLibraryOrder =>
+      text().withDefault(const Constant("")).map(const StringListConverter())();
+  TextColumn get pinnedPlaylistIds =>
+      text().withDefault(const Constant("")).map(const StringListConverter())();
   BoolColumn get autoDownloadQuality =>
       boolean().withDefault(const Constant(false))();
   BoolColumn get themeTransition =>
       boolean().withDefault(const Constant(false))();
   IntColumn get themeTransitionMs =>
       integer().withDefault(const Constant(250))();
-  TextColumn get volumeControlMode => textEnum<VolumeControlMode>()
-      .withDefault(const Constant("always"))();
-  TextColumn get playerDock => textEnum<PlayerDock>()
-      .withDefault(const Constant("fullWidth"))();
+  TextColumn get volumeControlMode =>
+      textEnum<VolumeControlMode>().withDefault(const Constant("always"))();
+  TextColumn get playerDock =>
+      textEnum<PlayerDock>().withDefault(const Constant("fullWidth"))();
   IntColumn get lastUpdateCheckMs => integer().withDefault(const Constant(0))();
+  // Automatic VPN (user-owned system connection, opt-in). Disabled by
+  // default: zero behavioral change unless the user selects a mode AND a
+  // system connection. Enum default is a string literal on purpose (see
+  // the note on closeBehavior above).
+  TextColumn get vpnMode =>
+      textEnum<VpnMode>().withDefault(const Constant("disabled"))();
+  TextColumn get vpnConnectionUuid => text().nullable()();
+  BoolColumn get vpnAutoDisconnect =>
+      boolean().withDefault(const Constant(true))();
+  IntColumn get vpnWaitTimeoutSec =>
+      integer().withDefault(const Constant(60))();
+  // Share-only tunnel device (e.g. a provider app's tun interface).
+  // Alternative to [vpnConnectionUuid]: when set (and no UUID is set), the
+  // manager waits for and shares this live device without ever activating
+  // or deactivating anything. Null by default.
+  TextColumn get vpnDeviceName => text().nullable()();
 
   static PreferencesTableData defaults() {
     return PreferencesTableData(
@@ -170,6 +186,11 @@ class PreferencesTable extends Table {
       volumeControlMode: VolumeControlMode.always,
       playerDock: PlayerDock.fullWidth,
       lastUpdateCheckMs: 0,
+      vpnMode: VpnMode.disabled,
+      vpnConnectionUuid: null,
+      vpnAutoDisconnect: true,
+      vpnWaitTimeoutSec: 60,
+      vpnDeviceName: null,
     );
   }
 }

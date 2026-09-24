@@ -55,6 +55,7 @@ import 'package:spotube/services/kv_store/encrypted_kv_store.dart';
 import 'package:spotube/services/kv_store/kv_store.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/connectivity_adapter.dart';
+import 'package:spotube/services/vpn/nmcli_backend.dart';
 import 'package:spotube/services/wm_tools/wm_tools.dart';
 import 'package:spotube/utils/migrations/sandbox.dart';
 import 'package:spotube/utils/platform.dart';
@@ -170,6 +171,19 @@ Future<void> _initDeferredServices() async {
     // post-startup. Initializing with first paint instead of before it.
     if (!kIsWeb) {
       MetadataGod.initialize();
+    }
+  });
+  await guardedStartupInit('Vpn.probe', () async {
+    // Read-only readiness check: no connection is touched, no state is
+    // changed. A missing backend only matters when the user opts in —
+    // the first gated operation then fails closed with an explicit error.
+    if (kIsLinux) {
+      final nmcli = await RealNmcliBackend().resolveNmcliPath();
+      if (nmcli == null) {
+        AppLogger.log.w('Vpn automation unavailable (no nmcli on PATH)');
+      } else {
+        AppLogger.log.i('Vpn backend ready (nmcli at $nmcli)');
+      }
     }
   });
 }

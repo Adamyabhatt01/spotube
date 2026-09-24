@@ -1355,6 +1355,88 @@ class AppLocalizationsEn extends AppLocalizations {
   String get player_dock_docked => 'Docked';
 
   @override
+  String get automatic_vpn => 'Automatic VPN';
+
+  @override
+  String get automatic_vpn_description =>
+      'Use your existing system VPN connection for the selected activity. Disabled leaves all traffic as before.';
+
+  @override
+  String get vpn_disabled => 'Disabled';
+
+  @override
+  String get vpn_downloads_only => 'Downloads';
+
+  @override
+  String get vpn_playback_only => 'Playback';
+
+  @override
+  String get vpn_downloads_and_playback => 'Downloads + playback';
+
+  @override
+  String get vpn_connection => 'VPN connection';
+
+  @override
+  String get vpn_connection_description =>
+      'Which of your system VPN connections Spotube may activate. Authentication stays with the system.';
+
+  @override
+  String get vpn_no_connection_selected => 'No connection selected';
+
+  @override
+  String get vpn_no_connections_found => 'No system VPN connections found';
+
+  @override
+  String get vpn_unsupported =>
+      'Automatic VPN is not supported on this platform yet';
+
+  @override
+  String get vpn_auto_disconnect => 'Disconnect when done';
+
+  @override
+  String get vpn_auto_disconnect_description =>
+      'When off, a VPN Spotube started stays connected after downloads finish. Connections you started yourself are never disconnected.';
+
+  @override
+  String get vpn_wait_timeout => 'VPN wait timeout';
+
+  @override
+  String get vpn_wait_timeout_description =>
+      'How long a protected download waits for the VPN before failing. The download pauses instead of switching to the normal connection.';
+
+  @override
+  String get vpn_system_connections => 'System connections';
+
+  @override
+  String get vpn_system_connections_description =>
+      'Connections Spotube may activate and deactivate itself.';
+
+  @override
+  String get vpn_active_tunnels => 'Active tunnels (app-managed)';
+
+  @override
+  String get vpn_active_tunnels_description =>
+      'Tunnels from your VPN app, shared as-is: Spotube waits for and uses the selected tunnel without connecting or disconnecting it.';
+
+  @override
+  String get vpn_no_tunnels_found =>
+      'No tunnel interfaces found — connect your VPN first.';
+
+  @override
+  String get vpn_clear_selection => 'None';
+
+  @override
+  String get vpn_tunnel_addresses => 'addresses';
+
+  @override
+  String vpn_selected_tunnel(Object name) {
+    return 'Tunnel: $name';
+  }
+
+  @override
+  String get vpn_selected_system => 'System connection';
+
+  @override
   String get sidebar => 'Sidebar';
 
   @override

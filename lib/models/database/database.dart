@@ -20,6 +20,7 @@ import 'package:flutter/widgets.dart' hide Table, Key, View;
 import 'package:spotube/modules/settings/color_scheme_picker_dialog.dart';
 import 'package:drift/native.dart';
 import 'package:spotube/services/logger/logger.dart';
+import 'package:spotube/services/vpn/vpn_mode.dart';
 import 'package:spotube/services/youtube_engine/newpipe_engine.dart';
 import 'package:spotube/services/youtube_engine/youtube_explode_engine.dart';
 import 'package:spotube/services/youtube_engine/yt_dlp_engine.dart';
@@ -83,7 +84,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 22;
 
   /// Raw DDL for the quarantine table, kept as a constant so the v11->v12
   /// step can create it idempotently (`IF NOT EXISTS`) without depending
@@ -748,6 +749,61 @@ class AppDatabase extends _$AppDatabase {
               await m.addColumn(
                 schema.preferencesTable,
                 schema.preferencesTable.playerDock,
+              );
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from20To21: (m, schema) async {
+          try {
+            // Automatic VPN settings (opt-in, disabled by default).
+            // Same kill-between-ALTERs guard as every step since v12.
+            if (!(await _tableColumns('preferences_table'))
+                .contains('vpn_mode')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.vpnMode,
+              );
+            }
+            if (!(await _tableColumns('preferences_table'))
+                .contains('vpn_connection_uuid')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.vpnConnectionUuid,
+              );
+            }
+            if (!(await _tableColumns('preferences_table'))
+                .contains('vpn_auto_disconnect')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.vpnAutoDisconnect,
+              );
+            }
+            if (!(await _tableColumns('preferences_table'))
+                .contains('vpn_wait_timeout_sec')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.vpnWaitTimeoutSec,
+              );
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from21To22: (m, schema) async {
+          try {
+            // Share-only tunnel device for provider-app VPNs. Nullable with
+            // no default: existing rows read NULL, which means "no device
+            // selected". Same kill-between-ALTERs guard as every step
+            // since v12.
+            if (!(await _tableColumns('preferences_table'))
+                .contains('vpn_device_name')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.vpnDeviceName,
               );
             }
           } catch (e, stack) {

@@ -845,6 +845,43 @@ class $PreferencesTableTable extends PreferencesTable
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
   @override
+  late final GeneratedColumnWithTypeConverter<VpnMode, String> vpnMode =
+      GeneratedColumn<String>('vpn_mode', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant("disabled"))
+          .withConverter<VpnMode>($PreferencesTableTable.$convertervpnMode);
+  static const VerificationMeta _vpnConnectionUuidMeta =
+      const VerificationMeta('vpnConnectionUuid');
+  @override
+  late final GeneratedColumn<String> vpnConnectionUuid =
+      GeneratedColumn<String>('vpn_connection_uuid', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _vpnAutoDisconnectMeta =
+      const VerificationMeta('vpnAutoDisconnect');
+  @override
+  late final GeneratedColumn<bool> vpnAutoDisconnect = GeneratedColumn<bool>(
+      'vpn_auto_disconnect', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("vpn_auto_disconnect" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _vpnWaitTimeoutSecMeta =
+      const VerificationMeta('vpnWaitTimeoutSec');
+  @override
+  late final GeneratedColumn<int> vpnWaitTimeoutSec = GeneratedColumn<int>(
+      'vpn_wait_timeout_sec', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(60));
+  static const VerificationMeta _vpnDeviceNameMeta =
+      const VerificationMeta('vpnDeviceName');
+  @override
+  late final GeneratedColumn<String> vpnDeviceName = GeneratedColumn<String>(
+      'vpn_device_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
   List<GeneratedColumn> get $columns => [
         id,
         albumColorSync,
@@ -878,7 +915,12 @@ class $PreferencesTableTable extends PreferencesTable
         themeTransitionMs,
         volumeControlMode,
         playerDock,
-        lastUpdateCheckMs
+        lastUpdateCheckMs,
+        vpnMode,
+        vpnConnectionUuid,
+        vpnAutoDisconnect,
+        vpnWaitTimeoutSec,
+        vpnDeviceName
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1002,6 +1044,30 @@ class $PreferencesTableTable extends PreferencesTable
           lastUpdateCheckMs.isAcceptableOrUnknown(
               data['last_update_check_ms']!, _lastUpdateCheckMsMeta));
     }
+    if (data.containsKey('vpn_connection_uuid')) {
+      context.handle(
+          _vpnConnectionUuidMeta,
+          vpnConnectionUuid.isAcceptableOrUnknown(
+              data['vpn_connection_uuid']!, _vpnConnectionUuidMeta));
+    }
+    if (data.containsKey('vpn_auto_disconnect')) {
+      context.handle(
+          _vpnAutoDisconnectMeta,
+          vpnAutoDisconnect.isAcceptableOrUnknown(
+              data['vpn_auto_disconnect']!, _vpnAutoDisconnectMeta));
+    }
+    if (data.containsKey('vpn_wait_timeout_sec')) {
+      context.handle(
+          _vpnWaitTimeoutSecMeta,
+          vpnWaitTimeoutSec.isAcceptableOrUnknown(
+              data['vpn_wait_timeout_sec']!, _vpnWaitTimeoutSecMeta));
+    }
+    if (data.containsKey('vpn_device_name')) {
+      context.handle(
+          _vpnDeviceNameMeta,
+          vpnDeviceName.isAcceptableOrUnknown(
+              data['vpn_device_name']!, _vpnDeviceNameMeta));
+    }
     return context;
   }
 
@@ -1092,6 +1158,17 @@ class $PreferencesTableTable extends PreferencesTable
               DriftSqlType.string, data['${effectivePrefix}player_dock'])!),
       lastUpdateCheckMs: attachedDatabase.typeMapping.read(
           DriftSqlType.int, data['${effectivePrefix}last_update_check_ms'])!,
+      vpnMode: $PreferencesTableTable.$convertervpnMode.fromSql(attachedDatabase
+          .typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}vpn_mode'])!),
+      vpnConnectionUuid: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}vpn_connection_uuid']),
+      vpnAutoDisconnect: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}vpn_auto_disconnect'])!,
+      vpnWaitTimeoutSec: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}vpn_wait_timeout_sec'])!,
+      vpnDeviceName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}vpn_device_name']),
     );
   }
 
@@ -1131,6 +1208,8 @@ class $PreferencesTableTable extends PreferencesTable
       const EnumNameConverter<VolumeControlMode>(VolumeControlMode.values);
   static JsonTypeConverter2<PlayerDock, String, String> $converterplayerDock =
       const EnumNameConverter<PlayerDock>(PlayerDock.values);
+  static JsonTypeConverter2<VpnMode, String, String> $convertervpnMode =
+      const EnumNameConverter<VpnMode>(VpnMode.values);
 }
 
 class PreferencesTableData extends DataClass
@@ -1168,6 +1247,11 @@ class PreferencesTableData extends DataClass
   final VolumeControlMode volumeControlMode;
   final PlayerDock playerDock;
   final int lastUpdateCheckMs;
+  final VpnMode vpnMode;
+  final String? vpnConnectionUuid;
+  final bool vpnAutoDisconnect;
+  final int vpnWaitTimeoutSec;
+  final String? vpnDeviceName;
   const PreferencesTableData(
       {required this.id,
       required this.albumColorSync,
@@ -1201,7 +1285,12 @@ class PreferencesTableData extends DataClass
       required this.themeTransitionMs,
       required this.volumeControlMode,
       required this.playerDock,
-      required this.lastUpdateCheckMs});
+      required this.lastUpdateCheckMs,
+      required this.vpnMode,
+      this.vpnConnectionUuid,
+      required this.vpnAutoDisconnect,
+      required this.vpnWaitTimeoutSec,
+      this.vpnDeviceName});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1289,6 +1378,18 @@ class PreferencesTableData extends DataClass
           $PreferencesTableTable.$converterplayerDock.toSql(playerDock));
     }
     map['last_update_check_ms'] = Variable<int>(lastUpdateCheckMs);
+    {
+      map['vpn_mode'] = Variable<String>(
+          $PreferencesTableTable.$convertervpnMode.toSql(vpnMode));
+    }
+    if (!nullToAbsent || vpnConnectionUuid != null) {
+      map['vpn_connection_uuid'] = Variable<String>(vpnConnectionUuid);
+    }
+    map['vpn_auto_disconnect'] = Variable<bool>(vpnAutoDisconnect);
+    map['vpn_wait_timeout_sec'] = Variable<int>(vpnWaitTimeoutSec);
+    if (!nullToAbsent || vpnDeviceName != null) {
+      map['vpn_device_name'] = Variable<String>(vpnDeviceName);
+    }
     return map;
   }
 
@@ -1329,6 +1430,15 @@ class PreferencesTableData extends DataClass
       volumeControlMode: Value(volumeControlMode),
       playerDock: Value(playerDock),
       lastUpdateCheckMs: Value(lastUpdateCheckMs),
+      vpnMode: Value(vpnMode),
+      vpnConnectionUuid: vpnConnectionUuid == null && nullToAbsent
+          ? const Value.absent()
+          : Value(vpnConnectionUuid),
+      vpnAutoDisconnect: Value(vpnAutoDisconnect),
+      vpnWaitTimeoutSec: Value(vpnWaitTimeoutSec),
+      vpnDeviceName: vpnDeviceName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(vpnDeviceName),
     );
   }
 
@@ -1382,6 +1492,13 @@ class PreferencesTableData extends DataClass
       playerDock: $PreferencesTableTable.$converterplayerDock
           .fromJson(serializer.fromJson<String>(json['playerDock'])),
       lastUpdateCheckMs: serializer.fromJson<int>(json['lastUpdateCheckMs']),
+      vpnMode: $PreferencesTableTable.$convertervpnMode
+          .fromJson(serializer.fromJson<String>(json['vpnMode'])),
+      vpnConnectionUuid:
+          serializer.fromJson<String?>(json['vpnConnectionUuid']),
+      vpnAutoDisconnect: serializer.fromJson<bool>(json['vpnAutoDisconnect']),
+      vpnWaitTimeoutSec: serializer.fromJson<int>(json['vpnWaitTimeoutSec']),
+      vpnDeviceName: serializer.fromJson<String?>(json['vpnDeviceName']),
     );
   }
   @override
@@ -1433,6 +1550,12 @@ class PreferencesTableData extends DataClass
       'playerDock': serializer.toJson<String>(
           $PreferencesTableTable.$converterplayerDock.toJson(playerDock)),
       'lastUpdateCheckMs': serializer.toJson<int>(lastUpdateCheckMs),
+      'vpnMode': serializer.toJson<String>(
+          $PreferencesTableTable.$convertervpnMode.toJson(vpnMode)),
+      'vpnConnectionUuid': serializer.toJson<String?>(vpnConnectionUuid),
+      'vpnAutoDisconnect': serializer.toJson<bool>(vpnAutoDisconnect),
+      'vpnWaitTimeoutSec': serializer.toJson<int>(vpnWaitTimeoutSec),
+      'vpnDeviceName': serializer.toJson<String?>(vpnDeviceName),
     };
   }
 
@@ -1469,7 +1592,12 @@ class PreferencesTableData extends DataClass
           int? themeTransitionMs,
           VolumeControlMode? volumeControlMode,
           PlayerDock? playerDock,
-          int? lastUpdateCheckMs}) =>
+          int? lastUpdateCheckMs,
+          VpnMode? vpnMode,
+          Value<String?> vpnConnectionUuid = const Value.absent(),
+          bool? vpnAutoDisconnect,
+          int? vpnWaitTimeoutSec,
+          Value<String?> vpnDeviceName = const Value.absent()}) =>
       PreferencesTableData(
         id: id ?? this.id,
         albumColorSync: albumColorSync ?? this.albumColorSync,
@@ -1505,6 +1633,14 @@ class PreferencesTableData extends DataClass
         volumeControlMode: volumeControlMode ?? this.volumeControlMode,
         playerDock: playerDock ?? this.playerDock,
         lastUpdateCheckMs: lastUpdateCheckMs ?? this.lastUpdateCheckMs,
+        vpnMode: vpnMode ?? this.vpnMode,
+        vpnConnectionUuid: vpnConnectionUuid.present
+            ? vpnConnectionUuid.value
+            : this.vpnConnectionUuid,
+        vpnAutoDisconnect: vpnAutoDisconnect ?? this.vpnAutoDisconnect,
+        vpnWaitTimeoutSec: vpnWaitTimeoutSec ?? this.vpnWaitTimeoutSec,
+        vpnDeviceName:
+            vpnDeviceName.present ? vpnDeviceName.value : this.vpnDeviceName,
       );
   PreferencesTableData copyWithCompanion(PreferencesTableCompanion data) {
     return PreferencesTableData(
@@ -1593,6 +1729,19 @@ class PreferencesTableData extends DataClass
       lastUpdateCheckMs: data.lastUpdateCheckMs.present
           ? data.lastUpdateCheckMs.value
           : this.lastUpdateCheckMs,
+      vpnMode: data.vpnMode.present ? data.vpnMode.value : this.vpnMode,
+      vpnConnectionUuid: data.vpnConnectionUuid.present
+          ? data.vpnConnectionUuid.value
+          : this.vpnConnectionUuid,
+      vpnAutoDisconnect: data.vpnAutoDisconnect.present
+          ? data.vpnAutoDisconnect.value
+          : this.vpnAutoDisconnect,
+      vpnWaitTimeoutSec: data.vpnWaitTimeoutSec.present
+          ? data.vpnWaitTimeoutSec.value
+          : this.vpnWaitTimeoutSec,
+      vpnDeviceName: data.vpnDeviceName.present
+          ? data.vpnDeviceName.value
+          : this.vpnDeviceName,
     );
   }
 
@@ -1631,7 +1780,12 @@ class PreferencesTableData extends DataClass
           ..write('themeTransitionMs: $themeTransitionMs, ')
           ..write('volumeControlMode: $volumeControlMode, ')
           ..write('playerDock: $playerDock, ')
-          ..write('lastUpdateCheckMs: $lastUpdateCheckMs')
+          ..write('lastUpdateCheckMs: $lastUpdateCheckMs, ')
+          ..write('vpnMode: $vpnMode, ')
+          ..write('vpnConnectionUuid: $vpnConnectionUuid, ')
+          ..write('vpnAutoDisconnect: $vpnAutoDisconnect, ')
+          ..write('vpnWaitTimeoutSec: $vpnWaitTimeoutSec, ')
+          ..write('vpnDeviceName: $vpnDeviceName')
           ..write(')'))
         .toString();
   }
@@ -1670,7 +1824,12 @@ class PreferencesTableData extends DataClass
         themeTransitionMs,
         volumeControlMode,
         playerDock,
-        lastUpdateCheckMs
+        lastUpdateCheckMs,
+        vpnMode,
+        vpnConnectionUuid,
+        vpnAutoDisconnect,
+        vpnWaitTimeoutSec,
+        vpnDeviceName
       ]);
   @override
   bool operator ==(Object other) =>
@@ -1708,7 +1867,12 @@ class PreferencesTableData extends DataClass
           other.themeTransitionMs == this.themeTransitionMs &&
           other.volumeControlMode == this.volumeControlMode &&
           other.playerDock == this.playerDock &&
-          other.lastUpdateCheckMs == this.lastUpdateCheckMs);
+          other.lastUpdateCheckMs == this.lastUpdateCheckMs &&
+          other.vpnMode == this.vpnMode &&
+          other.vpnConnectionUuid == this.vpnConnectionUuid &&
+          other.vpnAutoDisconnect == this.vpnAutoDisconnect &&
+          other.vpnWaitTimeoutSec == this.vpnWaitTimeoutSec &&
+          other.vpnDeviceName == this.vpnDeviceName);
 }
 
 class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
@@ -1745,6 +1909,11 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
   final Value<VolumeControlMode> volumeControlMode;
   final Value<PlayerDock> playerDock;
   final Value<int> lastUpdateCheckMs;
+  final Value<VpnMode> vpnMode;
+  final Value<String?> vpnConnectionUuid;
+  final Value<bool> vpnAutoDisconnect;
+  final Value<int> vpnWaitTimeoutSec;
+  final Value<String?> vpnDeviceName;
   const PreferencesTableCompanion({
     this.id = const Value.absent(),
     this.albumColorSync = const Value.absent(),
@@ -1779,6 +1948,11 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.volumeControlMode = const Value.absent(),
     this.playerDock = const Value.absent(),
     this.lastUpdateCheckMs = const Value.absent(),
+    this.vpnMode = const Value.absent(),
+    this.vpnConnectionUuid = const Value.absent(),
+    this.vpnAutoDisconnect = const Value.absent(),
+    this.vpnWaitTimeoutSec = const Value.absent(),
+    this.vpnDeviceName = const Value.absent(),
   });
   PreferencesTableCompanion.insert({
     this.id = const Value.absent(),
@@ -1814,6 +1988,11 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.volumeControlMode = const Value.absent(),
     this.playerDock = const Value.absent(),
     this.lastUpdateCheckMs = const Value.absent(),
+    this.vpnMode = const Value.absent(),
+    this.vpnConnectionUuid = const Value.absent(),
+    this.vpnAutoDisconnect = const Value.absent(),
+    this.vpnWaitTimeoutSec = const Value.absent(),
+    this.vpnDeviceName = const Value.absent(),
   });
   static Insertable<PreferencesTableData> custom({
     Expression<int>? id,
@@ -1849,6 +2028,11 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     Expression<String>? volumeControlMode,
     Expression<String>? playerDock,
     Expression<int>? lastUpdateCheckMs,
+    Expression<String>? vpnMode,
+    Expression<String>? vpnConnectionUuid,
+    Expression<bool>? vpnAutoDisconnect,
+    Expression<int>? vpnWaitTimeoutSec,
+    Expression<String>? vpnDeviceName,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1889,6 +2073,11 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       if (volumeControlMode != null) 'volume_control_mode': volumeControlMode,
       if (playerDock != null) 'player_dock': playerDock,
       if (lastUpdateCheckMs != null) 'last_update_check_ms': lastUpdateCheckMs,
+      if (vpnMode != null) 'vpn_mode': vpnMode,
+      if (vpnConnectionUuid != null) 'vpn_connection_uuid': vpnConnectionUuid,
+      if (vpnAutoDisconnect != null) 'vpn_auto_disconnect': vpnAutoDisconnect,
+      if (vpnWaitTimeoutSec != null) 'vpn_wait_timeout_sec': vpnWaitTimeoutSec,
+      if (vpnDeviceName != null) 'vpn_device_name': vpnDeviceName,
     });
   }
 
@@ -1925,7 +2114,12 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       Value<int>? themeTransitionMs,
       Value<VolumeControlMode>? volumeControlMode,
       Value<PlayerDock>? playerDock,
-      Value<int>? lastUpdateCheckMs}) {
+      Value<int>? lastUpdateCheckMs,
+      Value<VpnMode>? vpnMode,
+      Value<String?>? vpnConnectionUuid,
+      Value<bool>? vpnAutoDisconnect,
+      Value<int>? vpnWaitTimeoutSec,
+      Value<String?>? vpnDeviceName}) {
     return PreferencesTableCompanion(
       id: id ?? this.id,
       albumColorSync: albumColorSync ?? this.albumColorSync,
@@ -1960,6 +2154,11 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       volumeControlMode: volumeControlMode ?? this.volumeControlMode,
       playerDock: playerDock ?? this.playerDock,
       lastUpdateCheckMs: lastUpdateCheckMs ?? this.lastUpdateCheckMs,
+      vpnMode: vpnMode ?? this.vpnMode,
+      vpnConnectionUuid: vpnConnectionUuid ?? this.vpnConnectionUuid,
+      vpnAutoDisconnect: vpnAutoDisconnect ?? this.vpnAutoDisconnect,
+      vpnWaitTimeoutSec: vpnWaitTimeoutSec ?? this.vpnWaitTimeoutSec,
+      vpnDeviceName: vpnDeviceName ?? this.vpnDeviceName,
     );
   }
 
@@ -2087,6 +2286,22 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     if (lastUpdateCheckMs.present) {
       map['last_update_check_ms'] = Variable<int>(lastUpdateCheckMs.value);
     }
+    if (vpnMode.present) {
+      map['vpn_mode'] = Variable<String>(
+          $PreferencesTableTable.$convertervpnMode.toSql(vpnMode.value));
+    }
+    if (vpnConnectionUuid.present) {
+      map['vpn_connection_uuid'] = Variable<String>(vpnConnectionUuid.value);
+    }
+    if (vpnAutoDisconnect.present) {
+      map['vpn_auto_disconnect'] = Variable<bool>(vpnAutoDisconnect.value);
+    }
+    if (vpnWaitTimeoutSec.present) {
+      map['vpn_wait_timeout_sec'] = Variable<int>(vpnWaitTimeoutSec.value);
+    }
+    if (vpnDeviceName.present) {
+      map['vpn_device_name'] = Variable<String>(vpnDeviceName.value);
+    }
     return map;
   }
 
@@ -2125,7 +2340,12 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           ..write('themeTransitionMs: $themeTransitionMs, ')
           ..write('volumeControlMode: $volumeControlMode, ')
           ..write('playerDock: $playerDock, ')
-          ..write('lastUpdateCheckMs: $lastUpdateCheckMs')
+          ..write('lastUpdateCheckMs: $lastUpdateCheckMs, ')
+          ..write('vpnMode: $vpnMode, ')
+          ..write('vpnConnectionUuid: $vpnConnectionUuid, ')
+          ..write('vpnAutoDisconnect: $vpnAutoDisconnect, ')
+          ..write('vpnWaitTimeoutSec: $vpnWaitTimeoutSec, ')
+          ..write('vpnDeviceName: $vpnDeviceName')
           ..write(')'))
         .toString();
   }
@@ -6611,6 +6831,11 @@ typedef $$PreferencesTableTableCreateCompanionBuilder
   Value<VolumeControlMode> volumeControlMode,
   Value<PlayerDock> playerDock,
   Value<int> lastUpdateCheckMs,
+  Value<VpnMode> vpnMode,
+  Value<String?> vpnConnectionUuid,
+  Value<bool> vpnAutoDisconnect,
+  Value<int> vpnWaitTimeoutSec,
+  Value<String?> vpnDeviceName,
 });
 typedef $$PreferencesTableTableUpdateCompanionBuilder
     = PreferencesTableCompanion Function({
@@ -6647,6 +6872,11 @@ typedef $$PreferencesTableTableUpdateCompanionBuilder
   Value<VolumeControlMode> volumeControlMode,
   Value<PlayerDock> playerDock,
   Value<int> lastUpdateCheckMs,
+  Value<VpnMode> vpnMode,
+  Value<String?> vpnConnectionUuid,
+  Value<bool> vpnAutoDisconnect,
+  Value<int> vpnWaitTimeoutSec,
+  Value<String?> vpnDeviceName,
 });
 
 class $$PreferencesTableTableFilterComposer
@@ -6797,6 +7027,26 @@ class $$PreferencesTableTableFilterComposer
   ColumnFilters<int> get lastUpdateCheckMs => $composableBuilder(
       column: $table.lastUpdateCheckMs,
       builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<VpnMode, VpnMode, String> get vpnMode =>
+      $composableBuilder(
+          column: $table.vpnMode,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnFilters<String> get vpnConnectionUuid => $composableBuilder(
+      column: $table.vpnConnectionUuid,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get vpnAutoDisconnect => $composableBuilder(
+      column: $table.vpnAutoDisconnect,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get vpnWaitTimeoutSec => $composableBuilder(
+      column: $table.vpnWaitTimeoutSec,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get vpnDeviceName => $composableBuilder(
+      column: $table.vpnDeviceName, builder: (column) => ColumnFilters(column));
 }
 
 class $$PreferencesTableTableOrderingComposer
@@ -6929,6 +7179,25 @@ class $$PreferencesTableTableOrderingComposer
   ColumnOrderings<int> get lastUpdateCheckMs => $composableBuilder(
       column: $table.lastUpdateCheckMs,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get vpnMode => $composableBuilder(
+      column: $table.vpnMode, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get vpnConnectionUuid => $composableBuilder(
+      column: $table.vpnConnectionUuid,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get vpnAutoDisconnect => $composableBuilder(
+      column: $table.vpnAutoDisconnect,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get vpnWaitTimeoutSec => $composableBuilder(
+      column: $table.vpnWaitTimeoutSec,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get vpnDeviceName => $composableBuilder(
+      column: $table.vpnDeviceName,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$PreferencesTableTableAnnotationComposer
@@ -7049,6 +7318,21 @@ class $$PreferencesTableTableAnnotationComposer
 
   GeneratedColumn<int> get lastUpdateCheckMs => $composableBuilder(
       column: $table.lastUpdateCheckMs, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<VpnMode, String> get vpnMode =>
+      $composableBuilder(column: $table.vpnMode, builder: (column) => column);
+
+  GeneratedColumn<String> get vpnConnectionUuid => $composableBuilder(
+      column: $table.vpnConnectionUuid, builder: (column) => column);
+
+  GeneratedColumn<bool> get vpnAutoDisconnect => $composableBuilder(
+      column: $table.vpnAutoDisconnect, builder: (column) => column);
+
+  GeneratedColumn<int> get vpnWaitTimeoutSec => $composableBuilder(
+      column: $table.vpnWaitTimeoutSec, builder: (column) => column);
+
+  GeneratedColumn<String> get vpnDeviceName => $composableBuilder(
+      column: $table.vpnDeviceName, builder: (column) => column);
 }
 
 class $$PreferencesTableTableTableManager extends RootTableManager<
@@ -7113,6 +7397,11 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<VolumeControlMode> volumeControlMode = const Value.absent(),
             Value<PlayerDock> playerDock = const Value.absent(),
             Value<int> lastUpdateCheckMs = const Value.absent(),
+            Value<VpnMode> vpnMode = const Value.absent(),
+            Value<String?> vpnConnectionUuid = const Value.absent(),
+            Value<bool> vpnAutoDisconnect = const Value.absent(),
+            Value<int> vpnWaitTimeoutSec = const Value.absent(),
+            Value<String?> vpnDeviceName = const Value.absent(),
           }) =>
               PreferencesTableCompanion(
             id: id,
@@ -7148,6 +7437,11 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             volumeControlMode: volumeControlMode,
             playerDock: playerDock,
             lastUpdateCheckMs: lastUpdateCheckMs,
+            vpnMode: vpnMode,
+            vpnConnectionUuid: vpnConnectionUuid,
+            vpnAutoDisconnect: vpnAutoDisconnect,
+            vpnWaitTimeoutSec: vpnWaitTimeoutSec,
+            vpnDeviceName: vpnDeviceName,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -7184,6 +7478,11 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<VolumeControlMode> volumeControlMode = const Value.absent(),
             Value<PlayerDock> playerDock = const Value.absent(),
             Value<int> lastUpdateCheckMs = const Value.absent(),
+            Value<VpnMode> vpnMode = const Value.absent(),
+            Value<String?> vpnConnectionUuid = const Value.absent(),
+            Value<bool> vpnAutoDisconnect = const Value.absent(),
+            Value<int> vpnWaitTimeoutSec = const Value.absent(),
+            Value<String?> vpnDeviceName = const Value.absent(),
           }) =>
               PreferencesTableCompanion.insert(
             id: id,
@@ -7219,6 +7518,11 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             volumeControlMode: volumeControlMode,
             playerDock: playerDock,
             lastUpdateCheckMs: lastUpdateCheckMs,
+            vpnMode: vpnMode,
+            vpnConnectionUuid: vpnConnectionUuid,
+            vpnAutoDisconnect: vpnAutoDisconnect,
+            vpnWaitTimeoutSec: vpnWaitTimeoutSec,
+            vpnDeviceName: vpnDeviceName,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
