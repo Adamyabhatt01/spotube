@@ -41,8 +41,7 @@ class _SidebarOrderDialogState extends ConsumerState<SidebarOrderDialog> {
 
   void _moveLibrary(int from, int to) {
     setState(() {
-      final item = _libraryOrder.removeAt(from);
-      _libraryOrder.insert(to, item);
+      _libraryOrder = moveSidebarEntry(_libraryOrder, from, to);
       ref
           .read(userPreferencesProvider.notifier)
           .setSidebarLibraryOrder(List.of(_libraryOrder));
@@ -50,20 +49,10 @@ class _SidebarOrderDialogState extends ConsumerState<SidebarOrderDialog> {
   }
 
   /// Moves the pin at [from] to [to]; both index into [visible], the ids the
-  /// dialog actually shows. Pinned ids with no playlist behind them (deleted,
-  /// offline, still loading) are hidden, so indexing [_pins] directly would
-  /// move the wrong entry. Hidden ids keep their relative order and sink
-  /// below the visible ones.
+  /// dialog actually shows. See [moveSidebarPin] for the hidden-id policy.
   void _movePin(int from, int to, List<String> visible) {
     setState(() {
-      final reordered = List.of(visible);
-      final moved = reordered.removeAt(from);
-      reordered.insert(to, moved);
-      _pins = [
-        ...reordered,
-        for (final id in _pins)
-          if (!visible.contains(id)) id,
-      ];
+      _pins = moveSidebarPin(_pins, visible, from, to);
       ref
           .read(userPreferencesProvider.notifier)
           .setPinnedPlaylistIds(List.of(_pins));

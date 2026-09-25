@@ -22,6 +22,8 @@ import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/playlist_download_provider.dart';
+import 'package:spotube/provider/sidebar/sidebar_provider.dart';
+import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:spotube/services/connectivity_adapter.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
@@ -71,6 +73,13 @@ class UserPlaylistsPage extends HookConsumerWidget {
     final mirroredPlaylists =
         ref.watch(mirroredPlaylistsProvider).asData?.value ?? const [];
 
+    // Pins have no sidebar to live in on compact/mobile layouts, so the
+    // Playlists page sorts them to the top instead. Watched by id list so
+    // pin/unpin/reorder re-sorts live, in pin order.
+    final pinnedIds = ref.watch(
+      userPreferencesProvider.select((s) => s.pinnedPlaylistIds),
+    );
+
     // Offline the disk snapshot still lists every Spotify playlist the user
     // ever saved, but only the mirrored ones can render their songs. Showing
     // the rest as tappable cards is a promise the page cannot keep.
@@ -94,7 +103,8 @@ class UserPlaylistsPage extends HookConsumerWidget {
             if (seen.add(mirrored.id)) mirrored,
         ];
         if (effectiveQuery.isEmpty) {
-          return combined;
+          // Pinned first in pin order; search ranking bypasses this entirely.
+          return pinnedFirstPlaylists(combined, pinnedIds);
         }
         return combined
             .map((e) => (weightedRatio(e.name, effectiveQuery), e))
@@ -109,6 +119,7 @@ class UserPlaylistsPage extends HookConsumerWidget {
         searchText.value.isEmpty,
         mirroredPlaylists,
         isOnline,
+        pinnedIds,
       ],
     );
 

@@ -15,6 +15,7 @@ import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/root/bottom_player.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_footer.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_pin_cover.dart';
+import 'package:spotube/modules/root/sidebar/sidebar_reorderable_item.dart';
 
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/sidebar/sidebar_provider.dart';
@@ -198,40 +199,144 @@ class Sidebar extends HookConsumerWidget {
       const NavigationDivider(),
       if (showLabels) NavigationLabel(child: Text(context.l10n.library)),
       for (final tile in orderedLibraryTiles)
-        NavigationButton(
-          style: router.currentPath.startsWith(tile.pathPrefix)
-              ? const ButtonStyle.secondary()
-              : null,
-          label: showLabels ? Text(tile.title) : null,
-          onPressed: () {
-            context.navigateTo(tile.route);
+        SidebarReorderableItem(
+          key: ValueKey('lib:${tile.id}'),
+          group: SidebarReorderGroup.library,
+          id: tile.id,
+          onAcceptInGroup: (draggedId, targetId, {required bool after}) {
+            final visible = [for (final t in orderedLibraryTiles) t.id];
+            final drop = resolveSidebarDrop(
+              visible,
+              draggedId,
+              targetId,
+              after: after,
+            );
+            if (drop == null) return;
+            ref
+                .read(userPreferencesProvider.notifier)
+                .setSidebarLibraryOrder(
+                  moveSidebarEntry(visible, drop.from, drop.to),
+                );
           },
-          child: Tooltip(
-            tooltip: TooltipContainer(child: Text(tile.title)).call,
-            child: Icon(tile.icon),
+          feedback: _sidebarDragGhost(
+            context: context,
+            leading: Icon(tile.icon),
+            title: tile.title,
           ),
-        ),
-      if (pinnedTiles.isNotEmpty) ...[
-        const NavigationDivider(),
-        if (showLabels)
-          NavigationLabel(child: Text(context.l10n.pinned_playlists)),
-        for (final tile in visiblePins)
-          NavigationButton(
+          row: NavigationButton(
+            // Explicit style/alignment: the reorderable wrapper re-scopes
+            // the sidebar container data for its subtree (see
+            // SidebarReorderableItem), so these carry what the sidebar
+            // container would otherwise compute. In the rail the real
+            // container data still applies, so nothing is passed there.
             style: router.currentPath.startsWith(tile.pathPrefix)
                 ? const ButtonStyle.secondary()
-                : null,
+                : (showLabels ? const ButtonStyle.ghost() : null),
+            alignment:
+                showLabels ? AlignmentDirectional.centerStart : null,
             label: showLabels ? Text(tile.title) : null,
             onPressed: () {
               context.navigateTo(tile.route);
             },
             child: Tooltip(
               tooltip: TooltipContainer(child: Text(tile.title)).call,
-              child: SidebarPinCover(
+              child: Icon(tile.icon),
+            ),
+          ),
+        ),
+      // Drop zone below the last library tile: dropping onto a row can only
+      // move up to that row's index, so the very bottom needs its own target.
+      SidebarTrailingDropZone(
+        key: const ValueKey('lib-end'),
+        group: SidebarReorderGroup.library,
+        visibleIds: [for (final t in orderedLibraryTiles) t.id],
+        onAccept: (draggedId) {
+          final visible = [for (final t in orderedLibraryTiles) t.id];
+          final from = visible.indexOf(draggedId);
+          if (from == -1) return;
+          ref
+              .read(userPreferencesProvider.notifier)
+              .setSidebarLibraryOrder(
+                moveSidebarEntry(visible, from, visible.length - 1),
+              );
+        },
+      ),
+      if (pinnedTiles.isNotEmpty) ...[
+        const NavigationDivider(),
+        if (showLabels)
+          NavigationLabel(child: Text(context.l10n.pinned_playlists)),
+        for (final tile in visiblePins)
+          SidebarReorderableItem(
+            key: ValueKey(tile.id),
+            group: SidebarReorderGroup.pins,
+            // Pinned tiles carry a `pin:`-prefixed id in [tileList]; the
+            // persisted order uses the raw playlist id.
+            id: tile.id.substring(4),
+            onAcceptInGroup: (draggedId, targetId, {required bool after}) {
+              final stored =
+                  ref.read(userPreferencesProvider).pinnedPlaylistIds;
+              final visible = [
+                for (final t in visiblePins) t.id.substring(4),
+              ];
+              final drop = resolveSidebarDrop(
+                visible,
+                draggedId,
+                targetId,
+                after: after,
+              );
+              if (drop == null) return;
+              ref.read(userPreferencesProvider.notifier).setPinnedPlaylistIds(
+                    moveSidebarPin(stored, visible, drop.from, drop.to),
+                  );
+            },
+            feedback: _sidebarDragGhost(
+              context: context,
+              leading: SidebarPinCover(
                 imageUrl: tile.imageUrl,
                 side: _pinCoverSide,
               ),
+              title: tile.title,
+            ),
+            row: NavigationButton(
+              // Same explicit style/alignment contract as the library rows
+              // above: the wrapper re-scopes sidebar container data.
+              style: router.currentPath.startsWith(tile.pathPrefix)
+                  ? const ButtonStyle.secondary()
+                  : (showLabels ? const ButtonStyle.ghost() : null),
+              alignment:
+                  showLabels ? AlignmentDirectional.centerStart : null,
+              label: showLabels ? Text(tile.title) : null,
+              onPressed: () {
+                context.navigateTo(tile.route);
+              },
+              child: Tooltip(
+                tooltip: TooltipContainer(child: Text(tile.title)).call,
+                child: SidebarPinCover(
+                  imageUrl: tile.imageUrl,
+                  side: _pinCoverSide,
+                ),
+              ),
             ),
           ),
+        // Drop zone below the last pin (above the rail overflow tile, which
+        // stays fixed): the only way to move a playlist to the very bottom.
+        SidebarTrailingDropZone(
+          key: const ValueKey('pins-end'),
+          group: SidebarReorderGroup.pins,
+          visibleIds: [for (final t in visiblePins) t.id.substring(4)],
+          onAccept: (draggedId) {
+            final stored =
+                ref.read(userPreferencesProvider).pinnedPlaylistIds;
+            final visible = [
+              for (final t in visiblePins) t.id.substring(4),
+            ];
+            final from = visible.indexOf(draggedId);
+            if (from == -1) return;
+            ref.read(userPreferencesProvider.notifier).setPinnedPlaylistIds(
+                  moveSidebarPin(stored, visible, from, visible.length - 1),
+                );
+          },
+        ),
         if (hasRailOverflow)
           NavigationButton(
             label: showLabels ? Text(context.l10n.show_all_playlists) : null,
@@ -297,6 +402,47 @@ class Sidebar extends HookConsumerWidget {
       ],
     );
   }
+}
+
+/// Compact drag ghost shown under the pointer while a sidebar row is being
+/// moved. Overlay-only (never laid out in the sidebar), so it can use padding
+/// freely — unlike the row itself, which must stay intrinsic-safe.
+Widget _sidebarDragGhost({
+  required BuildContext context,
+  required Widget leading,
+  required String title,
+}) {
+  final theme = Theme.of(context);
+  final scaling = theme.scaling;
+  return ConstrainedBox(
+    constraints: BoxConstraints(maxWidth: 200 * scaling),
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.muted,
+        borderRadius: BorderRadius.circular(8 * scaling),
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: 12 * scaling,
+          vertical: 8 * scaling,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          spacing: 8 * scaling,
+          children: [
+            leading,
+            Flexible(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 /// How much of the window's bottom edge the sidebar has to keep clear of.
