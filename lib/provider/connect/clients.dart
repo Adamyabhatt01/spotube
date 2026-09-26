@@ -1,12 +1,19 @@
 import 'package:bonsoir/bonsoir.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/services/device_info/device_info.dart';
 import 'package:spotube/services/logger/logger.dart';
 
 class ConnectClientsState {
   final List<BonsoirService> services;
   final BonsoirService? resolvedService;
-  final BonsoirDiscovery discovery;
+
+  /// Null while `enableConnect` is off: no `BonsoirDiscovery` is even
+  /// constructed, so the mDNS browser does not exist and no multicast
+  /// browsing runs for a feature the user switched off. Consumers must
+  /// treat null as "discovery unavailable"; only [resolveService] ever
+  /// needed the guard, and it is unreachable while the list is empty.
+  final BonsoirDiscovery? discovery;
 
   ConnectClientsState({
     required this.services,
@@ -32,6 +39,18 @@ class ConnectClientsNotifier extends AsyncNotifier<ConnectClientsState> {
 
   @override
   build() async {
+    // R-05: the broadcast side (bonsoir.dart) always honored `enableConnect`;
+    // discovery never checked it, so multicast browsing ran the whole session
+    // even with Connect off. Watching here means a toggle rebuilds the
+    // provider: [ref.onDispose] of the previous build stops the live browser
+    // when switching off, and switching on constructs a fresh discovery.
+    final enabled = ref.watch(
+      userPreferencesProvider.select((s) => s.enableConnect),
+    );
+    if (!enabled) {
+      return ConnectClientsState(services: const [], discovery: null);
+    }
+
     final discovery = BonsoirDiscovery(type: '_spotube._tcp');
     final deviceId = await DeviceInfoService.instance.deviceId();
 
@@ -116,11 +135,12 @@ class ConnectClientsNotifier extends AsyncNotifier<ConnectClientsState> {
   }
 
   Future<void> resolveService(BonsoirService service) async {
-    if (state.value == null) return;
+    final discovery = state.value?.discovery;
+    if (discovery == null) return;
     // bonsoir >=6: resolution moved from `service.resolve()` to the
     // discovery's `ServiceResolver`; the resolved info arrives on the event
     // stream as a `BonsoirDiscoveryServiceResolvedEvent`.
-    await state.value!.discovery.serviceResolver.resolveService(service);
+    await discovery.serviceResolver.resolveService(service);
   }
 
   Future<void> clearResolvedService() async {
