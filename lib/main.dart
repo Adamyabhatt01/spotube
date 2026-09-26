@@ -336,9 +336,12 @@ Future<void> main(List<String> rawArgs) async {
     final database = AppDatabase();
 
     if (kIsDesktop) {
-      await guardedStartupInit('WindowManagerTools.initialize', () async {
+      // ~28 ms of the pre-runApp path (measured): it only registers the
+      // window-manager plugin, and every tray/window call happens after the
+      // first frame, by which time it is long done.
+      unawaited(guardedStartupInit('WindowManagerTools.initialize', () async {
         await WindowManagerTools.initialize();
-      });
+      }));
     }
 
     if (kIsIOS) {
