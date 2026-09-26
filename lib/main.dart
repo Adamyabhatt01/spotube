@@ -102,10 +102,12 @@ Future<void> guardedStartupInit(
 /// hides as soon as a themed frame can paint, or when [cap] elapses —
 /// whichever comes first. Even a total theme failure resolves to the
 /// built-in fallback after the cap instead of hanging on black.
+const startupSplashGateCap = Duration(seconds: 6);
+
 bool startupGateAllowsApp({
   required bool themeReady,
   required Duration elapsed,
-  Duration cap = const Duration(seconds: 6),
+  Duration cap = startupSplashGateCap,
 }) {
   return themeReady || elapsed >= cap;
 }
@@ -400,6 +402,42 @@ class Spotube extends HookConsumerWidget {
     final router = useMemoized(() => AppRouter(ref), []);
     final hasTouchSupport = useHasTouch();
 
+    // Live theme wins; cached theme seeds the first paint instantly
+    // and is silently replaced when live resolves. Built-in otherwise.
+    final pluginTheme =
+        themeDefinition.asData?.value ?? cachedThemeDefinition.asData?.value;
+
+    // Branded in-app splash: hidden the moment a themed frame is ready, with a
+    // safety cap so startup never hangs on theme resolution.
+    //
+    // The gate is evaluated in `build` rather than by a poll: both theme
+    // providers above are watched, so the rebuild that carries a resolved theme
+    // re-runs this check in that same frame. Polling on a 50ms timer only added
+    // up to one interval of latency between "a theme exists" and "the app is
+    // visible" on every start. The timer is kept for the cap alone — with no
+    // theme arriving there is no rebuild to trigger, and the cap has to fire on
+    // a clock instead.
+    final gateStart = useMemoized(() => Stopwatch()..start(), []);
+    final splashCapTick = useState(0);
+    useEffect(() {
+      final timer = Timer(
+        startupSplashGateCap,
+        () => splashCapTick.value++,
+      );
+      return timer.cancel;
+    }, [splashCapTick.value]);
+    final splashReady = startupGateAllowsApp(
+      themeReady: pluginTheme != null,
+      elapsed: gateStart.elapsed,
+    );
+    useEffect(() {
+      if (!splashReady) return null;
+      _logStartupPhase(
+        'splashReady (themed=${pluginTheme != null}, gate=${gateStart.elapsedMilliseconds}ms)',
+      );
+      return null;
+    }, [splashReady]);
+
     // Eagerly initialize background services and keep them alive for the
     // app lifetime. The listener bodies are intentionally empty.
     // onError note (1A.3 audit): `ref.listen` without `onError` rethrows an
@@ -486,34 +524,6 @@ class Spotube extends HookConsumerWidget {
         ConnectionCheckerService.instance.dispose();
       };
     }, []);
-    // Branded in-app splash: hidden the moment a themed frame is
-    // ready (cached theme makes this near-instant on warm starts),
-    // with a safety cap so startup never hangs on theme resolution.
-    final splashReady = useState(false);
-    useEffect(() {
-      if (splashReady.value) return null;
-      final start = DateTime.now();
-      Timer? timer;
-      void check() {
-        final elapsed = DateTime.now().difference(start);
-        final themed = themeDefinition.asData?.value ??
-            cachedThemeDefinition.asData?.value;
-        if (startupGateAllowsApp(
-          themeReady: themed != null,
-          elapsed: elapsed,
-        )) {
-          splashReady.value = true;
-          _logStartupPhase(
-            'splashReady (themed=${themed != null}, cap=${elapsed.inMilliseconds}ms)',
-          );
-        } else {
-          timer = Timer(const Duration(milliseconds: 50), check);
-        }
-      }
-
-      timer = Timer(const Duration(milliseconds: 50), check);
-      return () => timer?.cancel();
-    }, [themeDefinition, cachedThemeDefinition, splashReady.value]);
 
     // shadcn's ThemeData has no value equality and `Theme.updateShouldNotify`
     // compares by identity, so a freshly built instance on any rebuild notifies
@@ -532,11 +542,6 @@ class Spotube extends HookConsumerWidget {
           LegacyColorSchemes.darkSlate(),
       [accentMaterialColor.name],
     );
-
-    // Live theme wins; cached theme seeds the first paint instantly
-    // and is silently replaced when live resolves. Built-in otherwise.
-    final pluginTheme =
-        themeDefinition.asData?.value ?? cachedThemeDefinition.asData?.value;
 
     final lightColorScheme = useMemoized(
       () => pluginTheme == null
@@ -647,7 +652,7 @@ class Spotube extends HookConsumerWidget {
       [themeTransition, themeTransitionMs],
     );
 
-    if (!splashReady.value) {
+    if (!splashReady) {
       final prefs = ref.watch(splashPrefsProvider).asData?.value;
       return SplashScreen(
         theme: pluginTheme,
