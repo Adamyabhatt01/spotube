@@ -36,6 +36,38 @@ class AppLogger {
   /// dropped — the file never got the line that explained the crash.
   static Future<File> get logFile => _logFile ??= getLogsPath();
 
+  /// `.spotube_logs` grew without bound: an error repeating in a loop wrote
+  /// a full stack trace per iteration, in a file the log viewer only ever
+  /// reads the tail of. Past this size the file is rewritten to its last
+  /// [logTailKeepBytes].
+  static const logFileMaxBytes = 5 * 1024 * 1024;
+  static const logTailKeepBytes = 1 * 1024 * 1024;
+
+  /// Keep the newest [logTailKeepBytes] of [file], dropping the older part.
+  /// The partial line at the cut is discarded so the survivor is a whole
+  /// sequence of reports, which is also what the tail reader (the
+  /// `logsViewerMaxBytes` window in `logs_provider.dart`) decodes.
+  @visibleForTesting
+  static Future<void> rotateLogFile(File file) async {
+    final size = await file.length();
+    if (size <= logTailKeepBytes) return;
+
+    final List<int> body;
+    final raf = await file.open(mode: FileMode.read);
+    try {
+      await raf.setPosition(size - logTailKeepBytes);
+      final tail = await raf.read(logTailKeepBytes);
+      final cut = tail.indexOf(0x0A);
+      body = cut == -1 ? tail : tail.sublist(cut + 1);
+    } finally {
+      await raf.close();
+    }
+
+    // dart:io has no read-write-without-truncate mode, so the rewrite goes
+    // through a truncating open once the tail is already in memory.
+    await file.writeAsBytes(body, mode: FileMode.write);
+  }
+
   static initialize(bool verbose) {
     log = Logger(
       level: kDebugMode || (verbose && kReleaseMode) ? Level.all : Level.info,
@@ -133,6 +165,9 @@ class AppLogger {
           "----------------------------------------\n",
           mode: FileMode.writeOnlyAppend,
         );
+        if (await file.length() > logFileMaxBytes) {
+          await rotateLogFile(file);
+        }
       } catch (writeError, writeStackTrace) {
         // The log sink must never be the thing that breaks error reporting.
         // Drop the cached path so the next report retries resolution (the

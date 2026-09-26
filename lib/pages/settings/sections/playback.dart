@@ -34,6 +34,7 @@ class SettingsPlaybackSection extends HookConsumerWidget {
         youtubeClientEngine: p.youtubeClientEngine,
         autoDownloadQuality: p.autoDownloadQuality,
         cacheMusic: p.cacheMusic,
+        musicCacheLimitMb: p.musicCacheLimitMb,
         normalizeAudio: p.normalizeAudio,
         endlessPlayback: p.endlessPlayback,
         enableConnect: p.enableConnect,
@@ -212,6 +213,38 @@ class SettingsPlaybackSection extends HookConsumerWidget {
             onChanged: preferencesNotifier.setCacheMusic,
           ),
         ),
+        if (preferences.cacheMusic)
+          AdaptiveSelectTile<int>(
+            secondary: const Icon(SpotubeIcons.cache),
+            // English literals on purpose: every generated localization file
+            // already carries someone else's uncommitted regeneration, so a
+            // new key here would drag that diff into this commit. Tracked as
+            // an l10n follow-up in .ai/TODO.md.
+            title: const Text('Music cache limit'),
+            subtitle: const Text(
+              'Clears the least recently played cached tracks once the cache '
+              'grows past this. The current track and the queued ones stay.',
+            ),
+            value: preferences.musicCacheLimitMb,
+            onChanged: (value) {
+              if (value != null) {
+                preferencesNotifier.setMusicCacheLimitMb(value);
+              }
+            },
+            options: [
+              for (final megabytes in [0, 512, 1024, 5120, 10240])
+                SelectItemButton(
+                  value: megabytes,
+                  child: Text(
+                    switch (megabytes) {
+                      0 => 'No limit',
+                      < 1024 => '$megabytes MB',
+                      _ => '${megabytes ~/ 1024} GB',
+                    },
+                  ),
+                ),
+            ],
+          ),
         ListTile(
           leading: const Icon(SpotubeIcons.playlistRemove),
           title: Text(context.l10n.blacklist),

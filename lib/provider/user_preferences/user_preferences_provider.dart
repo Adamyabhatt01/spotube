@@ -13,7 +13,9 @@ import 'package:spotube/modules/settings/color_scheme_picker_dialog.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
+import 'package:spotube/services/music_cache_policy.dart';
 import 'package:spotube/services/vpn/vpn_mode.dart';
+import 'package:spotube/utils/perf_counters.dart';
 import 'package:spotube/utils/platform.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:open_file/open_file.dart';
@@ -343,6 +345,65 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
 
   void setCacheMusic(bool cache) {
     setData(PreferencesTableCompanion(cacheMusic: Value(cache)));
+  }
+
+  /// The opt-in ceiling on the streamed-music cache, in megabytes. `0` is the
+  /// default and means no eviction at all — the historic behavior.
+  Future<void> setMusicCacheLimitMb(int megabytes) async {
+    await setData(
+      PreferencesTableCompanion(musicCacheLimitMb: Value(megabytes)),
+    );
+    // Picking a limit frees the disk right then, instead of whenever the next
+    // track happens to finish caching. Passing the new value explicitly
+    // because `state` only catches up through the table stream.
+    await enforceMusicCacheQuota(limitMb: megabytes);
+  }
+
+  /// Trim the music cache down to `musicCacheLimitMb`, least-recently-used
+  /// first. Returns what it removed; a no-op when no ceiling is set.
+  Future<CacheDiskReport> enforceMusicCacheQuota({
+    Set<String> pinnedPaths = const {},
+    int? limitMb,
+  }) async {
+    final limit = limitMb ?? state.musicCacheLimitMb;
+    if (limit <= 0) return CacheDiskReport.empty;
+
+    try {
+      final report = await enforceCacheQuota(
+        dir: Directory(await getMusicCacheDir()),
+        limitBytes: limit * 1024 * 1024,
+        pinnedPaths: pinnedPaths,
+      );
+      if (report.didWork) {
+        PerfCounters.note('musicCache.evictedFiles', report.removedFiles);
+        PerfCounters.note('musicCache.evictedBytes', report.freedBytes);
+        AppLogger.log.d('Music cache trimmed: $report');
+      }
+      return report;
+    } catch (e, stack) {
+      // Disk policy must never be the thing that breaks playback.
+      AppLogger.reportError(e, stack);
+      return CacheDiskReport.empty;
+    }
+  }
+
+  /// Delete `.part` files that an interrupted mirror abandoned. They are never
+  /// renamed into the cache, so each one is pure waste, and the window is long
+  /// enough that a mirror still running in another instance is untouched.
+  Future<void> sweepStaleMusicCacheMirrors() async {
+    try {
+      final report = await sweepIncompleteMirrors(
+        dir: Directory(await getMusicCacheDir()),
+        olderThan: staleMirrorWindow,
+      );
+      if (report.didWork) {
+        PerfCounters.note('musicCache.sweptFiles', report.removedFiles);
+        PerfCounters.note('musicCache.sweptBytes', report.freedBytes);
+        AppLogger.log.d('Abandoned mirror parts removed: $report');
+      }
+    } catch (e, stack) {
+      AppLogger.reportError(e, stack);
+    }
   }
 
   void setThemeTransition(bool enabled) {

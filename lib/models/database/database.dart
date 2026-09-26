@@ -84,7 +84,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 22;
+  int get schemaVersion => 23;
 
   /// Raw DDL for the quarantine table, kept as a constant so the v11->v12
   /// step can create it idempotently (`IF NOT EXISTS`) without depending
@@ -804,6 +804,23 @@ class AppDatabase extends _$AppDatabase {
               await m.addColumn(
                 schema.preferencesTable,
                 schema.preferencesTable.vpnDeviceName,
+              );
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from22To23: (m, schema) async {
+          try {
+            // Opt-in music-cache ceiling. Default 0 = no limit, so migrating
+            // changes nothing on disk for anyone who never opens the setting.
+            // Same kill-between-ALTERs guard as every step since v12.
+            if (!(await _tableColumns('preferences_table'))
+                .contains('music_cache_limit_mb')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.musicCacheLimitMb,
               );
             }
           } catch (e, stack) {

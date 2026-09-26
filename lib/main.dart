@@ -132,7 +132,10 @@ class _StartupErrorFallback extends StatelessWidget {
 /// Runs once, right after first paint (still before any user interaction
 /// can reach playback/notifications). Keeps process-start → first-frame
 /// minimal so the pre-splash black window stays short.
-Future<void> _initDeferredServices() async {
+Future<void> _initDeferredServices(WidgetRef ref) async {
+  // Captured up front: this function awaits several seconds of work, and a
+  // `ref` read at the end of it could outlive the element that handed it over.
+  final preferences = ref.read(userPreferencesProvider.notifier);
   await guardedStartupInit('NewPipeExtractor.init', () async {
     if (kIsAndroid || kIsDesktop) {
       await NewPipeExtractor.init();
@@ -185,6 +188,13 @@ Future<void> _initDeferredServices() async {
         AppLogger.log.i('Vpn backend ready (nmcli at $nmcli)');
       }
     }
+  });
+  await guardedStartupInit('MusicCache.sweepStaleMirrors', () async {
+    // A `.part` is only ever finished by the process that opened it, so the
+    // ones still on disk at startup are all leftovers from a killed mirror.
+    // Bounded by [staleMirrorWindow] in case a second instance is mid-write.
+    if (kIsWeb) return;
+    await preferences.sweepStaleMusicCacheMirrors();
   });
 }
 
@@ -416,7 +426,7 @@ class Spotube extends HookConsumerWidget {
       // Deferred service inits (moved out of the pre-runApp path):
       // still before any user interaction, but after first paint.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        unawaited(_initDeferredServices());
+        unawaited(_initDeferredServices(ref));
       });
 
       if (kIsMobile) {

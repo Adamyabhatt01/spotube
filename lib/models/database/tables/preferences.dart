@@ -115,6 +115,11 @@ class PreferencesTable extends Table {
       boolean().withDefault(const Constant(false))();
   IntColumn get connectPort => integer().withDefault(const Constant(-1))();
   BoolColumn get cacheMusic => boolean().withDefault(const Constant(true))();
+  /// Ceiling on the streamed-music cache directory, in megabytes. `0` means
+  /// no limit — what every pre-existing install effectively had, so the
+  /// default leaves the cache exactly as it was.
+  IntColumn get musicCacheLimitMb =>
+      integer().withDefault(const Constant(0))();
   TextColumn get sourcePriority =>
       text().withDefault(const Constant("")).map(const StringListConverter())();
   TextColumn get sidebarLibraryOrder =>
@@ -176,6 +181,7 @@ class PreferencesTable extends Table {
       endlessPlayback: true,
       enableConnect: false,
       cacheMusic: true,
+      musicCacheLimitMb: 0,
       connectPort: -1,
       sourcePriority: [],
       sidebarLibraryOrder: [],

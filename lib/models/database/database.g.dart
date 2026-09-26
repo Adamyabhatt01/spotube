@@ -764,6 +764,14 @@ class $PreferencesTableTable extends PreferencesTable
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('CHECK ("cache_music" IN (0, 1))'),
       defaultValue: const Constant(true));
+  static const VerificationMeta _musicCacheLimitMbMeta =
+      const VerificationMeta('musicCacheLimitMb');
+  @override
+  late final GeneratedColumn<int> musicCacheLimitMb = GeneratedColumn<int>(
+      'music_cache_limit_mb', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   @override
   late final GeneratedColumnWithTypeConverter<List<String>, String>
       sourcePriority = GeneratedColumn<String>(
@@ -907,6 +915,7 @@ class $PreferencesTableTable extends PreferencesTable
         enableConnect,
         connectPort,
         cacheMusic,
+        musicCacheLimitMb,
         sourcePriority,
         sidebarLibraryOrder,
         pinnedPlaylistIds,
@@ -1019,6 +1028,12 @@ class $PreferencesTableTable extends PreferencesTable
           _cacheMusicMeta,
           cacheMusic.isAcceptableOrUnknown(
               data['cache_music']!, _cacheMusicMeta));
+    }
+    if (data.containsKey('music_cache_limit_mb')) {
+      context.handle(
+          _musicCacheLimitMbMeta,
+          musicCacheLimitMb.isAcceptableOrUnknown(
+              data['music_cache_limit_mb']!, _musicCacheLimitMbMeta));
     }
     if (data.containsKey('auto_download_quality')) {
       context.handle(
@@ -1135,6 +1150,8 @@ class $PreferencesTableTable extends PreferencesTable
           .read(DriftSqlType.int, data['${effectivePrefix}connect_port'])!,
       cacheMusic: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}cache_music'])!,
+      musicCacheLimitMb: attachedDatabase.typeMapping.read(
+          DriftSqlType.int, data['${effectivePrefix}music_cache_limit_mb'])!,
       sourcePriority: $PreferencesTableTable.$convertersourcePriority.fromSql(
           attachedDatabase.typeMapping.read(
               DriftSqlType.string, data['${effectivePrefix}source_priority'])!),
@@ -1238,6 +1255,11 @@ class PreferencesTableData extends DataClass
   final bool enableConnect;
   final int connectPort;
   final bool cacheMusic;
+
+  /// Ceiling on the streamed-music cache directory, in megabytes. `0` means
+  /// no limit — what every pre-existing install effectively had, so the
+  /// default leaves the cache exactly as it was.
+  final int musicCacheLimitMb;
   final List<String> sourcePriority;
   final List<String> sidebarLibraryOrder;
   final List<String> pinnedPlaylistIds;
@@ -1277,6 +1299,7 @@ class PreferencesTableData extends DataClass
       required this.enableConnect,
       required this.connectPort,
       required this.cacheMusic,
+      required this.musicCacheLimitMb,
       required this.sourcePriority,
       required this.sidebarLibraryOrder,
       required this.pinnedPlaylistIds,
@@ -1350,6 +1373,7 @@ class PreferencesTableData extends DataClass
     map['enable_connect'] = Variable<bool>(enableConnect);
     map['connect_port'] = Variable<int>(connectPort);
     map['cache_music'] = Variable<bool>(cacheMusic);
+    map['music_cache_limit_mb'] = Variable<int>(musicCacheLimitMb);
     {
       map['source_priority'] = Variable<String>($PreferencesTableTable
           .$convertersourcePriority
@@ -1421,6 +1445,7 @@ class PreferencesTableData extends DataClass
       enableConnect: Value(enableConnect),
       connectPort: Value(connectPort),
       cacheMusic: Value(cacheMusic),
+      musicCacheLimitMb: Value(musicCacheLimitMb),
       sourcePriority: Value(sourcePriority),
       sidebarLibraryOrder: Value(sidebarLibraryOrder),
       pinnedPlaylistIds: Value(pinnedPlaylistIds),
@@ -1478,6 +1503,7 @@ class PreferencesTableData extends DataClass
       enableConnect: serializer.fromJson<bool>(json['enableConnect']),
       connectPort: serializer.fromJson<int>(json['connectPort']),
       cacheMusic: serializer.fromJson<bool>(json['cacheMusic']),
+      musicCacheLimitMb: serializer.fromJson<int>(json['musicCacheLimitMb']),
       sourcePriority: serializer.fromJson<List<String>>(json['sourcePriority']),
       sidebarLibraryOrder:
           serializer.fromJson<List<String>>(json['sidebarLibraryOrder']),
@@ -1537,6 +1563,7 @@ class PreferencesTableData extends DataClass
       'enableConnect': serializer.toJson<bool>(enableConnect),
       'connectPort': serializer.toJson<int>(connectPort),
       'cacheMusic': serializer.toJson<bool>(cacheMusic),
+      'musicCacheLimitMb': serializer.toJson<int>(musicCacheLimitMb),
       'sourcePriority': serializer.toJson<List<String>>(sourcePriority),
       'sidebarLibraryOrder':
           serializer.toJson<List<String>>(sidebarLibraryOrder),
@@ -1584,6 +1611,7 @@ class PreferencesTableData extends DataClass
           bool? enableConnect,
           int? connectPort,
           bool? cacheMusic,
+          int? musicCacheLimitMb,
           List<String>? sourcePriority,
           List<String>? sidebarLibraryOrder,
           List<String>? pinnedPlaylistIds,
@@ -1624,6 +1652,7 @@ class PreferencesTableData extends DataClass
         enableConnect: enableConnect ?? this.enableConnect,
         connectPort: connectPort ?? this.connectPort,
         cacheMusic: cacheMusic ?? this.cacheMusic,
+        musicCacheLimitMb: musicCacheLimitMb ?? this.musicCacheLimitMb,
         sourcePriority: sourcePriority ?? this.sourcePriority,
         sidebarLibraryOrder: sidebarLibraryOrder ?? this.sidebarLibraryOrder,
         pinnedPlaylistIds: pinnedPlaylistIds ?? this.pinnedPlaylistIds,
@@ -1703,6 +1732,9 @@ class PreferencesTableData extends DataClass
           data.connectPort.present ? data.connectPort.value : this.connectPort,
       cacheMusic:
           data.cacheMusic.present ? data.cacheMusic.value : this.cacheMusic,
+      musicCacheLimitMb: data.musicCacheLimitMb.present
+          ? data.musicCacheLimitMb.value
+          : this.musicCacheLimitMb,
       sourcePriority: data.sourcePriority.present
           ? data.sourcePriority.value
           : this.sourcePriority,
@@ -1772,6 +1804,7 @@ class PreferencesTableData extends DataClass
           ..write('enableConnect: $enableConnect, ')
           ..write('connectPort: $connectPort, ')
           ..write('cacheMusic: $cacheMusic, ')
+          ..write('musicCacheLimitMb: $musicCacheLimitMb, ')
           ..write('sourcePriority: $sourcePriority, ')
           ..write('sidebarLibraryOrder: $sidebarLibraryOrder, ')
           ..write('pinnedPlaylistIds: $pinnedPlaylistIds, ')
@@ -1816,6 +1849,7 @@ class PreferencesTableData extends DataClass
         enableConnect,
         connectPort,
         cacheMusic,
+        musicCacheLimitMb,
         sourcePriority,
         sidebarLibraryOrder,
         pinnedPlaylistIds,
@@ -1859,6 +1893,7 @@ class PreferencesTableData extends DataClass
           other.enableConnect == this.enableConnect &&
           other.connectPort == this.connectPort &&
           other.cacheMusic == this.cacheMusic &&
+          other.musicCacheLimitMb == this.musicCacheLimitMb &&
           other.sourcePriority == this.sourcePriority &&
           other.sidebarLibraryOrder == this.sidebarLibraryOrder &&
           other.pinnedPlaylistIds == this.pinnedPlaylistIds &&
@@ -1900,6 +1935,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
   final Value<bool> enableConnect;
   final Value<int> connectPort;
   final Value<bool> cacheMusic;
+  final Value<int> musicCacheLimitMb;
   final Value<List<String>> sourcePriority;
   final Value<List<String>> sidebarLibraryOrder;
   final Value<List<String>> pinnedPlaylistIds;
@@ -1939,6 +1975,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.enableConnect = const Value.absent(),
     this.connectPort = const Value.absent(),
     this.cacheMusic = const Value.absent(),
+    this.musicCacheLimitMb = const Value.absent(),
     this.sourcePriority = const Value.absent(),
     this.sidebarLibraryOrder = const Value.absent(),
     this.pinnedPlaylistIds = const Value.absent(),
@@ -1979,6 +2016,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.enableConnect = const Value.absent(),
     this.connectPort = const Value.absent(),
     this.cacheMusic = const Value.absent(),
+    this.musicCacheLimitMb = const Value.absent(),
     this.sourcePriority = const Value.absent(),
     this.sidebarLibraryOrder = const Value.absent(),
     this.pinnedPlaylistIds = const Value.absent(),
@@ -2019,6 +2057,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     Expression<bool>? enableConnect,
     Expression<int>? connectPort,
     Expression<bool>? cacheMusic,
+    Expression<int>? musicCacheLimitMb,
     Expression<String>? sourcePriority,
     Expression<String>? sidebarLibraryOrder,
     Expression<String>? pinnedPlaylistIds,
@@ -2062,6 +2101,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       if (enableConnect != null) 'enable_connect': enableConnect,
       if (connectPort != null) 'connect_port': connectPort,
       if (cacheMusic != null) 'cache_music': cacheMusic,
+      if (musicCacheLimitMb != null) 'music_cache_limit_mb': musicCacheLimitMb,
       if (sourcePriority != null) 'source_priority': sourcePriority,
       if (sidebarLibraryOrder != null)
         'sidebar_library_order': sidebarLibraryOrder,
@@ -2106,6 +2146,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       Value<bool>? enableConnect,
       Value<int>? connectPort,
       Value<bool>? cacheMusic,
+      Value<int>? musicCacheLimitMb,
       Value<List<String>>? sourcePriority,
       Value<List<String>>? sidebarLibraryOrder,
       Value<List<String>>? pinnedPlaylistIds,
@@ -2145,6 +2186,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       enableConnect: enableConnect ?? this.enableConnect,
       connectPort: connectPort ?? this.connectPort,
       cacheMusic: cacheMusic ?? this.cacheMusic,
+      musicCacheLimitMb: musicCacheLimitMb ?? this.musicCacheLimitMb,
       sourcePriority: sourcePriority ?? this.sourcePriority,
       sidebarLibraryOrder: sidebarLibraryOrder ?? this.sidebarLibraryOrder,
       pinnedPlaylistIds: pinnedPlaylistIds ?? this.pinnedPlaylistIds,
@@ -2250,6 +2292,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     if (cacheMusic.present) {
       map['cache_music'] = Variable<bool>(cacheMusic.value);
     }
+    if (musicCacheLimitMb.present) {
+      map['music_cache_limit_mb'] = Variable<int>(musicCacheLimitMb.value);
+    }
     if (sourcePriority.present) {
       map['source_priority'] = Variable<String>($PreferencesTableTable
           .$convertersourcePriority
@@ -2332,6 +2377,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           ..write('enableConnect: $enableConnect, ')
           ..write('connectPort: $connectPort, ')
           ..write('cacheMusic: $cacheMusic, ')
+          ..write('musicCacheLimitMb: $musicCacheLimitMb, ')
           ..write('sourcePriority: $sourcePriority, ')
           ..write('sidebarLibraryOrder: $sidebarLibraryOrder, ')
           ..write('pinnedPlaylistIds: $pinnedPlaylistIds, ')
@@ -6822,6 +6868,7 @@ typedef $$PreferencesTableTableCreateCompanionBuilder
   Value<bool> enableConnect,
   Value<int> connectPort,
   Value<bool> cacheMusic,
+  Value<int> musicCacheLimitMb,
   Value<List<String>> sourcePriority,
   Value<List<String>> sidebarLibraryOrder,
   Value<List<String>> pinnedPlaylistIds,
@@ -6863,6 +6910,7 @@ typedef $$PreferencesTableTableUpdateCompanionBuilder
   Value<bool> enableConnect,
   Value<int> connectPort,
   Value<bool> cacheMusic,
+  Value<int> musicCacheLimitMb,
   Value<List<String>> sourcePriority,
   Value<List<String>> sidebarLibraryOrder,
   Value<List<String>> pinnedPlaylistIds,
@@ -6986,6 +7034,10 @@ class $$PreferencesTableTableFilterComposer
 
   ColumnFilters<bool> get cacheMusic => $composableBuilder(
       column: $table.cacheMusic, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get musicCacheLimitMb => $composableBuilder(
+      column: $table.musicCacheLimitMb,
+      builder: (column) => ColumnFilters(column));
 
   ColumnWithTypeConverterFilters<List<String>, List<String>, String>
       get sourcePriority => $composableBuilder(
@@ -7145,6 +7197,10 @@ class $$PreferencesTableTableOrderingComposer
   ColumnOrderings<bool> get cacheMusic => $composableBuilder(
       column: $table.cacheMusic, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get musicCacheLimitMb => $composableBuilder(
+      column: $table.musicCacheLimitMb,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get sourcePriority => $composableBuilder(
       column: $table.sourcePriority,
       builder: (column) => ColumnOrderings(column));
@@ -7287,6 +7343,9 @@ class $$PreferencesTableTableAnnotationComposer
   GeneratedColumn<bool> get cacheMusic => $composableBuilder(
       column: $table.cacheMusic, builder: (column) => column);
 
+  GeneratedColumn<int> get musicCacheLimitMb => $composableBuilder(
+      column: $table.musicCacheLimitMb, builder: (column) => column);
+
   GeneratedColumnWithTypeConverter<List<String>, String> get sourcePriority =>
       $composableBuilder(
           column: $table.sourcePriority, builder: (column) => column);
@@ -7388,6 +7447,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<bool> enableConnect = const Value.absent(),
             Value<int> connectPort = const Value.absent(),
             Value<bool> cacheMusic = const Value.absent(),
+            Value<int> musicCacheLimitMb = const Value.absent(),
             Value<List<String>> sourcePriority = const Value.absent(),
             Value<List<String>> sidebarLibraryOrder = const Value.absent(),
             Value<List<String>> pinnedPlaylistIds = const Value.absent(),
@@ -7428,6 +7488,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             enableConnect: enableConnect,
             connectPort: connectPort,
             cacheMusic: cacheMusic,
+            musicCacheLimitMb: musicCacheLimitMb,
             sourcePriority: sourcePriority,
             sidebarLibraryOrder: sidebarLibraryOrder,
             pinnedPlaylistIds: pinnedPlaylistIds,
@@ -7469,6 +7530,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<bool> enableConnect = const Value.absent(),
             Value<int> connectPort = const Value.absent(),
             Value<bool> cacheMusic = const Value.absent(),
+            Value<int> musicCacheLimitMb = const Value.absent(),
             Value<List<String>> sourcePriority = const Value.absent(),
             Value<List<String>> sidebarLibraryOrder = const Value.absent(),
             Value<List<String>> pinnedPlaylistIds = const Value.absent(),
@@ -7509,6 +7571,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             enableConnect: enableConnect,
             connectPort: connectPort,
             cacheMusic: cacheMusic,
+            musicCacheLimitMb: musicCacheLimitMb,
             sourcePriority: sourcePriority,
             sidebarLibraryOrder: sidebarLibraryOrder,
             pinnedPlaylistIds: pinnedPlaylistIds,

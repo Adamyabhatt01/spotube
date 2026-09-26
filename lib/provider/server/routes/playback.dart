@@ -23,6 +23,7 @@ import 'package:spotube/provider/user_preferences/user_preferences_provider.dart
 import 'package:spotube/provider/vpn/vpn_provider.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
+import 'package:spotube/services/music_cache_policy.dart';
 import 'package:spotube/services/playback_cache_mirror.dart';
 import 'package:spotube/services/sourced_track/source_resolver.dart';
 import 'package:spotube/services/sourced_track/sourced_track.dart';
@@ -459,6 +460,10 @@ class ServerPlaybackRoutes {
     final trackCacheFile = File(await _getTrackCacheFilePath(track));
 
     if (await trackCacheFile.exists() && userPreferences.cacheMusic) {
+      // Feeds the cache-eviction ranking: mpv HEADs before it GETs and
+      // pre-warms the queue head the same way, so this marks both the active
+      // track and the next ones as hot.
+      MusicCacheUsage.markServed(trackCacheFile.path);
       final fileLength = await trackCacheFile.length();
 
       return cachedFileHeadResponse(
@@ -545,6 +550,7 @@ class ServerPlaybackRoutes {
     final trackCacheFile = File(await _getTrackCacheFilePath(track));
 
     if (await trackCacheFile.exists() && userPreferences.cacheMusic) {
+      MusicCacheUsage.markServed(trackCacheFile.path);
       final cachedFileLength = await trackCacheFile.length();
 
       return cachedFileStreamResponse(
@@ -730,6 +736,15 @@ class ServerPlaybackRoutes {
     ).catchError((e, stackTrace) {
       AppLogger.reportError(e, stackTrace);
     });
+
+    // The cache just grew by this track; trim it back under the user's
+    // ceiling here rather than on a timer, so the ceiling is also respected by
+    // a session that downloads 200 tracks and never plays another byte. The
+    // file being finalized is pinned — it has been served zero times, so the
+    // recency ranking alone would not protect it.
+    await ref
+        .read(userPreferencesProvider.notifier)
+        .enforceMusicCacheQuota(pinnedPaths: {cachePath});
   }
 
   Future<Response> headStreamTrackId(Request request, String trackId) async {
