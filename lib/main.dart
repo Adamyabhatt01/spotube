@@ -438,52 +438,71 @@ class Spotube extends HookConsumerWidget {
       return null;
     }, [splashReady]);
 
-    // Eagerly initialize background services and keep them alive for the
-    // app lifetime. The listener bodies are intentionally empty.
-    // onError note (1A.3 audit): `ref.listen` without `onError` rethrows an
-    // async provider's error into the zone. These providers have real,
-    // expected failure modes (port bind, mDNS, discovery, plugin I/O,
-    // update-check network) with no internal try/catch, so route them to
-    // the logger with attribution instead of generic zone errors.
-    // The two sync providers below (audioPlayerStreamListeners, trayManager)
-    // deliberately have NO onError: sync providers never enter an error
-    // state, so it would be dead code. (Tray's fire-and-forget
-    // `SystemTrayManager.initialize()` is a separate latent issue, out of
-    // 1A scope — see tray_manager.dart.)
-    void logAsyncError(Object e, StackTrace st) => AppLogger.reportError(e, st);
+    // Eagerly initialize background services and keep them alive for the app
+    // lifetime. The listener bodies are intentionally empty.
+    //
+    // R-02: these are subscribed from a post-frame effect behind the splash
+    // gate instead of inline in `build`. None of them can be observed while the
+    // splash still covers the window — no playback request, device pick, tray
+    // click or plugin-backed screen exists before the first themed frame — and
+    // registering them in `build` put their provider construction inside the
+    // frame that produces that content, competing with the heaviest build the
+    // app does. `listenManual` is the documented way to subscribe outside
+    // `build`; the subscriptions stay attached for the widget's life.
+    // onError note (1A.3 audit): listening without `onError` rethrows an async
+    // provider's error into the zone. These providers have real, expected
+    // failure modes (port bind, mDNS, discovery, plugin I/O, update-check
+    // network) with no internal try/catch, so route them to the logger with
+    // attribution instead of generic zone errors. The two sync providers
+    // (audioPlayerStreamListeners, trayManager) deliberately have NO onError:
+    // sync providers never enter an error state, so it would be dead code.
+    // (Tray's fire-and-forget `SystemTrayManager.initialize()` is a separate
+    // latent issue, out of 1A scope — see tray_manager.dart.)
+    useEffect(() {
+      if (!splashReady) return null;
+      void logAsyncError(Object e, StackTrace st) =>
+          AppLogger.reportError(e, st);
 
-    ref.listen(audioPlayerStreamListenersProvider, (_, __) {});
-    ref.listen(
-      bonsoirProvider,
-      (_, __) {},
-      onError: logAsyncError,
-    );
-    ref.listen(
-      connectClientsProvider,
-      (_, __) {},
-      onError: logAsyncError,
-    );
-    ref.listen(
-      serverProvider,
-      (_, __) {},
-      onError: logAsyncError,
-    );
-    ref.listen(trayManagerProvider, (_, __) {});
-    ref.listen(
-      metadataPluginsProvider,
-      (_, __) {},
-      onError: logAsyncError,
-    );
-    ref.listen(
-      metadataPluginProvider,
-      (_, __) {},
-      onError: logAsyncError,
-    );
-    ref.listen(
-      audioSourcePluginProvider,
-      (_, __) {},
-      onError: logAsyncError,
-    );
+      final subscriptions = [
+        ref.listenManual(audioPlayerStreamListenersProvider, (_, __) {}),
+        ref.listenManual(
+          bonsoirProvider,
+          (_, __) {},
+          onError: logAsyncError,
+        ),
+        ref.listenManual(
+          connectClientsProvider,
+          (_, __) {},
+          onError: logAsyncError,
+        ),
+        ref.listenManual(
+          serverProvider,
+          (_, __) {},
+          onError: logAsyncError,
+        ),
+        ref.listenManual(trayManagerProvider, (_, __) {}),
+        ref.listenManual(
+          metadataPluginsProvider,
+          (_, __) {},
+          onError: logAsyncError,
+        ),
+        ref.listenManual(
+          metadataPluginProvider,
+          (_, __) {},
+          onError: logAsyncError,
+        ),
+        ref.listenManual(
+          audioSourcePluginProvider,
+          (_, __) {},
+          onError: logAsyncError,
+        ),
+      ];
+      return () {
+        for (final subscription in subscriptions) {
+          subscription.close();
+        }
+      };
+    }, [splashReady]);
     // The two plugin update checks are deliberately not started here: they are
     // network calls that each can pull a plugin VM online, and a root-widget
     // listener began them before the first frame. useGlobalSubscriptions runs
