@@ -80,6 +80,9 @@ Future<void> guardedStartupInit(
   Future<void> Function() init, {
   Future<void> Function(Object error, StackTrace stackTrace)? onError,
 }) async {
+  // Which step actually costs what, for the startup harness below. The
+  // stopwatch is only created when it can be logged.
+  final sw = kReleaseMode ? null : (Stopwatch()..start());
   try {
     await init();
   } catch (e, stack) {
@@ -87,6 +90,10 @@ Future<void> guardedStartupInit(
       await onError(e, stack);
     } else {
       await AppLogger.reportError(e, stack, name);
+    }
+  } finally {
+    if (sw != null) {
+      _startupLog('[startup] step $name: ${sw.elapsedMilliseconds}ms');
     }
   }
 }
@@ -196,6 +203,36 @@ Future<void> _initDeferredServices(WidgetRef ref) async {
     if (kIsWeb) return;
     await preferences.sweepStaleMusicCacheMirrors();
   });
+  _logStartupPhase('deferred services complete');
+}
+
+/// Startup harness: the wall-clock timeline from `main()` to an interactive
+/// window, in debug/profile runs only. The roadmap requires a before/after
+/// number per startup change, and none of these phases had an observable
+/// endpoint before this.
+///
+/// `SPOTUBE_STARTUP_LOG=<path>` mirrors each line to a file, because a run cut
+/// short by a signal loses whatever the logger still has buffered on stdout.
+final _startupClock = Stopwatch();
+final _startupLogPath =
+    kIsWeb || kReleaseMode ? null : Platform.environment['SPOTUBE_STARTUP_LOG'];
+
+void _startupLog(String line) {
+  if (kReleaseMode) return;
+  AppLogger.log.i(line);
+  final path = _startupLogPath;
+  if (path != null) {
+    File(path).writeAsStringSync(
+      '$line\n',
+      mode: FileMode.append,
+      flush: true,
+    );
+  }
+}
+
+void _logStartupPhase(String phase) {
+  if (!_startupClock.isRunning) _startupClock.start();
+  _startupLog('[startup] $phase: ${_startupClock.elapsedMilliseconds}ms');
 }
 
 Future<void> main(List<String> rawArgs) async {
@@ -207,6 +244,9 @@ Future<void> main(List<String> rawArgs) async {
   }
   final arguments = await startCLI(rawArgs);
   AppLogger.initialize(arguments["verbose"]);
+  // Startup harness reference point. Everything before it (engine bootstrap,
+  // plugin registration, CLI parsing) is not code these phases can change.
+  _logStartupPhase('main');
 
   // Opt-in perf counter dump for a debug/profile run: set
   // SPOTUBE_PERF_COUNTERS to an ISO duration (e.g. 00:00:10) and the counters
@@ -304,6 +344,8 @@ Future<void> main(List<String> rawArgs) async {
     if (kIsIOS) {
       HomeWidget.setAppGroupId("group.spotube_home_player_widget");
     }
+
+    _logStartupPhase('pre-runApp');
 
     runApp(
       ProviderScope(
@@ -422,6 +464,7 @@ class Spotube extends HookConsumerWidget {
       // one exists), so the splash leaves immediately instead of
       // holding a black window while live resolution runs behind it.
       FlutterNativeSplash.remove();
+      _logStartupPhase('firstFrame');
 
       // Deferred service inits (moved out of the pre-runApp path):
       // still before any user interaction, but after first paint.
@@ -457,6 +500,9 @@ class Spotube extends HookConsumerWidget {
           elapsed: elapsed,
         )) {
           splashReady.value = true;
+          _logStartupPhase(
+            'splashReady (themed=${themed != null}, cap=${elapsed.inMilliseconds}ms)',
+          );
         } else {
           timer = Timer(const Duration(milliseconds: 50), check);
         }
