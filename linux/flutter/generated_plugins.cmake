@@ -8,7 +8,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_new_pipe_extractor
   flutter_secure_storage_linux
   flutter_timezone
-  gtk
   local_notifier
   media_kit_libs_linux
   open_file_linux
