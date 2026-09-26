@@ -22,14 +22,23 @@ class ConnectionCheckerService {
 
   static ConnectionCheckerService get instance => _instance;
 
+  /// The 30 s retry probe has no audience while the app is backgrounded:
+  /// `paused` and `hidden` both skip it (hidden — occluded window on
+  /// desktop, stopped-but-cached task on Android — was the gap). Every
+  /// other state, including `inactive` and `null`, keeps probing exactly
+  /// as before.
+  @visibleForTesting
+  static bool probeSkipsState(AppLifecycleState? state) =>
+      state == AppLifecycleState.paused ||
+      state == AppLifecycleState.hidden;
+
   ConnectionCheckerService._() : dio = Dio() {
     _ownStateSubscription =
         onConnectivityChanged.listen((connected) {
       try {
         if (!connected && _periodicTimer == null) {
           _periodicTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
-            if (WidgetsBinding.instance.lifecycleState ==
-                AppLifecycleState.paused) {
+            if (probeSkipsState(WidgetsBinding.instance.lifecycleState)) {
               return;
             }
             await isConnected;

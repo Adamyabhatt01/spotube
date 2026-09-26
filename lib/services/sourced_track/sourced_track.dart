@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
@@ -546,7 +547,12 @@ class SourcedTrack extends BasicSourcedTrack {
 
     List<SpotubeAudioSourceStreamObject> validStreams = [];
 
-    final stringBuffer = StringBuffer();
+    // The per-candidate dump is only ever logged at Level.debug, but the
+    // argument is interpolated before the level filter runs — so in release
+    // it built a line per validated candidate for nothing. A null collector
+    // skips the interpolation entirely (null-aware calls don't evaluate
+    // their arguments).
+    final stringBuffer = kDebugMode ? StringBuffer() : null;
 
     // Phase 2 perf (2.4): validate candidates in bounded concurrent waves
     // (max 4 in flight) instead of one HEAD at a time. Order-preserving and
@@ -570,7 +576,9 @@ class SourcedTrack extends BasicSourcedTrack {
         return res.statusCode;
       },
       onValidated: (source, statusCode) {
-        stringBuffer.writeln(
+        // Null-aware call: with the dump off (release), the line is never
+        // interpolated for the up-to-20 candidates this loop validates.
+        stringBuffer?.writeln(
           "[${query.id}] $statusCode ${source.container} ${source.codec} ${source.bitrate}",
         );
       },
@@ -578,7 +586,9 @@ class SourcedTrack extends BasicSourcedTrack {
 
     validStreams = validSources;
 
-    AppLogger.log.d(stringBuffer.toString());
+    if (stringBuffer case final dump?) {
+      AppLogger.log.d(dump.toString());
+    }
 
     if (validStreams.isEmpty) {
       // The cached manifest is entirely unusable (e.g. every URL 403'd by

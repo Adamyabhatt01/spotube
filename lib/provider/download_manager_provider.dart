@@ -678,7 +678,10 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
               );
               await vpn.refreshPin();
             };
-      _setStatus(task.track, DownloadStatus.downloading);
+      // The claim in _claimNextQueuedTask already flipped this task to
+      // `downloading` (memory + one DB write); re-stating it here cost a
+      // second identical write per task and could revert a cancel that
+      // arrived while the lease was pending.
       final presets = ref.read(audioSourcePresetsProvider);
       final container =
           presets.presets[presets.selectedDownloadingContainerIndex];

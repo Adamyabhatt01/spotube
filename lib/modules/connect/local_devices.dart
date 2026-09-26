@@ -11,9 +11,16 @@ class ConnectPageLocalDevices extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData(:typography) = Theme.of(context);
-    final devicesFuture = useFuture(audioPlayer.devices);
+    // `devices`/`selectedDevice` are async getters: every build made a new
+    // Future, so useFuture saw a changed future on every rebuild triggered
+    // by its own resolution — the same instance-churn storm the music-cache
+    // dir site had. Memoize one future per element; the streams below are
+    // the live source anyway (these are just their pre-first-event
+    // fallbacks).
+    final devicesFuture = useFuture(useMemoized(() => audioPlayer.devices));
     final devicesStream = useStream(audioPlayer.devicesStream);
-    final selectedDeviceFuture = useFuture(audioPlayer.selectedDevice);
+    final selectedDeviceFuture =
+        useFuture(useMemoized(() => audioPlayer.selectedDevice));
     final selectedDeviceStream = useStream(audioPlayer.selectedDeviceStream);
 
     final devices = devicesStream.data ?? devicesFuture.data;

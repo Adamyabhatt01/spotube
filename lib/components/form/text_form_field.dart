@@ -11,9 +11,6 @@ class TextFormBuilderField extends StatelessWidget {
   final TextEditingController? controller;
   final bool filled;
   final Widget? placeholder;
-  // final AlignmentGeometry? placeholderAlignment;
-  // final AlignmentGeometry? leadingAlignment;
-  // final AlignmentGeometry? trailingAlignment;
   final Border? border;
   final List<InputFeature> features;
   final EdgeInsetsGeometry? padding;
@@ -40,9 +37,6 @@ class TextFormBuilderField extends StatelessWidget {
   final void Function(PointerDownEvent event)? onTapOutside;
   final List<TextInputFormatter>? inputFormatters;
   final TextStyle? style;
-  // final EditableTextContextMenuBuilder? contextMenuBuilder;
-  // final bool useNativeContextMenu;
-  // final bool? isCollapsed;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final Clip clipBehavior;
@@ -83,15 +77,9 @@ class TextFormBuilderField extends StatelessWidget {
     this.onTapOutside,
     this.inputFormatters,
     this.style,
-    // this.contextMenuBuilder = TextField.defaultContextMenuBuilder,
-    // this.useNativeContextMenu = false,
-    // this.isCollapsed,
     this.textInputAction,
     this.clipBehavior = Clip.hardEdge,
     this.autofocus = false,
-    // this.placeholderAlignment,
-    // this.leadingAlignment,
-    // this.trailingAlignment,
     this.statesController,
     this.features = const [],
   });
@@ -158,16 +146,10 @@ class TextFormBuilderField extends StatelessWidget {
             onTapOutside: onTapOutside,
             inputFormatters: inputFormatters,
             style: style,
-            // contextMenuBuilder: contextMenuBuilder,
-            // useNativeContextMenu: useNativeContextMenu,
-            // isCollapsed: isCollapsed,
             keyboardType: keyboardType,
             textInputAction: textInputAction,
             clipBehavior: clipBehavior,
             autofocus: autofocus,
-            // placeholderAlignment: placeholderAlignment,
-            // leadingAlignment: leadingAlignment,
-            // trailingAlignment: trailingAlignment,
             statesController: statesController,
           ),
           if (field.hasError)

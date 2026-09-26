@@ -446,10 +446,15 @@ class ServerPlaybackRoutes {
     Request request,
     SourcedTrack track,
   ) async {
-    AppLogger.log.i(
-      "HEAD request for track: ${track.query.name}\n"
-      "Headers: ${request.headers}",
-    );
+    // Interpolated once per playback request and only useful while
+    // debugging — `AppLogger.log` prints at Level.info in release, so the
+    // guard has to be at the call site or the header map is built anyway.
+    if (kDebugMode) {
+      AppLogger.log.i(
+        "HEAD request for track: ${track.query.name}\n"
+        "Headers: ${request.headers}",
+      );
+    }
 
     final trackCacheFile = File(await _getTrackCacheFilePath(track));
 
@@ -530,10 +535,12 @@ class ServerPlaybackRoutes {
     SourcedTrack track,
     Map<String, dynamic> headers,
   ) async {
-    AppLogger.log.i(
-      "GET request for track: ${track.query.name}\n"
-      "Headers: ${request.headers}",
-    );
+    if (kDebugMode) {
+      AppLogger.log.i(
+        "GET request for track: ${track.query.name}\n"
+        "Headers: ${request.headers}",
+      );
+    }
 
     final trackCacheFile = File(await _getTrackCacheFilePath(track));
 
@@ -658,11 +665,13 @@ class ServerPlaybackRoutes {
         throw Exception("All stream sources failed for ${track.query.name}");
       }
 
-      AppLogger.log.i(
-        "Response for track: ${track.query.name}\n"
-        "Status Code: ${res.statusCode}\n"
-        "Headers: ${res.headers.map}",
-      );
+      if (kDebugMode) {
+        AppLogger.log.i(
+          "Response for track: ${track.query.name}\n"
+          "Status Code: ${res.statusCode}\n"
+          "Headers: ${res.headers.map}",
+        );
+      }
 
       if (!userPreferences.cacheMusic) {
         return res;
