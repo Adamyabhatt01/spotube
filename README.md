@@ -74,8 +74,14 @@ the binary is already identical, and warns if `libmpv`, `libsecret` or the tray 
 The changes people actually feel. Several link to the mechanics further down.
 
 - **The play button tells the truth.** Once audio is audible the transport shows pause and stays
-  usable, even if the source manifest is still settling in the background. The frosted bottom bar
-  also keeps its tint through play/pause and scrolling.
+  usable, even if the source manifest is still settling in the background. Pausing a track that has
+  already played no longer brings the spinner back. The frosted bottom bar also keeps its tint
+  through play/pause and scrolling.
+- **Likes are real likes.** The heart reads Spotify's actual library membership, so liking a track
+  adds it to Liked Songs and unliking removes it, instead of trusting editorial metadata that was
+  true for most of the catalogue.
+- **Artwork opens the album.** On touch, tapping an album cover opens the album like the title does;
+  the play button is the direct-play action. Playlist cards already worked this way.
 - **Search is scoped.** The mobile Search tab now has separate Music and Radio landings: Music
   shows personalised rails and New Releases, Radio drops the Music shortcut and Recent rail. The
   real Browse and Radio pages are untouched.
