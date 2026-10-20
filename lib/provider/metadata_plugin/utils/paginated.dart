@@ -86,11 +86,16 @@ mixin PaginatedAsyncNotifierMixin<K>
   }
 
   List<K> _mergeDeduped(List<K> oldItems, List<K> newItems) {
-    final existingKeys = oldItems.map(_itemKey).toSet();
-    return [
-      ...oldItems,
-      ...newItems.where((item) => existingKeys.add(_itemKey(item))),
+    // Fresh network rows win over copies already on screen. A saved playlist
+    // carries a cover URL that Spotify regenerates when its tracks change, so
+    // keeping the old row for a duplicated id left that card on a stale cover
+    // forever: paging in the same playlist again silently changed nothing.
+    final fresh = {for (final item in newItems) _itemKey(item): item};
+    final merged = <K>[
+      for (final item in oldItems) fresh.remove(_itemKey(item)) ?? item,
     ];
+    merged.addAll(fresh.values);
+    return merged;
   }
 
   Future<void> fetchMore() async {
@@ -237,6 +242,15 @@ mixin SavedListCacheMixin<K>
   @visibleForTesting
   Future<void>? get revalidation => _revalidating;
 
+  /// Whether a warm build re-walks the whole list instead of probing page one.
+  ///
+  /// Opted in by the saved-playlists list: its items carry a cover URL that
+  /// Spotify regenerates when the playlist's tracks change, and confirming
+  /// only page one leaves every playlist past it on last session's cover
+  /// until the user scrolls to that page. Other lists keep the page-one probe
+  /// (their rows rarely change, and walking them costs rate-limit budget).
+  bool get refreshAllPagesOnWarmBuild => false;
+
   /// The persisted list as a complete page, or null when there is no usable
   /// snapshot. A failing cache is simply no cache.
   Future<SpotubePaginationResponseObject<K>?> _readSnapshotPage() async {
@@ -275,7 +289,10 @@ mixin SavedListCacheMixin<K>
       ref.onDispose(() => _discarded = true);
       // Deliberately not awaited: completing this build is what puts the list
       // on screen, and the refresh result arrives through `state` instead.
-      _revalidating ??= _revalidate(cooldown, cached).whenComplete(() {
+      _revalidating ??= (refreshAllPagesOnWarmBuild
+              ? _revalidateAll(cooldown, cached)
+              : _revalidate(cooldown, cached))
+          .whenComplete(() {
         _revalidating = null;
       });
       return cached;
@@ -324,6 +341,73 @@ mixin SavedListCacheMixin<K>
     state = AsyncData(_mergeRevalidation(served, fresh));
     // Awaited, so a caller that waits for `revalidation` also knows the
     // snapshot on disk matches the list on screen.
+    await persistSnapshot();
+  }
+
+  /// Re-walks every page behind a served snapshot, replacing each row with
+  /// the network's copy. Used by [refreshAllPagesOnWarmBuild] lists.
+  ///
+  /// Best-effort like [_revalidate]: any failing page abandons the walk and
+  /// leaves the last-known-good list on screen. The walk never blocks the
+  /// build — the snapshot is already being displayed while it runs.
+  Future<void> _revalidateAll(
+    Duration cooldown,
+    SpotubePaginationResponseObject<K> served,
+  ) async {
+    final walked = <K>[];
+    final seen = <String>{};
+    // Fixed page size: `served.limit` is the whole snapshot length, and
+    // asking the plugin for one page that large is not a paginated request.
+    var offset = 0;
+    var limit = 20;
+    var pages = 0;
+
+    try {
+      while (true) {
+        if (pages >= PaginatedAsyncNotifierMixin.fetchAllMaxPages) break;
+        pages++;
+        final page = await fetchWithRateLimitRetry(
+          () => fetch(offset, limit),
+          cooldown: cooldown,
+        );
+        for (final item in page.items) {
+          if (seen.add(_itemKey(item))) walked.add(item);
+        }
+        if (!page.hasMore) break;
+        offset = page.nextOffset!;
+        limit = page.limit;
+      }
+    } catch (e, stack) {
+      AppLogger.reportError(e, stack);
+      return;
+    }
+
+    // A plugin that answered every page with nothing must not erase a list
+    // that is currently on screen and usable.
+    if (walked.isEmpty) return;
+
+    // Anything that already moved the list owns it: an optimistic favorite, a
+    // page walk, or a build that has not delivered [served] yet.
+    if (_discarded || _isFetching || !identical(state.value, served)) return;
+
+    // Rows the walk did not return (a playlist created while it ran, an
+    // optimistic addition) stay at the tail instead of vanishing.
+    final walkedKeys = walked.map(_itemKey).toSet();
+    final items = <K>[
+      ...walked,
+      for (final item in served.items)
+        if (!walkedKeys.contains(_itemKey(item))) item,
+    ];
+    final total = items.length;
+    state = AsyncData(
+      SpotubePaginationResponseObject<K>(
+        limit: total,
+        nextOffset: null,
+        total: total,
+        hasMore: false,
+        items: items,
+      ),
+    );
     await persistSnapshot();
   }
 

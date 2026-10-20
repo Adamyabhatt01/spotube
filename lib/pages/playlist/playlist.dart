@@ -11,6 +11,7 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 import 'package:auto_route/auto_route.dart';
+import 'package:spotube/provider/metadata_plugin/playlist/playlist.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/playlist.dart';
 import 'package:spotube/provider/metadata_plugin/utils/common.dart';
 import 'package:spotube/provider/playlist_download_provider.dart';
@@ -33,9 +34,15 @@ class PlaylistPage extends HookConsumerWidget {
   Widget build(BuildContext context, ref) {
     // Use the object the route was opened with. Watching the saved-playlists
     // collection here built (and background-revalidated) the entire library on
-    // every playlist open, just to refresh one name/cover. Live edits are rare
-    // and the next open (or a pull-to-refresh of the list) picks them up.
+    // every playlist open, just to refresh one name/cover.
     final playlist = _playlist;
+
+    // The route argument is a snapshot from whenever the card was built, and a
+    // playlist's cover changes as tracks are added. Reading this one playlist
+    // is a single gated request — unlike the whole library — and it is the
+    // copy the saved-list notifier invalidates once a new collage exists.
+    final freshPlaylist =
+        ref.watch(metadataPluginPlaylistProvider(playlist.id)).asData?.value;
 
     final tracks = ref.watch(metadataPluginPlaylistTracksProvider(playlist.id));
     final tracksNotifier =
@@ -107,7 +114,7 @@ class PlaylistPage extends HookConsumerWidget {
       child: TrackPresentation(
         options: TrackPresentationOptions(
           collection: playlist,
-          image: playlist.images.asUrlString(
+          image: (freshPlaylist?.images ?? playlist.images).asUrlString(
             placeholder: ImagePlaceholder.collection,
           ),
           pagination: PaginationProps(
@@ -123,10 +130,12 @@ class PlaylistPage extends HookConsumerWidget {
               return await tracksNotifier.fetchAll();
             },
           ),
-          title: playlist.name,
-          description: playlist.description,
+          title: freshPlaylist?.name ?? playlist.name,
+          description: freshPlaylist?.description ?? playlist.description,
           owner: playlist.owner.name.isEmpty ? null : playlist.owner.name,
-          ownerImage: playlist.owner.images.lastOrNull?.url,
+          ownerImage: (freshPlaylist?.owner.images ?? playlist.owner.images)
+              .lastOrNull
+              ?.url,
           tracks: visibleTracks,
           error: hasFreshTracks || cachedTracks.isEmpty ? tracks.error : null,
           routePath: '/playlist/${playlist.id}',

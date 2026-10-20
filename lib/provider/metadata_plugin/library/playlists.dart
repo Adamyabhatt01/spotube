@@ -6,6 +6,7 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+import 'package:spotube/provider/metadata_plugin/playlist/playlist.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/playlist.dart';
 import 'package:spotube/provider/metadata_plugin/utils/paginated.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
@@ -22,6 +23,23 @@ class MetadataPluginSavedPlaylistsNotifier
   @override
   SpotubeSimplePlaylistObject Function(Map<String, dynamic>)?
       get snapshotDecoder => SpotubeSimplePlaylistObject.fromJson;
+
+  /// Playlist rows carry the cover URL Spotify regenerates whenever the
+  /// playlist's tracks change. Confirming only page one on a warm build left
+  /// every playlist past it showing last session's collage until the user
+  /// happened to scroll to its page, so this list re-walks all pages in the
+  /// background instead.
+  @override
+  bool get refreshAllPagesOnWarmBuild => true;
+
+  /// Attempts after an in-app add/remove, cumulative from the write. Spotify
+  /// rebuilds the collage asynchronously, so one read right after the write
+  /// usually still sees the old cover.
+  static const _coverRefreshLadder = [
+    Duration(seconds: 3),
+    Duration(seconds: 6),
+    Duration(seconds: 10),
+  ];
 
   @override
   fetch(int offset, int limit) async {
@@ -146,6 +164,7 @@ class MetadataPluginSavedPlaylistsNotifier
         .addTracks(playlistId, trackIds: trackIds);
 
     ref.invalidate(metadataPluginPlaylistTracksProvider(playlistId));
+    refreshCoverLater(playlistId);
   }
 
   Future<void> removeTracks(String playlistId, List<String> trackIds) async {
@@ -154,8 +173,66 @@ class MetadataPluginSavedPlaylistsNotifier
         .removeTracks(playlistId, trackIds: trackIds);
 
     ref.invalidate(metadataPluginPlaylistTracksProvider(playlistId));
+    refreshCoverLater(playlistId);
+  }
+
+  /// Re-reads one playlist's cover after Spotify has had time to rebuild the
+  /// collage, then updates both this list's row and the open playlist page.
+  ///
+  /// Best-effort: the detail page already refetches its own metadata on open,
+  /// but the library card reads this list, so nothing else would update it
+  /// before the next app launch.
+  void refreshCoverLater(String playlistId) {
+    unawaited(_refreshCover(playlistId));
+  }
+
+  Future<void> _refreshCover(String playlistId) async {
+    for (final delay in _coverRefreshLadder) {
+      await Future<void>.delayed(delay);
+
+      try {
+        final refreshed = await (await metadataPlugin).playlist.getPlaylist(
+              playlistId,
+            );
+        final current = state.value?.items.firstWhereOrNull(
+          (playlist) => playlist.id == playlistId,
+        );
+        // The row was unsaved or never loaded; there is nothing to refresh.
+        if (current == null) return;
+
+        final before = _coverSignature(current.images);
+        // Spotify can answer with no images for a beat while it rebuilds the
+        // collage. That is not a cover change; keep the one on screen instead
+        // of blanking the card.
+        final images =
+            refreshed.images.isEmpty ? current.images : refreshed.images;
+        updatePlaylist(
+          SpotubeSimplePlaylistObject(
+            id: refreshed.id,
+            name: refreshed.name,
+            description: refreshed.description,
+            externalUri: refreshed.externalUri,
+            owner: refreshed.owner,
+            images: images,
+          ),
+        );
+        // The playlist page watches its own metadata provider; drop it only
+        // once the collage actually changed, so an unchanged cover does not
+        // make the page reload on every attempt.
+        if (_coverSignature(images) != before) {
+          ref.invalidate(metadataPluginPlaylistProvider(playlistId));
+          return;
+        }
+      } catch (_) {
+        // Cover art is best-effort; a failed read must not surface anywhere.
+        return;
+      }
+    }
   }
 }
+
+String _coverSignature(List<SpotubeImageObject> images) =>
+    images.map((image) => image.url).join('|');
 
 final metadataPluginSavedPlaylistsProvider = AsyncNotifierProvider<
     MetadataPluginSavedPlaylistsNotifier,
