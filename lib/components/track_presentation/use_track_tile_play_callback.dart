@@ -15,8 +15,7 @@ import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/connect/connect.dart';
 import 'package:spotube/provider/history/history.dart';
 
-Future<void> Function(SpotubeTrackObject track, int index)
-    useTrackTilePlayCallback(
+Future<void> Function(SpotubeTrackObject track) useTrackTilePlayCallback(
   WidgetRef ref,
 ) {
   final context = useContext();
@@ -32,8 +31,7 @@ Future<void> Function(SpotubeTrackObject track, int index)
     [playlistCollections, options.collectionId],
   );
 
-  final onTapTrackTile =
-      useCallback((SpotubeTrackObject track, int index) async {
+  final onTapTrackTile = useCallback((SpotubeTrackObject track) async {
     final state = ref.read(presentationStateProvider(options.collection));
     final notifier =
         ref.read(presentationStateProvider(options.collection).notifier);
@@ -58,17 +56,21 @@ Future<void> Function(SpotubeTrackObject track, int index)
         await playlistNotifier.jumpToTrack(track);
       } else {
         final tracks = await options.pagination.onFetchAll();
+        // The screen may show a sorted or filtered order, so the tapped
+        // track's position has to be resolved against this list by id.
+        final initialIndex =
+            tracks.indexWhere((element) => element.id == track.id);
         await remotePlayback.load(
           options.collection is SpotubeSimpleAlbumObject
               ? WebSocketLoadEventData.album(
                   tracks: tracks,
                   collection: options.collection as SpotubeSimpleAlbumObject,
-                  initialIndex: index,
+                  initialIndex: initialIndex,
                 )
               : WebSocketLoadEventData.playlist(
                   tracks: tracks,
                   collection: options.collection as SpotubeSimplePlaylistObject,
-                  initialIndex: index,
+                  initialIndex: initialIndex,
                 ),
         );
       }
@@ -79,13 +81,17 @@ Future<void> Function(SpotubeTrackObject track, int index)
         await playlistNotifier.jumpToTrack(track);
       } else {
         // Start on the page already on screen; the tail of the collection
-        // streams into the queue in the background. `index` is a position
-        // inside `options.tracks`, so the tapped track is guaranteed to be
-        // in the initial load.
+        // streams into the queue in the background.
         final initialTracks = options.tracks;
+        // The rows render `presentationTracks`, which the sort dropdown and
+        // the track filter reorder relative to this list. The queue loads in
+        // `initialTracks` order, so start on the tapped track by id — using
+        // the visible row number here would play a different song.
+        final initialIndex =
+            initialTracks.indexWhere((element) => element.id == track.id);
         await playlistNotifier.load(
           initialTracks,
-          initialIndex: index,
+          initialIndex: initialIndex,
           autoPlay: true,
         );
         playlistNotifier.addCollection(options.collectionId);

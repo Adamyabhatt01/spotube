@@ -3,6 +3,17 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:spotube/models/parser/range_headers.dart';
+import 'package:spotube/services/logger/logger.dart';
+
+/// Reports a mirror failure without letting diagnostics become a second
+/// failure. In unit tests the app logger is intentionally uninitialized.
+void _reportError(Object error, StackTrace stack, String context) {
+  try {
+    unawaited(AppLogger.reportError(error, stack, context).catchError((_) {}));
+  } catch (_) {
+    // Logging is best-effort.
+  }
+}
 
 /// Mirrors a proxied audio response into the on-disk music cache safely.
 ///
@@ -95,12 +106,16 @@ class PlaybackCacheMirror {
   bool _errorInProgress = false;
 
   Future<void> _abandon() async {
-    _release();
     try {
+      // Delete before releasing: a new mirror must not be able to recreate
+      // the same .part while this cleanup is still in flight, or it would be
+      // deleted by the old mirror's cleanup.
       if (await partFile.exists()) await partFile.delete();
     } catch (_) {
       // Best-effort cleanup; a stale .part is never renamed so it cannot
       // corrupt the cache, and the next mirror truncates it anyway.
+    } finally {
+      _release();
     }
   }
 
@@ -109,22 +124,58 @@ class PlaybackCacheMirror {
   /// bytes are lost between the mirror's subscription and shelf's piping.
   Future<Stream<Uint8List>> attach(Stream<Uint8List> source) async {
     final controller = StreamController<Uint8List>();
-    final sink =
-        await partFile.create(recursive: true).then((f) => f.openWrite());
+    final IOSink sink;
+    try {
+      sink = await partFile.create(recursive: true).then((f) => f.openWrite());
+    } catch (e, stack) {
+      // tryBegin() already reserved the slot. A filesystem failure here must
+      // not disable caching for this track until the process restarts.
+      await _abandon();
+      // No listener was attached yet, so awaiting close() would never
+      // complete for this single-subscription controller.
+      unawaited(controller.close());
+      _reportError(e, stack, 'PlaybackCacheMirror.attach');
+      rethrow;
+    }
     _sink = sink;
 
     Future<void> finish() async {
       if (_settled) return;
       _settled = true;
-      await sink.close();
-      final fileLength = await partFile.length();
-      if (fileLength != expectedTotal) {
+      try {
+        await sink.close();
+        final fileLength = await partFile.length();
+        if (fileLength != expectedTotal) {
+          await _abandon();
+          return;
+        }
+        // Promote before releasing the reservation: a concurrent request must
+        // not recreate/truncate `.part` between the rename decision and the
+        // rename itself.
+        await partFile.rename(cacheFile.path);
+        _release();
+        if (onComplete != null) {
+          try {
+            await onComplete!(fileLength);
+          } catch (e, stack) {
+            // The bytes are already a complete, valid cache entry. Metadata
+            // tagging is best-effort; it must not hold the HTTP response open.
+            _reportError(
+              e,
+              stack,
+              'PlaybackCacheMirror.onComplete',
+            );
+          }
+        }
+      } catch (e, stack) {
+        // A sink/rename/length failure means there is no valid cache to
+        // promote. Clean up, but never let the exception escape the stream
+        // callback: the response still has to see EOF.
         await _abandon();
-        return;
+        _reportError(e, stack, 'PlaybackCacheMirror.finish');
+      } finally {
+        _release();
       }
-      _release();
-      await partFile.rename(cacheFile.path);
-      if (onComplete != null) await onComplete!(fileLength);
     }
 
     _upstream = source.listen(
@@ -136,30 +187,55 @@ class PlaybackCacheMirror {
         if (_settled || _errorInProgress) return;
         _settled = true;
         _errorInProgress = true;
-        await sink.close();
+        try {
+          await sink.close();
+        } catch (e, st) {
+          _reportError(e, st, 'PlaybackCacheMirror.sinkClose');
+        }
         await _abandon();
         _errorInProgress = false;
         if (!controller.isClosed) controller.addError(error, stack);
-        await controller.close();
+        if (!controller.isClosed) await controller.close();
       },
       onDone: () async {
         if (_errorInProgress) return;
-        await finish();
-        if (!_errorInProgress && !controller.isClosed) {
-          await controller.close();
+        try {
+          await finish();
+        } catch (e, stack) {
+          // finish() owns its cleanup, but keep the response contract even if
+          // an unexpected error escapes.
+          _reportError(e, stack, 'PlaybackCacheMirror.done');
+        } finally {
+          if (!_errorInProgress && !controller.isClosed) {
+            await controller.close();
+          }
         }
       },
     );
 
     controller.onCancel = () async {
       await _upstream?.cancel();
+      // finish() set _settled before closing the sink. It owns finalization
+      // from that point; deleting the part here would race the pending rename.
+      if (_settled) return;
+      _settled = true;
       final sink = _sink;
-      if (sink != null && !_settled) {
-        _settled = true;
-        await sink.close();
+      if (sink != null) {
+        try {
+          await sink.close();
+        } catch (e, stack) {
+          _reportError(e, stack, 'PlaybackCacheMirror.cancelClose');
+        }
       }
       await _abandon();
     };
+
+    // Backpressure: without these, a client that pauses (socket buffer full,
+    // or mpv stalling) still leaves the dio source pushing bytes that pile up
+    // in the controller's buffer unbounded. Pausing the upstream makes the
+    // mirror honor the client's flow control instead of buffering the track.
+    controller.onPause = () => _upstream?.pause();
+    controller.onResume = () => _upstream?.resume();
 
     return controller.stream;
   }

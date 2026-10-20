@@ -2,6 +2,8 @@ import 'dart:collection';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/playback_cache_mirror.dart';
 
@@ -28,6 +30,11 @@ class MusicCacheUsage {
     if (_servedAt.length > _maxTracked) _servedAt.remove(_servedAt.keys.first);
   }
 
+  /// Drop a path that no longer exists on disk, so a deleted file's last
+  /// serve can't outlive the file (e.g. a cache copy removed after its
+  /// download completed).
+  static void forget(String path) => _servedAt.remove(path);
+
   static DateTime? lastServed(String path) => _servedAt[path];
 
   @visibleForTesting
@@ -39,6 +46,10 @@ class MusicCacheUsage {
 /// a few megabytes — and short enough that a crash stops costing disk the
 /// moment the app starts again.
 const staleMirrorWindow = Duration(minutes: 10);
+
+/// Files per concurrent `File.stat()` batch — enough to amortize syscall
+/// latency, small enough that each wave returns to the event loop quickly.
+const _statWaveSize = 32;
 
 /// What one pass of [enforceCacheQuota] or [sweepIncompleteMirrors] removed.
 class CacheDiskReport {
@@ -73,8 +84,9 @@ Future<CacheDiskReport> enforceCacheQuota({
   if (limitBytes <= 0) return CacheDiskReport.empty;
   if (!await dir.exists()) return CacheDiskReport.empty;
 
-  final entries = <_CachedFile>[];
-  var total = 0;
+  // Collect paths first, then stat in waves: a synchronous statSync per file
+  // blocked the UI isolate for the whole traversal on large caches.
+  final candidates = <File>[];
   await for (final entity in dir.list(followLinks: false)) {
     if (entity is! File) continue;
     // A mirror in flight is not a cached track yet, and deleting it would only
@@ -83,10 +95,23 @@ Future<CacheDiskReport> enforceCacheQuota({
         PlaybackCacheMirror.isMirroring(entity.path)) {
       continue;
     }
-    final stat = entity.statSync();
-    if (stat.type != FileSystemEntityType.file) continue;
-    entries.add(_CachedFile(path: entity.path, size: stat.size, stat: stat));
-    total += stat.size;
+    candidates.add(entity);
+  }
+
+  final entries = <_CachedFile>[];
+  var total = 0;
+  for (var i = 0; i < candidates.length; i += _statWaveSize) {
+    final wave = candidates.sublist(
+      i,
+      (i + _statWaveSize).clamp(0, candidates.length),
+    );
+    final stats = await Future.wait(wave.map((file) => file.stat()));
+    for (var j = 0; j < wave.length; j++) {
+      final stat = stats[j];
+      if (stat.type != FileSystemEntityType.file) continue;
+      entries.add(_CachedFile(path: wave[j].path, size: stat.size, stat: stat));
+      total += stat.size;
+    }
   }
 
   if (total <= limitBytes) return CacheDiskReport.empty;
@@ -131,26 +156,69 @@ Future<CacheDiskReport> sweepIncompleteMirrors({
   var removed = 0;
   var freed = 0;
 
+  final candidates = <File>[];
   await for (final entity in dir.list(followLinks: false)) {
     if (entity is! File) continue;
     if (!entity.path.endsWith('.part')) continue;
     if (PlaybackCacheMirror.isMirroring(entity.path)) continue;
+    candidates.add(entity);
+  }
 
-    final stat = entity.statSync();
-    if (stat.type != FileSystemEntityType.file) continue;
-    if (!stat.modified.isBefore(cutoff)) continue;
+  for (var i = 0; i < candidates.length; i += _statWaveSize) {
+    final wave = candidates.sublist(
+      i,
+      (i + _statWaveSize).clamp(0, candidates.length),
+    );
+    final stats = await Future.wait(wave.map((file) => file.stat()));
+    for (var j = 0; j < wave.length; j++) {
+      final stat = stats[j];
+      if (stat.type != FileSystemEntityType.file) continue;
+      if (!stat.modified.isBefore(cutoff)) continue;
 
-    try {
-      await entity.delete();
-    } catch (e, stack) {
-      AppLogger.reportError(e, stack, 'music cache .part sweep');
-      continue;
+      try {
+        await wave[j].delete();
+      } catch (e, stack) {
+        AppLogger.reportError(e, stack, 'music cache .part sweep');
+        continue;
+      }
+      freed += stat.size;
+      removed++;
     }
-    freed += stat.size;
-    removed++;
   }
 
   return CacheDiskReport(removedFiles: removed, freedBytes: freed);
+}
+
+/// Delete leftover chunk-download scratch from before downloads wrote
+/// positionally: the `.chunk_dl_*` directories under `<temp>/Spotube` were
+/// per-transfer part-file stores that only a graceful completion removed, so
+/// a killed download left one behind forever.
+///
+/// Runs at startup, when no chunk transfer of this process can be in flight.
+/// A second Spotube instance mid-download would lose its parts and re-fetch
+/// after a rename-blocked write — a cost in bytes, never in file integrity,
+/// which is why no age window applies.
+Future<CacheDiskReport> sweepStaleChunkStaging({
+  DateTime? now,
+}) async {
+  final root = Directory(join((await getTemporaryDirectory()).path, 'Spotube'));
+  if (!await root.exists()) return CacheDiskReport.empty;
+
+  var removed = 0;
+  await for (final entity in root.list(followLinks: false)) {
+    if (entity is! Directory) continue;
+    if (!basename(entity.path).startsWith('.chunk_dl_')) continue;
+
+    try {
+      await entity.delete(recursive: true);
+      removed++;
+    } catch (e, stack) {
+      AppLogger.reportError(e, stack, 'chunk staging sweep');
+      continue;
+    }
+  }
+
+  return CacheDiskReport(removedFiles: removed, freedBytes: 0);
 }
 
 class _CachedFile {

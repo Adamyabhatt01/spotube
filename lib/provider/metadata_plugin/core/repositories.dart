@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+// ignore: depend_on_referenced_packages
+import 'package:meta/meta.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/utils/paginated.dart';
 import 'package:spotube/services/dio/dio.dart';
@@ -22,25 +24,113 @@ class _IndexSource {
   });
 }
 
+/// One cached index page: the response verbatim plus whatever validators the
+/// server offered for revalidation.
+class _CachedIndex {
+  final Response response;
+  final DateTime fetchedAt;
+  final String? etag;
+  final String? lastModified;
+
+  const _CachedIndex({
+    required this.response,
+    required this.fetchedAt,
+    this.etag,
+    this.lastModified,
+  });
+}
+
+/// Answers inside this window are served from memory without touching the
+/// network; GitHub's search API is rate-limited to 10 req/min unauthenticated,
+/// and the page was being refetched on every refresh tap and remount.
+const _indexTtl = Duration(seconds: 60);
+
 class MetadataPluginRepositoriesNotifier
     extends PaginatedAsyncNotifier<MetadataPluginRepository> {
   MetadataPluginRepositoriesNotifier() : super();
 
   final Map<String, bool> _hasMore = {};
 
+  /// Keyed by full request URL including query parameters — every page is
+  /// its own entry. Static so provider invalidation cannot throw the cache
+  /// away; the TTL bounds staleness instead. Capped at 32 pages (evict
+  /// oldest): the index holds full Dio responses and pagination is bounded
+  /// in practice to a handful of pages per host.
+  static final Map<String, _CachedIndex> _cache = {};
+
+  @visibleForTesting
+  static int get debugIndexCacheLength => _cache.length;
+
+  static void _storeIndexPage(String key, _CachedIndex entry) {
+    while (_cache.length >= 32) {
+      _cache.remove(_cache.keys.first);
+    }
+    _cache[key] = entry;
+  }
+
+  @visibleForTesting
+  static void debugClearIndexCache() => _cache.clear();
+
   Future<_IndexSource> _query(
     String host,
     String url,
     Map<String, dynamic> queryParameters,
   ) async {
+    final key = '$url?$queryParameters';
+    final now = DateTime.now();
+    final cached = _cache[key];
+    if (cached != null && now.difference(cached.fetchedAt) < _indexTtl) {
+      return _IndexSource(host: host, response: cached.response);
+    }
+
     try {
-      return _IndexSource(
-        host: host,
-        response: await globalDio.get(
-          url,
-          queryParameters: queryParameters,
+      final response = await globalDio.get(
+        url,
+        queryParameters: queryParameters,
+        options: Options(
+          // Dio's default stops at <300, which would surface the revalidation
+          // hit as an error.
+          validateStatus: (status) => status == null || status < 400,
+          headers: {
+            if (cached?.etag case final etag?) 'if-none-match': etag,
+            if (cached?.lastModified case final modified?)
+              'if-modified-since': modified,
+          },
         ),
       );
+
+      // A validated 304 carries no body: the previous answer stands, and its
+      // clock is reset so the revalidation is amortized over the TTL again.
+      if (response.statusCode == 304) {
+        if (cached == null) {
+          // A validator we never sent: nothing to stand in for a body.
+          return _IndexSource(
+            host: host,
+            failure: StateError('304 for $key without a cached response'),
+          );
+        }
+        _storeIndexPage(
+          key,
+          _CachedIndex(
+            response: cached.response,
+            fetchedAt: now,
+            etag: cached.etag,
+            lastModified: cached.lastModified,
+          ),
+        );
+        return _IndexSource(host: host, response: cached.response);
+      }
+
+      _storeIndexPage(
+        key,
+        _CachedIndex(
+          response: response,
+          fetchedAt: now,
+          etag: response.headers["etag"]?[0],
+          lastModified: response.headers["last-modified"]?[0],
+        ),
+      );
+      return _IndexSource(host: host, response: response);
     } catch (e) {
       return _IndexSource(host: host, failure: e);
     }

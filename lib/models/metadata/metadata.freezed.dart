@@ -8451,6 +8451,17 @@ mixin _$ThemeBackground {
   /// is 50% black). Brightness-adapted by the host layer.
   String? get overlay => throw _privateConstructorUsedError;
 
+  /// Real window transparency opt-in, tri-state by design:
+  /// - `true`: theme wants the compositor to show through (still needs
+  ///   the host master setting);
+  /// - `false`: explicit veto, always opaque even with the setting on;
+  /// - absent (`null`): no opinion, the host setting decides alone (this
+  ///   is what old themes decode to).
+  /// Decoded leniently: anything that is not a JSON bool reads as absent,
+  /// so one malformed flag can never nuke the whole theme.
+  @JsonKey(fromJson: _transparentFromJson)
+  bool? get transparent => throw _privateConstructorUsedError;
+
   /// Serializes this ThemeBackground to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -8471,7 +8482,8 @@ abstract class $ThemeBackgroundCopyWith<$Res> {
       {ThemeBackgroundSource source,
       double opacity,
       double blur,
-      String? overlay});
+      String? overlay,
+      @JsonKey(fromJson: _transparentFromJson) bool? transparent});
 }
 
 /// @nodoc
@@ -8493,6 +8505,7 @@ class _$ThemeBackgroundCopyWithImpl<$Res, $Val extends ThemeBackground>
     Object? opacity = null,
     Object? blur = null,
     Object? overlay = freezed,
+    Object? transparent = freezed,
   }) {
     return _then(_value.copyWith(
       source: null == source
@@ -8511,6 +8524,10 @@ class _$ThemeBackgroundCopyWithImpl<$Res, $Val extends ThemeBackground>
           ? _value.overlay
           : overlay // ignore: cast_nullable_to_non_nullable
               as String?,
+      transparent: freezed == transparent
+          ? _value.transparent
+          : transparent // ignore: cast_nullable_to_non_nullable
+              as bool?,
     ) as $Val);
   }
 }
@@ -8527,7 +8544,8 @@ abstract class _$$ThemeBackgroundImplCopyWith<$Res>
       {ThemeBackgroundSource source,
       double opacity,
       double blur,
-      String? overlay});
+      String? overlay,
+      @JsonKey(fromJson: _transparentFromJson) bool? transparent});
 }
 
 /// @nodoc
@@ -8547,6 +8565,7 @@ class __$$ThemeBackgroundImplCopyWithImpl<$Res>
     Object? opacity = null,
     Object? blur = null,
     Object? overlay = freezed,
+    Object? transparent = freezed,
   }) {
     return _then(_$ThemeBackgroundImpl(
       source: null == source
@@ -8565,6 +8584,10 @@ class __$$ThemeBackgroundImplCopyWithImpl<$Res>
           ? _value.overlay
           : overlay // ignore: cast_nullable_to_non_nullable
               as String?,
+      transparent: freezed == transparent
+          ? _value.transparent
+          : transparent // ignore: cast_nullable_to_non_nullable
+              as bool?,
     ));
   }
 }
@@ -8576,7 +8599,8 @@ class _$ThemeBackgroundImpl implements _ThemeBackground {
       {this.source = ThemeBackgroundSource.none,
       this.opacity = 0.0,
       this.blur = 0.0,
-      this.overlay});
+      this.overlay,
+      @JsonKey(fromJson: _transparentFromJson) this.transparent});
 
   factory _$ThemeBackgroundImpl.fromJson(Map<String, dynamic> json) =>
       _$$ThemeBackgroundImplFromJson(json);
@@ -8597,9 +8621,21 @@ class _$ThemeBackgroundImpl implements _ThemeBackground {
   @override
   final String? overlay;
 
+  /// Real window transparency opt-in, tri-state by design:
+  /// - `true`: theme wants the compositor to show through (still needs
+  ///   the host master setting);
+  /// - `false`: explicit veto, always opaque even with the setting on;
+  /// - absent (`null`): no opinion, the host setting decides alone (this
+  ///   is what old themes decode to).
+  /// Decoded leniently: anything that is not a JSON bool reads as absent,
+  /// so one malformed flag can never nuke the whole theme.
+  @override
+  @JsonKey(fromJson: _transparentFromJson)
+  final bool? transparent;
+
   @override
   String toString() {
-    return 'ThemeBackground(source: $source, opacity: $opacity, blur: $blur, overlay: $overlay)';
+    return 'ThemeBackground(source: $source, opacity: $opacity, blur: $blur, overlay: $overlay, transparent: $transparent)';
   }
 
   @override
@@ -8610,12 +8646,15 @@ class _$ThemeBackgroundImpl implements _ThemeBackground {
             (identical(other.source, source) || other.source == source) &&
             (identical(other.opacity, opacity) || other.opacity == opacity) &&
             (identical(other.blur, blur) || other.blur == blur) &&
-            (identical(other.overlay, overlay) || other.overlay == overlay));
+            (identical(other.overlay, overlay) || other.overlay == overlay) &&
+            (identical(other.transparent, transparent) ||
+                other.transparent == transparent));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, source, opacity, blur, overlay);
+  int get hashCode =>
+      Object.hash(runtimeType, source, opacity, blur, overlay, transparent);
 
   /// Create a copy of ThemeBackground
   /// with the given fields replaced by the non-null parameter values.
@@ -8636,10 +8675,12 @@ class _$ThemeBackgroundImpl implements _ThemeBackground {
 
 abstract class _ThemeBackground implements ThemeBackground {
   const factory _ThemeBackground(
-      {final ThemeBackgroundSource source,
-      final double opacity,
-      final double blur,
-      final String? overlay}) = _$ThemeBackgroundImpl;
+          {final ThemeBackgroundSource source,
+          final double opacity,
+          final double blur,
+          final String? overlay,
+          @JsonKey(fromJson: _transparentFromJson) final bool? transparent}) =
+      _$ThemeBackgroundImpl;
 
   factory _ThemeBackground.fromJson(Map<String, dynamic> json) =
       _$ThemeBackgroundImpl.fromJson;
@@ -8656,6 +8697,18 @@ abstract class _ThemeBackground implements ThemeBackground {
   /// is 50% black). Brightness-adapted by the host layer.
   @override
   String? get overlay;
+
+  /// Real window transparency opt-in, tri-state by design:
+  /// - `true`: theme wants the compositor to show through (still needs
+  ///   the host master setting);
+  /// - `false`: explicit veto, always opaque even with the setting on;
+  /// - absent (`null`): no opinion, the host setting decides alone (this
+  ///   is what old themes decode to).
+  /// Decoded leniently: anything that is not a JSON bool reads as absent,
+  /// so one malformed flag can never nuke the whole theme.
+  @override
+  @JsonKey(fromJson: _transparentFromJson)
+  bool? get transparent;
 
   /// Create a copy of ThemeBackground
   /// with the given fields replaced by the non-null parameter values.

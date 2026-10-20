@@ -30,10 +30,11 @@ import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/components/scroll_motion_scope.dart';
-import 'package:spotube/modules/settings/color_scheme_picker_dialog.dart';
 import 'package:spotube/modules/theme_background/palette_transition_scope.dart';
+import 'package:spotube/modules/theme_background/real_transparency.dart';
 import 'package:spotube/modules/theme_background/theme_background_scope.dart';
-import 'package:spotube/modules/theme_background/theme_definition_cache.dart';
+import 'package:spotube/services/theme_definition_cache.dart';
+import 'package:spotube/modules/settings/color_scheme_picker_dialog.dart';
 import 'package:spotube/modules/splash/splash_screen.dart';
 import 'package:spotube/modules/splash/splash_prefs.dart';
 import 'package:spotube/modules/theme_surfaces/theme_surfaces_scope.dart';
@@ -41,19 +42,25 @@ import 'package:spotube/provider/audio_player/audio_player_streams.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/glance/glance.dart';
 import 'package:spotube/provider/server/sourced_track_provider.dart';
+import 'package:spotube/provider/server/control_server_provider.dart';
+import 'package:spotube/provider/server/control_command_delivery.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/server/bonsoir.dart';
 import 'package:spotube/provider/server/server.dart';
 import 'package:spotube/provider/tray_manager/tray_manager.dart';
 import 'package:spotube/provider/lyrics/synced.dart';
+import 'package:spotube/provider/radio/stations.dart';
 import 'package:spotube/l10n/l10n.dart';
 import 'package:spotube/provider/connect/clients.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/cli/cli.dart';
+import 'package:spotube/services/control/mcp_server.dart';
 import 'package:spotube/services/kv_store/encrypted_kv_store.dart';
 import 'package:spotube/services/kv_store/kv_store.dart';
 import 'package:spotube/services/logger/logger.dart';
+import 'package:spotube/services/memory/device_memory_profile.dart';
+import 'package:spotube/services/memory/memory_budget.dart';
 import 'package:spotube/services/connectivity_adapter.dart';
 import 'package:spotube/services/vpn/nmcli_backend.dart';
 import 'package:spotube/services/wm_tools/wm_tools.dart';
@@ -62,13 +69,13 @@ import 'package:spotube/utils/platform.dart';
 import 'package:spotube/utils/perf_counters.dart';
 import 'package:spotube/utils/theme_converter.dart';
 import 'package:spotube/services/youtube_engine/yt_dlp_engine.dart';
+import 'package:spotube/services/youtube_engine/yt_dlp_process.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:window_manager/window_manager.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:yt_dlp_dart/yt_dlp_dart.dart';
-import 'package:flutter_new_pipe_extractor/flutter_new_pipe_extractor.dart';
 
 /// Runs an optional startup step without ever failing startup.
 ///
@@ -80,9 +87,11 @@ Future<void> guardedStartupInit(
   Future<void> Function() init, {
   Future<void> Function(Object error, StackTrace stackTrace)? onError,
 }) async {
-  // Which step actually costs what, for the startup harness below. The
-  // stopwatch is only created when it can be logged.
-  final sw = kReleaseMode ? null : (Stopwatch()..start());
+  // Which step actually costs what, for the startup harness below. One
+  // stopwatch per step is negligible (~10 steps/start) and the lines land
+  // in the release log file too, so slow launches on user devices without
+  // adb can still be attributed from Settings > Logs.
+  final sw = Stopwatch()..start();
   try {
     await init();
   } catch (e, stack) {
@@ -92,9 +101,7 @@ Future<void> guardedStartupInit(
       await AppLogger.reportError(e, stack, name);
     }
   } finally {
-    if (sw != null) {
-      _startupLog('[startup] step $name: ${sw.elapsedMilliseconds}ms');
-    }
+    _startupLog('[startup] step $name: ${sw.elapsedMilliseconds}ms');
   }
 }
 
@@ -102,7 +109,12 @@ Future<void> guardedStartupInit(
 /// hides as soon as a themed frame can paint, or when [cap] elapses —
 /// whichever comes first. Even a total theme failure resolves to the
 /// built-in fallback after the cap instead of hanging on black.
-const startupSplashGateCap = Duration(seconds: 6);
+///
+/// The cap used to be 6 s, which is what a user without a themed plugin (or
+/// with a plugin whose theme lookup failed) saw on every cold start. A
+/// settled theme provider is enough to paint: `themeDefinition` resolving to
+/// null is a valid answer, not something to wait out.
+const startupSplashGateCap = Duration(seconds: 2);
 
 bool startupGateAllowsApp({
   required bool themeReady,
@@ -145,22 +157,35 @@ Future<void> _initDeferredServices(WidgetRef ref) async {
   // Captured up front: this function awaits several seconds of work, and a
   // `ref` read at the end of it could outlive the element that handed it over.
   final preferences = ref.read(userPreferencesProvider.notifier);
-  await guardedStartupInit('NewPipeExtractor.init', () async {
-    if (kIsAndroid || kIsDesktop) {
-      await NewPipeExtractor.init();
-    }
-  });
+  // NewPipe initializes lazily on first engine use (single-flight in
+  // `NewPipeEngine._ensureInitialized`), not here: every start paid
+  // `NewPipe.init(DownloaderImpl.init(OkHttpClient()))` whether or not any
+  // NewPipe call followed. The engine tests inject a no-op init for the
+  // same reason the search path is injectable (no platform channel there).
   await guardedStartupInit('YtDlp.setBinaryLocation', () async {
     if (kIsDesktop) {
       // A bare "yt-dlp" only resolves through the process PATH, which a
       // GUI-launched app keeps short of ~/.local/bin — so resolve an
-      // absolute path here and every later call inherits it.
-      final binaryPath = KVStoreService.getYoutubeEnginePath(
-            YoutubeClientEngine.ytDlp,
-          ) ??
+      // absolute path here and every later call inherits it. A stored
+      // custom path that no longer exists must not win: it would
+      // short-circuit resolution and leave the binary unset for the
+      // whole session.
+      final storedPath = KVStoreService.getYoutubeEnginePath(
+        YoutubeClientEngine.ytDlp,
+      );
+      final customPath =
+          storedPath != null && await File(storedPath).exists()
+              ? storedPath
+              : null;
+      final binaryPath = customPath ??
           await YtDlpEngine.resolveBinaryPath() ??
           "yt-dlp${kIsWindows ? '.exe' : ''}";
       await YtDlp.instance.setBinaryLocation(binaryPath);
+      // R-11: the package spawns its binary with `Process.run`, which hands
+      // back no handle, so an engine call that missed its budget was abandoned
+      // while yt-dlp kept running. Swap in the killable process layer now that
+      // there is a binary for it to point at.
+      YtDlpProcess.install();
     }
   });
   await guardedStartupInit('FlutterDiscordRPC.initialize', () async {
@@ -209,19 +234,21 @@ Future<void> _initDeferredServices(WidgetRef ref) async {
 }
 
 /// Startup harness: the wall-clock timeline from `main()` to an interactive
-/// window, in debug/profile runs only. The roadmap requires a before/after
-/// number per startup change, and none of these phases had an observable
-/// endpoint before this.
+/// window. Phase lines go through `AppLogger.logStartupLine`, so they land
+/// in the release log file too (Settings > Logs) and a slow launch on a
+/// device without adb can still be attributed. The roadmap requires a
+/// before/after number per startup change, and none of these phases had an
+/// observable endpoint before this.
 ///
-/// `SPOTUBE_STARTUP_LOG=<path>` mirrors each line to a file, because a run cut
-/// short by a signal loses whatever the logger still has buffered on stdout.
+/// `SPOTUBE_STARTUP_LOG=<path>` additionally mirrors each line to a file in
+/// debug/profile runs, because a run cut short by a signal loses whatever
+/// the logger still has buffered on stdout.
 final _startupClock = Stopwatch();
 final _startupLogPath =
     kIsWeb || kReleaseMode ? null : Platform.environment['SPOTUBE_STARTUP_LOG'];
 
 void _startupLog(String line) {
-  if (kReleaseMode) return;
-  AppLogger.log.i(line);
+  AppLogger.logStartupLine(line);
   final path = _startupLogPath;
   if (path != null) {
     File(path).writeAsStringSync(
@@ -244,11 +271,35 @@ Future<void> main(List<String> rawArgs) async {
       return;
     }
   }
-  final arguments = await startCLI(rawArgs);
+  final invocation = await startCLI(rawArgs);
+  final arguments = invocation.arguments;
   AppLogger.initialize(arguments["verbose"]);
   // Startup harness reference point. Everything before it (engine bootstrap,
   // plugin registration, CLI parsing) is not code these phases can change.
   _logStartupPhase('main');
+
+  // A control command drives an ALREADY-RUNNING instance rather than
+  // starting a second one. If no instance is reachable, this process
+  // becomes the instance and answers the command itself once the UI is up
+  // — so `spotube --play "x"` works whether or not the app is running.
+  final controlRequest = invocation.controlRequest;
+  if (controlRequest != null && controlRequest.command == 'mcp.serve') {
+    // The MCP server is a separate process that drives the running app over
+    // the local control channel. It never hosts the app itself, so it costs
+    // the running instance nothing.
+    await runSpotubeMcpServer();
+    return;
+  }
+  if (controlRequest != null) {
+    final delivered = await sendControlCommand(controlRequest);
+    if (delivered) {
+      // The running instance answered: this process has nothing left to do.
+      exit(0);
+    }
+    // No instance was reachable. Fall through: this process becomes the
+    // instance, and the command is answered below once the providers are
+    // up. The UI is still shown, so the user sees what happened.
+  }
 
   // Opt-in perf counter dump for a debug/profile run: set
   // SPOTUBE_PERF_COUNTERS to an ISO duration (e.g. 00:00:10) and the counters
@@ -269,10 +320,31 @@ Future<void> main(List<String> rawArgs) async {
 
   AppLogger.runZoned(() async {
     final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+    _logStartupPhase('binding');
 
     // A failed widget build shows the fallback above instead of a red
     // screen (debug) or a black hole (release splash path).
     ErrorWidget.builder = (details) => const _StartupErrorFallback();
+
+    // Framework build/layout/paint errors never reach the zone's
+    // PlatformDispatcher handler (that only sees uncaught async errors), so
+    // without this the album/playlist crash fallback is all the user sees and
+    // Settings > Logs has no stack trace. Keep the debug console output too.
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+      unawaited(
+        AppLogger.reportError(
+          details.exception,
+          details.stack,
+          details.context?.toDescription() ?? 'FlutterError',
+        ),
+      );
+    };
+
+    // Cover the window before any of the pre-frame work below. The native
+    // splash used to be preserved after the image-cache setup, which is
+    // small but needless uncovered time on a cold Android start.
+    FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
     HttpOverrides.global = BadCertificateAllowlistOverrides();
 
@@ -280,9 +352,24 @@ Future<void> main(List<String> rawArgs) async {
     // backdrops push out the small artwork that is on screen constantly, and
     // nothing bounded them before. This sits under the sized decodes, not over
     // them: entries now hold far fewer bytes than they used to.
+    //
+    // The byte budget is device-aware: a 64 MB image cache is a large share
+    // of an old phone's per-app heap and a rounding error on a desktop, so
+    // the cap follows what the platform says the app may keep. The probe is
+    // synchronous for the Linux/Android path (a /proc read) and falls back to
+    // a fixed value where the platform publishes nothing.
+    //
+    // Start the shared-preferences load first so its platform channel call
+    // overlaps the probe instead of adding to it. Both are independent and
+    // must finish before runApp (the DB and the first theme read need
+    // preferences; the image cache needs the probe).
+    final kvStoreInit = KVStoreService.initialize();
+    final memoryProfile = await DeviceMemoryProbe().resolve();
+    MemoryBudget.install(memoryProfile);
     PaintingBinding.instance.imageCache
       ..maximumSize = 700
-      ..maximumSizeBytes = 64 * 1024 * 1024;
+      ..maximumSizeBytes = memoryProfile.imageCacheBudgetBytes;
+    _logStartupPhase('memoryProfile');
 
     // Timezone data moved to _initDeferredServices (post-paint): nothing on
     // the pre-frame path consumes it.
@@ -295,9 +382,8 @@ Future<void> main(List<String> rawArgs) async {
     //   fast-paths when there is nothing to migrate).
     // - MetadataGod: only local scans/metadata writes use it (post-startup),
     //   initialized post-paint in _initDeferredServices.
-    FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-
     MediaKit.ensureInitialized();
+    _logStartupPhase('mediaKit');
 
     await migrateMacOsFromSandboxToNoSandbox();
 
@@ -311,7 +397,8 @@ Future<void> main(List<String> rawArgs) async {
       ));
     }
 
-    await KVStoreService.initialize();
+    await kvStoreInit;
+    _logStartupPhase('kvStore');
 
     // Best-effort desktop integrations: failures degrade the feature
     // (tray/close-behavior/media keys), never abort launch — and none of
@@ -334,8 +421,10 @@ Future<void> main(List<String> rawArgs) async {
       await AppLogger.reportError(
           e, stack, 'EncryptedKvStoreService.initialize');
     }
+    _logStartupPhase('secureStore');
 
     final database = AppDatabase();
+    _logStartupPhase('database');
 
     if (kIsDesktop) {
       // ~28 ms of the pre-runApp path (measured): it only registers the
@@ -356,6 +445,8 @@ Future<void> main(List<String> rawArgs) async {
       ProviderScope(
         overrides: [
           databaseProvider.overrideWith((ref) => database),
+          if (controlRequest != null)
+            pendingControlRequestProvider.overrideWithValue(controlRequest),
         ],
         observers: const [
           AppLoggerProviderObserver(),
@@ -399,6 +490,7 @@ class Spotube extends HookConsumerWidget {
     );
     final themeDefinition = ref.watch(themeDefinitionProvider);
     final cachedThemeDefinition = ref.watch(cachedThemeDefinitionProvider);
+
     final router = useMemoized(() => AppRouter(ref), []);
     final hasTouchSupport = useHasTouch();
 
@@ -406,6 +498,13 @@ class Spotube extends HookConsumerWidget {
     // and is silently replaced when live resolves. Built-in otherwise.
     final pluginTheme =
         themeDefinition.asData?.value ?? cachedThemeDefinition.asData?.value;
+
+    // A resolved `null` (no theme plugin configured, or the plugin answered
+    // without one) is a valid first-paint answer. Waiting for `pluginTheme !=
+    // null` instead kept the splash up until the 6 s cap on every cold start
+    // for those users — the actual "app takes seconds to open" symptom.
+    final themeResolutionSettled =
+        !themeDefinition.isLoading && !cachedThemeDefinition.isLoading;
 
     // Branded in-app splash: hidden the moment a themed frame is ready, with a
     // safety cap so startup never hangs on theme resolution.
@@ -427,7 +526,7 @@ class Spotube extends HookConsumerWidget {
       return timer.cancel;
     }, [splashCapTick.value]);
     final splashReady = startupGateAllowsApp(
-      themeReady: pluginTheme != null,
+      themeReady: pluginTheme != null || themeResolutionSettled,
       elapsed: gateStart.elapsed,
     );
     useEffect(() {
@@ -463,6 +562,14 @@ class Spotube extends HookConsumerWidget {
       void logAsyncError(Object e, StackTrace st) =>
           AppLogger.reportError(e, st);
 
+      // A control command this process was started to deliver (the CLI was
+      // asked to drive an instance and none was running). Answered once the
+      // app is up, through the same handler the control channel uses.
+      final pendingRequest = ref.read(pendingControlRequestProvider);
+      if (pendingRequest != null) {
+        unawaited(deliverPendingControlRequest(ref, pendingRequest));
+      }
+
       final subscriptions = [
         ref.listenManual(audioPlayerStreamListenersProvider, (_, __) {}),
         ref.listenManual(
@@ -493,6 +600,21 @@ class Spotube extends HookConsumerWidget {
         ),
         ref.listenManual(
           audioSourcePluginProvider,
+          (_, __) {},
+          onError: logAsyncError,
+        ),
+        // Keeps the internet-radio directory registry pointed at the
+        // installed radio plugins for the app's lifetime. Subscribed here
+        // (behind the splash gate) instead of inline in build: it reads the
+        // installed-plugin list and registers directory providers, none of
+        // which can be observed before the app is visible.
+        ref.listenManual(radioPluginDirectorySyncProvider, (_, __) {}),
+        // The local control channel: a second `spotube --play ...` finds this
+        // instance through it, and the MCP server drives the same endpoint.
+        // Local only (Unix socket/loopback), and it needs the player and the
+        // metadata plugin, so it belongs on the post-splash path too.
+        ref.listenManual(
+          controlServerProvider,
           (_, __) {},
           onError: logAsyncError,
         ),
@@ -722,6 +844,9 @@ class Spotube extends HookConsumerWidget {
           scaling: pluginScaling,
           brightness: materialBrightness,
           duration: themeTransitionDuration,
+          // The scope itself stays provider-free (frame-exact clock); the
+          // one watch lives here with the other preference watches.
+          realTransparent: ref.watch(realTransparencyActiveProvider),
           child: AppLayout(
             tokens: pluginTheme?.tokens ?? const ThemeTokens(),
             radii: pluginTheme?.radius ?? const ThemeRadius(),
@@ -758,7 +883,7 @@ class Spotube extends HookConsumerWidget {
           LogicalKeyboardKey.digit2,
           LogicalKeyboardKey.control,
           LogicalKeyboardKey.shift,
-        ): HomeTabIntent(router, tab: HomeTabs.search),
+        ): HomeTabIntent(router, tab: HomeTabs.search, ref: ref),
         LogicalKeySet(
           LogicalKeyboardKey.digit3,
           LogicalKeyboardKey.control,

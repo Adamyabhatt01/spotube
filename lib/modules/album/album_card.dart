@@ -189,10 +189,14 @@ class AlbumCard extends HookConsumerWidget {
       return PlaybuttonTile(
         imageUrl: imageUrl,
         isPlaying: isPlaylistPlaying,
+        // The icon follows the audio, not the queue membership: pausing
+        // from elsewhere left the button showing "pause".
+        isActuallyPlaying: isPlaylistPlaying && playing,
         isLoading: isLoading,
         title: album.name,
         description: description,
         onTap: onTap,
+        onCoverPressed: onPlaybuttonPressed,
         onPlaybuttonPressed: onPlaybuttonPressed,
         onAddToQueuePressed: onAddToQueuePressed,
       );
@@ -201,10 +205,14 @@ class AlbumCard extends HookConsumerWidget {
     return PlaybuttonCard(
       imageUrl: imageUrl,
       isPlaying: isPlaylistPlaying,
+      // The icon follows the audio, not the queue membership: pausing
+      // from elsewhere left the button showing "pause".
+      isActuallyPlaying: isPlaylistPlaying && playing,
       isLoading: isLoading,
       title: album.name,
       description: description,
       onTap: onTap,
+      onCoverPressed: onPlaybuttonPressed,
       onPlaybuttonPressed: onPlaybuttonPressed,
       onAddToQueuePressed: onAddToQueuePressed,
     );

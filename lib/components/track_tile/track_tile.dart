@@ -12,6 +12,7 @@ import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/hover_builder.dart';
 import 'package:spotube/components/image/universal_image.dart';
 import 'package:spotube/components/links/artist_link.dart';
+import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/components/links/link_text.dart';
 import 'package:spotube/components/track_tile/track_options_button.dart';
 import 'package:spotube/components/ui/button_tile.dart';
@@ -41,6 +42,10 @@ class TrackTile extends HookConsumerWidget {
   /// `audioPlayerProvider.select((s) => s.activeTrack?.id)`) instead of
   /// the whole [AudioPlayerState], so list rows don't rebuild on
   /// playing/loop/shuffle/queue edits.
+  ///
+  /// This means "this is the track the player is on", NOT "this track is
+  /// sounding right now" — a paused track is still the active one. The
+  /// play/pause icon follows the audio instead (see the build method).
   final bool isPlaying;
 
   final List<Widget>? leadingActions;
@@ -63,6 +68,18 @@ class TrackTile extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, ref) {
     final theme = Theme.of(context);
+
+    // Whether the audio is actually sounding right now, as opposed to
+    // whether this row is the active track. A paused track stays active, so
+    // the two differ the moment playback is paused — and the icon has to
+    // follow the audio, not the selection.
+    //
+    // Narrowly selected, so a row only rebuilds when the player starts or
+    // stops, not on every queue edit.
+    final isSounding = isPlaying &&
+        ref.watch(
+          audioPlayerProvider.select((s) => s.playing),
+        );
 
     final isBlackListed = ref.watch(
       blacklistedIdsProvider.select(
@@ -195,12 +212,17 @@ class TrackTile extends HookConsumerWidget {
                               // instead of every visible tile's.
                               final isFetchingActiveTrack = isPlaying &&
                                   ref.watch(queryingTrackInfoProvider);
+                              // The icon follows whether the audio is
+                              // actually sounding, not whether this row is
+                              // the active track: pausing from the sidebar
+                              // used to leave the tile showing "pause".
+                              final sounding = isSounding;
                               return AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 300),
                                 child: switch ((
                                   isPlaying,
                                   isFetchingActiveTrack,
-                                  isPlaying,
+                                  sounding,
                                   isHovering,
                                   isLoading.value
                                 )) {

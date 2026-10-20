@@ -78,8 +78,10 @@ class SidebarReorderableItem extends StatefulWidget
 
   final SidebarReorderGroup group;
 
-  /// The row visuals; taps on it behave exactly as before.
-  final NavigationButton row;
+  /// The row visuals; taps on it behave exactly as before. Typed as [Widget]
+  /// (rather than [NavigationButton]) so pin rows can own hook state
+  /// (`SidebarPinTile` renders the same `NavigationButton` inside).
+  final Widget row;
 
   /// Compact drag ghost shown under the pointer while dragging.
   final Widget feedback;

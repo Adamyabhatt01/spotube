@@ -17,6 +17,7 @@ final validAbilities = {
   PluginAbilities.metadata: ("Metadata", SpotubeIcons.album),
   PluginAbilities.audioSource: ("Audio Source", SpotubeIcons.music),
   PluginAbilities.theme: ("Theme", SpotubeIcons.palette),
+  PluginAbilities.radio: ("Radio", SpotubeIcons.radio),
 };
 
 class MetadataInstalledPluginItem extends HookConsumerWidget {
@@ -24,12 +25,14 @@ class MetadataInstalledPluginItem extends HookConsumerWidget {
   final bool isDefaultMetadata;
   final bool isDefaultAudioSource;
   final bool isDefaultTheme;
+  final bool isDefaultRadio;
   const MetadataInstalledPluginItem({
     super.key,
     required this.plugin,
     required this.isDefaultMetadata,
     required this.isDefaultAudioSource,
     this.isDefaultTheme = false,
+    this.isDefaultRadio = false,
   });
 
   @override
@@ -291,6 +294,20 @@ class MetadataInstalledPluginItem extends HookConsumerWidget {
                         isDefaultTheme
                             ? context.l10n.default_theme
                             : context.l10n.set_default_theme,
+                      ),
+                    ),
+                  // Literal strings: no radio l10n keys exist and regenerating
+                  // the localization files is out of scope for this change.
+                  if (plugin.abilities.contains(PluginAbilities.radio))
+                    Button.secondary(
+                      enabled: !isDefaultRadio,
+                      onPressed: () async {
+                        await pluginsNotifier.setDefaultRadioPlugin(plugin);
+                      },
+                      child: Text(
+                        isDefaultRadio
+                            ? "Default radio directory"
+                            : "Set as default for Radio",
                       ),
                     ),
                 ],

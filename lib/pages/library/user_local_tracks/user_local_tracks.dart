@@ -14,17 +14,6 @@ import 'package:spotube/provider/local_tracks/local_tracks_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/utils/platform.dart';
 
-enum SortBy {
-  none,
-  ascending,
-  descending,
-  newest,
-  oldest,
-  duration,
-  artist,
-  album,
-}
-
 @RoutePage()
 class UserLocalLibraryPage extends HookConsumerWidget {
   static const name = 'user_local_library';

@@ -3,6 +3,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/image/universal_image.dart';
+import 'package:spotube/components/play_pause_icon.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/extensions/string.dart';
 
@@ -11,11 +12,26 @@ class PlaybuttonTile extends HookWidget {
   final void Function()? onPlaybuttonPressed;
   final void Function()? onAddToQueuePressed;
   final void Function()? onPinPressed;
+
+  /// Direct playback on a cover tap; null keeps the cover part of the row's
+  /// navigation tap.
+  final void Function()? onCoverPressed;
   final String? description;
 
   final String? imageUrl;
   final Widget? image;
+
+  /// Whether this row's collection is in the player's queue.
+  ///
+  /// Drives the "is it queued" state, NOT the play/pause icon.
   final bool isPlaying;
+
+  /// Whether the audio is currently sounding from this collection.
+  ///
+  /// This is what the play/pause icon shows. It differs from [isPlaying]
+  /// the moment playback is paused.
+  final bool isActuallyPlaying;
+
   final bool isLoading;
   final bool isPinned;
   final String title;
@@ -23,12 +39,14 @@ class PlaybuttonTile extends HookWidget {
 
   const PlaybuttonTile({
     required this.isPlaying,
+    this.isActuallyPlaying = false,
     required this.isLoading,
     required this.title,
     this.description,
     this.onPlaybuttonPressed,
     this.onAddToQueuePressed,
     this.onPinPressed,
+    this.onCoverPressed,
     this.onTap,
     this.isOwner = false,
     this.isPinned = false,
@@ -60,27 +78,45 @@ class PlaybuttonTile extends HookWidget {
       [imageUrl, decodeSide],
     );
 
-    return Button(
-      leading: imageUrl != null
-          ? Container(
-              width: 50 * scale,
-              height: 50 * scale,
-              decoration: BoxDecoration(
-                borderRadius: context.theme.borderRadiusMd,
-                image: DecorationImage(
-                  // Phase 2 perf (IMG.2): decode at 2x the 50x50 display
-                  // size instead of full resolution.
-                  image: tileArt!,
-                  fit: BoxFit.cover,
-                ),
+    // The outer Button does not gate an inner tap detector, so the loading
+    // guard lives here. The trailing buttons are in a separate row slot and
+    // keep winning their own regions.
+    final tileCover = imageUrl != null
+        ? Container(
+            width: 50 * scale,
+            height: 50 * scale,
+            decoration: BoxDecoration(
+              borderRadius: context.theme.borderRadiusMd,
+              image: DecorationImage(
+                // Phase 2 perf (IMG.2): decode at 2x the 50x50 display
+                // size instead of full resolution.
+                image: tileArt!,
+                fit: BoxFit.cover,
               ),
-            )
-          : SizedBox(
-              width: 50 * scale,
-              height: 50 * scale,
-              child: ClipRRect(
-                borderRadius: context.theme.borderRadiusMd,
-                child: image,
+            ),
+          )
+        : SizedBox(
+            width: 50 * scale,
+            height: 50 * scale,
+            child: ClipRRect(
+              borderRadius: context.theme.borderRadiusMd,
+              child: image,
+            ),
+          );
+
+    return Button(
+      leading: onCoverPressed == null
+          ? tileCover
+          : GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: isLoading ? null : onCoverPressed,
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: Semantics(
+                  label: context.l10n.play,
+                  button: true,
+                  child: tileCover,
+                ),
               ),
             ),
       style: ButtonVariance.ghost.copyWith(
@@ -121,12 +157,13 @@ class PlaybuttonTile extends HookWidget {
           Tooltip(
             tooltip: TooltipContainer(child: Text(context.l10n.play)).call,
             child: IconButton.secondary(
-              icon: switch ((isLoading, isPlaying)) {
+              icon: switch ((isLoading, isActuallyPlaying)) {
                 (true, _) => const CircularProgressIndicator(
                     size: 22,
                   ),
-                (false, false) => const Icon(SpotubeIcons.play),
-                (false, true) => const Icon(SpotubeIcons.pause)
+                (false, _) => AnimatedPlayPauseIcon(
+                    isPlaying: isActuallyPlaying,
+                  ),
               },
               onPressed: onPlaybuttonPressed,
               enabled: !isLoading,

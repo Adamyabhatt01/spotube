@@ -16,6 +16,7 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/models/parser/range_headers.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/audio_player/state.dart';
+import 'package:spotube/provider/local_tracks/local_tracks_provider.dart';
 
 import 'package:spotube/provider/server/active_track_sources.dart';
 import 'package:spotube/provider/server/sourced_track_provider.dart';
@@ -25,6 +26,7 @@ import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/music_cache_policy.dart';
 import 'package:spotube/services/playback_cache_mirror.dart';
+import 'package:spotube/services/sourced_track/local_library_lookup.dart';
 import 'package:spotube/services/sourced_track/source_resolver.dart';
 import 'package:spotube/services/sourced_track/sourced_track.dart';
 import 'package:spotube/services/vpn/vpn_lease.dart';
@@ -44,12 +46,11 @@ final _deviceClients = Set.unmodifiable({
   YoutubeApiClient.safari,
 });
 
-String? get _randomUserAgent => _deviceClients
+String? get _randomDeviceUserAgent => _deviceClients
     .elementAt(
       Random().nextInt(_deviceClients.length),
     )
     .payload["context"]["client"]["userAgent"];
-
 /// Signed CDN URLs are host-bound: every fetch must carry the `Host` of the
 /// URL it is requesting, never the primary URL's host.
 @visibleForTesting
@@ -84,9 +85,26 @@ dio_lib.Response<Stream<List<int>>> cachedFileStreamResponse({
     }
   }
 
-  if (range != null && range.start < fileLength) {
-    final start = range.start;
-    final end = min(range.end ?? fileLength - 1, fileLength - 1);
+  // An inverted range (`bytes=200-100`) parses without complaint but cannot
+  // describe any byte span: the 206 branch below computes
+  // `end - start + 1` from it, yielding a *negative* content-length. dart:io
+  // rejects that by throwing out of `_HttpHeaders._addContentLength`, and
+  // shelf's `_writeResponse` sets the status line before applying headers, so
+  // the throw escapes `handleRequest` with the response still open — the
+  // client hangs until it gives up and the socket is never released. Reachable
+  // from any HTTP client, and the server binds 0.0.0.0 when Connect is on.
+  //
+  // Treat it as unsatisfiable, which is the same answer an out-of-bounds
+  // `start` already gets from the check below: the whole file. Deliberately
+  // not a 416, so the status codes clients see stay exactly as before.
+  final rangeStart = range?.start;
+  final rangeEnd = range?.end;
+  final rangeIsUsable =
+      rangeStart != null && (rangeEnd == null || rangeEnd >= rangeStart);
+
+  if (rangeIsUsable && rangeStart < fileLength) {
+    final start = rangeStart;
+    final end = min(rangeEnd ?? fileLength - 1, fileLength - 1);
 
     return dio_lib.Response<Stream<List<int>>>(
       statusCode: 206,
@@ -141,7 +159,7 @@ dio_lib.Response cachedFileHeadResponse({
 /// container extension.
 String downloadedFileBaseName(SpotubeFullTrackObject track) {
   return ServiceUtils.sanitizeFilename(
-    "${track.name} - ${track.artists.map((e) => e.name).join(", ")}",
+    ServiceUtils.trackFileStem(track, spaceAfterComma: true),
   );
 }
 
@@ -252,6 +270,35 @@ class ServerPlaybackRoutes {
   /// answer for different content — only skip a repeated probe of the same.
   static const headProbeReuseWindow = Duration(seconds: 30);
 
+  /// The user agent a track is served under, fixed at its first request.
+  ///
+  /// A signed googlevideo URL belongs to the client context that signed it,
+  /// and mpv's HEAD and the GET after it (plus any re-probe after a seek) are
+  /// all requests for the same signed answer. Drawing a fresh random client
+  /// per request asked one of them to be rejected and paid for with the whole
+  /// fallback-cascade rebuild.
+  String? _userAgentFor(SourcedTrack track) {
+    final key = track.query.id;
+    if (_userAgents.containsKey(key)) {
+      // Re-touch the entry: Dart maps are insertion-ordered, so remove+re-add
+      // moves it to most-recently-used. The playing track is asked for on
+      // every HEAD/GET (plus any seek re-probe), so its UA can never be the
+      // oldest entry while it is still live — the failure mode the pin exists
+      // to prevent.
+      final ua = _userAgents.remove(key);
+      return _userAgents[key] = ua;
+    }
+    // Same bound as [_headProbes], but evict the *oldest* entry instead of
+    // clearing the lot: clearing would also drop the currently playing
+    // track's pinned UA, re-randomizing it mid-playback.
+    while (_userAgents.length >= 16) {
+      _userAgents.remove(_userAgents.keys.first);
+    }
+    return _userAgents[key] = _randomDeviceUserAgent;
+  }
+
+  final Map<String, String?> _userAgents = {};
+
   /// Content types answered by a recent HEAD, keyed by `track id|url`.
   final Map<String, _HeadProbe> _headProbes = {};
 
@@ -271,6 +318,13 @@ class ServerPlaybackRoutes {
       _headProbes.remove(key);
       return null;
     }
+    // Re-touch: Dart maps are insertion-ordered, so remove+re-add moves the
+    // entry to most-recently-used. The playing track is probed on every
+    // HEAD/GET (plus seeks), so it can never be the oldest entry while live —
+    // the same pin that `_userAgentFor` already implements. Measured: the old
+    // `clear()` below wiped the playing entry on the 17th insert.
+    _headProbes.remove(key);
+    _headProbes[key] = probe;
     PerfCounters.note('playback.headProbeReused');
     return probe.contentType;
   }
@@ -278,8 +332,12 @@ class ServerPlaybackRoutes {
   void _rememberHeadProbe(SourcedTrack track, String url, String? contentType) {
     if (contentType == null) return;
 
-    // Only ever a handful of live tracks; drop the lot rather than track ages.
-    if (_headProbes.length > 16) _headProbes.clear();
+    // Evict the oldest entry instead of clearing the lot: clearing also
+    // dropped the currently playing track's probe (extra upstream HEAD).
+    // Mirrors `_userAgentFor` above; same 16-entry bound.
+    while (_headProbes.length >= 16) {
+      _headProbes.remove(_headProbes.keys.first);
+    }
     _headProbes[_headProbeKey(track, url)] =
         _HeadProbe(contentType, DateTime.now());
   }
@@ -368,10 +426,14 @@ class ServerPlaybackRoutes {
 
   Future<String> _getTrackCacheFilePath(SourcedTrack track) async {
     PerfCounters.note('playback.musicCacheDirLookup');
+    // The extension names the cache file, so it must be stable for a given
+    // track: the same container the bytes are served in. Falls back to the
+    // track's own container when the plugin has published no presets yet.
+    final extension = track.container?.extension ?? "m4a";
     return join(
       await UserPreferencesNotifier.getMusicCacheDir(),
       ServiceUtils.sanitizeFilename(
-        '${track.query.name} - ${track.query.artists.map((d) => d.name).join(",")} (${track.info.id}).${track.qualityPreset!.getFileExtension()}',
+        "${ServiceUtils.trackFileStem(track.query, spaceAfterComma: false)} (${track.info.id}).$extension",
       ),
     );
   }
@@ -418,8 +480,13 @@ class ServerPlaybackRoutes {
   /// the track object is stored — is gone, and a shuffle toggle used to make
   /// this route throw for every track it served.
   Future<SourcedTrack?> _getSourcedTrack(String trackId) async {
-    final track =
-        playlist.tracks.firstWhere((element) => element.id == trackId);
+    final track = playlist.tracks
+        .firstWhereOrNull((element) => element.id == trackId);
+    if (track == null) return null;
+    // Local tracks need no sourcing; the unguarded `as` used to turn them
+    // into a 500 here (caught at the route handlers). Return null so the
+    // caller serves the local file path instead.
+    if (track is! SpotubeFullTrackObject) return null;
 
     final activeSourcedTrack =
         await ref.read(activeTrackSourcesProvider.future);
@@ -427,7 +494,7 @@ class ServerPlaybackRoutes {
     return activeSourcedTrack?.track.id == track.id
         ? activeSourcedTrack?.source
         : await ref.read(
-            sourcedTrackProvider(track as SpotubeFullTrackObject).future,
+            sourcedTrackProvider(track).future,
           );
   }
 
@@ -441,6 +508,19 @@ class ServerPlaybackRoutes {
   Future<VpnLease?> _acquirePlaybackLease() async {
     if (!vpnGatesPlayback(ref)) return null;
     return ref.read(vpnManagerProvider).acquire();
+  }
+
+  /// The `Content-Type` for a response that serves [file] from the music
+  /// cache.
+  ///
+  /// Prefers the track's container name — that is what the cached bytes
+  /// actually are. Falls back to the cache file's own extension when the
+  /// audio-source plugin has published no presets, so the header still
+  /// describes the file being served instead of crashing the request.
+  String _cachedContentType(SourcedTrack track, File file) {
+    final name = track.container?.name;
+    if (name != null) return "audio/$name";
+    return lookupMimeType(file.path) ?? "audio/mpeg";
   }
 
   Future<dio_lib.Response> streamTrackInformation(
@@ -468,7 +548,7 @@ class ServerPlaybackRoutes {
 
       return cachedFileHeadResponse(
         fileLength: fileLength,
-        contentType: "audio/${track.qualityPreset!.name}",
+        contentType: _cachedContentType(track, trackCacheFile),
         requestPath: request.requestedUri.toString(),
       );
     }
@@ -479,7 +559,7 @@ class ServerPlaybackRoutes {
 
       final options = Options(
         headers: {
-          "user-agent": _randomUserAgent,
+          "user-agent": _userAgentFor(track),
           "Cache-Control": "max-age=3600",
           "Connection": "keep-alive",
         },
@@ -502,7 +582,9 @@ class ServerPlaybackRoutes {
         _rememberHeadProbe(track, url, res.headers.value("content-type"));
         return res;
       } catch (_) {
-        // fall through to cascade
+        // Intentional fall-through to the fallback cascade, but counted so
+        // a failing primary is observable in debug/profile counters.
+        PerfCounters.note('playback.headProbeFailure');
       }
 
       Object? lastError;
@@ -556,7 +638,7 @@ class ServerPlaybackRoutes {
       return cachedFileStreamResponse(
         file: trackCacheFile,
         fileLength: cachedFileLength,
-        contentType: "audio/${track.qualityPreset!.name}",
+        contentType: _cachedContentType(track, trackCacheFile),
         requestPath: request.requestedUri.toString(),
         rangeHeader: request.headers["range"],
       );
@@ -568,7 +650,7 @@ class ServerPlaybackRoutes {
 
       final baseHeaders = <String, dynamic>{
         ...headers,
-        "user-agent": _randomUserAgent,
+        "user-agent": _userAgentFor(track),
         "Cache-Control": "max-age=3600",
         "Connection": "keep-alive",
       };
@@ -697,15 +779,22 @@ class ServerPlaybackRoutes {
         mirror = PlaybackCacheMirror.tryBegin(
           cacheFile: trackCacheFile,
           expectedTotal: expectedTotal,
-          onComplete: (fileLength) => _finalizeCachedTrack(track, fileLength),
+          // The cache path is passed in rather than re-derived: the
+          // container it is named after can change between the request and
+          // the write completing, and the metadata must land on the file
+          // that was actually mirrored.
+          onComplete: (fileLength) =>
+              _finalizeCachedTrack(track, fileLength, trackCacheFile.path),
         );
       }
 
       if (mirror != null) {
         res.data?.stream = await mirror.attach(res.data!.stream);
-      } else {
-        res.data?.stream = res.data!.stream.asBroadcastStream();
       }
+      // No wrap on the pass-through path: a client disconnect cancels shelf's
+      // subscription, which reaches the dio body stream directly and closes
+      // the upstream connection. asBroadcastStream() used to sit here and
+      // swallow that cancel, leaving the socket paused-but-open forever.
       return res;
     } finally {
       await vpnLease?.release();
@@ -714,8 +803,20 @@ class ServerPlaybackRoutes {
 
   /// Runs after a complete cache file has been written and renamed:
   /// stamps artwork/metadata the same way the old onDone path did.
-  Future<void> _finalizeCachedTrack(SourcedTrack track, int fileLength) async {
-    if (track.qualityPreset!.getFileExtension() == "weba") return;
+  ///
+  /// [cachePath] is the file that was actually mirrored, passed in by the
+  /// caller rather than re-derived, so the metadata lands on that file
+  /// even if the container naming has changed in the meantime.
+  Future<void> _finalizeCachedTrack(
+    SourcedTrack track,
+    int fileLength,
+    String cachePath,
+  ) async {
+    // A weba (webm) cache file cannot carry the metadata we are about to
+    // write, so skip it. The extension comes from the same container the
+    // bytes were served in, so this stays true when the plugin has
+    // published no presets.
+    if (track.container?.extension == "weba") return;
 
     // Shared bytes with the download worker and the palette hook: one fetch
     // per URL no matter how many of them want this cover at once.
@@ -726,7 +827,6 @@ class ServerPlaybackRoutes {
       ),
     );
 
-    final cachePath = await _getTrackCacheFilePath(track);
     await MetadataGod.writeMetadata(
       file: cachePath,
       metadata: track.query.toMetadata(
@@ -768,6 +868,22 @@ class ServerPlaybackRoutes {
           );
           return Response(res.statusCode!, headers: res.headers.map);
         }
+
+        // The file may also be in the user's local library (the folder
+        // Spotube was pointed at), which is not the download folder. It
+        // needs no YouTube lookup, no manifest extraction and no upstream
+        // stream, so it is served before the remote source is resolved.
+        final local = await findLocalLibraryFile(track);
+        if (local != null) {
+          final fileLength = await local.length();
+          final res = cachedFileHeadResponse(
+            fileLength: fileLength,
+            contentType: lookupMimeType(local.path) ??
+                "audio/${basename(local.path).split('.').last}",
+            requestPath: request.requestedUri.toString(),
+          );
+          return Response(res.statusCode!, headers: res.headers.map);
+        }
       }
 
       final sourcedTrack = await _getSourcedTrack(trackId);
@@ -791,6 +907,32 @@ class ServerPlaybackRoutes {
     }
   }
 
+  /// Finds [track] in the user's local library and returns the file.
+  ///
+  /// The library is the folder Spotube was pointed at (Settings → Storage →
+  /// Local library), which is not the download folder: a file the user
+  /// already had is served straight from disk, with no YouTube lookup, no
+  /// manifest extraction and no upstream stream.
+  ///
+  /// Null when the library holds no equivalent of the track, or when the
+  /// matched file has since been removed — the index is a scan result and
+  /// the disk is the truth.
+  Future<File?> findLocalLibraryFile(SpotubeFullTrackObject track) async {
+    final library = ref.read(localTracksProvider).valueOrNull;
+    if (library == null || library.isEmpty) return null;
+
+    final candidates = [
+      for (final tracks in library.values) ...tracks,
+    ];
+    if (candidates.isEmpty) return null;
+
+    final match = LocalLibraryLookup.find(track, candidates);
+    if (match == null) return null;
+    if (!LocalLibraryLookup.fileExists(match.track)) return null;
+
+    return File(match.track.path);
+  }
+
   Future<Response> getStreamTrackId(Request request, String trackId) async {
     try {
       final track =
@@ -809,6 +951,28 @@ class ServerPlaybackRoutes {
             fileLength: fileLength,
             contentType: lookupMimeType(downloaded.path) ??
                 "audio/${basename(downloaded.path).split('.').last}",
+            requestPath: request.requestedUri.toString(),
+            rangeHeader: request.headers["range"],
+          );
+          return Response(
+            res.statusCode!,
+            body: res.data as Stream<List<int>>,
+            headers: res.headers.map,
+          );
+        }
+
+        // The file may also be in the user's local library (the folder
+        // Spotube was pointed at), which is not the download folder. It
+        // needs no YouTube lookup, no manifest extraction and no upstream
+        // stream, so it is served before the remote source is resolved.
+        final local = await findLocalLibraryFile(track);
+        if (local != null) {
+          final fileLength = await local.length();
+          final res = cachedFileStreamResponse(
+            file: local,
+            fileLength: fileLength,
+            contentType: lookupMimeType(local.path) ??
+                "audio/${basename(local.path).split('.').last}",
             requestPath: request.requestedUri.toString(),
             rangeHeader: request.headers["range"],
           );

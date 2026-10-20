@@ -73,13 +73,16 @@ void useEndlessPlayback(WidgetRef ref) {
 
             if (tracks == null || tracks.isEmpty) return;
 
+            // One id snapshot instead of rescanning the whole queue per
+            // candidate (radio returns ~50 rows against a queue that can be
+            // thousands deep).
+            final queuedIds = {
+              for (final t in ref.read(audioPlayerProvider).tracks) t.id,
+            };
             await playback.addTracks(
-              tracks.toList()
-                ..removeWhere((e) {
-                  final playlist = ref.read(audioPlayerProvider);
-                  final isDuplicate = playlist.tracks.any((t) => t.id == e.id);
-                  return e.id == track.id || isDuplicate;
-                }),
+              tracks
+                  .where((e) => e.id != track.id && !queuedIds.contains(e.id))
+                  .toList(),
             );
             _endlessRadioGate.serve(track.id);
           } finally {

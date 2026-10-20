@@ -10,7 +10,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
-import 'package:spotube/modules/theme_background/theme_definition_cache.dart';
+import 'package:spotube/services/theme_definition_cache.dart';
 import 'package:spotube/modules/theme_background/theme_shell_source.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/youtube_engine/youtube_engine.dart';
@@ -33,12 +33,14 @@ class MetadataPluginState {
   final int defaultMetadataPlugin;
   final int defaultAudioSourcePlugin;
   final int defaultThemePlugin;
+  final int defaultRadioPlugin;
 
   const MetadataPluginState({
     this.plugins = const [],
     this.defaultMetadataPlugin = -1,
     this.defaultAudioSourcePlugin = -1,
     this.defaultThemePlugin = -1,
+    this.defaultRadioPlugin = -1,
   });
 
   PluginConfiguration? get defaultMetadataPluginConfig {
@@ -63,6 +65,13 @@ class MetadataPluginState {
     return plugins[defaultThemePlugin];
   }
 
+  PluginConfiguration? get defaultRadioPluginConfig {
+    if (defaultRadioPlugin < 0 || defaultRadioPlugin >= plugins.length) {
+      return null;
+    }
+    return plugins[defaultRadioPlugin];
+  }
+
   factory MetadataPluginState.fromJson(Map<String, dynamic> json) {
     return MetadataPluginState(
       plugins: (json["plugins"] as List<dynamic>)
@@ -71,6 +80,7 @@ class MetadataPluginState {
       defaultMetadataPlugin: json["default_metadata_plugin"] ?? -1,
       defaultAudioSourcePlugin: json['default_audio_source_plugin'],
       defaultThemePlugin: json["default_theme_plugin"] ?? -1,
+      defaultRadioPlugin: json["default_radio_plugin"] ?? -1,
     );
   }
 
@@ -80,6 +90,7 @@ class MetadataPluginState {
       "default_metadata_plugin": defaultMetadataPlugin,
       "default_audio_source_plugin": defaultAudioSourcePlugin,
       "default_theme_plugin": defaultThemePlugin,
+      "default_radio_plugin": defaultRadioPlugin,
     };
   }
 
@@ -88,6 +99,7 @@ class MetadataPluginState {
     int? defaultMetadataPlugin,
     int? defaultAudioSourcePlugin,
     int? defaultThemePlugin,
+    int? defaultRadioPlugin,
   }) {
     return MetadataPluginState(
       plugins: plugins ?? this.plugins,
@@ -96,6 +108,7 @@ class MetadataPluginState {
       defaultAudioSourcePlugin:
           defaultAudioSourcePlugin ?? this.defaultAudioSourcePlugin,
       defaultThemePlugin: defaultThemePlugin ?? this.defaultThemePlugin,
+      defaultRadioPlugin: defaultRadioPlugin ?? this.defaultRadioPlugin,
     );
   }
 }
@@ -138,6 +151,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     int defaultMetadataPlugin = -1;
     int defaultAudioSourcePlugin = -1;
     int defaultThemePlugin = -1;
+    int defaultRadioPlugin = -1;
     final pluginConfigs = <PluginConfiguration>[];
 
     for (int i = 0; i < plugins.length; i++) {
@@ -169,18 +183,25 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
             .toList(),
       );
 
-      final pluginExtractionDir = await _getPluginExtractionDir(pluginConfig);
-      final pluginJsonFile =
-          File(join(pluginExtractionDir.path, "plugin.json"));
-      final pluginBinaryFile =
-          File(join(pluginExtractionDir.path, "plugin.out"));
+      // A (re)install path evicts this key, so a hit means the files were
+      // there the last time they could have changed.
+      final validationKey = _validationKey(pluginConfig);
+      if (!_validatedPlugins.contains(validationKey)) {
+        final pluginExtractionDir = await _getPluginExtractionDir(pluginConfig);
+        await _recoverInterruptedExtraction(pluginExtractionDir);
+        final pluginJsonFile =
+            File(join(pluginExtractionDir.path, "plugin.json"));
+        final pluginBinaryFile =
+            File(join(pluginExtractionDir.path, "plugin.out"));
 
-      if (!await pluginExtractionDir.exists() ||
-          !await pluginJsonFile.exists() ||
-          !await pluginBinaryFile.exists()) {
-        // Delete the plugin entry from DB if the plugin files are not there.
-        await database.pluginsTable.deleteOne(plugin);
-        continue;
+        if (!await pluginExtractionDir.exists() ||
+            !await pluginJsonFile.exists() ||
+            !await pluginBinaryFile.exists()) {
+          // Delete the plugin entry from DB if the plugin files are not there.
+          await database.pluginsTable.deleteOne(plugin);
+          continue;
+        }
+        _validatedPlugins.add(validationKey);
       }
 
       pluginConfigs.add(pluginConfig);
@@ -194,6 +215,9 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
       if (plugin.selectedForTheme) {
         defaultThemePlugin = pluginConfigs.length - 1;
       }
+      if (plugin.selectedForRadio) {
+        defaultRadioPlugin = pluginConfigs.length - 1;
+      }
     }
 
     return MetadataPluginState(
@@ -201,6 +225,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
       defaultMetadataPlugin: defaultMetadataPlugin,
       defaultAudioSourcePlugin: defaultAudioSourcePlugin,
       defaultThemePlugin: defaultThemePlugin,
+      defaultRadioPlugin: defaultRadioPlugin,
     );
   }
 
@@ -208,6 +233,10 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     const plugins = [
       "spotube-plugin-musicbrainz-listenbrainz",
       "spotube-plugin-youtube-audio",
+      // Radio Browser first so it wins the default-radio slot on a fresh
+      // install; SomaFM is added after it and stays non-default.
+      "spotube-plugin-internet-radio-browser",
+      "spotube-plugin-internet-radio-somafm",
     ];
 
     for (final plugin in plugins) {
@@ -235,32 +264,27 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
       try {
         await addPlugin(pluginConfig);
       } on MetadataPluginException catch (e) {
-        if (e.errorCode == MetadataPluginErrorCode.duplicatePlugin &&
-            await isPluginUpdate(pluginConfig)) {
-          final oldConfig = pluginState.plugins
-              .firstWhereOrNull((p) => p.slug == pluginConfig.slug);
-          if (oldConfig == null) continue;
-          final isDefaultMetadata =
-              oldConfig == pluginState.defaultMetadataPluginConfig;
-          final isDefaultAudioSource =
-              oldConfig == pluginState.defaultAudioSourcePluginConfig;
-          final isDefaultTheme =
-              oldConfig == pluginState.defaultThemePluginConfig;
+        if (e.errorCode != MetadataPluginErrorCode.duplicatePlugin) {
+          continue;
+        }
+        if (!await isPluginUpdate(pluginConfig)) continue;
 
-          // The extraction dir is version-suffixed: removing the NEW config
-          // would delete the freshly extracted files. Remove the OLD plugin
-          // so its dir and DB row go away, then register the new one.
-          await removePlugin(oldConfig);
-          await addPlugin(pluginConfig);
+        // Identity is (name, author), not slug: two differently-authored
+        // plugins may slugify to the same string.
+        final oldConfig = pluginState.plugins.firstWhereOrNull(
+          (p) => p.name == pluginConfig.name && p.author == pluginConfig.author,
+        );
+        if (oldConfig == null) continue;
 
-          if (isDefaultMetadata) {
-            await setDefaultMetadataPlugin(pluginConfig);
-          }
-          if (isDefaultAudioSource) {
-            await setDefaultAudioSourcePlugin(pluginConfig);
-          }
-          if (isDefaultTheme) {
-            await setDefaultThemePlugin(pluginConfig);
+        final replaced = await _replacePlugin(oldConfig, pluginConfig);
+        if (!replaced) {
+          // The row disappeared between the duplicate check and the update.
+          // The staged files are already valid; register them as a fresh
+          // install rather than failing startup.
+          try {
+            await addPlugin(pluginConfig);
+          } on MetadataPluginException {
+            // Another writer won the race; its row is authoritative.
           }
         }
       }
@@ -357,17 +381,53 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
   }
 
   /// Root directory where all metadata plugins are stored.
-  Future<Directory> _getPluginRootDir() async => Directory(
-        join(
-          (await getApplicationSupportDirectory()).path,
-          "metadata-plugins",
-        ),
-      );
+  ///
+  /// Memoized: every `pluginsTable` watch event re-validates the plugin list,
+  /// and the support directory cannot move within a session.
+  Future<Directory> _getPluginRootDir() async {
+    if (_pluginRootDirPath case final path?) return Directory(path);
+    final root = Directory(
+      join(
+        (await getApplicationSupportDirectory()).path,
+        "metadata-plugins",
+      ),
+    );
+    _pluginRootDirPath = root.path;
+    return root;
+  }
+
+  String? _pluginRootDirPath;
+
+  /// `author::name@version` triples whose extraction directory was validated
+  /// this session. Directories are version-suffixed and immutable once
+  /// extracted, so the three existence checks per plugin do not need to
+  /// re-run on every watch event; install/remove paths below evict stale
+  /// entries.
+  final Set<String> _validatedPlugins = {};
+
+  static String _validationKey(PluginConfiguration plugin) =>
+      '${plugin.author}::${plugin.name}@${plugin.version}';
+
+  static String _validationPrefix(PluginConfiguration plugin) =>
+      '${plugin.author}::${plugin.name}@';
 
   /// Directory where the plugin will be extracted.
   /// This is a unique directory for each plugin version.
   /// It is used to avoid conflicts when multiple versions of the same plugin are installed
+  ///
+  /// `author` and `name` go through [ServiceUtils.sanitizeFilename]; `version`
+  /// used to be interpolated raw. It is free text from the archive's own
+  /// `plugin.json`, so a crafted value decided where every entry of the archive
+  /// landed: `join` does not normalize, so `..` segments survive and the kernel
+  /// resolves them at open(). The entry names themselves are already rejected
+  /// by [isSafePluginEntryPath] before anything is written; the directory they
+  /// land in has to pass the same predicate. Thrown here — the single choke
+  /// point every caller (extraction, bytecode read, logo, validation, removal)
+  /// funnels through — so no path can write outside the plugin root.
   Future<Directory> _getPluginExtractionDir(PluginConfiguration plugin) async {
+    if (!isSafePluginEntryPath(plugin.version)) {
+      throw MetadataPluginException.invalidPluginConfiguration();
+    }
     final pluginDir = await _getPluginRootDir();
     final pluginExtractionDirPath = join(
       pluginDir.path,
@@ -413,7 +473,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     await pluginDir.create(recursive: true);
 
     final pluginExtractionDir = await _getPluginExtractionDir(pluginConfig);
-    final extractionDirPath = pluginExtractionDir.path;
+    await _recoverInterruptedExtraction(pluginExtractionDir);
 
     for (final file in archive) {
       if (file.isFile && !isSafePluginEntryPath(file.name)) {
@@ -421,28 +481,92 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
       }
     }
 
+    // Never write over the live plugin directory. A failed extraction must
+    // leave the previous working version byte-for-byte intact, and readers
+    // must never observe a half-written plugin.
+    final stagingDir = Directory(
+      join(pluginDir.path, '.staging-$pid-${_stagingSequence++}'),
+    );
     try {
+      await stagingDir.create(recursive: true);
       for (final file in archive) {
         if (file.isFile) {
-          final filename = file.name;
-          final data = file.content as List<int>;
-          final extractedFile = File(join(
-            extractionDirPath,
-            filename,
-          ));
+          final extractedFile = File(join(stagingDir.path, file.name));
           await extractedFile.create(recursive: true);
-          await extractedFile.writeAsBytes(data);
+          await extractedFile.writeAsBytes(file.content as List<int>);
         }
       }
+      await _promoteStagedPlugin(stagingDir, pluginExtractionDir);
     } catch (_) {
-      // Never leave a partially extracted plugin behind.
-      if (await pluginExtractionDir.exists()) {
-        await pluginExtractionDir.delete(recursive: true);
-      }
+      // Only the staging directory is ours to remove; the target is either
+      // untouched (failure before promotion) or was restored by promotion.
+      await _deleteDirectoryQuietly(stagingDir);
       rethrow;
     }
 
     return pluginConfig;
+  }
+
+  static int _stagingSequence = 0;
+
+  /// Replaces [target] with [staging] as close to atomically as the
+  /// filesystem allows. The target is moved aside first because a directory
+  /// rename cannot replace a non-empty directory on every platform.
+  Future<void> _promoteStagedPlugin(
+    Directory staging,
+    Directory target,
+  ) async {
+    final backup = Directory('${target.path}.backup');
+
+    if (await backup.exists()) {
+      await _deleteDirectoryQuietly(backup);
+    }
+
+    final hadTarget = await target.exists();
+    if (hadTarget) {
+      await target.rename(backup.path);
+    }
+
+    try {
+      await staging.rename(target.path);
+    } catch (_) {
+      // Put the old version back so a failed promotion is a no-op for the
+      // caller. If this restore also fails, a later startup recovery can
+      // still restore `${target}.backup`.
+      if (hadTarget && !await target.exists() && await backup.exists()) {
+        await backup.rename(target.path);
+      }
+      rethrow;
+    }
+
+    if (hadTarget) {
+      await _deleteDirectoryQuietly(backup);
+    }
+  }
+
+  /// Completes or rolls back a swap interrupted between the two directory
+  /// renames. Called before validation and before the next extraction.
+  Future<void> _recoverInterruptedExtraction(Directory target) async {
+    final backup = Directory('${target.path}.backup');
+    if (!await backup.exists()) return;
+
+    if (await target.exists()) {
+      // The new target was promoted but the backup was not cleaned up.
+      await _deleteDirectoryQuietly(backup);
+      return;
+    }
+
+    // The old target was moved aside but the new one was never promoted.
+    await backup.rename(target.path);
+  }
+
+  Future<void> _deleteDirectoryQuietly(Directory dir) async {
+    try {
+      if (await dir.exists()) await dir.delete(recursive: true);
+    } catch (_) {
+      // Best-effort cleanup; an orphaned staging/backup directory is never
+      // registered and cannot be served as a plugin.
+    }
   }
 
   /// True when [name] cannot escape the plugin extraction directory.
@@ -520,6 +644,21 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     }
   }
 
+  /// Whether any plugin row is already the default radio directory.
+  ///
+  /// Read from the database rather than the in-memory state: on first launch
+  /// `_loadDefaultPlugins` seeds the radio directories back-to-back, and the
+  /// drift watcher has not necessarily emitted between the two inserts, so
+  /// `state` can still look empty for the second one. Using `state` there would
+  /// mark both default and `toStatePlugins` would keep the last.
+  Future<bool> isAnyRadioPluginSelected() async {
+    final rows = await (database.pluginsTable.select()
+          ..where((tbl) => tbl.selectedForRadio.equals(true))
+          ..limit(1))
+        .get();
+    return rows.isNotEmpty;
+  }
+
   Future<void> addPlugin(PluginConfiguration plugin) async {
     _assertPluginApiCompatibility(plugin);
 
@@ -534,6 +673,10 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     if (pluginRes.isNotEmpty) {
       throw MetadataPluginException.duplicatePlugin();
     }
+
+    final seedAsDefaultRadio =
+        plugin.abilities.contains(PluginAbilities.radio) &&
+            !await isAnyRadioPluginSelected();
 
     await database.pluginsTable.insertOne(
       PluginsTableCompanion.insert(
@@ -563,17 +706,24 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
                   true) &&
               plugin.abilities.contains(PluginAbilities.audioSource),
         ),
+        selectedForRadio: Value(seedAsDefaultRadio),
       ),
     );
 
     // A (re)installed plugin's bytecode differs from anything cached under
     // the same slug — drop stale VMs so the next resolution recompiles.
     ref.read(pluginCacheProvider).evictPlugin(plugin.slug);
+    _validatedPlugins
+        .removeWhere((key) => key.startsWith(_validationPrefix(plugin)));
   }
 
   Future<void> removePlugin(PluginConfiguration plugin) async {
     final pluginExtractionDir = await _getPluginExtractionDir(plugin);
 
+    // A previous interrupted swap may have left the real files in the backup.
+    await _deleteDirectoryQuietly(
+      Directory('${pluginExtractionDir.path}.backup'),
+    );
     if (await pluginExtractionDir.exists()) {
       await pluginExtractionDir.delete(recursive: true);
     }
@@ -582,6 +732,8 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
 
     // Cached VMs of a removed plugin must not resolve anymore.
     ref.read(pluginCacheProvider).evictPlugin(plugin.slug);
+    _validatedPlugins
+        .removeWhere((key) => key.startsWith(_validationPrefix(plugin)));
 
     // The removed plugin can no longer seed the startup cache. Clear
     // before the promotion blocks below: a promoted replacement
@@ -625,6 +777,54 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
         await setDefaultThemePlugin(remainingPlugins.first);
       }
     }
+
+    if (state.valueOrNull?.defaultRadioPluginConfig == plugin) {
+      final remainingPlugins = state.valueOrNull?.plugins.where(
+            (p) => p != plugin && p.abilities.contains(PluginAbilities.radio),
+          ) ??
+          [];
+      if (remainingPlugins.length == 1) {
+        await setDefaultRadioPlugin(remainingPlugins.first);
+      }
+    }
+  }
+
+  /// Whether [newPlugin] should replace the installed row for the same
+  /// identity. The plugin's own semantic version is the update signal; the
+  /// plugin API version is only a secondary signal when both versions match.
+  /// Bundled releases routinely bump `version` without changing the API.
+  @visibleForTesting
+  static bool shouldUpdatePlugin({
+    required String oldVersion,
+    required String oldPluginApiVersion,
+    required String newVersion,
+    required String newPluginApiVersion,
+  }) {
+    final oldParsed = _tryParseVersion(oldVersion);
+    final newParsed = _tryParseVersion(newVersion);
+    if (oldParsed != null && newParsed != null) {
+      if (newParsed > oldParsed) return true;
+      if (newParsed < oldParsed) return false;
+      // Same precedence but a different string (e.g. build metadata
+      // `1.0.0+1`): the archive is still a distinct release to install.
+      if (oldVersion != newVersion) return true;
+    } else if (oldVersion != newVersion) {
+      // Non-semver versions cannot be ordered; any change is an update.
+      return true;
+    }
+
+    final oldApi = _tryParseVersion(oldPluginApiVersion);
+    final newApi = _tryParseVersion(newPluginApiVersion);
+    if (oldApi == null || newApi == null) return false;
+    return newApi > oldApi;
+  }
+
+  static Version? _tryParseVersion(String value) {
+    try {
+      return Version.parse(value);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<bool> isPluginUpdate(PluginConfiguration newPlugin) async {
@@ -642,37 +842,139 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     }
 
     final oldPlugin = pluginRes.first;
-    final oldPluginApiVersion = Version.parse(oldPlugin.pluginApiVersion);
-    final newPluginApiVersion = Version.parse(newPlugin.pluginApiVersion);
+    return shouldUpdatePlugin(
+      oldVersion: oldPlugin.version,
+      oldPluginApiVersion: oldPlugin.pluginApiVersion,
+      newVersion: newPlugin.version,
+      newPluginApiVersion: newPlugin.pluginApiVersion,
+    );
+  }
 
-    return newPluginApiVersion > oldPluginApiVersion;
+  /// Updates the existing row in place.
+  ///
+  /// This is deliberately not remove-then-add: the row is the only thing that
+  /// makes the extracted files discoverable, so deleting it before the new
+  /// insert (or crashing between the two) leaves the plugin unreachable. A
+  /// single UPDATE also preserves the selected/default flags, which the old
+  /// remove/add dance had to capture and restore manually.
+  ///
+  /// Returns the previous row, or null when no row with the same identity
+  /// exists. Exposed for the atomicity regression test.
+  @visibleForTesting
+  static Future<PluginsTableData?> replacePluginRow({
+    required AppDatabase database,
+    required PluginConfiguration plugin,
+  }) {
+    return database.transaction(() async {
+      final rows = await (database.pluginsTable.select()
+            ..where(
+              (tbl) =>
+                  tbl.name.equals(plugin.name) &
+                  tbl.author.equals(plugin.author),
+            )
+            ..limit(1))
+          .get();
+      if (rows.isEmpty) return null;
+
+      await (database.pluginsTable.update()
+            ..where(
+              (tbl) =>
+                  tbl.name.equals(plugin.name) &
+                  tbl.author.equals(plugin.author),
+            ))
+          .write(
+        PluginsTableCompanion(
+          description: Value(plugin.description),
+          version: Value(plugin.version),
+          entryPoint: Value(plugin.entryPoint),
+          apis: Value(plugin.apis.map((e) => e.name).toList()),
+          abilities: Value(plugin.abilities.map((e) => e.name).toList()),
+          repository: Value(plugin.repository),
+          pluginApiVersion: Value(plugin.pluginApiVersion),
+        ),
+      );
+
+      return rows.first;
+    });
+  }
+
+  /// Replaces the installed plugin's metadata row and then removes the old
+  /// version directory. The new files must already be extracted.
+  Future<bool> _replacePlugin(
+    PluginConfiguration oldPlugin,
+    PluginConfiguration newPlugin,
+  ) async {
+    final oldDir = await _getPluginExtractionDir(oldPlugin);
+    final newDir = await _getPluginExtractionDir(newPlugin);
+    final sameDirectory = oldDir.path == newDir.path;
+
+    final PluginsTableData? oldRow;
+    try {
+      oldRow = await replacePluginRow(database: database, plugin: newPlugin);
+    } catch (_) {
+      // The row is still the old one. Only discard files that are not the
+      // old installation's directory.
+      if (!sameDirectory) await _deleteDirectoryQuietly(newDir);
+      rethrow;
+    }
+
+    if (oldRow == null) {
+      if (!sameDirectory) await _deleteDirectoryQuietly(newDir);
+      return false;
+    }
+
+    ref.read(pluginCacheProvider).evictPlugin(newPlugin.slug);
+    _validatedPlugins
+        .removeWhere((key) => key.startsWith(_validationPrefix(newPlugin)));
+
+    if (oldRow.selectedForTheme) {
+      await writeThemePluginKey(
+        newPlugin.abilities.contains(PluginAbilities.theme)
+            ? themePluginKey(newPlugin)
+            : null,
+      );
+    }
+
+    // The row now points at the new directory. Only now is it safe to remove
+    // the old version; a crash before this point leaves an orphan, never a
+    // registered plugin with missing files.
+    if (!sameDirectory) await _deleteDirectoryQuietly(oldDir);
+    return true;
+  }
+
+  Future<void> _discardExtractionIfDistinct(
+    PluginConfiguration oldPlugin,
+    PluginConfiguration newPlugin,
+  ) async {
+    final oldDir = await _getPluginExtractionDir(oldPlugin);
+    final newDir = await _getPluginExtractionDir(newPlugin);
+    if (oldDir.path == newDir.path) return;
+    await _deleteDirectoryQuietly(newDir);
   }
 
   Future<void> updatePlugin(
     PluginConfiguration plugin,
     PluginUpdateAvailable update,
   ) async {
-    final isDefaultMetadata =
-        plugin == state.valueOrNull?.defaultMetadataPluginConfig;
-    final isDefaultAudioSource =
-        plugin == state.valueOrNull?.defaultAudioSourcePluginConfig;
     final pluginUpdatedConfig =
         await downloadAndCachePlugin(update.downloadUrl);
 
-    if (pluginUpdatedConfig.name != plugin.name ||
-        pluginUpdatedConfig.author != plugin.author) {
-      throw MetadataPluginException.invalidPluginConfiguration();
+    try {
+      if (pluginUpdatedConfig.name != plugin.name ||
+          pluginUpdatedConfig.author != plugin.author) {
+        throw MetadataPluginException.invalidPluginConfiguration();
+      }
+      _assertPluginApiCompatibility(pluginUpdatedConfig);
+    } catch (_) {
+      // The archive was already extracted before validation. Do not leave a
+      // directory that no row will ever point at.
+      await _discardExtractionIfDistinct(plugin, pluginUpdatedConfig);
+      rethrow;
     }
-    _assertPluginApiCompatibility(pluginUpdatedConfig);
 
-    await removePlugin(plugin);
-    await addPlugin(pluginUpdatedConfig);
-
-    if (isDefaultMetadata) {
-      await setDefaultMetadataPlugin(pluginUpdatedConfig);
-    }
-    if (isDefaultAudioSource) {
-      await setDefaultAudioSourcePlugin(pluginUpdatedConfig);
+    final replaced = await _replacePlugin(plugin, pluginUpdatedConfig);
+    if (!replaced) {
+      throw StateError('Plugin row disappeared during update');
     }
   }
 
@@ -736,6 +1038,30 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
 
     // Identity for the startup theme cache (DB-free validation).
     await writeThemePluginKey(themePluginKey(plugin));
+  }
+
+  Future<void> setDefaultRadioPlugin(PluginConfiguration plugin) async {
+    assert(
+      plugin.abilities.contains(PluginAbilities.radio),
+      'Plugin does not have the radio ability',
+    );
+
+    await database.pluginsTable.update().write(
+          const PluginsTableCompanion(
+            selectedForRadio: Value(false),
+          ),
+        );
+
+    await (database.pluginsTable.update()
+          ..where(
+            (tbl) =>
+                tbl.name.equals(plugin.name) & tbl.author.equals(plugin.author),
+          ))
+        .write(
+      const PluginsTableCompanion(
+        selectedForRadio: Value(true),
+      ),
+    );
   }
 
   Future<Uint8List> getPluginByteCode(PluginConfiguration plugin) async {
@@ -849,12 +1175,14 @@ final themeDefinitionProvider = FutureProvider<ThemeDefinition?>(
 
       // Generic shell handoff: no shell names or paths here. When the
       // plugin declares `dynamic.source == shell`, the host shell source
-      // supplies the palette; everything else stays plugin-owned.
+      // supplies the palette and, if it renders through user config, the
+      // glass the desktop actually draws with. Geometry stays plugin-owned.
       // NOTE: ref.read (not watch) is required here — this runs after
       // awaits. Reactivity comes from shellThemeSignalProvider above.
       final resolved = await resolveThemeDefinition(
         definition,
         readShellTheme: () => ref.read(themeShellSourceProvider).getTheme(),
+        readShellGlass: () => ref.read(themeShellSourceProvider).getGlass(),
       );
 
       // Cache only successful resolutions for instant warm startup.

@@ -3,24 +3,42 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/theme_background/real_transparency.dart';
 import 'package:spotube/modules/theme_background/theme_background_image_provider.dart';
 import 'package:spotube/modules/root/spotube_navigation_bar.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+import 'package:spotube/services/theme_definition_cache.dart';
 import 'package:spotube/utils/theme_converter.dart';
 
 /// Pure presentational background layer for the active [ThemeBackground].
 ///
-/// Renders nothing unless a plugin theme declares a non-none source AND
-/// image data is available. Layer order: image, blur, overlay.
-/// Intended to sit [Positioned.fill] behind the app content.
+/// Renders nothing unless a plugin theme names the shell as its background
+/// source AND the shell has a wallpaper to show. Layer order: image, blur,
+/// overlay. Intended to sit [Positioned.fill] behind the app content.
+///
+/// Under real window transparency the image and blur stay off (painting them
+/// would cover the desktop; blur would sample nothing) but the veil still
+/// paints: it is translucent, so the live desktop shows through tinted with
+/// the theme's background colour instead of losing it. No veil declared
+/// stays fully clear.
 class ThemeBackgroundLayer extends ConsumerWidget {
   const ThemeBackgroundLayer({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Stale-while-revalidate across theme reloads (same rationale as the
+    // url provider below and the palette fallback in main): while the live
+    // definition is loading, `asData` is null and the background alone would
+    // read "nothing to paint" — blanking the wallpaper for the reload
+    // duration. The last-good cached theme holds the previous frame.
     final background = ref.watch(
-      themeDefinitionProvider.select((s) => s.asData?.value?.background),
-    );
+          themeDefinitionProvider.select((s) => s.asData?.value?.background),
+        ) ??
+        ref.watch(
+          cachedThemeDefinitionProvider.select(
+            (s) => s.asData?.value?.background,
+          ),
+        );
     // Same quantization rule as the lyrics backdrop: one shared decode per
     // 256px window band instead of a re-decode per pixel of resizing.
     final side = quantizeBackdropSide(MediaQuery.sizeOf(context).longestSide);
@@ -30,26 +48,37 @@ class ThemeBackgroundLayer extends ConsumerWidget {
     // the content settles. Sigma, overlay and opacity at rest are unchanged.
     final blurFrozen = ref.watch(chromeBlurFrozen);
 
-    if (background == null ||
-        background.source == ThemeBackgroundSource.none ||
-        image == null) {
-      return const SizedBox.shrink();
-    }
-
+    // Shared veil resolution: the overlay hex (plugin-declared or
+    // shell-derived), brightness-adapted — or null when absent/malformed.
+    // Resolved before either branch so real and painted modes share it.
+    // Material theme brightness mirrors the app theme mode (both derive
+    // from the same setting in main), so this stays in sync with the
+    // shadcn scheme without mixing Theme imports.
     Color? overlay;
-    if (background.overlay != null) {
+    if (background?.overlay != null) {
       try {
-        final parsed = ThemeConverter.parseColor(background.overlay!);
-        // Material theme brightness mirrors the app theme mode (both
-        // derive from the same setting in main), so this stays in sync
-        // with the shadcn scheme without mixing Theme imports.
         overlay = ThemeConverter.adaptOverlayForBrightness(
-          parsed,
+          ThemeConverter.parseColor(background!.overlay!),
           Theme.of(context).colorScheme.brightness,
         );
       } catch (_) {
         overlay = null;
       }
+    }
+
+    // Real transparency owns the ground: the compositor shows through, so
+    // the wallpaper image (and its blur) would cover the desktop again and
+    // stay off. The veil is translucent, so alpha composes and the theme
+    // keeps its background colour over the live desktop.
+    if (ref.watch(realTransparencyActiveProvider)) {
+      if (overlay == null) return const SizedBox.shrink();
+      return ColoredBox(color: overlay);
+    }
+
+    if (background == null ||
+        background.source == ThemeBackgroundSource.none ||
+        image == null) {
+      return const SizedBox.shrink();
     }
 
     return Opacity(
@@ -60,6 +89,10 @@ class ThemeBackgroundLayer extends ConsumerWidget {
             child: Image(
               image: image,
               fit: BoxFit.cover,
+              // Keep the previous wallpaper until the new one decodes: a
+              // wallpaper switch would otherwise blank the ground for the
+              // decode duration (raw desktop flashing through unveiled).
+              gaplessPlayback: true,
               // The file can vanish between the source stat and the
               // async decode (wallpaper rotation). Degrade to empty.
               errorBuilder: (context, error, stackTrace) =>

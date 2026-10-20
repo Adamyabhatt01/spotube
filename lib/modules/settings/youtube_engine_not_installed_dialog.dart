@@ -82,12 +82,18 @@ class YouTubeEngineNotInstalledDialog extends HookConsumerWidget {
                   TargetPlatform.macOS => "e.g. /opt/homebrew/bin/yt-dlp",
                   TargetPlatform.windows =>
                     r"e.g. C:\Program Files\yt-dlp\yt-dlp.exe",
+                  TargetPlatform.android =>
+                    "e.g. /data/local/tmp/yt-dlp",
                   _ => "e.g. /home/user/.local/bin/yt-dlp",
                 }),
               ),
             ),
             if (kIsMacOS || kIsLinux)
               Text(context.l10n.youtube_engine_unix_issue_message),
+            if (kIsAndroid)
+              Text(
+                context.l10n.youtube_engine_android_issue_message(engine.label),
+              ),
           ],
         ),
       ),

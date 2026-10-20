@@ -12,6 +12,7 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 
 import 'package:spotube/provider/blacklist_provider.dart';
+import 'package:spotube/utils/primitive_utils.dart';
 
 class ArtistCard extends HookConsumerWidget {
   final SpotubeFullArtistObject artist;
@@ -47,7 +48,7 @@ class ArtistCard extends HookConsumerWidget {
         child: Column(
           children: [
             Avatar(
-              initials: artist.name.trim()[0].toUpperCase(),
+              initials: PrimitiveUtils.initialOf(artist.name),
               provider: backgroundImage,
               size: avatarSize,
             ),

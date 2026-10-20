@@ -34,7 +34,23 @@ class AppLogger {
   /// startup error reported before it completed hit a
   /// LateInitializationError inside [reportError] and the report was
   /// dropped — the file never got the line that explained the crash.
-  static Future<File> get logFile => _logFile ??= getLogsPath();
+  ///
+  /// A failed resolution is forgotten instead of cached: the first call can
+  /// run before plugins are registered (startup phases log before the
+  /// Flutter binding exists, so path_provider throws), and caching that
+  /// failure would make every later [reportError] and [logStartupLine]
+  /// fail forever on the same dead future.
+  static Future<File> get logFile {
+    final cached = _logFile;
+    if (cached != null) return cached;
+    final future = getLogsPath();
+    _logFile = future;
+    // ignore: discarded_futures — cleanup only; callers await `future`.
+    future.then((_) {}, onError: (_) {
+      if (identical(_logFile, future)) _logFile = null;
+    });
+    return future;
+  }
 
   /// `.spotube_logs` grew without bound: an error repeating in a loop wrote
   /// a full stack trace per iteration, in a file the log viewer only ever
@@ -72,6 +88,54 @@ class AppLogger {
     log = Logger(
       level: kDebugMode || (verbose && kReleaseMode) ? Level.all : Level.info,
     );
+  }
+
+  /// One-line startup phase record, visible in release logs too. The
+  /// startup harness (`_startupLog` in `main.dart`) used to return early in
+  /// release builds, so a slow launch on a user device left no trace to
+  /// attribute. Lines are short and few (~15 per start); the same 5 MB
+  /// rotation caps the file. Fire-and-forget: must never block startup,
+  /// and a failure here is dropped silently (a logging path that throws
+  /// would be worse than a missing line).
+  static void logStartupLine(String line) {
+    log.i(line);
+    if (kReleaseMode) {
+      // Startup must never await logging; the shared queue keeps this line
+      // from interleaving with a concurrent error report.
+      unawaited(_appendLog('$line\n'));
+    }
+  }
+
+  /// Serializes writes to the on-device log file.
+  ///
+  /// Startup lines are fire-and-forget and error reports can arrive at the
+  /// same moment. Two concurrent appends used to interleave mid-line
+  /// (`[startup] splashReady (them[startup] step ...`), which made the
+  /// startup harness unreadable on devices without adb.
+  static Future<void> _logWriteQueue = Future.value();
+
+  static Future<void> _appendLog(String contents) {
+    final next = _logWriteQueue.then((_) async {
+      try {
+        final file = await logFile;
+        await file.writeAsString(contents, mode: FileMode.writeOnlyAppend);
+        if (await file.length() > logFileMaxBytes) {
+          await rotateLogFile(file);
+        }
+      } catch (writeError, writeStackTrace) {
+        // The log sink must never be the thing that breaks error reporting.
+        // Drop the cached path so the next report retries resolution (the
+        // first one can run before plugins are registered).
+        _logFile = null;
+        log.w(
+          "Could not write to the log file",
+          error: writeError,
+          stackTrace: writeStackTrace,
+        );
+      }
+    });
+    _logWriteQueue = next;
+    return next;
   }
 
   static void _initInternalPackageLoggers() {
@@ -157,28 +221,11 @@ class AppLogger {
     log.e(message, error: error, stackTrace: stackTrace);
 
     if (kReleaseMode) {
-      try {
-        final file = await logFile;
-        await file.writeAsString(
-          "[${DateTime.now()}]---------------------\n"
-          "$error\n$stackTrace\n"
-          "----------------------------------------\n",
-          mode: FileMode.writeOnlyAppend,
-        );
-        if (await file.length() > logFileMaxBytes) {
-          await rotateLogFile(file);
-        }
-      } catch (writeError, writeStackTrace) {
-        // The log sink must never be the thing that breaks error reporting.
-        // Drop the cached path so the next report retries resolution (the
-        // first one can run before plugins are registered).
-        _logFile = null;
-        log.w(
-          "Could not write to the log file",
-          error: writeError,
-          stackTrace: writeStackTrace,
-        );
-      }
+      await _appendLog(
+        "[${DateTime.now()}]---------------------\n"
+        "$error\n$stackTrace\n"
+        "----------------------------------------\n",
+      );
     }
   }
 

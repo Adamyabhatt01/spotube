@@ -16,15 +16,12 @@ enum ImagePlaceholder {
   albumArt,
   artist,
   collection,
-  online,
 }
 
 final placeholderUrlMap = {
   ImagePlaceholder.albumArt: Assets.images.albumPlaceholder.path,
   ImagePlaceholder.artist: Assets.images.userPlaceholder.path,
   ImagePlaceholder.collection: Assets.images.placeholder.path,
-  ImagePlaceholder.online:
-      "https://avatars.dicebear.com/api/bottts/${PrimitiveUtils.uuid.v4()}.png",
 };
 
 extension SpotubeImageExtensions on List<SpotubeImageObject>? {

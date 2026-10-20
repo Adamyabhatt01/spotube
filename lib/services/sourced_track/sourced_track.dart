@@ -44,6 +44,59 @@ final _alteredVersionRegex = RegExp(
 /// which are all present on a real result page for a popular song.
 const kSourceDurationTolerance = Duration(seconds: 15);
 
+/// A candidate shorter than this share of the track is not a recording of
+/// it — it is a clip, an edit, a preview or a YouTube Short.
+///
+/// A title match alone cannot tell them apart: "One More Time - Daft Punk
+/// Edit" carries the exact track title, so the title scored it *above* the
+/// real recording, and the mismatched duration only cost it two points
+/// against the title's three. A quarter of the track's length is the line:
+/// a real recording of a three-minute song is not twenty seconds long, and
+/// a genuinely short song (a thirty-second intro) still clears it, because
+/// the bound is relative to the track's own length.
+const kSourceDurationFloorRatio = 0.25;
+
+/// A candidate longer than this multiple of the track is not a recording of
+/// it either — it is a "Best of", a live set, or an hour-long mix.
+///
+/// Deliberately generous: extended mixes and long live performances are
+/// real recordings people play, and the same recording with a couple of
+/// minutes of a crowd at the start still lands inside it.
+const kSourceDurationCeilingRatio = 3.0;
+
+/// How much a candidate is penalised for a duration that disagrees with the
+/// track's.
+///
+/// Larger than the title match's +3 on purpose: a candidate whose length
+/// is wrong is a different recording, however closely the titles agree, so
+/// no amount of title agreement may carry it past a candidate of the right
+/// length. Before this, a 33-second "Edit" of a five-minute track scored
+/// +3 and won against the real recording whenever the real one carried no
+/// "(Official …)" marker.
+const kSourceDurationMismatchPenalty = 5;
+
+/// Whether a candidate's length rules it out as a recording of [track].
+///
+/// True when the candidate is a clip, an edit, a preview or a Short of
+/// the track, or a mix several times longer than it.
+///
+/// A candidate with no known duration is never ruled out: the plugin
+/// boundary does not always carry one (a yt-dlp flat search row often
+/// omits it), and "unknown" is not evidence of a mismatch.
+bool isWrongLengthForTrack(
+  Duration candidate,
+  SpotubeFullTrackObject track,
+) {
+  if (candidate <= Duration.zero) return false;
+  if (track.durationMs <= 0) return false;
+
+  final trackDuration = Duration(milliseconds: track.durationMs);
+  if (candidate < trackDuration * kSourceDurationFloorRatio) return true;
+  if (candidate > trackDuration * kSourceDurationCeilingRatio) return true;
+
+  return false;
+}
+
 /// Trademark/copyright glyphs that survive from label metadata into artist
 /// credits ("Slay™"). Search engines treat them as literal terms, which can
 /// collapse an otherwise full result page.
@@ -345,7 +398,10 @@ class SourcedTrack extends BasicSourcedTrack {
       sourceCandidateKey: candidateKey,
     );
 
-    AppLogger.log.i("${query.name}: ${sourcedTrack.url}");
+    // The `url` getter reads the preset provider and rescans the manifest;
+    // it exists to trace resolution, so it must not run for a release-mode
+    // log line that Level.info drops anyway.
+    if (kDebugMode) AppLogger.log.i("${query.name}: ${sourcedTrack.url}");
 
     return sourcedTrack;
   }
@@ -431,7 +487,7 @@ class SourcedTrack extends BasicSourcedTrack {
           if (duration > Duration.zero && track.durationMs > 0) {
             final drift = duration - Duration(milliseconds: track.durationMs);
             if (drift.abs() > kSourceDurationTolerance) {
-              score -= 2;
+              score -= kSourceDurationMismatchPenalty;
             }
           }
 
@@ -459,9 +515,47 @@ class SourcedTrack extends BasicSourcedTrack {
       search: (track) => audioSource.audioSource.matches(track),
     );
 
-    videoResults.addAll(rankResults(searchResults, query));
+    // The clip of a track carries the track's exact title, so the title
+    // score cannot tell a 33-second edit from the five-minute recording.
+    // The length can — and the wrong-length candidates only go when
+    // something of the right length is left to play.
+    final ranked = rankResults(searchResults, query);
+    videoResults.addAll(dropWrongLengthCandidates(ranked, query));
 
     return videoResults.toSet().toList();
+  }
+
+  /// Drops the candidates whose length rules them out as a recording of
+  /// [track], but only when something of the right length is left.
+  ///
+  /// A clip of the track ("One More Time - Daft Punk Edit", 33 seconds, for
+  /// a five-minute recording) carries the exact track title, so the title
+  /// score alone cannot separate it from the recording. The length can.
+  ///
+  /// The candidates are only dropped when a right-length one survives:
+  /// a track that genuinely has no full-length match on the backend must
+  /// still play *something*, and a clip is better than nothing. When every
+  /// candidate is the wrong length, they are all kept and the ranking
+  /// decides — the penalty above then puts the closest one first.
+  static List<SpotubeAudioSourceMatchObject> dropWrongLengthCandidates(
+    List<SpotubeAudioSourceMatchObject> candidates,
+    SpotubeFullTrackObject track,
+  ) {
+    if (candidates.isEmpty) return candidates;
+
+    final wrongLength = <SpotubeAudioSourceMatchObject>[];
+    final rightLength = <SpotubeAudioSourceMatchObject>[];
+
+    for (final candidate in candidates) {
+      if (isWrongLengthForTrack(candidate.duration, track)) {
+        wrongLength.add(candidate);
+      } else {
+        rightLength.add(candidate);
+      }
+    }
+
+    if (rightLength.isEmpty) return candidates;
+    return rightLength;
   }
 
   Future<SourcedTrack> copyWithSibling() async {
@@ -628,7 +722,7 @@ class SourcedTrack extends BasicSourcedTrack {
       sourceCandidateKey: sourceCandidateKey,
     );
 
-    AppLogger.log.i("Refreshing ${query.name}: ${sourcedTrack.url}");
+    if (kDebugMode) AppLogger.log.i("Refreshing ${query.name}: ${sourcedTrack.url}");
 
     return sourcedTrack;
   }
@@ -736,9 +830,44 @@ class SourcedTrack extends BasicSourcedTrack {
         .reduce((a, b) => (b.bitrate ?? 0) > (a.bitrate ?? 0) ? b : a);
   }
 
+  /// The selected container preset, or null when the audio-source plugin
+  /// has published no presets at all.
+  ///
+  /// Null is a real state, not a bug: the preset list is empty until the
+  /// audio-source plugin finishes loading, and a persisted index can point
+  /// past the end of a shrunken list. Callers must not force-unwrap this —
+  /// see [container] for the null-safe way to read the container.
   SpotubeAudioSourceContainerPreset? get qualityPreset {
     final presetState = ref.read(audioSourcePresetsProvider);
     return presetState.presets
         .elementAtOrNull(presetState.selectedStreamingContainerIndex);
+  }
+
+  /// The container the audio is actually served in: the container name
+  /// ("webm", "mp4", ...) and its on-disk file extension ("weba", "m4a").
+  ///
+  /// Null only when there is genuinely no container to report — no presets
+  /// and no resolved streams — which means there is nothing to play either.
+  ///
+  /// The fallback chain mirrors the one [url] uses, so the container
+  /// reported to an HTTP client always matches the container of the bytes
+  /// being served:
+  ///   1. the selected preset,
+  ///   2. the first available preset (stale persisted index),
+  ///   3. the container of the first resolved stream (no presets yet).
+  ({String name, String extension})? get container {
+    final presetState = ref.read(audioSourcePresetsProvider);
+    final preset = presetState.presets
+            .elementAtOrNull(presetState.selectedStreamingContainerIndex) ??
+        presetState.presets.firstOrNull;
+
+    final name = preset?.name ?? sources.firstOrNull?.container;
+    if (name == null) return null;
+
+    return (
+      name: name,
+      extension:
+          SpotubeAudioSourceContainerPreset.fileExtensionForContainer(name),
+    );
   }
 }

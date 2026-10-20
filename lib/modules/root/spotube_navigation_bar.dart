@@ -8,6 +8,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 
 import 'package:spotube/collections/side_bar_tiles.dart';
+import 'package:spotube/modules/theme_background/real_transparency.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/database/database.dart';
@@ -70,6 +71,10 @@ class SpotubeNavigationBar extends HookConsumerWidget {
 
     final coveredByPanel = ref.watch(navigationPanelCoversBar);
     final blurFrozen = ref.watch(chromeBlurFrozen);
+    // Same rule as the desktop title bar: with the desktop behind the bar,
+    // any fill is the window, and in-app blur over transparency blurs
+    // nothing (the compositor owns blur here).
+    final realTransparent = ref.watch(realTransparencyActiveProvider);
 
     final router = context.watchRouter;
     final selectedIndex = max(
@@ -97,8 +102,16 @@ class SpotubeNavigationBar extends HookConsumerWidget {
             const Divider(),
             NavigationBar(
               index: selectedIndex,
-              surfaceBlur: blurFrozen ? 0 : context.theme.surfaceBlur,
-              surfaceOpacity: context.theme.surfaceOpacity,
+              backgroundColor:
+                  realTransparent ? Colors.transparent : null,
+              // The inner AppBar fills `card` at the surface opacity, so
+              // blur alone cannot clear it — opacity goes to zero with it.
+              surfaceOpacity: realTransparent
+                  ? 0
+                  : context.theme.surfaceOpacity,
+              surfaceBlur: realTransparent
+                  ? 0
+                  : (blurFrozen ? 0 : context.theme.surfaceBlur),
               children: [
                 for (final tile in navbarTileList)
                   NavigationButton(

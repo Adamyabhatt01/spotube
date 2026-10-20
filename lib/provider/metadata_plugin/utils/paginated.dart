@@ -40,6 +40,33 @@ mixin PaginatedAsyncNotifierMixin<K>
     }
   }
 
+  /// Debounce window for [scheduleSnapshotPersist]. A snapshot write serializes
+  /// and re-inserts the *entire* list, so an optimistic favorite must not pay
+  /// for one per click.
+  @visibleForTesting
+  static const snapshotPersistDebounce = Duration(seconds: 2);
+
+  Timer? _snapshotPersistTimer;
+
+  /// Coalesces bursty snapshot requests (optimistic favorite/unfavorite
+  /// toggles, page-walk completions) into one trailing [persistSnapshot].
+  /// Intermediate states are not worth their full-list write; the final one
+  /// is, and it reflects `state` as it is when the timer fires. A provider
+  /// disposed inside the window loses the pending write — never the
+  /// correctness of what is already on disk.
+  void scheduleSnapshotPersist() {
+    if (snapshotKey == null) return;
+    _snapshotPersistTimer?.cancel();
+    _snapshotPersistTimer = Timer(snapshotPersistDebounce, () {
+      _snapshotPersistTimer = null;
+      unawaited(persistSnapshot());
+    });
+    ref.onDispose(() {
+      _snapshotPersistTimer?.cancel();
+      _snapshotPersistTimer = null;
+    });
+  }
+
   /// Single-flight guard shared by [fetchMore] and [fetchAll] so concurrent
   /// UI triggers (scroll edge, visibility callbacks, heart-button lookups)
   /// can never interleave page fetches and duplicate appended pages.
@@ -91,7 +118,7 @@ mixin PaginatedAsyncNotifierMixin<K>
       state = AsyncData(
         newState.copyWith(items: _mergeDeduped(oldItems, items)),
       );
-      unawaited(persistSnapshot());
+      scheduleSnapshotPersist();
     } catch (e, stack) {
       AppLogger.reportError(e, stack);
       state = AsyncData(oldState!);
@@ -99,6 +126,15 @@ mixin PaginatedAsyncNotifierMixin<K>
       _isFetching = false;
     }
   }
+
+  /// Upper bound on pages walked by [fetchAll]. A healthy library needs
+  /// a handful of pages (10k items at 100/page = 100); a plugin that keeps
+  /// answering `hasMore: true` forever would otherwise loop without end.
+  /// Measured: a rogue `hasMore:true` source walked 50 pages and was still
+  /// `hasMore` (see `test/perf_audit_measure_test.dart`). On hitting the cap
+  /// the collected items are finalized rather than discarded.
+  @visibleForTesting
+  static const fetchAllMaxPages = 200;
 
   /// Fetches every remaining page with a single state emission at the end
   /// (instead of one rebuild per page) and linear-time merging via an
@@ -120,8 +156,20 @@ mixin PaginatedAsyncNotifierMixin<K>
       var offset = state.value!.nextOffset!;
       var limit = state.value!.limit;
       var lastPage = state.value!;
+      var pagesWalked = 0;
 
       while (hasMore) {
+        if (pagesWalked >= fetchAllMaxPages) {
+          AppLogger.reportError(
+            StateError(
+              'fetchAll stopped after $fetchAllMaxPages pages '
+              '(rogue hasMore:true); finalizing partial list',
+            ),
+            StackTrace.current,
+          );
+          break;
+        }
+        pagesWalked++;
         final newState = await fetch(offset, max(limit, 100))
             .catchError((e) => fetch(offset, max(limit, 50)))
             .catchError((e) => fetch(offset, limit))
@@ -237,8 +285,10 @@ mixin SavedListCacheMixin<K>
       () => fetch(0, 20),
       cooldown: cooldown,
     );
-    // A single-page library is already complete; cache it right away.
-    if (!page.hasMore) unawaited(persistSnapshot());
+    // A single-page library is already complete; cache it once the burst
+    // window closes (the first open of the screen toggles nothing, but a
+    // revalidation landing here would otherwise write per cooldown retry).
+    if (!page.hasMore) scheduleSnapshotPersist();
     return page;
   }
 

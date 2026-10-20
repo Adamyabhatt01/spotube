@@ -15,8 +15,12 @@ bool allowsBadCertificateForHost(
   String host,
   int port,
 ) {
+  final normalized = host.toLowerCase();
   return allowList.any((allowedHost) {
-    return host.endsWith(allowedHost);
+    // Exact host or a true subdomain. A bare endsWith would also match
+    // `evilspotify.com` against `spotify.com`.
+    return normalized == allowedHost ||
+        normalized.endsWith('.$allowedHost');
   });
 }
 

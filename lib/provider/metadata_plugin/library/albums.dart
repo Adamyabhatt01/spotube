@@ -37,54 +37,60 @@ class MetadataPluginSavedAlbumNotifier
   }
 
   Future<void> addFavorite(List<SpotubeSimpleAlbumObject> albums) async {
-    if (albums.isEmpty || state.value == null) return;
-    final oldState = state.value;
+    if (albums.isEmpty) return;
 
-    state = AsyncData(
-      state.value!.copyWith(
-        items: [
-          ...albums,
-          ...state.value!.items,
-        ],
-      ),
-    );
+    // The list may never have been opened (the album page now reads this
+    // notifier on demand instead of watching it). Keep the optimistic update
+    // only when there is a list to update, but always perform the write.
+    final oldState = state.value;
+    if (oldState != null) {
+      state = AsyncData(
+        oldState.copyWith(
+          items: [
+            ...albums,
+            ...oldState.items,
+          ],
+        ),
+      );
+    }
     try {
       await (await metadataPlugin).album.save(albums.map((e) => e.id).toList());
     } catch (e) {
-      state = AsyncData(oldState!);
+      if (oldState != null) state = AsyncData(oldState);
       rethrow;
     }
     for (final album in albums) {
       ref.invalidate(metadataPluginIsSavedAlbumProvider(album.id));
     }
-    unawaited(persistSnapshot());
+    scheduleSnapshotPersist();
   }
 
   Future<void> removeFavorite(List<SpotubeSimpleAlbumObject> albums) async {
-    if (albums.isEmpty || state.value == null) return;
+    if (albums.isEmpty) return;
 
     final oldState = state.value;
-
     final albumIds = albums.map((e) => e.id).toList();
-    state = AsyncData(
-      state.value!.copyWith(
-        items: state.value!.items
-            .where(
-              (e) => albumIds.contains((e).id) == false,
-            )
-            .toList(),
-      ),
-    );
+    if (oldState != null) {
+      state = AsyncData(
+        oldState.copyWith(
+          items: oldState.items
+              .where(
+                (e) => albumIds.contains((e).id) == false,
+              )
+              .toList(),
+        ),
+      );
+    }
     try {
       await (await metadataPlugin).album.unsave(albumIds);
     } catch (e) {
-      state = AsyncData(oldState!);
+      if (oldState != null) state = AsyncData(oldState);
       rethrow;
     }
     for (final album in albums) {
       ref.invalidate(metadataPluginIsSavedAlbumProvider(album.id));
     }
-    unawaited(persistSnapshot());
+    scheduleSnapshotPersist();
   }
 }
 

@@ -4,7 +4,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
-import 'package:spotube/pages/search/search.dart';
+import 'package:spotube/modules/search/search_term.dart';
 
 class SearchPlaceholder extends HookConsumerWidget {
   final AsyncValue snapshot;

@@ -45,6 +45,9 @@ class AppLocalizationsTh extends AppLocalizations {
   String get songs => 'เพลง';
 
   @override
+  String get music => 'Music';
+
+  @override
   String playing_track(Object track) {
     return 'กำลังเล่น $track';
   }
@@ -1123,6 +1126,17 @@ class AppLocalizationsTh extends AppLocalizations {
   String get recently_played => 'เพลงที่เพิ่งเล่น';
 
   @override
+  String get recent_searches => 'Recent searches';
+
+  @override
+  String get from_your_library => 'From your library';
+
+  @override
+  String see_all_results_for(Object term) {
+    return 'See all results for \"$term\"';
+  }
+
+  @override
   String get browse_more => 'ดูเพิ่มเติม';
 
   @override
@@ -1454,6 +1468,13 @@ class AppLocalizationsTh extends AppLocalizations {
       'Playlists pinned under the Library section. Drag to reorder.';
 
   @override
+  String get pinned_stations => 'Pinned stations';
+
+  @override
+  String get pinned_stations_description =>
+      'Radio stations pinned under the playlists. Drag to reorder.';
+
+  @override
   String get pin_to_sidebar => 'Pin to sidebar';
 
   @override
@@ -1560,6 +1581,11 @@ class AppLocalizationsTh extends AppLocalizations {
   @override
   String get youtube_engine_unix_issue_message =>
       'ใน macOS/Linux/Unix อย่าง OS การตั้งค่าพาธใน .zshrc/.bashrc/.bash_profile เป็นต้น จะไม่ทำงาน\nคุณต้องตั้งค่าพาธในไฟล์การกำหนดค่า shell';
+
+  @override
+  String youtube_engine_android_issue_message(Object engine) {
+    return 'Android has no official $engine build: it is a Python program and Android ships no Python.\nTo use it here, put a working $engine (with the Python it needs) in a directory this app can execute — /data/local/tmp or the app\'s own files folder — and set the absolute path below. The file also needs its execute bit set.';
+  }
 
   @override
   String get download => 'ดาวน์โหลด';

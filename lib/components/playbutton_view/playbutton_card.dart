@@ -1,6 +1,7 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/image/universal_image.dart';
+import 'package:spotube/components/play_pause_icon.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/extensions/string.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
@@ -43,11 +44,28 @@ class PlaybuttonCard extends StatelessWidget {
   final void Function()? onPlaybuttonPressed;
   final void Function()? onAddToQueuePressed;
   final void Function()? onPinPressed;
+
+  /// Direct playback on a cover tap. When null the cover stays part of the
+  /// card's own navigation tap target.
+  final void Function()? onCoverPressed;
   final String? description;
 
   final String? imageUrl;
   final Widget? image;
+
+  /// Whether this card's collection is in the player's queue.
+  ///
+  /// Drives the "is it queued" state, NOT the play/pause icon: a paused
+  /// collection stays in the queue, so the icon has to follow the audio.
   final bool isPlaying;
+
+  /// Whether the audio is currently sounding from this collection.
+  ///
+  /// This is what the play/pause icon shows. It differs from [isPlaying]
+  /// the moment playback is paused — which is when the icon used to get
+  /// stuck showing "pause".
+  final bool isActuallyPlaying;
+
   final bool isLoading;
   final bool isPinned;
   final String title;
@@ -55,12 +73,14 @@ class PlaybuttonCard extends StatelessWidget {
 
   const PlaybuttonCard({
     required this.isPlaying,
+    this.isActuallyPlaying = false,
     required this.isLoading,
     required this.title,
     this.description,
     this.onPlaybuttonPressed,
     this.onAddToQueuePressed,
     this.onPinPressed,
+    this.onCoverPressed,
     this.onTap,
     this.isOwner = false,
     this.isPinned = false,
@@ -80,36 +100,55 @@ class PlaybuttonCard extends StatelessWidget {
     final coverSize = context.gridCardWidth;
     final coverRadius = BorderRadius.circular(context.cardCornerRadius);
 
+    final cover = imageUrl != null
+        ? Container(
+            width: coverSize,
+            height: coverSize,
+            decoration: BoxDecoration(
+              borderRadius: coverRadius,
+              image: DecorationImage(
+                image: UniversalImage.imageProvider(
+                  imageUrl!,
+                  height: coverSize * 4 / 3,
+                  width: coverSize * 4 / 3,
+                ),
+                fit: BoxFit.cover,
+              ),
+            ),
+          )
+        : SizedBox(
+            width: coverSize,
+            height: coverSize,
+            child: ClipRRect(
+              borderRadius: coverRadius,
+              child: image!,
+            ),
+          );
+
+    // First in the Stack: the overlay buttons sit above it and are hit-tested
+    // first, so play/queue/pin keep their own taps; everywhere else on the
+    // cover, this wins over CardImage's whole-card navigation tap.
+    final coverTapTarget = onCoverPressed == null
+        ? cover
+        : GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: isLoading ? null : onCoverPressed,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: Semantics(
+                label: context.l10n.play,
+                button: true,
+                child: cover,
+              ),
+            ),
+          );
+
     return SizedBox(
       width: coverSize,
       child: CardImage(
         image: Stack(
           children: [
-            if (imageUrl != null)
-              Container(
-                width: coverSize,
-                height: coverSize,
-                decoration: BoxDecoration(
-                  borderRadius: coverRadius,
-                  image: DecorationImage(
-                    image: UniversalImage.imageProvider(
-                      imageUrl!,
-                      height: coverSize * 4 / 3,
-                      width: coverSize * 4 / 3,
-                    ),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              )
-            else
-              SizedBox(
-                width: coverSize,
-                height: coverSize,
-                child: ClipRRect(
-                  borderRadius: coverRadius,
-                  child: image!,
-                ),
-              ),
+            coverTapTarget,
             StatedWidget.builder(
               builder: (context, states) {
                 final hovered = states.contains(WidgetState.hovered) ||
@@ -135,12 +174,13 @@ class PlaybuttonCard extends StatelessWidget {
                         duration: const Duration(milliseconds: 150),
                         animated: !kIsMobile,
                         child: IconButton.secondary(
-                          icon: switch ((isLoading, isPlaying)) {
+                          icon: switch ((isLoading, isActuallyPlaying)) {
                             (true, _) => const CircularProgressIndicator(
                                 size: 15,
                               ),
-                            (false, false) => const Icon(SpotubeIcons.play),
-                            (false, true) => const Icon(SpotubeIcons.pause)
+                            (false, _) => AnimatedPlayPauseIcon(
+                                isPlaying: isActuallyPlaying,
+                              ),
                           },
                           enabled: !isLoading,
                           onPressed: onPlaybuttonPressed,

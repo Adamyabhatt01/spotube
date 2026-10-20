@@ -57,18 +57,16 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
             .toList();
 
         if (tabState.value != 0) {
-          // metadata, audio-source & theme plugins
-          return availablePlugins.where(
-            (d) {
-              return d.topics.contains(
-                tabState.value == 1
-                    ? "spotube-metadata-plugin"
-                    : tabState.value == 2
-                        ? "spotube-audio-source-plugin"
-                        : "spotube-theme-plugin",
-              );
-            },
-          ).toList();
+          // metadata, audio-source, theme & radio plugins
+          final topic = switch (tabState.value) {
+            1 => "spotube-metadata-plugin",
+            2 => "spotube-audio-source-plugin",
+            3 => "spotube-theme-plugin",
+            _ => "spotube-radio-plugin",
+          };
+          return availablePlugins
+              .where((d) => d.topics.contains(topic))
+              .toList();
         }
 
         return availablePlugins; // all plugins
@@ -84,13 +82,13 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
       if (tabState.value == 0) return plugins.asData?.value.plugins;
 
       return plugins.asData?.value.plugins.where((d) {
-        return d.abilities.contains(
-          tabState.value == 1
-              ? PluginAbilities.metadata
-              : tabState.value == 2
-                  ? PluginAbilities.audioSource
-                  : PluginAbilities.theme,
-        );
+        final ability = switch (tabState.value) {
+          1 => PluginAbilities.metadata,
+          2 => PluginAbilities.audioSource,
+          3 => PluginAbilities.theme,
+          _ => PluginAbilities.radio,
+        };
+        return d.abilities.contains(ability);
       }).toList();
     }, [tabState.value, plugins.asData?.value]);
 
@@ -233,17 +231,32 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
               ),
               const SliverGap(12),
               SliverToBoxAdapter(
-                child: TabList(
-                  index: tabState.value,
-                  onChanged: (value) {
-                    tabState.value = value;
+                child: Builder(
+                  builder: (context) {
+                    final tabList = TabList(
+                      index: tabState.value,
+                      onChanged: (value) {
+                        tabState.value = value;
+                      },
+                      children: const [
+                        TabItem(child: Text("All")),
+                        TabItem(child: Text("Metadata")),
+                        TabItem(child: Text("Audio Source")),
+                        TabItem(child: Text("Theme")),
+                        TabItem(child: Text("Radio")),
+                      ],
+                    );
+                    // Five intrinsic-width tabs overflow a phone row; scroll
+                    // them only when narrow, so the desktop underline still
+                    // spans the full width.
+                    if (MediaQuery.sizeOf(context).width >= 640) {
+                      return tabList;
+                    }
+                    return SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: tabList,
+                    );
                   },
-                  children: const [
-                    TabItem(child: Text("All")),
-                    TabItem(child: Text("Metadata")),
-                    TabItem(child: Text("Audio Source")),
-                    TabItem(child: Text("Theme")),
-                  ],
                 ),
               ),
               const SliverGap(12),
@@ -274,11 +287,15 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
                   final isDefaultTheme =
                       plugins.asData!.value.defaultThemePluginConfig?.slug ==
                           plugin.slug;
+                  final isDefaultRadio =
+                      plugins.asData!.value.defaultRadioPluginConfig?.slug ==
+                          plugin.slug;
                   return MetadataInstalledPluginItem(
                     plugin: plugin,
                     isDefaultMetadata: isDefaultMetadata,
                     isDefaultAudioSource: isDefaultAudioSource,
                     isDefaultTheme: isDefaultTheme,
+                    isDefaultRadio: isDefaultRadio,
                   );
                 },
               ),

@@ -12,6 +12,12 @@ class ConnectionCheckerService {
   final Dio dio;
   Timer? _periodicTimer;
 
+  /// Seam for tests: resolution goes through this field so a probe can be
+  /// driven without real DNS.
+  @visibleForTesting
+  Future<List<InternetAddress>> Function(String host) lookup =
+      InternetAddress.lookup;
+
   /// The two subscriptions the constructor opens. Nothing cancels them
   /// today, which is invisible for a process-lifetime singleton but keeps
   /// [dispose] from actually being a shutdown.
@@ -32,7 +38,29 @@ class ConnectionCheckerService {
       state == AppLifecycleState.paused ||
       state == AppLifecycleState.hidden;
 
-  ConnectionCheckerService._() : dio = Dio() {
+  static Dio _defaultDio() => Dio(
+        // A probe with no ceiling can hold a 30 s retry loop hostage:
+        // default-connect timeouts are OS-dependent (minutes), and every
+        // connectivity event would then pile another probe on top.
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 5),
+          sendTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 5),
+        ),
+      );
+
+  /// A service with no probe wiring — just the ceiling-carrying [dio] and the
+  /// [lookup] seam — so the single-flight and timeout behavior is testable
+  /// without the plugin-backed constructor side effects.
+  @visibleForTesting
+  ConnectionCheckerService.forTesting({Dio? dio})
+      : dio = dio ?? _defaultDio();
+
+  ConnectionCheckerService._() : dio = _defaultDio() {
+    _start();
+  }
+
+  void _start() {
     _ownStateSubscription =
         onConnectivityChanged.listen((connected) {
       try {
@@ -108,7 +136,10 @@ class ConnectionCheckerService {
 
   Future<bool> doesConnectTo(String address) async {
     try {
-      final result = await InternetAddress.lookup(address);
+      final result = await lookup(address).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => const [],
+      );
       if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
         return true;
       }
@@ -131,7 +162,16 @@ class ConnectionCheckerService {
 
   bool isConnectedSync = true;
 
-  Future<bool> get isConnected async {
+  /// In-flight probe, if any. Connectivity floods and the 30 s retry timer
+  /// used to start overlapping probes whenever one outran its ceiling;
+  /// concurrent callers now piggyback on the single running probe instead.
+  Future<bool>? _probing;
+
+  Future<bool> get isConnected {
+    return _probing ??= _probe().whenComplete(() => _probing = null);
+  }
+
+  Future<bool> _probe() async {
     final connected = await _isConnected();
     if (connected != isConnectedSync) {
       _connectionStreamController.add(connected);

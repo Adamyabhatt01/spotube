@@ -6,6 +6,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:spotube/collections/fake.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/dialogs/select_device_dialog.dart';
+import 'package:spotube/components/play_pause_icon.dart';
 import 'package:spotube/components/track_tile/track_tile.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/connect/connect.dart';
@@ -37,6 +38,13 @@ class ArtistPageTopTracks extends HookConsumerWidget {
     final isPlaylistPlaying = AudioPlayerState.listContainsTracks(
       queueTracks,
       topTracksQuery.asData?.value.items ?? <SpotubeTrackObject>[],
+    );
+
+    // Whether the audio is actually sounding. The queue membership above
+    // survives a pause, so the play/pause icon has to follow the audio —
+    // otherwise pausing from the sidebar left this button stuck on "pause".
+    final isSounding = ref.watch(
+      audioPlayerProvider.select((s) => s.playing),
     );
 
     if (topTracksQuery.hasError) {
@@ -145,10 +153,8 @@ class ArtistPageTopTracks extends HookConsumerWidget {
                         color: theme.colorScheme.primaryForeground,
                       )
                     : Skeleton.keep(
-                        child: Icon(
-                          isPlaylistPlaying
-                              ? SpotubeIcons.pause
-                              : SpotubeIcons.play,
+                        child: AnimatedPlayPauseIcon(
+                          isPlaying: isPlaylistPlaying && isSounding,
                         ),
                       ),
                 onPressed: () => playPlaylist(topTracks.toList()),

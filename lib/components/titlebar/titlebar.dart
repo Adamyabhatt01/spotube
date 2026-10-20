@@ -5,6 +5,8 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/components/button/back_button.dart';
 import 'package:spotube/components/titlebar/titlebar_buttons.dart';
+import 'package:spotube/modules/theme_background/real_transparency.dart';
+import 'package:spotube/modules/theme_background/theme_background_image_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/utils/platform.dart';
 import 'package:window_manager/window_manager.dart';
@@ -67,6 +69,23 @@ class TitleBar extends HookConsumerWidget implements PreferredSizeWidget {
     final hasLeadingOrCanPop = leading.isNotEmpty || Navigator.canPop(context);
     final lastClicked = useRef<int>(DateTime.now().millisecondsSinceEpoch);
 
+    // shadcn's AppBar fills itself with `card` at the surface opacity, a
+    // neutral near-black, which reads as a solid band across the top of every
+    // page that has a title bar. It cannot just wear the backdrop's veil
+    // instead: the ground behind it is already veiled, so a second veil at the
+    // same alpha composites to ~95% surface and the band is solid again. With
+    // no fill at all the strip is the ground - and the frost stays, which is
+    // what the four `floatingHeader: true` pages need to keep scrolled content
+    // legible under the title. Real transparency joins the same rule: with
+    // the desktop behind the strip, any fill is the window.
+    final bareChrome = ref.watch(themeBackdropActiveProvider) ||
+        ref.watch(realTransparencyActiveProvider);
+    // In-app blur over a transparent region blurs nothing (the compositor
+    // owns blur here) while still costing a filter per frame — off with it.
+    // Hoisted: `ref.watch` inside the `LayoutBuilder` below would subscribe
+    // outside this widget's build.
+    final noAppBlur = ref.watch(realTransparencyActiveProvider);
+
     return SizedBox(
       height: height ?? (48 * context.theme.scaling),
       child: LayoutBuilder(
@@ -114,11 +133,12 @@ class TitleBar extends HookConsumerWidget implements PreferredSizeWidget {
               trailingExpanded: trailingExpanded,
               alignment: alignment,
               padding: padding ?? EdgeInsets.zero,
-              backgroundColor: backgroundColor,
+              backgroundColor: backgroundColor ??
+                  (bareChrome ? Colors.transparent : null),
               leadingGap: leadingGap,
               trailingGap: trailingGap,
               height: height ?? (48 * context.theme.scaling),
-              surfaceBlur: surfaceBlur,
+              surfaceBlur: noAppBlur ? 0 : surfaceBlur,
               surfaceOpacity: surfaceOpacity,
               useSafeArea: useSafeArea,
               child: child,

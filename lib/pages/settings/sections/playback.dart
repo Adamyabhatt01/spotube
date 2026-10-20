@@ -134,9 +134,14 @@ class SettingsPlaybackSection extends HookConsumerWidget {
             title: Text(context.l10n.streaming_music_quality),
             value: sourcePresets.selectedStreamingQualityIndex,
             options: [
-              for (final MapEntry(:key, value: quality) in sourcePresets
-                  .presets[sourcePresets.selectedStreamingContainerIndex]
-                  .qualities
+              // `presets[index]` threw a RangeError when the persisted
+              // container index pointed past the end of the plugin's current
+              // list. An absent container has no qualities to offer.
+              for (final MapEntry(:key, value: quality) in (sourcePresets
+                      .presets
+                      .elementAtOrNull(sourcePresets.selectedStreamingContainerIndex)
+                      ?.qualities ??
+                      const [])
                   .asMap()
                   .entries)
                 SelectItemButton(value: key, child: Text(quality.toString())),
@@ -165,9 +170,14 @@ class SettingsPlaybackSection extends HookConsumerWidget {
             title: Text(context.l10n.download_music_quality),
             value: sourcePresets.selectedStreamingQualityIndex,
             options: [
-              for (final MapEntry(:key, value: quality) in sourcePresets
-                  .presets[sourcePresets.selectedDownloadingContainerIndex]
-                  .qualities
+              // See the streaming-quality tile above: an absent container
+              // has no qualities to offer.
+              for (final MapEntry(:key, value: quality) in (sourcePresets
+                      .presets
+                      .elementAtOrNull(
+                          sourcePresets.selectedDownloadingContainerIndex)
+                      ?.qualities ??
+                      const [])
                   .asMap()
                   .entries)
                 SelectItemButton(value: key, child: Text(quality.toString())),

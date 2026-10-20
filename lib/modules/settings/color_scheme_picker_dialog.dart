@@ -4,26 +4,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/extensions/context.dart';
+import 'package:spotube/models/color.dart';
 
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
-
-class SpotubeColor extends Color {
-  final String name;
-
-  const SpotubeColor(super.color, {required this.name});
-
-  const SpotubeColor.from(super.value, {required this.name});
-
-  factory SpotubeColor.fromString(String string) {
-    final slices = string.split(":");
-    return SpotubeColor(int.parse(slices.last), name: slices.first);
-  }
-
-  @override
-  String toString() {
-    return "$name:${toARGB32()}";
-  }
-}
 
 final Set<SpotubeColor> colorsMap = {
   SpotubeColor(Colors.slate.toARGB32(), name: "slate"),

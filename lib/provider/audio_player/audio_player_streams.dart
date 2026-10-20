@@ -241,8 +241,28 @@ class AudioPlayerStreamListeners {
     });
   }
 
+  /// The application's only mpv/libmpv error sink.
+  ///
+  /// This used to be `listen((event) {})` — an empty body, so every decoder
+  /// failure, broken stream or demux error reached nothing at all: not the log,
+  /// not the UI, not the widget. That made the recurring "playback silently did
+  /// nothing" reports impossible to root-cause, because the one stream that
+  /// would have said why was discarded on arrival.
+  ///
+  /// It stays non-fatal on purpose: an mpv error is informational here, not an
+  /// exception the player should unwind from — the cascade in
+  /// `routes/playback.dart` owns recovery. This mirrors the radio backend's
+  /// sink (`provider/radio/radio_playback.dart`).
   StreamSubscription subscribeToPlayerError() {
-    return audioPlayer.errorStream.listen((event) {});
+    return audioPlayer.errorStream.listen((event) {
+      final message = event.trim();
+      if (message.isEmpty) return;
+      AppLogger.reportError(
+        message,
+        StackTrace.current,
+        'player.errorStream',
+      );
+    });
   }
 }
 

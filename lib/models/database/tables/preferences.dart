@@ -126,6 +126,8 @@ class PreferencesTable extends Table {
       text().withDefault(const Constant("")).map(const StringListConverter())();
   TextColumn get pinnedPlaylistIds =>
       text().withDefault(const Constant("")).map(const StringListConverter())();
+  TextColumn get pinnedStationIds =>
+      text().withDefault(const Constant("")).map(const StringListConverter())();
   BoolColumn get autoDownloadQuality =>
       boolean().withDefault(const Constant(false))();
   BoolColumn get themeTransition =>
@@ -153,6 +155,15 @@ class PreferencesTable extends Table {
   // manager waits for and shares this live device without ever activating
   // or deactivating anything. Null by default.
   TextColumn get vpnDeviceName => text().nullable()();
+  // Real-transparency user veto (opt-out, fresh installs default on).
+  // The active theme plugin requests real transparency with
+  // `background.transparent == true`; this setting only allows the user to
+  // refuse it, forcing the painted (fake) backdrop instead. Column default
+  // stays false on purpose — fresh seeds write true explicitly (see
+  // `UserPreferencesNotifier.loadPreferences` and `defaults()` below), so
+  // no migration is needed and existing rows keep their stored choice.
+  BoolColumn get transparentWindow =>
+      boolean().withDefault(const Constant(false))();
 
   static PreferencesTableData defaults() {
     return PreferencesTableData(
@@ -186,6 +197,7 @@ class PreferencesTable extends Table {
       sourcePriority: [],
       sidebarLibraryOrder: [],
       pinnedPlaylistIds: [],
+      pinnedStationIds: [],
       autoDownloadQuality: false,
       themeTransition: false,
       themeTransitionMs: 250,
@@ -197,6 +209,7 @@ class PreferencesTable extends Table {
       vpnAutoDisconnect: true,
       vpnWaitTimeoutSec: 60,
       vpnDeviceName: null,
+      transparentWindow: true,
     );
   }
 }

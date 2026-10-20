@@ -30,6 +30,11 @@ class PlayerQueue extends HookConsumerWidget {
 
   final Future<void> Function(SpotubeTrackObject track) onJump;
   final Future<void> Function(String trackId) onRemove;
+
+  // Concurrent single-id removals compute their index against a state that
+  // the other removals have not settled yet, so they can delete wrong rows.
+  // Callers that can batch should provide this instead of Future.wait(onRemove).
+  final Future<void> Function(Iterable<String> trackIds)? onRemoveMany;
   final Future<void> Function(int oldIndex, int newIndex) onReorder;
   final Future<void> Function() onStop;
 
@@ -38,6 +43,7 @@ class PlayerQueue extends HookConsumerWidget {
     required this.playlist,
     required this.onJump,
     required this.onRemove,
+    this.onRemoveMany,
     required this.onReorder,
     required this.onStop,
     super.key,
@@ -50,6 +56,7 @@ class PlayerQueue extends HookConsumerWidget {
     super.key,
   })  : onJump = notifier.jumpToTrack,
         onRemove = notifier.removeTrack,
+        onRemoveMany = notifier.removeTracks,
         onReorder = notifier.moveTrack,
         onStop = notifier.stop;
 
@@ -227,8 +234,14 @@ class PlayerQueue extends HookConsumerWidget {
                                   final ids = selectedTrackIds.value.toList();
                                   close();
                                   if (ids.isEmpty) return;
-                                  await Future.wait(
-                                      ids.map((id) => onRemove(id)));
+                                  final removeMany = onRemoveMany;
+                                  if (removeMany != null) {
+                                    await removeMany(ids);
+                                  } else {
+                                    for (final id in ids) {
+                                      await onRemove(id);
+                                    }
+                                  }
                                   if (context.mounted) {
                                     selectedTrackIds.value = {};
                                     selectionMode.value = false;

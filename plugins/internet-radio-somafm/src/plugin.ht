@@ -1,0 +1,209 @@
+import "module:std" as std
+
+var HttpClient = std.HttpClient
+var HttpBaseOptions = std.HttpBaseOptions
+var HttpResponse = std.HttpResponse
+
+const directory = "https://api.somafm.com"
+const streamHost = "https://ice1.somafm.com"
+const agent = "Spotube/InternetRadioSomaFM"
+
+/// `fold` accumulator: bump the running genre -> count map by one token.
+fun _bumpGenre(acc: Map, token: dynamic) -> Map {
+  acc[token] = (acc[token] ?? 0) + 1
+  return acc
+}
+
+/// Directory source: SomaFM, a listener-supported station aggregator.
+///
+/// Same contract as the Radio Browser plugin: every method returns a plain
+/// JSON-shaped value (maps via `.toJson()`, lists of `.toJson()` maps) that
+/// `MetadataPluginRadioEndpoint` parses into RadioStation/RadioTag/RadioCountry.
+/// No `await` in Hetu 0.4.2, so async work is a `Future` built from `.then`.
+///
+/// SomaFM is fundamentally different from the Radio Browser aggregator and that
+/// is the point: it is a small, fixed, curated catalogue (~46 channels) served
+/// from one JSON document rather than a huge server-paginated search index. So
+/// paging, tag and text filtering happen client-side over the single response,
+/// which is why this plugin reads like a local query over one fetch.
+class SomaFM {
+  fun _client() -> HttpClient {
+    return HttpClient(HttpBaseOptions(
+      baseUrl: directory,
+      headers: {
+        "User-Agent": agent,
+        "Accept": "application/json"
+      }.toJson()
+    ));
+  }
+
+  fun _channels(res: dynamic) -> List {
+    var data = res.data
+    if (data == null) {
+      return []
+    }
+    var channels = data["channels"]
+    if (channels == null) {
+      return []
+    }
+    return channels
+  }
+
+  fun _genreTokens(c: Map) -> List {
+    var genre = c["genre"] ?? ""
+    if (genre == null) {
+      genre = ""
+    }
+    return genre
+        .toString()
+        .toLowerCase()
+        .split("|")
+        .map((t) => t.trim())
+        .where((t) => t != "")
+        .toList()
+  }
+
+  /// A channel record -> a RadioStation-shaped map.
+  ///
+  /// SomaFM's public channel list carries no bitrate-specific URLs, so the
+  /// stream address is derived from the well-known icecast mount pattern
+  /// (`ice1.somafm.com/<id>-<bitrate>-mp3`). That is untrusted-shaped data
+  /// assembled from the remote `id`, so the scheme is pinned to https here the
+  /// same way the Radio Browser provider validates URLs at its edge.
+  fun _station(c: Map) -> Map {
+    var id = (c["id"] ?? "").toString()
+    var title = (c["title"] ?? "").toString().trim()
+    var image = c["image"] ?? ""
+    var description = c["description"] ?? ""
+    var dj = c["dj"] ?? ""
+
+    return {
+      "id": id,
+      "name": title,
+      "streamUrl": "${streamHost}/${id}-128-mp3",
+      "tags": _genreTokens(c),
+      "country": "US",
+      "faviconUrl": image == "" ? null : image.toString(),
+      "homepageUrl": "https://somafm.com/${id}/",
+      "codec": "MP3",
+      "bitrate": 128,
+      "isVip": false,
+      "description": description.toString(),
+      "dj": dj.toString()
+    }.toJson();
+  }
+
+  fun _matches(c: Map, tag: dynamic, search: dynamic) -> bool {
+    if (search != null && search != "") {
+      var needle = search.toString().toLowerCase()
+      var title = (c["title"] ?? "").toString().toLowerCase()
+      var description = (c["description"] ?? "").toString().toLowerCase()
+      if (!title.contains(needle) &&
+          !description.contains(needle) &&
+          !_genreTokens(c).where((t) => t.contains(needle)).toList().isNotEmpty) {
+        return false
+      }
+    }
+    if (tag != null && tag != "") {
+      var wanted = tag.toString().toLowerCase()
+      if (!_genreTokens(c).where((t) => t == wanted).toList().isNotEmpty) {
+        return false
+      }
+    }
+    return true
+  }
+
+  fun stations(query: Map) -> Future {
+    var offset = query["offset"] ?? 0
+    var limit = query["limit"] ?? 20
+    var tag = query["tag"]
+    var country = query["country"]
+    var search = query["search"]
+
+    // SomaFM is a single-country catalogue; a browse scoped to any other
+    // country is empty by construction rather than an error, so the fan-out
+    // simply moves on to the next directory.
+    if (country != null && country != "" && country != "US") {
+      return Future.value(
+          {"limit": limit, "nextOffset": null, "total": 0, "hasMore": false, "items": []}.toJson())
+    }
+
+    return _client().get_req("/channels.json", queryParameters: {}.toJson()).then((res) {
+      var matched = _channels(res)
+          .where((c) => _matches(c, tag, search))
+          .toList()
+      var total = matched.length
+      var items = matched
+          .skip(offset)
+          .take(limit)
+          .map((c) => _station(c))
+          .toList()
+      var nextOffset = offset + limit < total ? offset + limit : null
+
+      return {
+        "limit": limit,
+        "nextOffset": nextOffset,
+        "total": total,
+        "hasMore": nextOffset != null,
+        "items": items
+      }.toJson()
+    })
+  }
+
+  fun byId(id: string) -> Future {
+    return _client().get_req("/channels.json", queryParameters: {}.toJson()).then((res) {
+      var hit = _channels(res).where((c) => c["id"] == id).toList()
+      if (hit.length == 0) {
+        return {}.toJson()
+      }
+      return _station(hit[0])
+    })
+  }
+
+  /// Genre counts over the whole catalogue, most-used first. Computed locally
+  /// because the directory exposes no tag endpoint.
+  ///
+  /// Hetu's list API has no group-by, no `forEach` and no `toSet` on a List, so
+  /// genres are flattened into one token list and accumulated into a name ->
+  /// count map with `fold` (the accumulator is a module-level function so its
+  /// body is a plain block, not an ambiguous lambda).
+  fun tags(query: Map) -> Future {
+    var limit = query["limit"] ?? 50
+
+    return _client().get_req("/channels.json", queryParameters: {}.toJson()).then((res) {
+      var tokens = _channels(res)
+        .map((c) => _genreTokens(c))
+        .expand((l) => l)
+        .toList()
+
+      var counts = tokens.fold({}, _bumpGenre)
+
+      var tags = counts
+        .keys
+        .map((name) => {
+          "name": name,
+          "stationCount": counts[name]
+        }.toJson())
+        .toList()
+
+      tags.sort((a, b) => b["stationCount"] - a["stationCount"])
+      return tags.take(limit).toList()
+    })
+  }
+
+  /// SomaFM has no country axis, so it contributes nothing here and the
+  /// browse-by-country rail falls through to a directory that does.
+  fun countries(query: Map) -> Future {
+    return Future.value([].toJson())
+  }
+}
+
+class InternetRadioSomaFMPlugin {
+  var radio: SomaFM
+
+  construct() {
+    radio = SomaFM()
+  }
+}
+
+export { InternetRadioSomaFMPlugin }

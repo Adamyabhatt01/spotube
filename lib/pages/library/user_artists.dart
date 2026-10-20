@@ -19,7 +19,7 @@ import 'package:spotube/components/inter_scrollbar/inter_scrollbar.dart';
 import 'package:spotube/components/waypoint.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/extensions/context.dart';
-import 'package:spotube/hooks/utils/use_debounce.dart';
+import 'package:spotube/hooks/utils/use_debounced_filter.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/library/artists.dart';
 import 'package:auto_route/auto_route.dart';
@@ -38,14 +38,8 @@ class UserArtistsPage extends HookConsumerWidget {
     final artistQueryNotifier =
         ref.watch(metadataPluginSavedArtistsProvider.notifier);
 
-    final searchText = useState('');
-    // Collapses a burst of keystrokes into one fuzzy pass; clearing the box
-    // still filters instantly via the empty fast path below.
-    final searchQuery = useDebounce(
-      searchText.value,
-      const Duration(milliseconds: 200),
-    );
-    final effectiveQuery = searchText.value.isEmpty ? '' : searchQuery;
+    final search = useDebouncedFilter();
+    final effectiveQuery = search.query;
 
     final filteredArtists = useMemoized(() {
       final artists = artistQuery.asData?.value.items ?? [];
@@ -65,7 +59,7 @@ class UserArtistsPage extends HookConsumerWidget {
     }, [
       artistQuery.asData?.value.items,
       effectiveQuery,
-      searchText.value.isEmpty,
+      search.value.isEmpty,
     ]);
 
     final controller = useScrollController();
@@ -112,7 +106,7 @@ class UserArtistsPage extends HookConsumerWidget {
                     flexibleSpace: SizedBox(
                       height: 48,
                       child: TextField(
-                        onChanged: (value) => searchText.value = value,
+                        onChanged: search.onChange,
                         features: const [
                           InputFeature.leading(Icon(SpotubeIcons.filter)),
                         ],
@@ -161,7 +155,7 @@ class UserArtistsPage extends HookConsumerWidget {
                       );
                     })
                   else if (filteredArtists.isEmpty &&
-                      searchText.value.isEmpty &&
+                      search.value.isEmpty &&
                       !artistQuery.isLoading)
                     SliverToBoxAdapter(
                       child: Column(

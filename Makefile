@@ -3,6 +3,9 @@ TEMP_DIR=/tmp/spotube-tar
 USR_SHARE=deb-struct/usr/share
 BUNDLE_DIR=build/linux/${ARCH}/release/bundle
 MIRRORLIST=${PWD}/build/mirrorlist
+# `fvm flutter` when fvm is available (this repo pins its SDK in .fvmrc),
+# plain `flutter` otherwise.
+FLUTTER=$(shell command -v fvm >/dev/null 2>&1 && echo "fvm flutter" || echo flutter)
 
 tar:
 		mkdir -p $(TEMP_DIR)\
@@ -39,7 +42,29 @@ choco:
 			powershell choco pack .\choco-struct\spotube.nuspec  --outputdirectory dist
 
 apk:
-		mv build/app/outputs/apk/release/app-release.apk build/Spotube-android-all-arch.apk
+		mkdir -p build
+		for f in build/app/outputs/flutter-apk/app-*-release.apk; do \
+			n=$$(basename $$f .apk | sed 's/^app-//;s/-release$$//'); \
+			mv $$f build/Spotube-android-$$n.apk; \
+		done
+		ls -lh build/Spotube-android-*.apk
+
+# Arm64-v8a only APK.
+#
+# `--target-platform android-arm64` alone is NOT enough: it narrows the Dart
+# AOT, but with ABI splits disabled the Flutter Gradle plugin sets
+# `buildType.ndk.abiFilters` to all three ABIs, so the prebuilt native libs
+# (mpv, metadata_god, media_kit, flutter_discord_rpc) still ship for
+# armeabi-v7a and x86_64. `--split-per-abi` makes the plugin emit
+# `splits.abi.include("arm64-v8a")` and nothing else, which drops ~23 MB of
+# foreign-ABI libraries. The plugin also applies the per-ABI versionCode
+# override (arm64 = 2 * 1000 + versionCode) so Play Store versioning stays
+# correct.
+apk-arm64:
+		$(FLUTTER) build apk --release --target-platform android-arm64 --split-per-abi --flavor stable
+		mkdir -p build
+		cp build/app/outputs/flutter-apk/app-arm64-v8a-stable-release.apk build/Spotube-android-arm64-v8a.apk
+		ls -lh build/Spotube-android-arm64-v8a.apk
 
 gensums:
 				sh -c scripts/gensums.sh

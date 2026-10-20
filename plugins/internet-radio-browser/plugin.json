@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "name": "Internet Radio Browser",
+  "author": "Spotube",
+  "description": "Internet radio directory backed by radio-browser.info, the community-run catalog of publicly listed streams",
+  "entryPoint": "InternetRadioBrowserPlugin",
+  "apis": [],
+  "abilities": ["radio"],
+  "repository": "https://github.com/KRTirtho/spotube/tree/master/plugins/internet-radio-browser",
+  "pluginApiVersion": "2.0.0"
+}

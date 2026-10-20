@@ -1,11 +1,10 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:spotube/services/artwork_cache_manager.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:http/http.dart';
-import 'package:logger/logger.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/server/server.dart';
@@ -14,9 +13,18 @@ import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/utils/foreground_coalescer.dart';
 import 'package:spotube/utils/platform.dart';
 
+/// The playback-server client for the background callback. Top-level finals
+/// are lazy in Dart, so nothing is created until a command actually runs.
+final _glanceDio = Dio(
+  BaseOptions(
+    connectTimeout: const Duration(seconds: 5),
+    receiveTimeout: const Duration(seconds: 5),
+    sendTimeout: const Duration(seconds: 5),
+  ),
+);
+
 @pragma("vm:entry-point")
 Future<void> glanceBackgroundCallback(Uri? data) async {
-  final logger = Logger();
   try {
     if (data == null ||
         data.host != "playback" ||
@@ -26,17 +34,23 @@ Future<void> glanceBackgroundCallback(Uri? data) async {
     }
 
     final command = data.pathSegments.first;
-    final res = await get(
+    // validateStatus always true so a non-200 reaches the explicit check
+    // below instead of dio's own throw — same shape as the http.get it
+    // replaced.
+    final res = await _glanceDio.getUri<Object>(
       Uri.parse(
         "http://${data.queryParameters["serverAddress"]}/playback/$command",
       ),
+      options: Options(validateStatus: (_) => true),
     );
 
     if (res.statusCode != 200) {
-      throw Exception("Failed to execute command: $command\nBody: ${res.body}");
+      throw Exception("Failed to execute command: $command\nBody: ${res.data}");
     }
-  } catch (e) {
-    logger.e("[GlanceBackgroundCallback] $e");
+  } catch (e, stack) {
+    // Routed through AppLogger (level gate + release file sink), with the
+    // stack trace, so the failure's origin is recoverable from the log.
+    AppLogger.reportError(e, stack, "GlanceBackgroundCallback");
   }
 }
 
@@ -89,7 +103,7 @@ Future<void> _sendActiveTrack(
   final cachedImage = image == null
       ? null
       : image.url.startsWith("http")
-          ? (await DefaultCacheManager().getSingleFile(image.url)).path
+          ? (await ArtworkCacheManager.instance.getSingleFile(image.url)).path
           : image.url;
   final data = {
     ...jsonTrack,

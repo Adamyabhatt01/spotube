@@ -20,14 +20,30 @@ import 'package:spotube/utils/service_utils.dart';
 /// coming online - none of which the first frame or the first playback needs.
 const _startupIdleDelay = Duration(seconds: 5);
 
+/// How many times [useGlobalSubscriptions] pushes the burst back when it fires
+/// during active playback, before running it regardless. Bounds the deferral so
+/// a long-listening session still gets its once-a-day check.
+const _maxIdleDeferrals = 3;
+
 void useGlobalSubscriptions(WidgetRef ref) {
   final context = useContext();
   final theme = Theme.of(context);
   final connectRoutes = ref.watch(serverConnectRoutesProvider);
 
   useEffect(() {
-    final idleTimer = Timer(_startupIdleDelay, () async {
+    Timer? idleTimer;
+    var deferrals = 0;
+
+    Future<void> runUpdateChecks() async {
       if (!context.mounted) return;
+      // Don't run the network + plugin-VM burst while audio is playing: the
+      // first playback must not contend with it. Reschedule to the next idle
+      // beat, capped so the once-a-day check still eventually lands.
+      if (audioPlayer.isPlaying && deferrals < _maxIdleDeferrals) {
+        deferrals++;
+        idleTimer = Timer(_startupIdleDelay, runUpdateChecks);
+        return;
+      }
       // One burst a day, not one per launch: skip all three checks when the
       // interval has not elapsed. The stamp records the attempt (not success)
       // so an offline week does not queue a burst per launch either.
@@ -66,7 +82,9 @@ void useGlobalSubscriptions(WidgetRef ref) {
         // surfaced by the root widget's onError listeners.
         AppLogger.reportError(e, stack);
       }
-    });
+    }
+
+    idleTimer = Timer(_startupIdleDelay, runUpdateChecks);
 
     StreamSubscription? audioPlayerSubscription;
     bool pausedByStream = false;
@@ -170,7 +188,7 @@ void useGlobalSubscriptions(WidgetRef ref) {
     ];
 
     return () {
-      idleTimer.cancel();
+      idleTimer?.cancel();
       for (final subscription in subscriptions) {
         subscription.cancel();
       }

@@ -11,6 +11,7 @@ import 'package:spotube/provider/audio_player/state.dart';
 import 'package:spotube/provider/blacklist_provider.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/discord_provider.dart';
+import 'package:spotube/provider/server/server.dart';
 import 'package:spotube/provider/server/sourced_track_provider.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
@@ -169,9 +170,24 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
           ),
         );
       } else if (tracks.isNotEmpty) {
+        // Restored entries become [SpotubeMedia], whose URI embeds the local
+        // playback server's port. This restore runs as soon as the app root
+        // watches the player — before the post-splash server subscription —
+        // so opening it eagerly produced `http://127.0.0.1:0/stream/...` for
+        // every track. mpv failed each load and advanced through the whole
+        // playlist, which is why a restart ended with an exhausted queue that
+        // would not play.
+        if (tracks.any((track) => track is! SpotubeLocalTrackObject)) {
+          await ref.read(playbackServerPortProvider.future);
+        }
+
         state = state.copyWith(
           tracks: tracks,
           currentIndex: currentIndex,
+        );
+        AppLogger.logStartupLine(
+          '[startup] queueRestore: ${tracks.length} tracks at index '
+          '$currentIndex (serverPort=${SpotubeMedia.serverPort})',
         );
         await audioPlayer.openPlaylist(
           tracks.asMediaList(),
@@ -235,12 +251,24 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     final isSameQueue = _sameMedias(_lastSyncedMedias, playlist.medias);
     PerfCounters.note('queue.playlistEvent');
     if (!isSameQueue) PerfCounters.note('queue.playlistDecode');
+
+    // A shuffle/unshuffle event is the same queue permuted: rebuilding
+    // `tracks` by re-running `fromJson` on every bare media re-parsed the
+    // whole queue (thousands of parses) for what is a reorder. Matching by
+    // uri against the last synced list recovers the new order from the
+    // already-parsed objects; any other membership falls through to the
+    // decode path below.
+    final permuted =
+        isSameQueue ? null : _permutedQueue(state.tracks, playlist.medias);
+    if (permuted != null) PerfCounters.note('queue.shufflePermute');
+
     // One state emission per event, as before: publishing `tracks` and
     // `currentIndex` separately would rebuild every queue listener twice.
     state = state.copyWith(
       tracks: isSameQueue
           ? state.tracks
-          : playlist.medias.map((e) => SpotubeMedia.media(e).track).toList(),
+          : permuted ??
+              playlist.medias.map((e) => SpotubeMedia.media(e).track).toList(),
       currentIndex: playlist.index,
     );
 
@@ -252,6 +280,34 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
         tracks: isSameQueue ? const Value.absent() : Value(state.tracks),
       ),
     );
+  }
+
+  /// [next] interpreted as a permutation of [_lastSyncedMedias]: returns the
+  /// current tracks reordered to match it, or null when any uri doesn't line
+  /// up one-for-one (then the caller decodes from extras as before).
+  List<SpotubeTrackObject>? _permutedQueue(
+    List<SpotubeTrackObject> tracks,
+    List<Media> next,
+  ) {
+    final synced = _lastSyncedMedias;
+    if (synced == null ||
+        synced.length != next.length ||
+        tracks.length != next.length) {
+      return null;
+    }
+
+    final positions = <String, List<int>>{};
+    for (var i = 0; i < synced.length; i++) {
+      positions.putIfAbsent(synced[i].uri, () => []).add(i);
+    }
+
+    final result = List<SpotubeTrackObject?>.filled(next.length, null);
+    for (var j = 0; j < next.length; j++) {
+      final pending = positions[next[j].uri];
+      if (pending == null || pending.isEmpty) return null;
+      result[j] = tracks[pending.removeAt(0)];
+    }
+    return result.cast<SpotubeTrackObject>();
   }
 
   static bool _sameMedias(List<Media>? previous, List<Media> current) {
@@ -693,8 +749,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   Future<void> jumpToTrack(SpotubeTrackObject track) async {
     // No defensive copy: indexWhere never mutates, and cloning the whole
     // queue per jump costs O(queue) allocation on every seek.
-    final index =
-        state.tracks.indexWhere((element) => element.id == track.id);
+    final index = state.tracks.indexWhere((element) => element.id == track.id);
     if (index == -1) return;
     await audioPlayer.jumpTo(index);
   }

@@ -12,6 +12,7 @@ import 'package:spotube/modules/root/sidebar/sidebar.dart';
 import 'package:spotube/modules/root/spotube_navigation_bar.dart';
 import 'package:spotube/hooks/configurators/use_endless_playback.dart';
 import 'package:spotube/modules/root/use_global_subscriptions.dart';
+import 'package:spotube/modules/theme_background/real_transparency.dart';
 import 'package:spotube/provider/glance/glance.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 
@@ -21,6 +22,7 @@ import 'package:spotube/provider/user_preferences/user_preferences_provider.dart
 /// Without a key that is a teardown, not a move, and `AutoRouter` re-pushes
 /// the level's `initial: true` route: an open page jumps to Home.
 final appRouterSlotKey = GlobalKey(debugLabel: 'app-router-slot');
+
 
 @RoutePage()
 class RootAppPage extends HookConsumerWidget {
@@ -50,6 +52,10 @@ class RootAppPage extends HookConsumerWidget {
         ref.watch(userPreferencesProvider.select((s) => s.layoutMode));
     final playerDock =
         ref.watch(userPreferencesProvider.select((s) => s.playerDock));
+    // Real transparency owns the scaffold ground with everything else: an
+    // opaque default here would be the window. Inset chrome keeps its own
+    // panel treatment (the theme asked for that panel explicitly).
+    final realTransparent = ref.watch(realTransparencyActiveProvider);
     final isDocked = playerDock == PlayerDock.docked &&
         bottomPlayerVisibleOf(context, layoutMode);
 
@@ -65,19 +71,25 @@ class RootAppPage extends HookConsumerWidget {
       return null;
     }, [backgroundColor, brightness]);
 
+    final scale = context.theme.scaling;
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final routerSlot = MediaQuery(
+      key: appRouterSlotKey,
+      data: MediaQuery.of(context).copyWith(
+        // Reserve for the floating footer only. The docked bar is laid
+        // out in flow under the content, so it cannot cover anything.
+        // While the keyboard is open the scaffold hides that footer and
+        // pads the content itself, so the reserve would be dead space
+        // above the keyboard.
+        padding: MediaQuery.paddingOf(context).copyWith(
+          bottom: keyboardInset > 0 ? 0 : (isDocked ? 12 : 100) * scale,
+        ),
+      ),
+      child: const AutoRouter(),
+    );
     final content = Sidebar(
       contentFooter: isDocked ? const BottomPlayer() : null,
-      child: MediaQuery(
-        key: appRouterSlotKey,
-        data: MediaQuery.of(context).copyWith(
-          // Reserve for the floating footer only. The docked bar is laid
-          // out in flow under the content, so it cannot cover anything.
-          padding: MediaQuery.paddingOf(context).copyWith(
-            bottom: (isDocked ? 12 : 100) * context.theme.scaling,
-          ),
-        ),
-        child: const AutoRouter(),
-      ),
+      child: routerSlot,
     );
 
     // `chrome: inset` floats the shell in a rounded panel over a darkened
@@ -86,33 +98,35 @@ class RootAppPage extends HookConsumerWidget {
     // that makes an otherwise unchanged UI read as a different application.
     // The docked player instead rides inside the panel with the content.
     final insetChrome = context.insetChrome;
-    final scaffold = MediaQuery.removeViewInsets(
-      context: context,
-      removeBottom: true,
-      child: SafeArea(
-        top: false,
-        child: Scaffold(
-          footers: [
-            if (!isDocked) const BottomPlayer(),
-            const SpotubeNavigationBar(),
-          ],
-          floatingFooter: true,
-          backgroundColor: insetChrome ? context.chromeInkColor : null,
-          child: !insetChrome
-              ? content
-              : Padding(
-                  padding: EdgeInsets.all(context.chromeInsetGap),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(
-                      context.surfaceCornerRadius,
-                    ),
-                    child: ColoredBox(
-                      color: context.theme.colorScheme.background,
-                      child: content,
-                    ),
+    // Do not strip the bottom view insets here. shadcn's Scaffold consumes
+    // them: it hides the footer (bottom player + nav bar) while the keyboard
+    // is up, pads the body by the keyboard height, and zeroes the inset for
+    // descendants. Removing them globally made every text field believe the
+    // keyboard did not exist, so the input and results sat underneath it.
+    final scaffold = SafeArea(
+      top: false,
+      child: Scaffold(
+        footers: [
+          if (!isDocked) const BottomPlayer(),
+          const SpotubeNavigationBar(),
+        ],
+        floatingFooter: true,
+        backgroundColor:
+            realTransparent ? Colors.transparent : (insetChrome ? context.chromeInkColor : null),
+        child: !insetChrome
+            ? content
+            : Padding(
+                padding: EdgeInsets.all(context.chromeInsetGap),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(
+                    context.surfaceCornerRadius,
+                  ),
+                  child: ColoredBox(
+                    color: context.theme.colorScheme.background,
+                    child: content,
                   ),
                 ),
-        ),
+              ),
       ),
     );
 

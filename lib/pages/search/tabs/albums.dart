@@ -2,11 +2,11 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/fake.dart';
-import 'package:spotube/components/fallbacks/error_box.dart';
+import 'package:spotube/components/fallbacks/not_found.dart';
 import 'package:spotube/components/playbutton_view/playbutton_view.dart';
 import 'package:spotube/modules/album/album_card.dart';
-import 'package:spotube/modules/search/loading.dart';
-import 'package:spotube/pages/search/search.dart';
+import 'package:spotube/modules/search/search_tab_scaffold.dart';
+import 'package:spotube/modules/search/search_term.dart';
 import 'package:spotube/provider/metadata_plugin/search/albums.dart';
 
 class SearchPageAlbumsTab extends HookConsumerWidget {
@@ -24,20 +24,17 @@ class SearchPageAlbumsTab extends HookConsumerWidget {
     final searchAlbums =
         searchAlbumsSnapshot.asData?.value.items ?? [FakeData.albumSimple];
 
-    if (searchAlbumsSnapshot.hasError) {
-      return ErrorBox(
-        error: searchAlbumsSnapshot.error!,
-        onRetry: () {
-          ref.invalidate(metadataPluginSearchAlbumsProvider(searchTerm));
-        },
-      );
-    }
-
-    return SearchPlaceholder(
+    return SearchTabScaffold(
       snapshot: searchAlbumsSnapshot,
+      onRetry: () {
+        ref.invalidate(metadataPluginSearchAlbumsProvider(searchTerm));
+      },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: CustomScrollView(
+        child: searchAlbumsSnapshot.hasValue &&
+                searchAlbumsSnapshot.asData?.value.items.isEmpty == true
+            ? const Center(child: NotFound())
+            : CustomScrollView(
           slivers: [
             PlaybuttonView(
               controller: controller,

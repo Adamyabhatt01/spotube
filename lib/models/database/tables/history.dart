@@ -4,6 +4,7 @@ enum HistoryEntryType {
   playlist,
   album,
   track,
+  radio,
 }
 
 class HistoryTable extends Table {
@@ -48,5 +49,16 @@ extension HistoryItemParseExtension on HistoryTableData {
       'history.rowParseTime',
       () => SpotubeTrackObject.fromJson(data),
     );
+  }
+
+  /// Recently-played station. `type == radio` distinguishes the row from track
+  /// history without a second table; the payload is a [RadioStation] snapshot.
+  RadioStation? get radio {
+    if (type != HistoryEntryType.radio) return null;
+    try {
+      return RadioStation.fromJson(data);
+    } catch (_) {
+      return null;
+    }
   }
 }

@@ -15,6 +15,7 @@ import 'package:spotube/modules/splash/splash_screen.dart';
 import 'package:spotube/components/adaptive/adaptive_select_tile.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
+import 'package:spotube/utils/platform.dart';
 
 class SettingsAppearanceSection extends HookConsumerWidget {
   final bool isGettingStarted;
@@ -34,6 +35,7 @@ class SettingsAppearanceSection extends HookConsumerWidget {
         accentColorScheme: p.accentColorScheme,
         themeTransition: p.themeTransition,
         themeTransitionMs: p.themeTransitionMs,
+        transparentWindow: p.transparentWindow,
       ),
     ));
     final preferencesNotifier = ref.watch(userPreferencesProvider.notifier);
@@ -145,6 +147,26 @@ class SettingsAppearanceSection extends HookConsumerWidget {
           onChanged: preferencesNotifier.setThemeTransition,
         ),
       ),
+      // Literal English (not l10n): the generated localizations carry the
+      // user's dirty search-redesign regen, so a new key would commit
+      // someone else's diff. Linux-only: real transparency needs a
+      // compositor, which only the Linux window currently offers.
+      // Opt-out, not a master switch: the active theme requests real
+      // transparency itself (`background.transparent`), this only lets the
+      // user refuse it and keep the painted backdrop instead.
+      if (kIsLinux)
+        ListTile(
+          leading: const Icon(SpotubeIcons.dashboard),
+          title: const Text('Allow real transparency'),
+          subtitle: const Text(
+            'Lets themes show the desktop through the window. '
+            'Off forces the painted backdrop instead.',
+          ),
+          trailing: Switch(
+            value: preferences.transparentWindow,
+            onChanged: preferencesNotifier.setTransparentWindow,
+          ),
+        ),
       if (preferences.themeTransition)
         AdaptiveSelectTile<int>(
           secondary: const Icon(SpotubeIcons.timer),

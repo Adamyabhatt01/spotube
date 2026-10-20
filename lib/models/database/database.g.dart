@@ -799,6 +799,15 @@ class $PreferencesTableTable extends PreferencesTable
               defaultValue: const Constant(""))
           .withConverter<List<String>>(
               $PreferencesTableTable.$converterpinnedPlaylistIds);
+  @override
+  late final GeneratedColumnWithTypeConverter<List<String>, String>
+      pinnedStationIds = GeneratedColumn<String>(
+              'pinned_station_ids', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant(""))
+          .withConverter<List<String>>(
+              $PreferencesTableTable.$converterpinnedStationIds);
   static const VerificationMeta _autoDownloadQualityMeta =
       const VerificationMeta('autoDownloadQuality');
   @override
@@ -889,6 +898,16 @@ class $PreferencesTableTable extends PreferencesTable
   late final GeneratedColumn<String> vpnDeviceName = GeneratedColumn<String>(
       'vpn_device_name', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _transparentWindowMeta =
+      const VerificationMeta('transparentWindow');
+  @override
+  late final GeneratedColumn<bool> transparentWindow = GeneratedColumn<bool>(
+      'transparent_window', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("transparent_window" IN (0, 1))'),
+      defaultValue: const Constant(false));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -919,6 +938,7 @@ class $PreferencesTableTable extends PreferencesTable
         sourcePriority,
         sidebarLibraryOrder,
         pinnedPlaylistIds,
+        pinnedStationIds,
         autoDownloadQuality,
         themeTransition,
         themeTransitionMs,
@@ -929,7 +949,8 @@ class $PreferencesTableTable extends PreferencesTable
         vpnConnectionUuid,
         vpnAutoDisconnect,
         vpnWaitTimeoutSec,
-        vpnDeviceName
+        vpnDeviceName,
+        transparentWindow
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1083,6 +1104,12 @@ class $PreferencesTableTable extends PreferencesTable
           vpnDeviceName.isAcceptableOrUnknown(
               data['vpn_device_name']!, _vpnDeviceNameMeta));
     }
+    if (data.containsKey('transparent_window')) {
+      context.handle(
+          _transparentWindowMeta,
+          transparentWindow.isAcceptableOrUnknown(
+              data['transparent_window']!, _transparentWindowMeta));
+    }
     return context;
   }
 
@@ -1161,6 +1188,9 @@ class $PreferencesTableTable extends PreferencesTable
       pinnedPlaylistIds: $PreferencesTableTable.$converterpinnedPlaylistIds
           .fromSql(attachedDatabase.typeMapping.read(DriftSqlType.string,
               data['${effectivePrefix}pinned_playlist_ids'])!),
+      pinnedStationIds: $PreferencesTableTable.$converterpinnedStationIds
+          .fromSql(attachedDatabase.typeMapping.read(DriftSqlType.string,
+              data['${effectivePrefix}pinned_station_ids'])!),
       autoDownloadQuality: attachedDatabase.typeMapping.read(
           DriftSqlType.bool, data['${effectivePrefix}auto_download_quality'])!,
       themeTransition: attachedDatabase.typeMapping
@@ -1186,6 +1216,8 @@ class $PreferencesTableTable extends PreferencesTable
           DriftSqlType.int, data['${effectivePrefix}vpn_wait_timeout_sec'])!,
       vpnDeviceName: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}vpn_device_name']),
+      transparentWindow: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}transparent_window'])!,
     );
   }
 
@@ -1219,6 +1251,8 @@ class $PreferencesTableTable extends PreferencesTable
   static TypeConverter<List<String>, String> $convertersidebarLibraryOrder =
       const StringListConverter();
   static TypeConverter<List<String>, String> $converterpinnedPlaylistIds =
+      const StringListConverter();
+  static TypeConverter<List<String>, String> $converterpinnedStationIds =
       const StringListConverter();
   static JsonTypeConverter2<VolumeControlMode, String, String>
       $convertervolumeControlMode =
@@ -1263,6 +1297,7 @@ class PreferencesTableData extends DataClass
   final List<String> sourcePriority;
   final List<String> sidebarLibraryOrder;
   final List<String> pinnedPlaylistIds;
+  final List<String> pinnedStationIds;
   final bool autoDownloadQuality;
   final bool themeTransition;
   final int themeTransitionMs;
@@ -1274,6 +1309,7 @@ class PreferencesTableData extends DataClass
   final bool vpnAutoDisconnect;
   final int vpnWaitTimeoutSec;
   final String? vpnDeviceName;
+  final bool transparentWindow;
   const PreferencesTableData(
       {required this.id,
       required this.albumColorSync,
@@ -1303,6 +1339,7 @@ class PreferencesTableData extends DataClass
       required this.sourcePriority,
       required this.sidebarLibraryOrder,
       required this.pinnedPlaylistIds,
+      required this.pinnedStationIds,
       required this.autoDownloadQuality,
       required this.themeTransition,
       required this.themeTransitionMs,
@@ -1313,7 +1350,8 @@ class PreferencesTableData extends DataClass
       this.vpnConnectionUuid,
       required this.vpnAutoDisconnect,
       required this.vpnWaitTimeoutSec,
-      this.vpnDeviceName});
+      this.vpnDeviceName,
+      required this.transparentWindow});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1389,6 +1427,11 @@ class PreferencesTableData extends DataClass
           .$converterpinnedPlaylistIds
           .toSql(pinnedPlaylistIds));
     }
+    {
+      map['pinned_station_ids'] = Variable<String>($PreferencesTableTable
+          .$converterpinnedStationIds
+          .toSql(pinnedStationIds));
+    }
     map['auto_download_quality'] = Variable<bool>(autoDownloadQuality);
     map['theme_transition'] = Variable<bool>(themeTransition);
     map['theme_transition_ms'] = Variable<int>(themeTransitionMs);
@@ -1414,6 +1457,7 @@ class PreferencesTableData extends DataClass
     if (!nullToAbsent || vpnDeviceName != null) {
       map['vpn_device_name'] = Variable<String>(vpnDeviceName);
     }
+    map['transparent_window'] = Variable<bool>(transparentWindow);
     return map;
   }
 
@@ -1449,6 +1493,7 @@ class PreferencesTableData extends DataClass
       sourcePriority: Value(sourcePriority),
       sidebarLibraryOrder: Value(sidebarLibraryOrder),
       pinnedPlaylistIds: Value(pinnedPlaylistIds),
+      pinnedStationIds: Value(pinnedStationIds),
       autoDownloadQuality: Value(autoDownloadQuality),
       themeTransition: Value(themeTransition),
       themeTransitionMs: Value(themeTransitionMs),
@@ -1464,6 +1509,7 @@ class PreferencesTableData extends DataClass
       vpnDeviceName: vpnDeviceName == null && nullToAbsent
           ? const Value.absent()
           : Value(vpnDeviceName),
+      transparentWindow: Value(transparentWindow),
     );
   }
 
@@ -1509,6 +1555,8 @@ class PreferencesTableData extends DataClass
           serializer.fromJson<List<String>>(json['sidebarLibraryOrder']),
       pinnedPlaylistIds:
           serializer.fromJson<List<String>>(json['pinnedPlaylistIds']),
+      pinnedStationIds:
+          serializer.fromJson<List<String>>(json['pinnedStationIds']),
       autoDownloadQuality:
           serializer.fromJson<bool>(json['autoDownloadQuality']),
       themeTransition: serializer.fromJson<bool>(json['themeTransition']),
@@ -1525,6 +1573,7 @@ class PreferencesTableData extends DataClass
       vpnAutoDisconnect: serializer.fromJson<bool>(json['vpnAutoDisconnect']),
       vpnWaitTimeoutSec: serializer.fromJson<int>(json['vpnWaitTimeoutSec']),
       vpnDeviceName: serializer.fromJson<String?>(json['vpnDeviceName']),
+      transparentWindow: serializer.fromJson<bool>(json['transparentWindow']),
     );
   }
   @override
@@ -1568,6 +1617,7 @@ class PreferencesTableData extends DataClass
       'sidebarLibraryOrder':
           serializer.toJson<List<String>>(sidebarLibraryOrder),
       'pinnedPlaylistIds': serializer.toJson<List<String>>(pinnedPlaylistIds),
+      'pinnedStationIds': serializer.toJson<List<String>>(pinnedStationIds),
       'autoDownloadQuality': serializer.toJson<bool>(autoDownloadQuality),
       'themeTransition': serializer.toJson<bool>(themeTransition),
       'themeTransitionMs': serializer.toJson<int>(themeTransitionMs),
@@ -1583,6 +1633,7 @@ class PreferencesTableData extends DataClass
       'vpnAutoDisconnect': serializer.toJson<bool>(vpnAutoDisconnect),
       'vpnWaitTimeoutSec': serializer.toJson<int>(vpnWaitTimeoutSec),
       'vpnDeviceName': serializer.toJson<String?>(vpnDeviceName),
+      'transparentWindow': serializer.toJson<bool>(transparentWindow),
     };
   }
 
@@ -1615,6 +1666,7 @@ class PreferencesTableData extends DataClass
           List<String>? sourcePriority,
           List<String>? sidebarLibraryOrder,
           List<String>? pinnedPlaylistIds,
+          List<String>? pinnedStationIds,
           bool? autoDownloadQuality,
           bool? themeTransition,
           int? themeTransitionMs,
@@ -1625,7 +1677,8 @@ class PreferencesTableData extends DataClass
           Value<String?> vpnConnectionUuid = const Value.absent(),
           bool? vpnAutoDisconnect,
           int? vpnWaitTimeoutSec,
-          Value<String?> vpnDeviceName = const Value.absent()}) =>
+          Value<String?> vpnDeviceName = const Value.absent(),
+          bool? transparentWindow}) =>
       PreferencesTableData(
         id: id ?? this.id,
         albumColorSync: albumColorSync ?? this.albumColorSync,
@@ -1656,6 +1709,7 @@ class PreferencesTableData extends DataClass
         sourcePriority: sourcePriority ?? this.sourcePriority,
         sidebarLibraryOrder: sidebarLibraryOrder ?? this.sidebarLibraryOrder,
         pinnedPlaylistIds: pinnedPlaylistIds ?? this.pinnedPlaylistIds,
+        pinnedStationIds: pinnedStationIds ?? this.pinnedStationIds,
         autoDownloadQuality: autoDownloadQuality ?? this.autoDownloadQuality,
         themeTransition: themeTransition ?? this.themeTransition,
         themeTransitionMs: themeTransitionMs ?? this.themeTransitionMs,
@@ -1670,6 +1724,7 @@ class PreferencesTableData extends DataClass
         vpnWaitTimeoutSec: vpnWaitTimeoutSec ?? this.vpnWaitTimeoutSec,
         vpnDeviceName:
             vpnDeviceName.present ? vpnDeviceName.value : this.vpnDeviceName,
+        transparentWindow: transparentWindow ?? this.transparentWindow,
       );
   PreferencesTableData copyWithCompanion(PreferencesTableCompanion data) {
     return PreferencesTableData(
@@ -1744,6 +1799,9 @@ class PreferencesTableData extends DataClass
       pinnedPlaylistIds: data.pinnedPlaylistIds.present
           ? data.pinnedPlaylistIds.value
           : this.pinnedPlaylistIds,
+      pinnedStationIds: data.pinnedStationIds.present
+          ? data.pinnedStationIds.value
+          : this.pinnedStationIds,
       autoDownloadQuality: data.autoDownloadQuality.present
           ? data.autoDownloadQuality.value
           : this.autoDownloadQuality,
@@ -1774,6 +1832,9 @@ class PreferencesTableData extends DataClass
       vpnDeviceName: data.vpnDeviceName.present
           ? data.vpnDeviceName.value
           : this.vpnDeviceName,
+      transparentWindow: data.transparentWindow.present
+          ? data.transparentWindow.value
+          : this.transparentWindow,
     );
   }
 
@@ -1808,6 +1869,7 @@ class PreferencesTableData extends DataClass
           ..write('sourcePriority: $sourcePriority, ')
           ..write('sidebarLibraryOrder: $sidebarLibraryOrder, ')
           ..write('pinnedPlaylistIds: $pinnedPlaylistIds, ')
+          ..write('pinnedStationIds: $pinnedStationIds, ')
           ..write('autoDownloadQuality: $autoDownloadQuality, ')
           ..write('themeTransition: $themeTransition, ')
           ..write('themeTransitionMs: $themeTransitionMs, ')
@@ -1818,7 +1880,8 @@ class PreferencesTableData extends DataClass
           ..write('vpnConnectionUuid: $vpnConnectionUuid, ')
           ..write('vpnAutoDisconnect: $vpnAutoDisconnect, ')
           ..write('vpnWaitTimeoutSec: $vpnWaitTimeoutSec, ')
-          ..write('vpnDeviceName: $vpnDeviceName')
+          ..write('vpnDeviceName: $vpnDeviceName, ')
+          ..write('transparentWindow: $transparentWindow')
           ..write(')'))
         .toString();
   }
@@ -1853,6 +1916,7 @@ class PreferencesTableData extends DataClass
         sourcePriority,
         sidebarLibraryOrder,
         pinnedPlaylistIds,
+        pinnedStationIds,
         autoDownloadQuality,
         themeTransition,
         themeTransitionMs,
@@ -1863,7 +1927,8 @@ class PreferencesTableData extends DataClass
         vpnConnectionUuid,
         vpnAutoDisconnect,
         vpnWaitTimeoutSec,
-        vpnDeviceName
+        vpnDeviceName,
+        transparentWindow
       ]);
   @override
   bool operator ==(Object other) =>
@@ -1897,6 +1962,7 @@ class PreferencesTableData extends DataClass
           other.sourcePriority == this.sourcePriority &&
           other.sidebarLibraryOrder == this.sidebarLibraryOrder &&
           other.pinnedPlaylistIds == this.pinnedPlaylistIds &&
+          other.pinnedStationIds == this.pinnedStationIds &&
           other.autoDownloadQuality == this.autoDownloadQuality &&
           other.themeTransition == this.themeTransition &&
           other.themeTransitionMs == this.themeTransitionMs &&
@@ -1907,7 +1973,8 @@ class PreferencesTableData extends DataClass
           other.vpnConnectionUuid == this.vpnConnectionUuid &&
           other.vpnAutoDisconnect == this.vpnAutoDisconnect &&
           other.vpnWaitTimeoutSec == this.vpnWaitTimeoutSec &&
-          other.vpnDeviceName == this.vpnDeviceName);
+          other.vpnDeviceName == this.vpnDeviceName &&
+          other.transparentWindow == this.transparentWindow);
 }
 
 class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
@@ -1939,6 +2006,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
   final Value<List<String>> sourcePriority;
   final Value<List<String>> sidebarLibraryOrder;
   final Value<List<String>> pinnedPlaylistIds;
+  final Value<List<String>> pinnedStationIds;
   final Value<bool> autoDownloadQuality;
   final Value<bool> themeTransition;
   final Value<int> themeTransitionMs;
@@ -1950,6 +2018,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
   final Value<bool> vpnAutoDisconnect;
   final Value<int> vpnWaitTimeoutSec;
   final Value<String?> vpnDeviceName;
+  final Value<bool> transparentWindow;
   const PreferencesTableCompanion({
     this.id = const Value.absent(),
     this.albumColorSync = const Value.absent(),
@@ -1979,6 +2048,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.sourcePriority = const Value.absent(),
     this.sidebarLibraryOrder = const Value.absent(),
     this.pinnedPlaylistIds = const Value.absent(),
+    this.pinnedStationIds = const Value.absent(),
     this.autoDownloadQuality = const Value.absent(),
     this.themeTransition = const Value.absent(),
     this.themeTransitionMs = const Value.absent(),
@@ -1990,6 +2060,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.vpnAutoDisconnect = const Value.absent(),
     this.vpnWaitTimeoutSec = const Value.absent(),
     this.vpnDeviceName = const Value.absent(),
+    this.transparentWindow = const Value.absent(),
   });
   PreferencesTableCompanion.insert({
     this.id = const Value.absent(),
@@ -2020,6 +2091,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.sourcePriority = const Value.absent(),
     this.sidebarLibraryOrder = const Value.absent(),
     this.pinnedPlaylistIds = const Value.absent(),
+    this.pinnedStationIds = const Value.absent(),
     this.autoDownloadQuality = const Value.absent(),
     this.themeTransition = const Value.absent(),
     this.themeTransitionMs = const Value.absent(),
@@ -2031,6 +2103,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.vpnAutoDisconnect = const Value.absent(),
     this.vpnWaitTimeoutSec = const Value.absent(),
     this.vpnDeviceName = const Value.absent(),
+    this.transparentWindow = const Value.absent(),
   });
   static Insertable<PreferencesTableData> custom({
     Expression<int>? id,
@@ -2061,6 +2134,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     Expression<String>? sourcePriority,
     Expression<String>? sidebarLibraryOrder,
     Expression<String>? pinnedPlaylistIds,
+    Expression<String>? pinnedStationIds,
     Expression<bool>? autoDownloadQuality,
     Expression<bool>? themeTransition,
     Expression<int>? themeTransitionMs,
@@ -2072,6 +2146,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     Expression<bool>? vpnAutoDisconnect,
     Expression<int>? vpnWaitTimeoutSec,
     Expression<String>? vpnDeviceName,
+    Expression<bool>? transparentWindow,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2106,6 +2181,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       if (sidebarLibraryOrder != null)
         'sidebar_library_order': sidebarLibraryOrder,
       if (pinnedPlaylistIds != null) 'pinned_playlist_ids': pinnedPlaylistIds,
+      if (pinnedStationIds != null) 'pinned_station_ids': pinnedStationIds,
       if (autoDownloadQuality != null)
         'auto_download_quality': autoDownloadQuality,
       if (themeTransition != null) 'theme_transition': themeTransition,
@@ -2118,6 +2194,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       if (vpnAutoDisconnect != null) 'vpn_auto_disconnect': vpnAutoDisconnect,
       if (vpnWaitTimeoutSec != null) 'vpn_wait_timeout_sec': vpnWaitTimeoutSec,
       if (vpnDeviceName != null) 'vpn_device_name': vpnDeviceName,
+      if (transparentWindow != null) 'transparent_window': transparentWindow,
     });
   }
 
@@ -2150,6 +2227,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       Value<List<String>>? sourcePriority,
       Value<List<String>>? sidebarLibraryOrder,
       Value<List<String>>? pinnedPlaylistIds,
+      Value<List<String>>? pinnedStationIds,
       Value<bool>? autoDownloadQuality,
       Value<bool>? themeTransition,
       Value<int>? themeTransitionMs,
@@ -2160,7 +2238,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       Value<String?>? vpnConnectionUuid,
       Value<bool>? vpnAutoDisconnect,
       Value<int>? vpnWaitTimeoutSec,
-      Value<String?>? vpnDeviceName}) {
+      Value<String?>? vpnDeviceName,
+      Value<bool>? transparentWindow}) {
     return PreferencesTableCompanion(
       id: id ?? this.id,
       albumColorSync: albumColorSync ?? this.albumColorSync,
@@ -2190,6 +2269,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       sourcePriority: sourcePriority ?? this.sourcePriority,
       sidebarLibraryOrder: sidebarLibraryOrder ?? this.sidebarLibraryOrder,
       pinnedPlaylistIds: pinnedPlaylistIds ?? this.pinnedPlaylistIds,
+      pinnedStationIds: pinnedStationIds ?? this.pinnedStationIds,
       autoDownloadQuality: autoDownloadQuality ?? this.autoDownloadQuality,
       themeTransition: themeTransition ?? this.themeTransition,
       themeTransitionMs: themeTransitionMs ?? this.themeTransitionMs,
@@ -2201,6 +2281,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       vpnAutoDisconnect: vpnAutoDisconnect ?? this.vpnAutoDisconnect,
       vpnWaitTimeoutSec: vpnWaitTimeoutSec ?? this.vpnWaitTimeoutSec,
       vpnDeviceName: vpnDeviceName ?? this.vpnDeviceName,
+      transparentWindow: transparentWindow ?? this.transparentWindow,
     );
   }
 
@@ -2310,6 +2391,11 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           .$converterpinnedPlaylistIds
           .toSql(pinnedPlaylistIds.value));
     }
+    if (pinnedStationIds.present) {
+      map['pinned_station_ids'] = Variable<String>($PreferencesTableTable
+          .$converterpinnedStationIds
+          .toSql(pinnedStationIds.value));
+    }
     if (autoDownloadQuality.present) {
       map['auto_download_quality'] = Variable<bool>(autoDownloadQuality.value);
     }
@@ -2347,6 +2433,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     if (vpnDeviceName.present) {
       map['vpn_device_name'] = Variable<String>(vpnDeviceName.value);
     }
+    if (transparentWindow.present) {
+      map['transparent_window'] = Variable<bool>(transparentWindow.value);
+    }
     return map;
   }
 
@@ -2381,6 +2470,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           ..write('sourcePriority: $sourcePriority, ')
           ..write('sidebarLibraryOrder: $sidebarLibraryOrder, ')
           ..write('pinnedPlaylistIds: $pinnedPlaylistIds, ')
+          ..write('pinnedStationIds: $pinnedStationIds, ')
           ..write('autoDownloadQuality: $autoDownloadQuality, ')
           ..write('themeTransition: $themeTransition, ')
           ..write('themeTransitionMs: $themeTransitionMs, ')
@@ -2391,7 +2481,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           ..write('vpnConnectionUuid: $vpnConnectionUuid, ')
           ..write('vpnAutoDisconnect: $vpnAutoDisconnect, ')
           ..write('vpnWaitTimeoutSec: $vpnWaitTimeoutSec, ')
-          ..write('vpnDeviceName: $vpnDeviceName')
+          ..write('vpnDeviceName: $vpnDeviceName, ')
+          ..write('transparentWindow: $transparentWindow')
           ..write(')'))
         .toString();
   }
@@ -4623,6 +4714,16 @@ class $PluginsTableTable extends PluginsTable
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("selected_for_theme" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _selectedForRadioMeta =
+      const VerificationMeta('selectedForRadio');
+  @override
+  late final GeneratedColumn<bool> selectedForRadio = GeneratedColumn<bool>(
+      'selected_for_radio', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("selected_for_radio" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _repositoryMeta =
       const VerificationMeta('repository');
   @override
@@ -4650,6 +4751,7 @@ class $PluginsTableTable extends PluginsTable
         selectedForMetadata,
         selectedForAudioSource,
         selectedForTheme,
+        selectedForRadio,
         repository,
         pluginApiVersion
       ];
@@ -4718,6 +4820,12 @@ class $PluginsTableTable extends PluginsTable
           selectedForTheme.isAcceptableOrUnknown(
               data['selected_for_theme']!, _selectedForThemeMeta));
     }
+    if (data.containsKey('selected_for_radio')) {
+      context.handle(
+          _selectedForRadioMeta,
+          selectedForRadio.isAcceptableOrUnknown(
+              data['selected_for_radio']!, _selectedForRadioMeta));
+    }
     if (data.containsKey('repository')) {
       context.handle(
           _repositoryMeta,
@@ -4764,6 +4872,8 @@ class $PluginsTableTable extends PluginsTable
           data['${effectivePrefix}selected_for_audio_source'])!,
       selectedForTheme: attachedDatabase.typeMapping.read(
           DriftSqlType.bool, data['${effectivePrefix}selected_for_theme'])!,
+      selectedForRadio: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}selected_for_radio'])!,
       repository: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}repository']),
       pluginApiVersion: attachedDatabase.typeMapping.read(
@@ -4795,6 +4905,7 @@ class PluginsTableData extends DataClass
   final bool selectedForMetadata;
   final bool selectedForAudioSource;
   final bool selectedForTheme;
+  final bool selectedForRadio;
   final String? repository;
   final String pluginApiVersion;
   const PluginsTableData(
@@ -4809,6 +4920,7 @@ class PluginsTableData extends DataClass
       required this.selectedForMetadata,
       required this.selectedForAudioSource,
       required this.selectedForTheme,
+      required this.selectedForRadio,
       this.repository,
       required this.pluginApiVersion});
   @override
@@ -4831,6 +4943,7 @@ class PluginsTableData extends DataClass
     map['selected_for_metadata'] = Variable<bool>(selectedForMetadata);
     map['selected_for_audio_source'] = Variable<bool>(selectedForAudioSource);
     map['selected_for_theme'] = Variable<bool>(selectedForTheme);
+    map['selected_for_radio'] = Variable<bool>(selectedForRadio);
     if (!nullToAbsent || repository != null) {
       map['repository'] = Variable<String>(repository);
     }
@@ -4851,6 +4964,7 @@ class PluginsTableData extends DataClass
       selectedForMetadata: Value(selectedForMetadata),
       selectedForAudioSource: Value(selectedForAudioSource),
       selectedForTheme: Value(selectedForTheme),
+      selectedForRadio: Value(selectedForRadio),
       repository: repository == null && nullToAbsent
           ? const Value.absent()
           : Value(repository),
@@ -4875,6 +4989,7 @@ class PluginsTableData extends DataClass
       selectedForAudioSource:
           serializer.fromJson<bool>(json['selectedForAudioSource']),
       selectedForTheme: serializer.fromJson<bool>(json['selectedForTheme']),
+      selectedForRadio: serializer.fromJson<bool>(json['selectedForRadio']),
       repository: serializer.fromJson<String?>(json['repository']),
       pluginApiVersion: serializer.fromJson<String>(json['pluginApiVersion']),
     );
@@ -4894,6 +5009,7 @@ class PluginsTableData extends DataClass
       'selectedForMetadata': serializer.toJson<bool>(selectedForMetadata),
       'selectedForAudioSource': serializer.toJson<bool>(selectedForAudioSource),
       'selectedForTheme': serializer.toJson<bool>(selectedForTheme),
+      'selectedForRadio': serializer.toJson<bool>(selectedForRadio),
       'repository': serializer.toJson<String?>(repository),
       'pluginApiVersion': serializer.toJson<String>(pluginApiVersion),
     };
@@ -4911,6 +5027,7 @@ class PluginsTableData extends DataClass
           bool? selectedForMetadata,
           bool? selectedForAudioSource,
           bool? selectedForTheme,
+          bool? selectedForRadio,
           Value<String?> repository = const Value.absent(),
           String? pluginApiVersion}) =>
       PluginsTableData(
@@ -4926,6 +5043,7 @@ class PluginsTableData extends DataClass
         selectedForAudioSource:
             selectedForAudioSource ?? this.selectedForAudioSource,
         selectedForTheme: selectedForTheme ?? this.selectedForTheme,
+        selectedForRadio: selectedForRadio ?? this.selectedForRadio,
         repository: repository.present ? repository.value : this.repository,
         pluginApiVersion: pluginApiVersion ?? this.pluginApiVersion,
       );
@@ -4950,6 +5068,9 @@ class PluginsTableData extends DataClass
       selectedForTheme: data.selectedForTheme.present
           ? data.selectedForTheme.value
           : this.selectedForTheme,
+      selectedForRadio: data.selectedForRadio.present
+          ? data.selectedForRadio.value
+          : this.selectedForRadio,
       repository:
           data.repository.present ? data.repository.value : this.repository,
       pluginApiVersion: data.pluginApiVersion.present
@@ -4972,6 +5093,7 @@ class PluginsTableData extends DataClass
           ..write('selectedForMetadata: $selectedForMetadata, ')
           ..write('selectedForAudioSource: $selectedForAudioSource, ')
           ..write('selectedForTheme: $selectedForTheme, ')
+          ..write('selectedForRadio: $selectedForRadio, ')
           ..write('repository: $repository, ')
           ..write('pluginApiVersion: $pluginApiVersion')
           ..write(')'))
@@ -4991,6 +5113,7 @@ class PluginsTableData extends DataClass
       selectedForMetadata,
       selectedForAudioSource,
       selectedForTheme,
+      selectedForRadio,
       repository,
       pluginApiVersion);
   @override
@@ -5008,6 +5131,7 @@ class PluginsTableData extends DataClass
           other.selectedForMetadata == this.selectedForMetadata &&
           other.selectedForAudioSource == this.selectedForAudioSource &&
           other.selectedForTheme == this.selectedForTheme &&
+          other.selectedForRadio == this.selectedForRadio &&
           other.repository == this.repository &&
           other.pluginApiVersion == this.pluginApiVersion);
 }
@@ -5024,6 +5148,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
   final Value<bool> selectedForMetadata;
   final Value<bool> selectedForAudioSource;
   final Value<bool> selectedForTheme;
+  final Value<bool> selectedForRadio;
   final Value<String?> repository;
   final Value<String> pluginApiVersion;
   const PluginsTableCompanion({
@@ -5038,6 +5163,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
     this.selectedForMetadata = const Value.absent(),
     this.selectedForAudioSource = const Value.absent(),
     this.selectedForTheme = const Value.absent(),
+    this.selectedForRadio = const Value.absent(),
     this.repository = const Value.absent(),
     this.pluginApiVersion = const Value.absent(),
   });
@@ -5053,6 +5179,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
     this.selectedForMetadata = const Value.absent(),
     this.selectedForAudioSource = const Value.absent(),
     this.selectedForTheme = const Value.absent(),
+    this.selectedForRadio = const Value.absent(),
     this.repository = const Value.absent(),
     this.pluginApiVersion = const Value.absent(),
   })  : name = Value(name),
@@ -5074,6 +5201,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
     Expression<bool>? selectedForMetadata,
     Expression<bool>? selectedForAudioSource,
     Expression<bool>? selectedForTheme,
+    Expression<bool>? selectedForRadio,
     Expression<String>? repository,
     Expression<String>? pluginApiVersion,
   }) {
@@ -5091,6 +5219,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
       if (selectedForAudioSource != null)
         'selected_for_audio_source': selectedForAudioSource,
       if (selectedForTheme != null) 'selected_for_theme': selectedForTheme,
+      if (selectedForRadio != null) 'selected_for_radio': selectedForRadio,
       if (repository != null) 'repository': repository,
       if (pluginApiVersion != null) 'plugin_api_version': pluginApiVersion,
     });
@@ -5108,6 +5237,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
       Value<bool>? selectedForMetadata,
       Value<bool>? selectedForAudioSource,
       Value<bool>? selectedForTheme,
+      Value<bool>? selectedForRadio,
       Value<String?>? repository,
       Value<String>? pluginApiVersion}) {
     return PluginsTableCompanion(
@@ -5123,6 +5253,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
       selectedForAudioSource:
           selectedForAudioSource ?? this.selectedForAudioSource,
       selectedForTheme: selectedForTheme ?? this.selectedForTheme,
+      selectedForRadio: selectedForRadio ?? this.selectedForRadio,
       repository: repository ?? this.repository,
       pluginApiVersion: pluginApiVersion ?? this.pluginApiVersion,
     );
@@ -5167,6 +5298,9 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
     if (selectedForTheme.present) {
       map['selected_for_theme'] = Variable<bool>(selectedForTheme.value);
     }
+    if (selectedForRadio.present) {
+      map['selected_for_radio'] = Variable<bool>(selectedForRadio.value);
+    }
     if (repository.present) {
       map['repository'] = Variable<String>(repository.value);
     }
@@ -5190,6 +5324,7 @@ class PluginsTableCompanion extends UpdateCompanion<PluginsTableData> {
           ..write('selectedForMetadata: $selectedForMetadata, ')
           ..write('selectedForAudioSource: $selectedForAudioSource, ')
           ..write('selectedForTheme: $selectedForTheme, ')
+          ..write('selectedForRadio: $selectedForRadio, ')
           ..write('repository: $repository, ')
           ..write('pluginApiVersion: $pluginApiVersion')
           ..write(')'))
@@ -6464,6 +6599,310 @@ class PlaylistDownloadMirrorTableCompanion
   }
 }
 
+class $RadioFavoritesTableTable extends RadioFavoritesTable
+    with TableInfo<$RadioFavoritesTableTable, RadioFavoritesTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RadioFavoritesTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _stationIdMeta =
+      const VerificationMeta('stationId');
+  @override
+  late final GeneratedColumn<String> stationId = GeneratedColumn<String>(
+      'station_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _providerMeta =
+      const VerificationMeta('provider');
+  @override
+  late final GeneratedColumn<String> provider = GeneratedColumn<String>(
+      'provider', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  @override
+  late final GeneratedColumnWithTypeConverter<Map<String, dynamic>, String>
+      data = GeneratedColumn<String>('data', aliasedName, false,
+              type: DriftSqlType.string, requiredDuringInsert: true)
+          .withConverter<Map<String, dynamic>>(
+              $RadioFavoritesTableTable.$converterdata);
+  static const VerificationMeta _addedAtMeta =
+      const VerificationMeta('addedAt');
+  @override
+  late final GeneratedColumn<DateTime> addedAt = GeneratedColumn<DateTime>(
+      'added_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, stationId, provider, data, addedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'radio_favorites_table';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<RadioFavoritesTableData> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('station_id')) {
+      context.handle(_stationIdMeta,
+          stationId.isAcceptableOrUnknown(data['station_id']!, _stationIdMeta));
+    } else if (isInserting) {
+      context.missing(_stationIdMeta);
+    }
+    if (data.containsKey('provider')) {
+      context.handle(_providerMeta,
+          provider.isAcceptableOrUnknown(data['provider']!, _providerMeta));
+    } else if (isInserting) {
+      context.missing(_providerMeta);
+    }
+    if (data.containsKey('added_at')) {
+      context.handle(_addedAtMeta,
+          addedAt.isAcceptableOrUnknown(data['added_at']!, _addedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RadioFavoritesTableData map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RadioFavoritesTableData(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      stationId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}station_id'])!,
+      provider: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}provider'])!,
+      data: $RadioFavoritesTableTable.$converterdata.fromSql(attachedDatabase
+          .typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}data'])!),
+      addedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}added_at'])!,
+    );
+  }
+
+  @override
+  $RadioFavoritesTableTable createAlias(String alias) {
+    return $RadioFavoritesTableTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Map<String, dynamic>, String> $converterdata =
+      const MapTypeConverter<String, dynamic>();
+}
+
+class RadioFavoritesTableData extends DataClass
+    implements Insertable<RadioFavoritesTableData> {
+  final int id;
+  final String stationId;
+  final String provider;
+  final Map<String, dynamic> data;
+  final DateTime addedAt;
+  const RadioFavoritesTableData(
+      {required this.id,
+      required this.stationId,
+      required this.provider,
+      required this.data,
+      required this.addedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['station_id'] = Variable<String>(stationId);
+    map['provider'] = Variable<String>(provider);
+    {
+      map['data'] = Variable<String>(
+          $RadioFavoritesTableTable.$converterdata.toSql(data));
+    }
+    map['added_at'] = Variable<DateTime>(addedAt);
+    return map;
+  }
+
+  RadioFavoritesTableCompanion toCompanion(bool nullToAbsent) {
+    return RadioFavoritesTableCompanion(
+      id: Value(id),
+      stationId: Value(stationId),
+      provider: Value(provider),
+      data: Value(data),
+      addedAt: Value(addedAt),
+    );
+  }
+
+  factory RadioFavoritesTableData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RadioFavoritesTableData(
+      id: serializer.fromJson<int>(json['id']),
+      stationId: serializer.fromJson<String>(json['stationId']),
+      provider: serializer.fromJson<String>(json['provider']),
+      data: serializer.fromJson<Map<String, dynamic>>(json['data']),
+      addedAt: serializer.fromJson<DateTime>(json['addedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'stationId': serializer.toJson<String>(stationId),
+      'provider': serializer.toJson<String>(provider),
+      'data': serializer.toJson<Map<String, dynamic>>(data),
+      'addedAt': serializer.toJson<DateTime>(addedAt),
+    };
+  }
+
+  RadioFavoritesTableData copyWith(
+          {int? id,
+          String? stationId,
+          String? provider,
+          Map<String, dynamic>? data,
+          DateTime? addedAt}) =>
+      RadioFavoritesTableData(
+        id: id ?? this.id,
+        stationId: stationId ?? this.stationId,
+        provider: provider ?? this.provider,
+        data: data ?? this.data,
+        addedAt: addedAt ?? this.addedAt,
+      );
+  RadioFavoritesTableData copyWithCompanion(RadioFavoritesTableCompanion data) {
+    return RadioFavoritesTableData(
+      id: data.id.present ? data.id.value : this.id,
+      stationId: data.stationId.present ? data.stationId.value : this.stationId,
+      provider: data.provider.present ? data.provider.value : this.provider,
+      data: data.data.present ? data.data.value : this.data,
+      addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RadioFavoritesTableData(')
+          ..write('id: $id, ')
+          ..write('stationId: $stationId, ')
+          ..write('provider: $provider, ')
+          ..write('data: $data, ')
+          ..write('addedAt: $addedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, stationId, provider, data, addedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RadioFavoritesTableData &&
+          other.id == this.id &&
+          other.stationId == this.stationId &&
+          other.provider == this.provider &&
+          other.data == this.data &&
+          other.addedAt == this.addedAt);
+}
+
+class RadioFavoritesTableCompanion
+    extends UpdateCompanion<RadioFavoritesTableData> {
+  final Value<int> id;
+  final Value<String> stationId;
+  final Value<String> provider;
+  final Value<Map<String, dynamic>> data;
+  final Value<DateTime> addedAt;
+  const RadioFavoritesTableCompanion({
+    this.id = const Value.absent(),
+    this.stationId = const Value.absent(),
+    this.provider = const Value.absent(),
+    this.data = const Value.absent(),
+    this.addedAt = const Value.absent(),
+  });
+  RadioFavoritesTableCompanion.insert({
+    this.id = const Value.absent(),
+    required String stationId,
+    required String provider,
+    required Map<String, dynamic> data,
+    this.addedAt = const Value.absent(),
+  })  : stationId = Value(stationId),
+        provider = Value(provider),
+        data = Value(data);
+  static Insertable<RadioFavoritesTableData> custom({
+    Expression<int>? id,
+    Expression<String>? stationId,
+    Expression<String>? provider,
+    Expression<String>? data,
+    Expression<DateTime>? addedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (stationId != null) 'station_id': stationId,
+      if (provider != null) 'provider': provider,
+      if (data != null) 'data': data,
+      if (addedAt != null) 'added_at': addedAt,
+    });
+  }
+
+  RadioFavoritesTableCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? stationId,
+      Value<String>? provider,
+      Value<Map<String, dynamic>>? data,
+      Value<DateTime>? addedAt}) {
+    return RadioFavoritesTableCompanion(
+      id: id ?? this.id,
+      stationId: stationId ?? this.stationId,
+      provider: provider ?? this.provider,
+      data: data ?? this.data,
+      addedAt: addedAt ?? this.addedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (stationId.present) {
+      map['station_id'] = Variable<String>(stationId.value);
+    }
+    if (provider.present) {
+      map['provider'] = Variable<String>(provider.value);
+    }
+    if (data.present) {
+      map['data'] = Variable<String>(
+          $RadioFavoritesTableTable.$converterdata.toSql(data.value));
+    }
+    if (addedAt.present) {
+      map['added_at'] = Variable<DateTime>(addedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RadioFavoritesTableCompanion(')
+          ..write('id: $id, ')
+          ..write('stationId: $stationId, ')
+          ..write('provider: $provider, ')
+          ..write('data: $data, ')
+          ..write('addedAt: $addedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -6492,12 +6931,16 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $PlaylistDownloadTableTable(this);
   late final $PlaylistDownloadMirrorTableTable playlistDownloadMirrorTable =
       $PlaylistDownloadMirrorTableTable(this);
+  late final $RadioFavoritesTableTable radioFavoritesTable =
+      $RadioFavoritesTableTable(this);
   late final Index uniqueBlacklist = Index('unique_blacklist',
       'CREATE UNIQUE INDEX unique_blacklist ON blacklist_table (element_type, element_id)');
   late final Index uniquePlaylistDownload = Index('unique_playlist_download',
       'CREATE UNIQUE INDEX unique_playlist_download ON playlist_download_table (playlist_id, track_id)');
   late final Index playlistDownloadOrder = Index('playlist_download_order',
       'CREATE INDEX playlist_download_order ON playlist_download_table (playlist_id, position)');
+  late final Index uniqueRadioFavorite = Index('unique_radio_favorite',
+      'CREATE UNIQUE INDEX unique_radio_favorite ON radio_favorites_table (station_id, provider)');
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6518,9 +6961,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         trackDownloadTable,
         playlistDownloadTable,
         playlistDownloadMirrorTable,
+        radioFavoritesTable,
         uniqueBlacklist,
         uniquePlaylistDownload,
-        playlistDownloadOrder
+        playlistDownloadOrder,
+        uniqueRadioFavorite
       ];
 }
 
@@ -6872,6 +7317,7 @@ typedef $$PreferencesTableTableCreateCompanionBuilder
   Value<List<String>> sourcePriority,
   Value<List<String>> sidebarLibraryOrder,
   Value<List<String>> pinnedPlaylistIds,
+  Value<List<String>> pinnedStationIds,
   Value<bool> autoDownloadQuality,
   Value<bool> themeTransition,
   Value<int> themeTransitionMs,
@@ -6883,6 +7329,7 @@ typedef $$PreferencesTableTableCreateCompanionBuilder
   Value<bool> vpnAutoDisconnect,
   Value<int> vpnWaitTimeoutSec,
   Value<String?> vpnDeviceName,
+  Value<bool> transparentWindow,
 });
 typedef $$PreferencesTableTableUpdateCompanionBuilder
     = PreferencesTableCompanion Function({
@@ -6914,6 +7361,7 @@ typedef $$PreferencesTableTableUpdateCompanionBuilder
   Value<List<String>> sourcePriority,
   Value<List<String>> sidebarLibraryOrder,
   Value<List<String>> pinnedPlaylistIds,
+  Value<List<String>> pinnedStationIds,
   Value<bool> autoDownloadQuality,
   Value<bool> themeTransition,
   Value<int> themeTransitionMs,
@@ -6925,6 +7373,7 @@ typedef $$PreferencesTableTableUpdateCompanionBuilder
   Value<bool> vpnAutoDisconnect,
   Value<int> vpnWaitTimeoutSec,
   Value<String?> vpnDeviceName,
+  Value<bool> transparentWindow,
 });
 
 class $$PreferencesTableTableFilterComposer
@@ -7054,6 +7503,11 @@ class $$PreferencesTableTableFilterComposer
           column: $table.pinnedPlaylistIds,
           builder: (column) => ColumnWithTypeConverterFilters(column));
 
+  ColumnWithTypeConverterFilters<List<String>, List<String>, String>
+      get pinnedStationIds => $composableBuilder(
+          column: $table.pinnedStationIds,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
   ColumnFilters<bool> get autoDownloadQuality => $composableBuilder(
       column: $table.autoDownloadQuality,
       builder: (column) => ColumnFilters(column));
@@ -7099,6 +7553,10 @@ class $$PreferencesTableTableFilterComposer
 
   ColumnFilters<String> get vpnDeviceName => $composableBuilder(
       column: $table.vpnDeviceName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get transparentWindow => $composableBuilder(
+      column: $table.transparentWindow,
+      builder: (column) => ColumnFilters(column));
 }
 
 class $$PreferencesTableTableOrderingComposer
@@ -7213,6 +7671,10 @@ class $$PreferencesTableTableOrderingComposer
       column: $table.pinnedPlaylistIds,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get pinnedStationIds => $composableBuilder(
+      column: $table.pinnedStationIds,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get autoDownloadQuality => $composableBuilder(
       column: $table.autoDownloadQuality,
       builder: (column) => ColumnOrderings(column));
@@ -7253,6 +7715,10 @@ class $$PreferencesTableTableOrderingComposer
 
   ColumnOrderings<String> get vpnDeviceName => $composableBuilder(
       column: $table.vpnDeviceName,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get transparentWindow => $composableBuilder(
+      column: $table.transparentWindow,
       builder: (column) => ColumnOrderings(column));
 }
 
@@ -7358,6 +7824,10 @@ class $$PreferencesTableTableAnnotationComposer
       get pinnedPlaylistIds => $composableBuilder(
           column: $table.pinnedPlaylistIds, builder: (column) => column);
 
+  GeneratedColumnWithTypeConverter<List<String>, String> get pinnedStationIds =>
+      $composableBuilder(
+          column: $table.pinnedStationIds, builder: (column) => column);
+
   GeneratedColumn<bool> get autoDownloadQuality => $composableBuilder(
       column: $table.autoDownloadQuality, builder: (column) => column);
 
@@ -7392,6 +7862,9 @@ class $$PreferencesTableTableAnnotationComposer
 
   GeneratedColumn<String> get vpnDeviceName => $composableBuilder(
       column: $table.vpnDeviceName, builder: (column) => column);
+
+  GeneratedColumn<bool> get transparentWindow => $composableBuilder(
+      column: $table.transparentWindow, builder: (column) => column);
 }
 
 class $$PreferencesTableTableTableManager extends RootTableManager<
@@ -7451,6 +7924,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<List<String>> sourcePriority = const Value.absent(),
             Value<List<String>> sidebarLibraryOrder = const Value.absent(),
             Value<List<String>> pinnedPlaylistIds = const Value.absent(),
+            Value<List<String>> pinnedStationIds = const Value.absent(),
             Value<bool> autoDownloadQuality = const Value.absent(),
             Value<bool> themeTransition = const Value.absent(),
             Value<int> themeTransitionMs = const Value.absent(),
@@ -7462,6 +7936,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<bool> vpnAutoDisconnect = const Value.absent(),
             Value<int> vpnWaitTimeoutSec = const Value.absent(),
             Value<String?> vpnDeviceName = const Value.absent(),
+            Value<bool> transparentWindow = const Value.absent(),
           }) =>
               PreferencesTableCompanion(
             id: id,
@@ -7492,6 +7967,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             sourcePriority: sourcePriority,
             sidebarLibraryOrder: sidebarLibraryOrder,
             pinnedPlaylistIds: pinnedPlaylistIds,
+            pinnedStationIds: pinnedStationIds,
             autoDownloadQuality: autoDownloadQuality,
             themeTransition: themeTransition,
             themeTransitionMs: themeTransitionMs,
@@ -7503,6 +7979,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             vpnAutoDisconnect: vpnAutoDisconnect,
             vpnWaitTimeoutSec: vpnWaitTimeoutSec,
             vpnDeviceName: vpnDeviceName,
+            transparentWindow: transparentWindow,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -7534,6 +8011,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<List<String>> sourcePriority = const Value.absent(),
             Value<List<String>> sidebarLibraryOrder = const Value.absent(),
             Value<List<String>> pinnedPlaylistIds = const Value.absent(),
+            Value<List<String>> pinnedStationIds = const Value.absent(),
             Value<bool> autoDownloadQuality = const Value.absent(),
             Value<bool> themeTransition = const Value.absent(),
             Value<int> themeTransitionMs = const Value.absent(),
@@ -7545,6 +8023,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<bool> vpnAutoDisconnect = const Value.absent(),
             Value<int> vpnWaitTimeoutSec = const Value.absent(),
             Value<String?> vpnDeviceName = const Value.absent(),
+            Value<bool> transparentWindow = const Value.absent(),
           }) =>
               PreferencesTableCompanion.insert(
             id: id,
@@ -7575,6 +8054,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             sourcePriority: sourcePriority,
             sidebarLibraryOrder: sidebarLibraryOrder,
             pinnedPlaylistIds: pinnedPlaylistIds,
+            pinnedStationIds: pinnedStationIds,
             autoDownloadQuality: autoDownloadQuality,
             themeTransition: themeTransition,
             themeTransitionMs: themeTransitionMs,
@@ -7586,6 +8066,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             vpnAutoDisconnect: vpnAutoDisconnect,
             vpnWaitTimeoutSec: vpnWaitTimeoutSec,
             vpnDeviceName: vpnDeviceName,
+            transparentWindow: transparentWindow,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -8836,6 +9317,7 @@ typedef $$PluginsTableTableCreateCompanionBuilder = PluginsTableCompanion
   Value<bool> selectedForMetadata,
   Value<bool> selectedForAudioSource,
   Value<bool> selectedForTheme,
+  Value<bool> selectedForRadio,
   Value<String?> repository,
   Value<String> pluginApiVersion,
 });
@@ -8852,6 +9334,7 @@ typedef $$PluginsTableTableUpdateCompanionBuilder = PluginsTableCompanion
   Value<bool> selectedForMetadata,
   Value<bool> selectedForAudioSource,
   Value<bool> selectedForTheme,
+  Value<bool> selectedForRadio,
   Value<String?> repository,
   Value<String> pluginApiVersion,
 });
@@ -8903,6 +9386,10 @@ class $$PluginsTableTableFilterComposer
 
   ColumnFilters<bool> get selectedForTheme => $composableBuilder(
       column: $table.selectedForTheme,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get selectedForRadio => $composableBuilder(
+      column: $table.selectedForRadio,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get repository => $composableBuilder(
@@ -8958,6 +9445,10 @@ class $$PluginsTableTableOrderingComposer
       column: $table.selectedForTheme,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get selectedForRadio => $composableBuilder(
+      column: $table.selectedForRadio,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get repository => $composableBuilder(
       column: $table.repository, builder: (column) => ColumnOrderings(column));
 
@@ -9008,6 +9499,9 @@ class $$PluginsTableTableAnnotationComposer
   GeneratedColumn<bool> get selectedForTheme => $composableBuilder(
       column: $table.selectedForTheme, builder: (column) => column);
 
+  GeneratedColumn<bool> get selectedForRadio => $composableBuilder(
+      column: $table.selectedForRadio, builder: (column) => column);
+
   GeneratedColumn<String> get repository => $composableBuilder(
       column: $table.repository, builder: (column) => column);
 
@@ -9052,6 +9546,7 @@ class $$PluginsTableTableTableManager extends RootTableManager<
             Value<bool> selectedForMetadata = const Value.absent(),
             Value<bool> selectedForAudioSource = const Value.absent(),
             Value<bool> selectedForTheme = const Value.absent(),
+            Value<bool> selectedForRadio = const Value.absent(),
             Value<String?> repository = const Value.absent(),
             Value<String> pluginApiVersion = const Value.absent(),
           }) =>
@@ -9067,6 +9562,7 @@ class $$PluginsTableTableTableManager extends RootTableManager<
             selectedForMetadata: selectedForMetadata,
             selectedForAudioSource: selectedForAudioSource,
             selectedForTheme: selectedForTheme,
+            selectedForRadio: selectedForRadio,
             repository: repository,
             pluginApiVersion: pluginApiVersion,
           ),
@@ -9082,6 +9578,7 @@ class $$PluginsTableTableTableManager extends RootTableManager<
             Value<bool> selectedForMetadata = const Value.absent(),
             Value<bool> selectedForAudioSource = const Value.absent(),
             Value<bool> selectedForTheme = const Value.absent(),
+            Value<bool> selectedForRadio = const Value.absent(),
             Value<String?> repository = const Value.absent(),
             Value<String> pluginApiVersion = const Value.absent(),
           }) =>
@@ -9097,6 +9594,7 @@ class $$PluginsTableTableTableManager extends RootTableManager<
             selectedForMetadata: selectedForMetadata,
             selectedForAudioSource: selectedForAudioSource,
             selectedForTheme: selectedForTheme,
+            selectedForRadio: selectedForRadio,
             repository: repository,
             pluginApiVersion: pluginApiVersion,
           ),
@@ -9828,6 +10326,181 @@ typedef $$PlaylistDownloadMirrorTableTableProcessedTableManager
         ),
         PlaylistDownloadMirrorTableData,
         PrefetchHooks Function()>;
+typedef $$RadioFavoritesTableTableCreateCompanionBuilder
+    = RadioFavoritesTableCompanion Function({
+  Value<int> id,
+  required String stationId,
+  required String provider,
+  required Map<String, dynamic> data,
+  Value<DateTime> addedAt,
+});
+typedef $$RadioFavoritesTableTableUpdateCompanionBuilder
+    = RadioFavoritesTableCompanion Function({
+  Value<int> id,
+  Value<String> stationId,
+  Value<String> provider,
+  Value<Map<String, dynamic>> data,
+  Value<DateTime> addedAt,
+});
+
+class $$RadioFavoritesTableTableFilterComposer
+    extends Composer<_$AppDatabase, $RadioFavoritesTableTable> {
+  $$RadioFavoritesTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get stationId => $composableBuilder(
+      column: $table.stationId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get provider => $composableBuilder(
+      column: $table.provider, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Map<String, dynamic>, Map<String, dynamic>,
+          String>
+      get data => $composableBuilder(
+          column: $table.data,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnFilters<DateTime> get addedAt => $composableBuilder(
+      column: $table.addedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$RadioFavoritesTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $RadioFavoritesTableTable> {
+  $$RadioFavoritesTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get stationId => $composableBuilder(
+      column: $table.stationId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get provider => $composableBuilder(
+      column: $table.provider, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get data => $composableBuilder(
+      column: $table.data, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get addedAt => $composableBuilder(
+      column: $table.addedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$RadioFavoritesTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RadioFavoritesTableTable> {
+  $$RadioFavoritesTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get stationId =>
+      $composableBuilder(column: $table.stationId, builder: (column) => column);
+
+  GeneratedColumn<String> get provider =>
+      $composableBuilder(column: $table.provider, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Map<String, dynamic>, String> get data =>
+      $composableBuilder(column: $table.data, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get addedAt =>
+      $composableBuilder(column: $table.addedAt, builder: (column) => column);
+}
+
+class $$RadioFavoritesTableTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $RadioFavoritesTableTable,
+    RadioFavoritesTableData,
+    $$RadioFavoritesTableTableFilterComposer,
+    $$RadioFavoritesTableTableOrderingComposer,
+    $$RadioFavoritesTableTableAnnotationComposer,
+    $$RadioFavoritesTableTableCreateCompanionBuilder,
+    $$RadioFavoritesTableTableUpdateCompanionBuilder,
+    (
+      RadioFavoritesTableData,
+      BaseReferences<_$AppDatabase, $RadioFavoritesTableTable,
+          RadioFavoritesTableData>
+    ),
+    RadioFavoritesTableData,
+    PrefetchHooks Function()> {
+  $$RadioFavoritesTableTableTableManager(
+      _$AppDatabase db, $RadioFavoritesTableTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RadioFavoritesTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RadioFavoritesTableTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RadioFavoritesTableTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> stationId = const Value.absent(),
+            Value<String> provider = const Value.absent(),
+            Value<Map<String, dynamic>> data = const Value.absent(),
+            Value<DateTime> addedAt = const Value.absent(),
+          }) =>
+              RadioFavoritesTableCompanion(
+            id: id,
+            stationId: stationId,
+            provider: provider,
+            data: data,
+            addedAt: addedAt,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String stationId,
+            required String provider,
+            required Map<String, dynamic> data,
+            Value<DateTime> addedAt = const Value.absent(),
+          }) =>
+              RadioFavoritesTableCompanion.insert(
+            id: id,
+            stationId: stationId,
+            provider: provider,
+            data: data,
+            addedAt: addedAt,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$RadioFavoritesTableTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $RadioFavoritesTableTable,
+    RadioFavoritesTableData,
+    $$RadioFavoritesTableTableFilterComposer,
+    $$RadioFavoritesTableTableOrderingComposer,
+    $$RadioFavoritesTableTableAnnotationComposer,
+    $$RadioFavoritesTableTableCreateCompanionBuilder,
+    $$RadioFavoritesTableTableUpdateCompanionBuilder,
+    (
+      RadioFavoritesTableData,
+      BaseReferences<_$AppDatabase, $RadioFavoritesTableTable,
+          RadioFavoritesTableData>
+    ),
+    RadioFavoritesTableData,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9866,4 +10539,6 @@ class $AppDatabaseManager {
       get playlistDownloadMirrorTable =>
           $$PlaylistDownloadMirrorTableTableTableManager(
               _db, _db.playlistDownloadMirrorTable);
+  $$RadioFavoritesTableTableTableManager get radioFavoritesTable =>
+      $$RadioFavoritesTableTableTableManager(_db, _db.radioFavoritesTable);
 }

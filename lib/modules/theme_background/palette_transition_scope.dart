@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' as material;
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
@@ -37,6 +38,13 @@ class PaletteTransitionScope extends HookWidget {
   final Duration duration;
   final Widget child;
 
+  /// Real window transparency. A plain constructor parameter — not a provider
+  /// watch — on purpose: this scope sits on the frame-exact theme-transition
+  /// clock, and subscribing it to the async theme chain shifts rebuild timing
+  /// (proven by `theme_transition_test.dart` going red on a `Consumer` form).
+  /// The single watch lives in `Spotube.build`, which already watches prefs.
+  final bool realTransparent;
+
   const PaletteTransitionScope({
     super.key,
     required this.theme,
@@ -45,6 +53,7 @@ class PaletteTransitionScope extends HookWidget {
     required this.brightness,
     required this.duration,
     required this.child,
+    this.realTransparent = false,
   });
 
   @override
@@ -64,15 +73,43 @@ class PaletteTransitionScope extends HookWidget {
       data: resolved,
       duration: duration,
       curve: Curves.easeOutCubic,
+      // A plain Builder, not a Consumer: this scope sits on the frame-exact
+      // theme-transition clock, and a provider subscription inside it
+      // rebuilds the subtree on the provider's schedule instead of the
+      // animation's — which shifts the crossfade off the stored length
+      // (proven by `theme_transition_test.dart` going red on a `Consumer`
+      // form). `realTransparent` is passed in as a plain parameter for
+      // exactly this reason; the single watch lives in `Spotube.build`,
+      // which already watches the other preferences.
       child: Builder(
         builder: (context) {
           final animated = Theme.of(context);
           final foreground = animated.colorScheme.foreground;
-          return DefaultTextStyle.merge(
-            style: animated.typography.base.copyWith(color: foreground),
-            child: IconTheme.merge(
-              data: animated.iconTheme.medium.copyWith(color: foreground),
-              child: child,
+          final background = animated.colorScheme.background;
+          // `ShadcnApp` provides the Material theme above this point
+          // (`shadcn_app.dart:527`), and the app builds it from a resolved
+          // `Brightness`, not the animated palette. Every route paints its
+          // opaque `Material` background from that stepped theme, so without a
+          // re-provision here the surfaces jump to the new palette in one frame
+          // while the inherited text below crossfades — the "plain black/white"
+          // gap. Re-issuing the Material surfaces from the *animated* background
+          // puts them on this scope's clock, so ground and text move together.
+          return material.Theme(
+            data: material.Theme.of(context).copyWith(
+              // Real transparency: Material grounds go clear with the
+              // rest, instead of covering the compositor.
+              scaffoldBackgroundColor: realTransparent
+                  ? material.Colors.transparent
+                  : background,
+              canvasColor:
+                  realTransparent ? material.Colors.transparent : background,
+            ),
+            child: DefaultTextStyle.merge(
+              style: animated.typography.base.copyWith(color: foreground),
+              child: IconTheme.merge(
+                data: animated.iconTheme.medium.copyWith(color: foreground),
+                child: child,
+              ),
             ),
           );
         },

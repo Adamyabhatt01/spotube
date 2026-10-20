@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:palette_generator/palette_generator.dart';
@@ -92,23 +90,29 @@ class SyncedLyrics extends HookConsumerWidget {
     );
 
     useEffect(() {
-      StreamSubscription? subscription;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        subscription = audioPlayer.positionStream.listen((event) {
-          try {
-            if (event > Duration.zero || !controller.hasClients) return;
-            controller.animateTo(
-              0,
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.easeInOut,
-            );
-          } catch (e, stack) {
-            AppLogger.reportError(e, stack);
-          }
-        });
+      // Hooks may only be called during build. The previous version created
+      // this subscription's holder with `useRef` *inside* the effect, which
+      // registered a hook after build had finished; the next build then read a
+      // different slot (`_MemoizedHook` where it expected `_EffectHook`) and
+      // threw "Bad state: Type mismatch between hooks" on the lyrics page.
+      //
+      // A plain local is enough: the effect runs once after mount and its
+      // teardown runs exactly once, so there is no same-frame race to defend
+      // against and no post-frame hand-off is needed.
+      final subscription = audioPlayer.positionStream.listen((event) {
+        try {
+          if (event > Duration.zero || !controller.hasClients) return;
+          controller.animateTo(
+            0,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeInOut,
+          );
+        } catch (e, stack) {
+          AppLogger.reportError(e, stack);
+        }
       });
 
-      return subscription?.cancel;
+      return subscription.cancel;
     }, [controller]);
 
     return Stack(

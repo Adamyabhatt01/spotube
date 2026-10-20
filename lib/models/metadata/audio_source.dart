@@ -30,13 +30,19 @@ class SpotubeAudioSourceContainerPreset
           Map<String, dynamic> json) =>
       _$SpotubeAudioSourceContainerPresetFromJson(json);
 
-  String getFileExtension() {
-    return switch (name) {
+  /// The on-disk extension for a container name.
+  ///
+  /// Split out of [getFileExtension] so a caller that only knows the
+  /// container (not a whole preset) maps it exactly the same way.
+  static String fileExtensionForContainer(String container) {
+    return switch (container) {
       "mp4" => "m4a",
       "webm" => "weba",
-      _ => name,
+      _ => container,
     };
   }
+
+  String getFileExtension() => fileExtensionForContainer(name);
 }
 
 @freezed

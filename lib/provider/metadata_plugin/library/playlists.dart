@@ -53,71 +53,72 @@ class MetadataPluginSavedPlaylistsNotifier
             .toList(),
       ),
     );
-    unawaited(persistSnapshot());
+    scheduleSnapshotPersist();
   }
 
   Future<void> addFavorite(SpotubeSimplePlaylistObject playlist) async {
-    if (state.value == null) return;
-
+    // The list may never have been opened (the detail page now reads this
+    // notifier on demand instead of watching it). Without a cached list there
+    // is nothing to update optimistically, but the write must still happen.
     final oldState = state.value;
 
-    state = AsyncData(
-      state.value!.copyWith(
-        items: [
-          playlist,
-          ...state.value!.items,
-        ],
-      ),
-    );
+    if (oldState != null) {
+      state = AsyncData(
+        oldState.copyWith(
+          items: [
+            playlist,
+            ...oldState.items,
+          ],
+        ),
+      );
+    }
 
     try {
       await (await metadataPlugin).playlist.save(playlist.id);
     } catch (e) {
-      state = AsyncData(oldState!);
+      if (oldState != null) state = AsyncData(oldState);
       rethrow;
     }
     ref.invalidate(metadataPluginIsSavedPlaylistProvider(playlist.id));
-    unawaited(persistSnapshot());
+    scheduleSnapshotPersist();
   }
 
   Future<void> removeFavorite(SpotubeSimplePlaylistObject playlist) async {
-    if (state.value == null) return;
-
     final oldState = state.value;
-    state = AsyncData(
-      state.value!.copyWith(
-        items: state.value!.items.where((e) => (e).id != playlist.id).toList(),
-      ),
-    );
+    if (oldState != null) {
+      state = AsyncData(
+        oldState.copyWith(
+          items: oldState.items.where((e) => (e).id != playlist.id).toList(),
+        ),
+      );
+    }
 
     try {
       await (await metadataPlugin).playlist.unsave(playlist.id);
     } catch (e) {
-      state = AsyncData(oldState!);
+      if (oldState != null) state = AsyncData(oldState);
       rethrow;
     }
     ref.invalidate(metadataPluginIsSavedPlaylistProvider(playlist.id));
-    unawaited(persistSnapshot());
+    scheduleSnapshotPersist();
   }
 
   Future<void> delete(String playlistId) async {
-    if (state.value == null) return;
     final oldState = state;
+    final hadValue = state.value != null;
     try {
-      state = const AsyncLoading();
+      if (hadValue) state = const AsyncLoading();
       await (await metadataPlugin).playlist.deletePlaylist(playlistId);
       ref.invalidateSelf();
       ref.invalidate(metadataPluginIsSavedPlaylistProvider(playlistId));
       ref.invalidate(metadataPluginPlaylistTracksProvider(playlistId));
     } catch (e) {
-      state = oldState;
+      if (hadValue) state = oldState;
       rethrow;
     }
   }
 
   Future<void> addTracks(String playlistId, List<String> trackIds) async {
-    if (state.value == null) return;
-
     await (await metadataPlugin)
         .playlist
         .addTracks(playlistId, trackIds: trackIds);
@@ -126,8 +127,6 @@ class MetadataPluginSavedPlaylistsNotifier
   }
 
   Future<void> removeTracks(String playlistId, List<String> trackIds) async {
-    if (state.value == null) return;
-
     await (await metadataPlugin)
         .playlist
         .removeTracks(playlistId, trackIds: trackIds);

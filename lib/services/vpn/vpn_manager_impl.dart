@@ -38,6 +38,13 @@ class RefCountVpnManager implements VpnManager {
   /// How often waiters re-check state / cancellation.
   static const Duration waitPollInterval = Duration(milliseconds: 500);
 
+  /// Iterations of the activation cancel-signal poll, exposed only so the
+  /// regression test can prove the loop stops once its race is settled. The
+  /// leak it guards was invisible: a `Future.any` loser that polls forever
+  /// keeps no handle anyone could previously assert on.
+  @visibleForTesting
+  int debugCancelPolls = 0;
+
   /// Cap on one activation poll round after `bringUp` was accepted.
   static const Duration activationPollInterval = Duration(seconds: 1);
 
@@ -164,17 +171,37 @@ class RefCountVpnManager implements VpnManager {
     }
   }
 
-  /// Completes with [VpnCancelledException] once [isCancelled] fires, or
-  /// never when no cancellation source was given. Lets [Future.any] abort
-  /// an in-flight activation wait without cancelling the backend call
-  /// itself (which may not support cancellation).
-  Future<void> _cancelSignal(bool Function()? isCancelled) async {
+/// Completes with [VpnCancelledException] once [isCancelled] fires, or
+  /// never when no cancellation source was given. Lets `Future.any` abort
+  /// an in-flight activation wait without cancelling the backend call itself
+  /// (which may not support cancellation).
+  ///
+  /// The returned future must be completed by the caller once the race is
+  /// settled, at which point this returns normally. That is the whole point:
+  /// `Future.any` abandons its losers, and this signal *polls*, so when
+  /// `bringUp` wins — the normal case, since a download that completes never
+  /// reports itself cancelled — an unreleased loop kept ticking at
+  /// [waitPollInterval] for the life of the process. That was one leaked 2 Hz
+  /// loop per VPN-gated download, and the only unbounded growth path in the
+  /// app that scaled with user actions rather than with the session.
+  Future<void> _cancelSignal(
+    bool Function()? isCancelled,
+    Completer<void> released,
+  ) async {
     if (isCancelled == null) {
-      await Completer<void>().future;
+      await released.future;
       return;
     }
     while (!isCancelled()) {
-      await Future.delayed(waitPollInterval);
+      debugCancelPolls++;
+      // Wake on either edge: the cancel predicate, or the caller releasing
+      // us. Polling alone would let the loop outlive its usefulness by a full
+      // poll interval, and without the release edge it would never stop.
+      final releasedFirst = await Future.any<bool>([
+        released.future.then((_) => true),
+        Future<bool>.delayed(waitPollInterval, () => false),
+      ]);
+      if (releasedFirst) return;
     }
     throw const VpnCancelledException();
   }
@@ -297,10 +324,11 @@ class RefCountVpnManager implements VpnManager {
     // promptly (backends like Process.run cannot be cancelled, only
     // abandoned) and must not orphan a connection that did come up.
     var activated = false;
+    final cancelRace = Completer<void>();
     try {
       await Future.any([
         backend.bringUp(uuid),
-        _cancelSignal(isCancelled),
+        _cancelSignal(isCancelled, cancelRace),
       ]);
       activated = true;
       _throwIfCancelled(isCancelled);
@@ -318,6 +346,10 @@ class RefCountVpnManager implements VpnManager {
       _setStatus(VpnStatus.error);
       AppLogger.reportError(e, stack, 'Vpn.bringUp');
       rethrow;
+    } finally {
+      // Settle every path, including the rethrows above. Without this the
+      // losing cancel signal keeps polling forever whenever bringUp wins.
+      if (!cancelRace.isCompleted) cancelRace.complete();
     }
 
     final deadline = DateTime.now().add(config.waitTimeout);

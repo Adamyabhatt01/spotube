@@ -43,6 +43,19 @@ class PlaybuttonView extends StatelessWidget {
 
   final Widget? leading;
 
+  /// Shimmer bones shown while [isLoading]. Defaults keep the shared
+  /// playbutton dummies; callers with custom rows (e.g. radio) pass bones
+  /// matching their own geometry so loading reads as the incoming content.
+  final Widget? gridLoadingItem;
+  final Widget? listLoadingItem;
+
+  /// Whether to show the grid/list toggle row.
+  ///
+  /// Phone widths have no room for desktop layout chrome, and the search
+  /// tabs already default to a list there. When null the row follows the
+  /// same `mdAndUp` breakpoint as the default layout.
+  final bool? showLayoutToggle;
+
   const PlaybuttonView({
     super.key,
     required this.itemCount,
@@ -53,6 +66,9 @@ class PlaybuttonView extends StatelessWidget {
     required this.onRequestMore,
     required this.controller,
     this.leading,
+    this.gridLoadingItem,
+    this.listLoadingItem,
+    this.showLayoutToggle,
   });
 
   @override
@@ -72,36 +88,37 @@ class PlaybuttonView extends StatelessWidget {
 
         return SliverMainAxisGroup(
           slivers: [
-            SliverToBoxAdapter(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (leading != null) leading!,
-                  Toggle(
-                    value: isGrid.value,
-                    style:
-                        const ButtonStyle.outline(density: ButtonDensity.icon),
-                    onChanged: (value) {
-                      isGrid.value = value;
-                      hasUserInteracted.value = true;
-                    },
-                    child: const Icon(SpotubeIcons.grid),
-                  ),
-                  const SizedBox(width: 8),
-                  Toggle(
-                    value: !isGrid.value,
-                    style:
-                        const ButtonStyle.outline(density: ButtonDensity.icon),
-                    onChanged: (value) {
-                      isGrid.value = !value;
-                      hasUserInteracted.value = true;
-                    },
-                    child: const Icon(SpotubeIcons.list),
-                  ),
-                ],
+            if (showLayoutToggle ?? constrains.mdAndUp)
+              SliverToBoxAdapter(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (leading != null) leading!,
+                    Toggle(
+                      value: isGrid.value,
+                      style:
+                          const ButtonStyle.outline(density: ButtonDensity.icon),
+                      onChanged: (value) {
+                        isGrid.value = value;
+                        hasUserInteracted.value = true;
+                      },
+                      child: const Icon(SpotubeIcons.grid),
+                    ),
+                    const SizedBox(width: 8),
+                    Toggle(
+                      value: !isGrid.value,
+                      style:
+                          const ButtonStyle.outline(density: ButtonDensity.icon),
+                      onChanged: (value) {
+                        isGrid.value = !value;
+                        hasUserInteracted.value = true;
+                      },
+                      child: const Icon(SpotubeIcons.list),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SliverGap(10),
+            if (showLayoutToggle ?? constrains.mdAndUp) const SliverGap(10),
             // Toggle between grid and list view
             switch ((isGrid.value, isLoading)) {
               (true, _) => !isLoading && itemCount == 0
@@ -135,10 +152,11 @@ class PlaybuttonView extends StatelessWidget {
                       ),
                       itemBuilder: (context, index) {
                         if (isLoading) {
-                          return const Skeletonizer(
-                            enabled: true,
-                            child: _dummyPlaybuttonCard,
-                          );
+                          return gridLoadingItem ??
+                              const Skeletonizer(
+                                enabled: true,
+                                child: _dummyPlaybuttonCard,
+                              );
                         }
 
                         if (index == itemCount) {
@@ -147,10 +165,11 @@ class PlaybuttonView extends StatelessWidget {
                             controller: controller,
                             isGrid: true,
                             onTouchEdge: onRequestMore,
-                            child: const Skeletonizer(
-                              enabled: true,
-                              child: _dummyPlaybuttonCard,
-                            ),
+                            child: gridLoadingItem ??
+                                const Skeletonizer(
+                                  enabled: true,
+                                  child: _dummyPlaybuttonCard,
+                                ),
                           );
                         }
 
@@ -161,17 +180,20 @@ class PlaybuttonView extends StatelessWidget {
                   enabled: true,
                   child: SliverList(
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) => _dummyPlaybuttonTile,
+                      (context, index) =>
+                          listLoadingItem ?? _dummyPlaybuttonTile,
                       childCount: 6,
                     ),
                   ),
                 ),
               (false, false) => SliverInfiniteList(
                   itemCount: itemCount,
-                  loadingBuilder: (context) => const Skeletonizer(
-                    enabled: true,
-                    child: _dummyPlaybuttonTile,
-                  ),
+                  loadingBuilder: (context) =>
+                      listLoadingItem ??
+                      const Skeletonizer(
+                        enabled: true,
+                        child: _dummyPlaybuttonTile,
+                      ),
                   itemBuilder: listItemBuilder,
                   onFetchData: onRequestMore,
                   hasReachedMax: !hasMore,

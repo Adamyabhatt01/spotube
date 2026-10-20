@@ -1,9 +1,8 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
-import 'package:spotube/components/fallbacks/error_box.dart';
 import 'package:spotube/components/inter_scrollbar/inter_scrollbar.dart';
-import 'package:spotube/modules/search/loading.dart';
-import 'package:spotube/pages/search/search.dart';
+import 'package:spotube/modules/search/search_tab_scaffold.dart';
+import 'package:spotube/modules/search/search_term.dart';
 import 'package:spotube/modules/search/sections/albums.dart';
 import 'package:spotube/modules/search/sections/artists.dart';
 import 'package:spotube/modules/search/sections/playlists.dart';
@@ -20,17 +19,11 @@ class SearchPageAllTab extends HookConsumerWidget {
     final searchSnapshot =
         ref.watch(metadataPluginSearchAllProvider(searchTerm));
 
-    if (searchSnapshot.hasError) {
-      return ErrorBox(
-        error: searchSnapshot.error!,
-        onRetry: () {
-          ref.invalidate(metadataPluginSearchAllProvider(searchTerm));
-        },
-      );
-    }
-
-    return SearchPlaceholder(
+    return SearchTabScaffold(
       snapshot: searchSnapshot,
+      onRetry: () {
+        ref.invalidate(metadataPluginSearchAllProvider(searchTerm));
+      },
       child: InterScrollbar(
         controller: scrollController,
         child: SingleChildScrollView(

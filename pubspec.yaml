@@ -18,6 +18,8 @@ environment:
 dependencies:
   args: ^2.5.0
   audio_service: ^0.18.13
+  # The MCP server (spotube --mcp). Official dart-lang package.
+  dart_mcp: ^0.5.2
   audio_session: ^0.1.19
   auto_route: ^9.3.0+1
   auto_size_text: ^3.0.0
@@ -76,7 +78,6 @@ dependencies:
   hooks_riverpod: ^2.5.1
   html: ^0.15.1
   html_unescape: ^2.0.0
-  http: ^1.2.1
   image_picker: ^1.1.0
   # DEP.3: exact pin of the tested resolution (was `any` appeasement for the
   # flutter_localizations/plugin-graph conflict). Do not widen without a
@@ -123,8 +124,7 @@ dependencies:
   visibility_detector: ^0.4.0+2
   web_socket_channel: ^3.0.1
   wikipedia_api: ^0.1.0
-  win32_registry: ^1.1.5
-  window_manager: ^0.4.3
+  window_manager: ^0.5.2
   youtube_explode_dart: ^3.1.0
   yt_dlp_dart:
     git:
@@ -276,15 +276,15 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
-    - assets/images/logos/
     - assets/branding/spotube-logo.png
-    - assets/branding/spotube-logo-light.png
+    - assets/branding/spotube-logo.ico
     - assets/branding/spotube-logo.ico
     - assets/plugins/spotube-plugin-musicbrainz-listenbrainz/plugin.smplug
     - assets/plugins/spotube-plugin-youtube-audio/plugin.smplug
+    - assets/plugins/spotube-plugin-internet-radio-browser/plugin.smplug
+    - assets/plugins/spotube-plugin-internet-radio-somafm/plugin.smplug
     - LICENSE
     - packages/flutter_undraw/assets/undraw/access_denied.svg
-    - packages/flutter_undraw/assets/undraw/fixing_bugs.svg
     - packages/flutter_undraw/assets/undraw/secure_login.svg
     - packages/flutter_undraw/assets/undraw/explore.svg
     - packages/flutter_undraw/assets/undraw/dreamer.svg

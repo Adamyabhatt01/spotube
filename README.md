@@ -85,7 +85,8 @@ Seven changes people actually feel. Each one links to the mechanics further down
 - **Optional: put your traffic through your own VPN** for downloads, streaming, or both — opt-in, off
   by default, and it never touches a connection it didn't create.
   → [Automatic VPN](#routing-through-your-own-vpn)
-- **Your library, your layout.** Pin playlists in the sidebar, reorder the Library section, dock the
+- **Your library, your layout.** Browse and Radio sit in the sidebar next to Stats; pin playlists
+  and radio stations under the Library section, reorder the Library section, dock the
   player bar, choose how the volume control behaves, and let plugins ship whole themes.
 
 ## ⚙️ Settings worth turning on
@@ -98,7 +99,7 @@ Everything here is **off or default until you change it** — a fresh install be
 | **Disconnect when done** | Settings → Downloads | Whether a VPN Spotube started is brought down afterwards. Your own connections are never disconnected, whatever this says. |
 | **VPN wait timeout** | not in the UI yet | How long a protected download waits for the VPN before failing, instead of quietly going over the normal connection. Stored as 60 s and editable only through the database at the moment. |
 | **Player position** | Settings → Playback | **Full width** stretches the bar across the window; **Docked** stops it at the sidebar so the sidebar runs full height. |
-| **Sidebar order / Pinned playlists** | Settings → Sidebar, or long-press a playlist | Reorder the Library section and pin favourite playlists to the top of it. |
+| **Sidebar order / Pinned playlists & stations** | Settings → Sidebar, or long-press a playlist / station | Reorder the Library section and pin favourite playlists and radio stations under it. The sidebar top nav holds Browse, Radio and Stats. |
 | **Volume control** | Settings → Desktop | Always visible, show on hover, or hidden. Desktop-only setting. |
 | **Source priority** | Settings → Playback | Which provider (yt-dlp, NewPipe, YouTube Explode) to try first. |
 | **Theme / splash screen** | Settings → Appearance | Plugin-supplied themes, and a custom splash. On Linux, optional Caelestia shell sync. |
@@ -207,8 +208,10 @@ collapse into one request, misses are memoized, and TTML parsing moved off the U
 
 ### Getting around
 
-- Playlists can be **pinned** under the Library section of the sidebar, and that section is
-  reorderable (top navigation stays fixed).
+- Playlists and radio stations can be **pinned** under the Library section of the sidebar (cover
+  tap plays, label navigates; station rows play), and that section is reorderable — directly in
+  the sidebar or from Settings → Sidebar (top navigation stays fixed). Pin group headings are
+  compact so the pins stay dense.
 - The player bar can be **docked** to stop at the sidebar — so the sidebar runs full height — instead
   of stretching across the whole window.
 - Volume control is a setting: always visible, show on hover, or hidden.
@@ -254,7 +257,7 @@ under Settings → Appearance.
 
 ### Plumbing
 
-Database schema through **v22** with per-step migration guards (each step re-checks the live column
+Database schema through **v27** with per-step migration guards (each step re-checks the live column
 set, so a half-applied migration can be finished rather than only retried), dependency pinning with
 a CI job that detects drift, and a reproducible build script. APKs are versioned
 `5.1.2+4501`; per-ABI builds get Flutter's `abiIndex * 1000 + versionCode` override, which is why

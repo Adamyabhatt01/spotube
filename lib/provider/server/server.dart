@@ -102,7 +102,7 @@ final serverProvider = FutureProvider(
       _servingServer = server;
 
       AppLogger.log.t(
-        'Playback server at http://${server.address.host}:${server.port}',
+        () => 'Playback server at http://${server.address.host}:${server.port}',
       );
 
       ref.onDispose(() async {
@@ -123,3 +123,19 @@ final serverProvider = FutureProvider(
     }
   },
 );
+
+/// The bound playback-server port, for consumers that must construct
+/// [SpotubeMedia] URIs. Those URIs embed the port at construction time, so
+/// building a queue before the server binds bakes in `:0` for every track —
+/// mpv then fails each load and advances through the whole playlist.
+///
+/// The initial preferences wait matters: [serverProvider] reads
+/// `connectPort` from the synchronous preferences API, which starts on
+/// defaults and only later publishes the persisted row. Binding against the
+/// defaults and rebinding to a custom port would leave a restored queue
+/// pointing at the old socket.
+final playbackServerPortProvider = FutureProvider<int>((ref) async {
+  await ref.read(userPreferencesProvider.notifier).initialLoad;
+  final server = await ref.watch(serverProvider.future);
+  return server.port;
+});

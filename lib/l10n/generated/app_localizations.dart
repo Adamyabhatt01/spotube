@@ -225,6 +225,12 @@ abstract class AppLocalizations {
   /// **'Songs'**
   String get songs;
 
+  /// No description provided for @music.
+  ///
+  /// In en, this message translates to:
+  /// **'Music'**
+  String get music;
+
   /// No description provided for @playing_track.
   ///
   /// In en, this message translates to:
@@ -2217,6 +2223,24 @@ abstract class AppLocalizations {
   /// **'Recently Played'**
   String get recently_played;
 
+  /// No description provided for @recent_searches.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent searches'**
+  String get recent_searches;
+
+  /// No description provided for @from_your_library.
+  ///
+  /// In en, this message translates to:
+  /// **'From your library'**
+  String get from_your_library;
+
+  /// No description provided for @see_all_results_for.
+  ///
+  /// In en, this message translates to:
+  /// **'See all results for \"{term}\"'**
+  String see_all_results_for(Object term);
+
   /// No description provided for @browse_more.
   ///
   /// In en, this message translates to:
@@ -2805,6 +2829,18 @@ abstract class AppLocalizations {
   /// **'Playlists pinned under the Library section. Drag to reorder.'**
   String get pinned_playlists_description;
 
+  /// No description provided for @pinned_stations.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned stations'**
+  String get pinned_stations;
+
+  /// No description provided for @pinned_stations_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Radio stations pinned under the playlists. Drag to reorder.'**
+  String get pinned_stations_description;
+
   /// No description provided for @pin_to_sidebar.
   ///
   /// In en, this message translates to:
@@ -2996,6 +3032,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'In macOS/Linux/unix like OS\'s, setting path on .zshrc/.bashrc/.bash_profile etc. won\'t work.\nYou need to set the path in the shell configuration file'**
   String get youtube_engine_unix_issue_message;
+
+  /// No description provided for @youtube_engine_android_issue_message.
+  ///
+  /// In en, this message translates to:
+  /// **'Android has no official {engine} build: it is a Python program and Android ships no Python.\nTo use it here, put a working {engine} (with the Python it needs) in a directory this app can execute — /data/local/tmp or the app\'s own files folder — and set the absolute path below. The file also needs its execute bit set.'**
+  String youtube_engine_android_issue_message(Object engine);
 
   /// No description provided for @download.
   ///

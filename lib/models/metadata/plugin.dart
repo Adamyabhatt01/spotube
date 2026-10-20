@@ -9,6 +9,8 @@ enum PluginAbilities {
   @JsonValue('audio-source')
   audioSource,
   theme,
+  @JsonValue('radio')
+  radio,
 }
 
 @freezed

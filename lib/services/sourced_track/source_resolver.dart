@@ -7,6 +7,7 @@ import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
+import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/services/metadata/metadata.dart';
 import 'package:spotube/services/sourced_track/exceptions.dart';
@@ -44,8 +45,10 @@ typedef SourceResolutionAttempt = Future<SourcedTrack> Function(
 /// one manifest fetch. ~10x the 1.456–1.806 s a healthy manifest takes
 /// (`.ai/PERFORMANCE.md`), so on a working network this never fires.
 ///
-/// A timeout abandons the Dart future; the CLI process the engine spawned
-/// keeps running to its own completion, since `Process.run` exposes no handle.
+/// A timeout abandons the Dart future. For yt-dlp the process layer kills the
+/// child it started (`YtDlpProcess`, R-11); for the other engines the CLI
+/// process or isolate keeps running to its own completion, since those
+/// packages expose no handle.
 const sourceCandidateBudget = Duration(seconds: 20);
 
 /// Ordered, lazy source resolution for a track. This is the single source
@@ -271,6 +274,12 @@ class SourceResolver {
     for (final candidate in candidates) {
       try {
         return await run(candidate).timeout(sourceCandidateBudget);
+      } on YtDlpNotInstalledError {
+        // The engine is configured but its binary is not reachable. That is a
+        // skip, not a blockage: the next candidate may still answer, and a
+        // missing binary must never become the reported reason — nor be
+        // reported as "this track does not exist".
+        PerfCounters.note('source.resolve.engineNotInstalled');
       } on TrackNotFoundError catch (error) {
         nothingFound = error;
       } on TimeoutException {
@@ -393,7 +402,9 @@ Future<List<String>> playbackFallbackUrls(
     }
 
     try {
-      final resolved = await resolver.resolve(candidate, primary.query);
+      final resolved = await resolver
+          .resolve(candidate, primary.query)
+          .timeout(sourceCandidateBudget);
       final url = resolved.url;
       if (url != null) urls.add(url);
       fallbackCount++;
@@ -401,16 +412,35 @@ Future<List<String>> playbackFallbackUrls(
       // Only first sibling per candidate to bound work
       if (resolved.siblings.isNotEmpty && fallbackCount < maxFallbacks) {
         try {
-          final siblingTrack = await resolver.resolveMatch(
-              candidate, primary.query, resolved.siblings.first);
+          final siblingTrack = await resolver
+              .resolveMatch(candidate, primary.query, resolved.siblings.first)
+              .timeout(sourceCandidateBudget);
           final siblingUrl = siblingTrack.url;
           if (siblingUrl != null) urls.add(siblingUrl);
-        } catch (_) {
+        } on TimeoutException {
+          // A hung sibling resolve is blockage, not absence: skip it without
+          // consuming urgency — the next candidate still gets its chance.
+          PerfCounters.note('playback.fallbackCascade.candidateTimeout');
+          AppLogger.log.d(
+              () => 'fallback sibling match timed out: ${candidate.key}');
+        } catch (e) {
           // A broken sibling match should not block the other candidates.
+          // Isolation stays; the failure itself is counted so a plugin that
+          // dies on every candidate is discoverable (debug builds only).
+          PerfCounters.note('playback.fallbackCascade.candidateFailure');
+          AppLogger.log.d(() => "fallback sibling match failed: $e");
         }
       }
-    } catch (_) {
+    } on TimeoutException {
+      // Same taxonomy as `resolveFirstAvailable`: a hang is engine blockage,
+      // never a miss — skip without consuming a fallback slot.
+      PerfCounters.note('playback.fallbackCascade.candidateTimeout');
+      AppLogger.log.d(() => 'fallback candidate timed out: ${candidate.key}');
+    } catch (e) {
       // A broken plugin/engine candidate should not block the others.
+      // Isolation stays; the failure is counted, never silent.
+      PerfCounters.note('playback.fallbackCascade.candidateFailure');
+      AppLogger.log.d(() => "fallback candidate failed: $e");
     }
   }
 

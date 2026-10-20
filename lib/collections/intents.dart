@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotube/collections/routes.dart';
 import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/modules/player/player_controls.dart';
+import 'package:spotube/modules/search/search_term.dart';
 import 'package:spotube/provider/audio_player/querying_track_info.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/utils/platform.dart';
@@ -60,7 +61,8 @@ enum HomeTabs {
 class HomeTabIntent extends Intent {
   final AppRouter router;
   final HomeTabs tab;
-  const HomeTabIntent(this.router, {required this.tab});
+  final WidgetRef? ref;
+  const HomeTabIntent(this.router, {required this.tab, this.ref});
 }
 
 class HomeTabAction extends Action<HomeTabIntent> {
@@ -72,7 +74,14 @@ class HomeTabAction extends Action<HomeTabIntent> {
         router.navigate(const HomeRoute());
         break;
       case HomeTabs.search:
-        router.navigate(const SearchRoute());
+        // No Search page anymore: reveal Browse and ask its search field
+        // for focus (counter, so repeated presses re-fire). Without a ref
+        // (unfocused-context invocation) this degrades to plain Browse.
+        router.navigate(const HomeRoute());
+        final ref = intent.ref;
+        if (ref != null) {
+          ref.read(homeSearchFocusRequestProvider.notifier).state++;
+        }
         break;
       case HomeTabs.lyrics:
         router.navigate(const LyricsRoute());

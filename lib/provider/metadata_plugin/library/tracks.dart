@@ -64,7 +64,7 @@ class MetadataPluginSavedTracksNotifier
     for (final track in tracks) {
       ref.invalidate(metadataPluginIsSavedTrackProvider(track.id));
     }
-    unawaited(persistSnapshot());
+    scheduleSnapshotPersist();
   }
 
   Future<void> removeFavorite(List<SpotubeTrackObject> tracks) async {
@@ -94,7 +94,7 @@ class MetadataPluginSavedTracksNotifier
     for (final track in tracks) {
       ref.invalidate(metadataPluginIsSavedTrackProvider(track.id));
     }
-    unawaited(persistSnapshot());
+    scheduleSnapshotPersist();
   }
 }
 

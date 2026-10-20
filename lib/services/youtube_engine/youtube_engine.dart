@@ -11,11 +11,12 @@ abstract interface class YouTubeEngine {
 
 /// Wall-clock ceiling for a single call into a YouTube backend.
 ///
-/// NewPipe and yt-dlp shell out to a CLI through `Process.run`, which exposes
-/// no handle, and explode waits on an isolate reply. None of those cancel on
-/// their own, so an unresponsive backend hung the caller forever. A timeout
-/// here abandons the await: the process or isolate keeps running to its own
-/// completion and its answer is discarded.
+/// yt-dlp is killed when it misses this budget: `YtDlpProcess` swaps the
+/// package's handle-free `Process.run` for `Process.start` (R-11). The other
+/// backends cannot be — `flutter_new_pipe_extractor` exposes no process seam,
+/// and explode waits on an isolate reply — so for those a timeout still only
+/// abandons the await, and the CLI or isolate runs to its own completion while
+/// its answer is discarded.
 const engineCallBudget = Duration(seconds: 15);
 
 /// Runs one engine [request] under [engineCallBudget], timing it either way.

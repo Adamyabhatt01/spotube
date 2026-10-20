@@ -7,9 +7,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart' as paths;
 import 'package:shadcn_flutter/shadcn_flutter.dart' hide join;
+import 'package:spotube/models/color.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/market.dart';
-import 'package:spotube/modules/settings/color_scheme_picker_dialog.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
@@ -49,10 +49,18 @@ final userPreferencesStatusProvider =
     StateProvider<AsyncValue<void>>((_) => const AsyncLoading());
 
 class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
+  /// The in-flight initial load, exposed so consumers that must not act on
+  /// pre-load defaults can await it. Null only when [build] has not run (a
+  /// test stub overrides it); `await null` is a no-op. The future never
+  /// throws — [loadPreferences] reports and degrades internally.
+  Future<void>? get initialLoad => _initialLoad;
+  Future<void>? _initialLoad;
+
   @override
   build() {
     ref.watch(databaseProvider);
-    unawaited(loadPreferences());
+    _initialLoad ??= loadPreferences();
+    unawaited(_initialLoad!);
     return PreferencesTable.defaults();
   }
 
@@ -73,6 +81,11 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
               PreferencesTableCompanion.insert(
                 id: const Value(0),
                 downloadLocation: Value(await _getDefaultDownloadDirectory()),
+                // Fresh installs allow real transparency: the theme plugin
+                // decides per theme, this is only the user's opt-out. The
+                // column default stays false so no migration is needed and
+                // existing rows keep their stored choice.
+                transparentWindow: const Value(true),
               ),
             );
         result = await (db.select(db.preferencesTable)
@@ -251,6 +264,10 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
     setData(PreferencesTableCompanion(playerDock: Value(dock)));
   }
 
+  void setTransparentWindow(bool enabled) {
+    setData(PreferencesTableCompanion(transparentWindow: Value(enabled)));
+  }
+
   void setLastUpdateCheckMs(int atMs) {
     setData(PreferencesTableCompanion(lastUpdateCheckMs: Value(atMs)));
   }
@@ -287,6 +304,10 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
     setData(PreferencesTableCompanion(pinnedPlaylistIds: Value(ids)));
   }
 
+  void setPinnedStationIds(List<String> ids) {
+    setData(PreferencesTableCompanion(pinnedStationIds: Value(ids)));
+  }
+
   /// Pins [id] to the sidebar when absent, unpins it when present.
   /// Appends pins so a newly pinned playlist lands at the end of the
   /// pinned block (below Local Library by default).
@@ -298,6 +319,19 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
       ids.add(id);
     }
     setPinnedPlaylistIds(ids);
+  }
+
+  /// Pins [favoriteKey] (a station's `provider:id`) to the sidebar when
+  /// absent, unpins it when present. Same append-at-end rule as playlists so
+  /// a newly pinned station lands at the end of the pinned block.
+  void togglePinnedStation(String favoriteKey) {
+    final ids = List<String>.of(state.pinnedStationIds);
+    if (ids.contains(favoriteKey)) {
+      ids.remove(favoriteKey);
+    } else {
+      ids.add(favoriteKey);
+    }
+    setPinnedStationIds(ids);
   }
 
   void setAutoDownloadQuality(bool auto) {
@@ -377,7 +411,7 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
       if (report.didWork) {
         PerfCounters.note('musicCache.evictedFiles', report.removedFiles);
         PerfCounters.note('musicCache.evictedBytes', report.freedBytes);
-        AppLogger.log.d('Music cache trimmed: $report');
+        AppLogger.log.d(() => 'Music cache trimmed: $report');
       }
       return report;
     } catch (e, stack) {
@@ -387,9 +421,20 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
     }
   }
 
-  /// Delete `.part` files that an interrupted mirror abandoned. They are never
-  /// renamed into the cache, so each one is pure waste, and the window is long
-  /// enough that a mirror still running in another instance is untouched.
+  /// Startup disk hygiene for staged transfers, in three places:
+  ///
+  ///  1. `.part` files in the music cache that an interrupted playback mirror
+  ///     abandoned. Never renamed into the cache, so each is pure waste.
+  ///  2. `.part` files in the download folder that a killed chunked download
+  ///     abandoned. Staging lives next to the target, which is the user's own
+  ///     music folder, so these are up to a whole track each and the library
+  ///     scan hides them.
+  ///  3. The legacy `.chunk_dl_*` scratch dirs under `<temp>/Spotube`, from
+  ///     before downloads wrote positionally. Startup is before this process
+  ///     can have a download in flight, so no age window applies to those.
+  ///
+  /// Every window is [staleMirrorWindow], long enough that a transfer still
+  /// running in this or another instance is untouched.
   Future<void> sweepStaleMusicCacheMirrors() async {
     try {
       final report = await sweepIncompleteMirrors(
@@ -399,7 +444,42 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
       if (report.didWork) {
         PerfCounters.note('musicCache.sweptFiles', report.removedFiles);
         PerfCounters.note('musicCache.sweptBytes', report.freedBytes);
-        AppLogger.log.d('Abandoned mirror parts removed: $report');
+        AppLogger.log.d(() => 'Abandoned mirror parts removed: $report');
+      }
+    } catch (e, stack) {
+      AppLogger.reportError(e, stack);
+    }
+
+    // Chunked downloads stage next to their *target*, i.e. inside the user's
+    // music folder, so a SIGKILL / OOM / power loss mid-download left a file up
+    // to the size of a whole track there permanently — the library scan does
+    // not even list them (`.part` matches no supported audio type), so the only
+    // symptom is the folder quietly filling up until downloads start failing
+    // with ENOSPC. Same age window as the mirror sweep, so an in-flight
+    // transfer here or in a second instance survives.
+    try {
+      final report = await sweepIncompleteMirrors(
+        dir: Directory(state.downloadLocation),
+        olderThan: staleMirrorWindow,
+      );
+      if (report.didWork) {
+        PerfCounters.note('downloads.sweptStagingFiles', report.removedFiles);
+        PerfCounters.note('downloads.sweptStagingBytes', report.freedBytes);
+        AppLogger.log.d(() => 'Abandoned download staging removed: $report');
+      }
+    } catch (e, stack) {
+      AppLogger.reportError(e, stack);
+    }
+
+    // Chunk staging from before positional writes lived in the temp dir;
+    try {
+      final report = await sweepStaleChunkStaging();
+      if (report.didWork) {
+        PerfCounters.note(
+          'downloads.sweptChunkDirs',
+          report.removedFiles,
+        );
+        AppLogger.log.d(() => 'Legacy chunk scratch removed: $report');
       }
     } catch (e, stack) {
       AppLogger.reportError(e, stack);

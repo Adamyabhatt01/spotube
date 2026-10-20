@@ -11,7 +11,7 @@ import 'package:spotube/components/inter_scrollbar/inter_scrollbar.dart';
 import 'package:spotube/components/titlebar/titlebar.dart';
 import 'package:spotube/components/ui/button_tile.dart';
 import 'package:spotube/extensions/context.dart';
-import 'package:spotube/hooks/utils/use_debounce.dart';
+import 'package:spotube/hooks/utils/use_debounced_filter.dart';
 import 'package:spotube/provider/blacklist_provider.dart';
 import 'package:auto_route/auto_route.dart';
 
@@ -25,14 +25,8 @@ class BlackListPage extends HookConsumerWidget {
   Widget build(BuildContext context, ref) {
     final controller = useScrollController();
     final blacklist = ref.watch(blacklistProvider);
-    final searchText = useState("");
-    // Collapses a burst of keystrokes into one fuzzy pass; clearing the box
-    // still filters instantly via the empty fast path below.
-    final searchQuery = useDebounce(
-      searchText.value,
-      const Duration(milliseconds: 200),
-    );
-    final effectiveQuery = searchText.value.isEmpty ? '' : searchQuery;
+    final search = useDebouncedFilter();
+    final effectiveQuery = search.query;
 
     final filteredBlacklist = useMemoized(
       () {
@@ -53,7 +47,7 @@ class BlackListPage extends HookConsumerWidget {
                 .toList() ??
             [];
       },
-      [blacklist, effectiveQuery, searchText.value.isEmpty],
+      [blacklist, effectiveQuery, search.value.isEmpty],
     );
 
     return SafeArea(
@@ -71,7 +65,7 @@ class BlackListPage extends HookConsumerWidget {
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: TextField(
-                onChanged: (value) => searchText.value = value,
+                onChanged: search.onChange,
                 placeholder: Text(context.l10n.search),
                 // prefixIcon: const Icon(SpotubeIcons.search),
               ),

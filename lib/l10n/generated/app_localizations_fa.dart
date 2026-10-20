@@ -45,6 +45,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get songs => 'آهنگ ها';
 
   @override
+  String get music => 'Music';
+
+  @override
   String playing_track(Object track) {
     return 'درحال پخش $track';
   }
@@ -1123,6 +1126,17 @@ class AppLocalizationsFa extends AppLocalizations {
   String get recently_played => 'اخیراً پخش شده';
 
   @override
+  String get recent_searches => 'Recent searches';
+
+  @override
+  String get from_your_library => 'From your library';
+
+  @override
+  String see_all_results_for(Object term) {
+    return 'See all results for \"$term\"';
+  }
+
+  @override
   String get browse_more => 'بیشتر مرور کنید';
 
   @override
@@ -1453,6 +1467,13 @@ class AppLocalizationsFa extends AppLocalizations {
       'Playlists pinned under the Library section. Drag to reorder.';
 
   @override
+  String get pinned_stations => 'Pinned stations';
+
+  @override
+  String get pinned_stations_description =>
+      'Radio stations pinned under the playlists. Drag to reorder.';
+
+  @override
   String get pin_to_sidebar => 'Pin to sidebar';
 
   @override
@@ -1562,6 +1583,11 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get youtube_engine_unix_issue_message =>
       'در macOS/Linux/سیستم‌عامل‌های مشابه Unix، تنظیم مسیر در .zshrc/.bashrc/.bash_profile و غیره کار نمی‌کند.\nباید مسیر را در فایل پیکربندی شل تنظیم کنید.';
+
+  @override
+  String youtube_engine_android_issue_message(Object engine) {
+    return 'Android has no official $engine build: it is a Python program and Android ships no Python.\nTo use it here, put a working $engine (with the Python it needs) in a directory this app can execute — /data/local/tmp or the app\'s own files folder — and set the absolute path below. The file also needs its execute bit set.';
+  }
 
   @override
   String get download => 'دانلود';

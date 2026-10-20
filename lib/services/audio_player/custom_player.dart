@@ -21,6 +21,18 @@ class CustomPlayer extends Player {
   CustomPlayer({super.configuration})
       : _playerStateStream = StreamController.broadcast() {
     nativePlayer.setProperty("network-timeout", "120");
+    // media_kit turns mpv's disk cache on by default, which writes every
+    // streamed byte to mpv's own cache dir behind Spotube's back. Spotube
+    // already mirrors streams into the quota-managed music cache
+    // (PlaybackCacheMirror + enforceCacheQuota), so the duplicate is pure
+    // disk and battery cost. Memory demuxer cache is untouched.
+    nativePlayer.setProperty("cache-on-disk", "no");
+    // Audio-only client: with `vo=null` mpv still selects and decodes an
+    // embedded-art video track (and honors subtitle tracks) for every file.
+    // Rejecting both at the property level removes that decode work and
+    // persists across loads.
+    nativePlayer.setProperty("vid", "no");
+    nativePlayer.setProperty("sid", "no");
 
     _subscriptions = [
       stream.buffering.listen((event) {

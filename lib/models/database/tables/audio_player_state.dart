@@ -18,13 +18,29 @@ class SpotubeTrackObjectListConverter
 
   @override
   List<SpotubeTrackObject> fromSql(String fromDb) {
-    final raw = (jsonDecode(fromDb) as List).cast<Map>();
+    // A corrupt queue row must not break restore: quarantine to empty and
+    // let the app start with no queue rather than throwing from the drift
+    // converter (previously `as List` threw here).
+    List<Map> raw;
+    try {
+      raw = (jsonDecode(fromDb) as List).cast<Map>();
+    } catch (_) {
+      return const <SpotubeTrackObject>[];
+    }
 
     return PerfCounters.measured('queue.decode', () {
       PerfCounters.note('queue.decodeRows', raw.length);
-      return raw
-          .map((e) => SpotubeTrackObject.fromJson(e.cast<String, dynamic>()))
-          .toList();
+      final tracks = <SpotubeTrackObject>[];
+      for (final e in raw) {
+        try {
+          tracks.add(
+            SpotubeTrackObject.fromJson(e.cast<String, dynamic>()),
+          );
+        } catch (_) {
+          // Skip the single bad entry; keep the rest of the queue.
+        }
+      }
+      return tracks;
     });
   }
 

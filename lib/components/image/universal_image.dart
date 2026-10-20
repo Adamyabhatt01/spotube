@@ -6,6 +6,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:spotube/collections/assets.gen.dart';
+import 'package:spotube/services/artwork_cache_manager.dart';
+import 'package:spotube/services/memory/memory_budget.dart';
 
 class UniversalImage extends HookWidget {
   final String path;
@@ -29,9 +31,15 @@ class UniversalImage extends HookWidget {
   /// CPU and RAM when scrolling long local-track lists. Bounded by total
   /// bytes (not entry count) so a few large artworks cannot accumulate
   /// unbounded memory.
+  ///
+  /// The byte budget is device-aware (see [MemoryBudget]): a third of the
+  /// image-cache budget, which itself follows what the platform says this
+  /// app may keep. On a small phone this shrinks the cache; on a desktop it
+  /// stays where it was.
   static final Map<String, Uint8List> _decodedMemoryCache = {};
-  static const int _maxDecodedBytes = 24 * 1024 * 1024; // 24MB
   static int _decodedBytes = 0;
+
+  static int get _maxDecodedBytes => MemoryBudget.decodedArtworkBytes;
 
   static Uint8List _decodeMemory(String path) {
     final cached = _decodedMemoryCache.remove(path);
@@ -68,6 +76,7 @@ class UniversalImage extends HookWidget {
         maxWidth: width?.toInt(),
         cacheKey: path,
         scale: scale,
+        cacheManager: ArtworkCacheManager.instance,
       );
     } else if (path.startsWith("assets/")) {
       return AssetImage(path);
@@ -110,6 +119,7 @@ class UniversalImage extends HookWidget {
           maxWidth: width?.toInt(),
           cacheKey: path,
           scale: scale,
+          cacheManager: ArtworkCacheManager.instance,
         ),
         height: height,
         width: width,

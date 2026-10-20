@@ -5,13 +5,12 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:spotube/collections/fake.dart';
-import 'package:spotube/components/fallbacks/error_box.dart';
 import 'package:spotube/components/waypoint.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/modules/artist/artist_card.dart';
-import 'package:spotube/modules/search/loading.dart';
-import 'package:spotube/pages/search/search.dart';
+import 'package:spotube/modules/search/search_tab_scaffold.dart';
+import 'package:spotube/modules/search/search_term.dart';
 import 'package:spotube/provider/metadata_plugin/search/artists.dart';
 
 class SearchPageArtistsTab extends HookConsumerWidget {
@@ -28,17 +27,11 @@ class SearchPageArtistsTab extends HookConsumerWidget {
         ref.read(metadataPluginSearchArtistsProvider(searchTerm).notifier);
     final searchArtists = searchArtistsSnapshot.asData?.value.items ?? [];
 
-    if (searchArtistsSnapshot.hasError) {
-      return ErrorBox(
-        error: searchArtistsSnapshot.error!,
-        onRetry: () {
-          ref.invalidate(metadataPluginSearchArtistsProvider(searchTerm));
-        },
-      );
-    }
-
-    return SearchPlaceholder(
+    return SearchTabScaffold(
       snapshot: searchArtistsSnapshot,
+      onRetry: () {
+        ref.invalidate(metadataPluginSearchArtistsProvider(searchTerm));
+      },
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         child: LayoutBuilder(builder: (context, _) {

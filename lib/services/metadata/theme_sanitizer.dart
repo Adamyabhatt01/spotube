@@ -24,6 +24,11 @@ ThemeDefinition sanitizeThemeDefinition(ThemeDefinition definition) {
     background: definition.background.copyWith(
       opacity: _fraction(definition.background.opacity, 0.0),
       blur: _px(definition.background.blur, max: 100),
+      // Tri-state opt-in, intentionally unclamped: a bool cannot poison
+      // layout, and the tri-state (true/false/absent) is the contract —
+      // normalizing here would collapse "no opinion" into a decision.
+      // Non-bool payloads already decode to null in `fromJson`.
+      transparent: definition.background.transparent,
     ),
     radius: radius.copyWith(
       small: _px(radius.small, max: 48),

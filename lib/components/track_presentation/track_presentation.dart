@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/components/titlebar/titlebar.dart';
+import 'package:spotube/components/button/back_button.dart';
 import 'package:spotube/components/track_presentation/presentation_list.dart';
 import 'package:spotube/components/track_presentation/presentation_props.dart';
 import 'package:spotube/components/track_presentation/presentation_top.dart';
@@ -49,7 +50,14 @@ class TrackPresentation extends HookConsumerWidget {
       child: SafeArea(
         bottom: false,
         child: Scaffold(
-          headers: const [TitleBar()],
+          // All three call sites (album, playlist, liked-tracks) are
+          // pushed routes, never tab roots — back always has somewhere
+          // to go. Matches ArtistPage's TitleBar precedent.
+          headers: const [
+            TitleBar(
+              leading: [BackButton()],
+            )
+          ],
           child: CustomScrollView(
             controller: scrollController,
             slivers: [

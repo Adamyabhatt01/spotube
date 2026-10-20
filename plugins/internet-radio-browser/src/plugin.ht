@@ -1,0 +1,160 @@
+import "module:std" as std
+
+var HttpClient = std.HttpClient
+var HttpBaseOptions = std.HttpBaseOptions
+var HttpResponse = std.HttpResponse
+
+const host = "https://de1.api.radio-browser.info/json"
+const agent = "Spotube/InternetRadioBrowser"
+
+/// Directory source: radio-browser.info, a community-run keyless aggregator.
+///
+/// Every method returns a plain JSON-shaped value so it crosses the Hetu
+/// boundary without leaking a struct: `.toJson()` on maps, and lists of
+/// `.toJson()` maps. The shapes match Spotube's `RadioStation`, `RadioTag`
+/// and `RadioCountry` models plus the pagination envelope, which is what
+/// `MetadataPluginRadioEndpoint` parses on the other side.
+///
+/// There is no `await` in Hetu 0.4.2, so async work is returned as a
+/// `Future` built from `.then`.
+class RadioBrowser {
+  fun _client() -> HttpClient {
+    return HttpClient(HttpBaseOptions(
+      baseUrl: host,
+      headers: {
+        "User-Agent": agent,
+        "Accept": "application/json"
+      }.toJson()
+    ));
+  }
+
+  fun _station(s: Map) -> Map {
+    var resolved = s["url_resolved"] ?? ""
+    var declared = s["url"] ?? ""
+    var streamUrl = resolved != "" ? resolved : declared
+    var code = s["countrycode"] ?? ""
+
+    return {
+      "id": s["stationuuid"] ?? s["changeuuid"],
+      "name": (s["name"] ?? "").trim(),
+      "streamUrl": streamUrl,
+      "tags": (s["tags"] ?? "")
+          .split(",")
+          .map((t) => t.trim())
+          .where((t) => t != "")
+          .toList(),
+      "country": code != "" ? code : (s["country"] ?? ""),
+      "faviconUrl": s["favicon"],
+      "homepageUrl": s["homepage"],
+      "codec": s["codec"],
+      "bitrate": s["bitrate"],
+      "isVip": s["vip"] ?? false
+    }.toJson();
+  }
+
+  /// Playable-only, like the in-app directory: a station whose stream is not
+  /// an http(s) URL is dropped rather than surfaced to a player that cannot
+  /// open it.
+  fun _isPlayable(s: Map) -> bool {
+    var url = s["streamUrl"].toString()
+    return url.startsWith("http://") || url.startsWith("https://")
+  }
+
+  fun stations(query: Map) -> Future {
+    var offset = query["offset"] ?? 0
+    var limit = query["limit"] ?? 20
+    var tag = query["tag"]
+    var country = query["country"]
+    var search = query["search"]
+
+    var params = {
+      "offset": "${offset}",
+      "limit": "${limit}",
+      "order": "clickcount",
+      "reverse": "true",
+      "hidebroken": "true"
+    }.toJson()
+
+    if (tag != null && tag != "") {
+      params["tag"] = tag
+    }
+    if (country != null && country != "") {
+      params["countrycode"] = country
+    }
+    if (search != null && search != "") {
+      params["name"] = search
+    }
+
+    return _client().get_req("/stations/search", queryParameters: params).then((res) {
+      var items = res.data
+          .map((s) => _station(s))
+          .where((s) => _isPlayable(s))
+          .toList()
+
+      return {
+        "limit": limit,
+        "nextOffset": offset + limit,
+        "total": offset + items.length,
+        "hasMore": items.length == limit,
+        "items": items
+      }.toJson()
+    })
+  }
+
+  fun byId(id: string) -> Future {
+    return _client()
+        .get_req("/stations/byuuid/${id}", queryParameters: {
+      "hidebroken": "true"
+    }.toJson())
+        .then((res) {
+      var list = res.data
+      if (list.length == 0) {
+        return {}.toJson()
+      }
+      return _station(list[0])
+    })
+  }
+
+  fun tags(query: Map) -> Future {
+    return _client().get_req("/tags", queryParameters: {
+      "limit": "${query['limit'] ?? 50}",
+      "order": "stationcount",
+      "reverse": "true",
+      "hidebroken": "true"
+    }.toJson()).then((res) {
+      return res.data
+          .map((t) => {
+            "name": t["name"],
+            "stationCount": t["stationcount"]
+          }.toJson())
+          .toList()
+    })
+  }
+
+  fun countries(query: Map) -> Future {
+    return _client().get_req("/countries", queryParameters: {
+      "limit": "${query['limit'] ?? 100}",
+      "order": "stationcount",
+      "reverse": "true",
+      "hidebroken": "true"
+    }.toJson()).then((res) {
+      return res.data
+          .map((c) => {
+            "code": c["countrycode"] ?? c["name"],
+            "name": c["name"],
+            "stationCount": c["stationcount"]
+          }.toJson())
+          .toList()
+    })
+  }
+}
+
+class InternetRadioBrowserPlugin {
+  var radio: RadioBrowser
+
+  construct() {
+    radio = RadioBrowser()
+  }
+}
+
+export { InternetRadioBrowserPlugin }

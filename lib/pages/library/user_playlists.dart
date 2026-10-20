@@ -5,14 +5,12 @@ import 'package:collection/collection.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' hide Image;
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
-import 'package:spotube/collections/assets.gen.dart';
-
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/fallbacks/error_box.dart';
 import 'package:spotube/components/fallbacks/no_default_metadata_plugin.dart';
-import 'package:spotube/hooks/utils/use_debounce.dart';
+import 'package:spotube/hooks/utils/use_debounced_filter.dart';
 import 'package:spotube/components/playbutton_view/playbutton_view.dart';
-import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/playlist/liked_playlist_synthetic.dart';
 import 'package:spotube/modules/playlist/playlist_create_dialog.dart';
 import 'package:spotube/components/inter_scrollbar/inter_scrollbar.dart';
 import 'package:spotube/components/fallbacks/anonymous_fallback.dart';
@@ -35,14 +33,8 @@ class UserPlaylistsPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, ref) {
-    final searchText = useState('');
-    // Collapses a burst of keystrokes into one fuzzy pass; clearing the box
-    // still filters instantly via the empty fast path below.
-    final searchQuery = useDebounce(
-      searchText.value,
-      const Duration(milliseconds: 200),
-    );
-    final effectiveQuery = searchText.value.isEmpty ? '' : searchQuery;
+    final search = useDebouncedFilter();
+    final effectiveQuery = search.query;
 
     final authenticated = ref.watch(metadataPluginAuthenticatedProvider);
 
@@ -52,22 +44,15 @@ class UserPlaylistsPage extends HookConsumerWidget {
         ref.watch(metadataPluginSavedPlaylistsProvider.notifier);
 
     final likedTracksPlaylist = useMemoized(
-      () => me.asData?.value == null
-          ? null
-          : SpotubeSimplePlaylistObject(
-              id: "user-liked-tracks",
-              name: context.l10n.liked_tracks,
-              description: context.l10n.liked_tracks_description,
-              externalUri: "",
-              owner: me.asData!.value!,
-              images: [
-                  SpotubeImageObject(
-                    url: Assets.images.likedTracks.path,
-                    width: 300,
-                    height: 300,
-                  )
-                ]),
-      [context.l10n, me.asData?.value],
+      () => resolveLikedTracksPlaylist(
+        name: context.l10n.liked_tracks,
+        description: context.l10n.liked_tracks_description,
+        me: me.asData?.value,
+        // Local plugin state: stays true offline, so the entry survives
+        // losing the network exactly like the sidebar pin now does.
+        authenticated: authenticated.asData?.value,
+      ),
+      [context.l10n, me.asData?.value, authenticated.asData?.value],
     );
 
     final mirroredPlaylists =
@@ -82,8 +67,12 @@ class UserPlaylistsPage extends HookConsumerWidget {
 
     // Offline the disk snapshot still lists every Spotify playlist the user
     // ever saved, but only the mirrored ones can render their songs. Showing
-    // the rest as tappable cards is a promise the page cannot keep.
+    // the rest as tappable cards is a promise the page cannot keep. Liked
+    // Tracks is the exception: its tracks come from the savedTracks snapshot
+    // (stale-while-revalidate), so a signed-in user keeps that one card.
     final isOnline = ref.watch(isOnlineProvider).asData?.value ?? true;
+    final showLikedOffline =
+        !isOnline && authenticated.asData?.value == true;
 
     final playlists = useMemoized(
       () {
@@ -92,7 +81,10 @@ class UserPlaylistsPage extends HookConsumerWidget {
                 if (likedTracksPlaylist != null) likedTracksPlaylist,
                 ...?playlistsQuery.asData?.value.items,
               ]
-            : const <SpotubeSimplePlaylistObject>[];
+            : [
+                if (showLikedOffline && likedTracksPlaylist != null)
+                  likedTracksPlaylist,
+              ];
         // A downloaded playlist is usually also in the Spotify list, so the
         // mirror rows only have to supply what the network did not: merged by
         // id, never a second card for one playlist.
@@ -116,10 +108,12 @@ class UserPlaylistsPage extends HookConsumerWidget {
       [
         playlistsQuery,
         effectiveQuery,
-        searchText.value.isEmpty,
+        search.value.isEmpty,
         mirroredPlaylists,
         isOnline,
         pinnedIds,
+        likedTracksPlaylist,
+        showLikedOffline,
       ],
     );
 
@@ -171,7 +165,7 @@ class UserPlaylistsPage extends HookConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   height: 48,
                   child: TextField(
-                    onChanged: (value) => searchText.value = value,
+                    onChanged: search.onChange,
                     placeholder: Text(context.l10n.filter_playlists),
                     features: const [
                       InputFeature.leading(Icon(SpotubeIcons.filter)),
@@ -187,15 +181,6 @@ class UserPlaylistsPage extends HookConsumerWidget {
                     child: Row(
                       children: [
                         PlaylistCreateDialogButton(),
-                        // const Gap(10),
-                        // Button.primary(
-                        //   leading: const Icon(SpotubeIcons.magic),
-                        //   child: Text(context.l10n.generate),
-                        //   onPressed: () {
-                        //     context.navigateTo(const PlaylistGeneratorRoute());
-                        //   },
-                        // ),
-                        // const Gap(10),
                       ],
                     ),
                   ),

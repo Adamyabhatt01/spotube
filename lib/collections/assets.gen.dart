@@ -14,10 +14,6 @@ import 'package:flutter/widgets.dart';
 class $AssetsBrandingGen {
   const $AssetsBrandingGen();
 
-  /// File path: assets/branding/spotube-logo-light.png
-  AssetGenImage get spotubeLogoLight =>
-      const AssetGenImage('assets/branding/spotube-logo-light.png');
-
   /// File path: assets/branding/spotube-logo.ico
   String get spotubeLogoIco => 'assets/branding/spotube-logo.ico';
 
@@ -26,8 +22,7 @@ class $AssetsBrandingGen {
       const AssetGenImage('assets/branding/spotube-logo.png');
 
   /// List of all assets
-  List<dynamic> get values =>
-      [spotubeLogoLight, spotubeLogoIco, spotubeLogoPng];
+  List<dynamic> get values => [spotubeLogoIco, spotubeLogoPng];
 }
 
 class $AssetsImagesGen {
@@ -44,9 +39,6 @@ class $AssetsImagesGen {
   /// File path: assets/images/liked-tracks.jpg
   AssetGenImage get likedTracks =>
       const AssetGenImage('assets/images/liked-tracks.jpg');
-
-  /// Directory path: assets/images/logos
-  $AssetsImagesLogosGen get logos => const $AssetsImagesLogosGen();
 
   /// File path: assets/images/placeholder.png
   AssetGenImage get placeholder =>
@@ -69,6 +61,16 @@ class $AssetsImagesGen {
 class $AssetsPluginsGen {
   const $AssetsPluginsGen();
 
+  /// Directory path: assets/plugins/spotube-plugin-internet-radio-browser
+  $AssetsPluginsSpotubePluginInternetRadioBrowserGen
+      get spotubePluginInternetRadioBrowser =>
+          const $AssetsPluginsSpotubePluginInternetRadioBrowserGen();
+
+  /// Directory path: assets/plugins/spotube-plugin-internet-radio-somafm
+  $AssetsPluginsSpotubePluginInternetRadioSomafmGen
+      get spotubePluginInternetRadioSomafm =>
+          const $AssetsPluginsSpotubePluginInternetRadioSomafmGen();
+
   /// Directory path: assets/plugins/spotube-plugin-musicbrainz-listenbrainz
   $AssetsPluginsSpotubePluginMusicbrainzListenbrainzGen
       get spotubePluginMusicbrainzListenbrainz =>
@@ -79,23 +81,26 @@ class $AssetsPluginsGen {
       const $AssetsPluginsSpotubePluginYoutubeAudioGen();
 }
 
-class $AssetsImagesLogosGen {
-  const $AssetsImagesLogosGen();
+class $AssetsPluginsSpotubePluginInternetRadioBrowserGen {
+  const $AssetsPluginsSpotubePluginInternetRadioBrowserGen();
 
-  /// File path: assets/images/logos/dab-music.png
-  AssetGenImage get dabMusic =>
-      const AssetGenImage('assets/images/logos/dab-music.png');
-
-  /// File path: assets/images/logos/invidious.jpg
-  AssetGenImage get invidious =>
-      const AssetGenImage('assets/images/logos/invidious.jpg');
-
-  /// File path: assets/images/logos/jiosaavn.png
-  AssetGenImage get jiosaavn =>
-      const AssetGenImage('assets/images/logos/jiosaavn.png');
+  /// File path: assets/plugins/spotube-plugin-internet-radio-browser/plugin.smplug
+  String get plugin =>
+      'assets/plugins/spotube-plugin-internet-radio-browser/plugin.smplug';
 
   /// List of all assets
-  List<AssetGenImage> get values => [dabMusic, invidious, jiosaavn];
+  List<String> get values => [plugin];
+}
+
+class $AssetsPluginsSpotubePluginInternetRadioSomafmGen {
+  const $AssetsPluginsSpotubePluginInternetRadioSomafmGen();
+
+  /// File path: assets/plugins/spotube-plugin-internet-radio-somafm/plugin.smplug
+  String get plugin =>
+      'assets/plugins/spotube-plugin-internet-radio-somafm/plugin.smplug';
+
+  /// List of all assets
+  List<String> get values => [plugin];
 }
 
 class $AssetsPluginsSpotubePluginMusicbrainzListenbrainzGen {

@@ -21,7 +21,6 @@ import 'package:spotube/hooks/controllers/use_shadcn_text_editing_controller.dar
 import 'package:spotube/hooks/utils/use_debounce.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/library/local_folder/cache_export_dialog.dart';
-import 'package:spotube/pages/library/user_local_tracks/user_local_tracks.dart';
 import 'package:spotube/components/expandable_search/expandable_search.dart';
 import 'package:spotube/components/inter_scrollbar/inter_scrollbar.dart';
 import 'package:spotube/components/titlebar/titlebar.dart';
@@ -34,6 +33,7 @@ import 'package:spotube/provider/audio_player/state.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/utils/service_utils.dart';
 import 'package:auto_route/auto_route.dart';
+import 'package:spotube/models/sort.dart';
 
 @RoutePage()
 class LocalLibraryPage extends HookConsumerWidget {
@@ -102,6 +102,71 @@ class LocalLibraryPage extends HookConsumerWidget {
     showToastForAction(context, "add-to-queue", tracks.length);
   }
 
+  /// Extracted verbatim from the clear-cache button's `onPressed` — the
+  /// confirmation dialog, the recursive delete and the rescan invalidation
+  /// are unchanged.
+  Future<void> clearCache(BuildContext context, WidgetRef ref) async {
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.l10n.clear_cache_confirmation),
+        actions: [
+          Button.outline(
+            onPressed: () {
+              Navigator.of(context).pop(false);
+            },
+            child: Text(context.l10n.decline),
+          ),
+          Button.destructive(
+            onPressed: () async {
+              Navigator.of(context).pop(true);
+            },
+            child: Text(context.l10n.accept),
+          ),
+        ],
+      ),
+    );
+
+    if (accepted != true) return;
+
+    final cacheDir = Directory(
+      await UserPreferencesNotifier.getMusicCacheDir(),
+    );
+
+    if (cacheDir.existsSync()) {
+      await cacheDir.delete(recursive: true);
+    }
+
+    ref.invalidate(localTracksProvider);
+  }
+
+  /// Extracted verbatim from the export button's `onPressed` — the picker,
+  /// directory creation and the export dialog wiring are unchanged.
+  Future<void> exportCache(BuildContext context) async {
+    final exportPath = await FilePicker.platform.getDirectoryPath();
+
+    if (exportPath == null) return;
+    final exportDirectory = Directory(exportPath);
+
+    if (!exportDirectory.existsSync()) {
+      await exportDirectory.create(recursive: true);
+    }
+
+    final cacheDir = Directory(
+        await UserPreferencesNotifier.getMusicCacheDir());
+
+    if (!context.mounted) return;
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return LocalFolderCacheExportDialog(
+          cacheDir: cacheDir,
+          exportDir: exportDirectory,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, ref) {
     final scale = context.theme.scaling;
@@ -138,10 +203,18 @@ class LocalLibraryPage extends HookConsumerWidget {
       final dir = Directory(location);
       final files = await dir.list(recursive: true).toList();
 
-      final filesLength =
-          await Future.wait(files.whereType<File>().map((e) => e.length()));
+      // Bound the fan-out: a large library would otherwise launch one stat per
+      // file at once, saturating the I/O pool and spiking the event loop.
+      const wave = 64;
+      final targets = files.whereType<File>().toList();
+      var sum = 0;
+      for (var i = 0; i < targets.length; i += wave) {
+        final slice = targets.sublist(i, (i + wave).clamp(0, targets.length));
+        final lengths = await Future.wait(slice.map((e) => e.length()));
+        sum += lengths.sum;
+      }
 
-      return (filesLength.sum.toInt() / pow(10, 9)).toStringAsFixed(2);
+      return (sum / pow(10, 9)).toStringAsFixed(2);
     }, [location]);
 
     return SafeArea(
@@ -189,40 +262,7 @@ class LocalLibraryPage extends HookConsumerWidget {
                       Text(context.l10n.clear_cache)
                     ],
                   ).xSmall().iconSmall(),
-                  onPressed: () async {
-                    final accepted = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(context.l10n.clear_cache_confirmation),
-                        actions: [
-                          Button.outline(
-                            onPressed: () {
-                              Navigator.of(context).pop(false);
-                            },
-                            child: Text(context.l10n.decline),
-                          ),
-                          Button.destructive(
-                            onPressed: () async {
-                              Navigator.of(context).pop(true);
-                            },
-                            child: Text(context.l10n.accept),
-                          ),
-                        ],
-                      ),
-                    );
-
-                    if (accepted != true) return;
-
-                    final cacheDir = Directory(
-                      await UserPreferencesNotifier.getMusicCacheDir(),
-                    );
-
-                    if (cacheDir.existsSync()) {
-                      await cacheDir.delete(recursive: true);
-                    }
-
-                    ref.invalidate(localTracksProvider);
-                  },
+                  onPressed: () => clearCache(context, ref),
                 ),
                 IconButton.outline(
                   size: ButtonSize.small,
@@ -235,31 +275,7 @@ class LocalLibraryPage extends HookConsumerWidget {
                       )
                     ],
                   ).xSmall().iconSmall(),
-                  onPressed: () async {
-                    final exportPath =
-                        await FilePicker.platform.getDirectoryPath();
-
-                    if (exportPath == null) return;
-                    final exportDirectory = Directory(exportPath);
-
-                    if (!exportDirectory.existsSync()) {
-                      await exportDirectory.create(recursive: true);
-                    }
-
-                    final cacheDir = Directory(
-                        await UserPreferencesNotifier.getMusicCacheDir());
-
-                    if (!context.mounted) return;
-                    await showDialog(
-                      context: context,
-                      builder: (context) {
-                        return LocalFolderCacheExportDialog(
-                          cacheDir: cacheDir,
-                          exportDir: exportDirectory,
-                        );
-                      },
-                    );
-                  },
+                  onPressed: () => exportCache(context),
                 ),
               ]
             ],

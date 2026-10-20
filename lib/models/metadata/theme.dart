@@ -159,11 +159,27 @@ class ThemeBackground with _$ThemeBackground {
     /// Flutter-native `#AARRGGBB` (alpha honored, e.g. `#80000000`
     /// is 50% black). Brightness-adapted by the host layer.
     String? overlay,
+
+    /// Real window transparency opt-in, tri-state by design:
+    /// - `true`: theme wants the compositor to show through (still needs
+    ///   the host master setting);
+    /// - `false`: explicit veto, always opaque even with the setting on;
+    /// - absent (`null`): no opinion, the host setting decides alone (this
+    ///   is what old themes decode to).
+    /// Decoded leniently: anything that is not a JSON bool reads as absent,
+    /// so one malformed flag can never nuke the whole theme.
+    @JsonKey(fromJson: _transparentFromJson) bool? transparent,
   }) = _ThemeBackground;
 
   factory ThemeBackground.fromJson(Map<String, dynamic> json) =>
       _$ThemeBackgroundFromJson(json);
 }
+
+/// Lenient tri-state decode for [ThemeBackground.transparent]: only a real
+/// JSON bool carries an opinion; everything else (absent, null, strings,
+/// numbers) defers to the host setting.
+bool? _transparentFromJson(dynamic value) =>
+    value is bool ? value : null;
 
 enum ThemeBackgroundSource {
   none,

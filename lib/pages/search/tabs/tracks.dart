@@ -4,12 +4,12 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:spotube/collections/fake.dart';
 import 'package:spotube/components/dialogs/prompt_dialog.dart';
 import 'package:spotube/components/dialogs/select_device_dialog.dart';
-import 'package:spotube/components/fallbacks/error_box.dart';
+import 'package:spotube/components/fallbacks/not_found.dart';
 import 'package:spotube/components/track_tile/track_tile.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/connect/connect.dart';
-import 'package:spotube/modules/search/loading.dart';
-import 'package:spotube/pages/search/search.dart';
+import 'package:spotube/modules/search/search_tab_scaffold.dart';
+import 'package:spotube/modules/search/search_term.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/connect/connect.dart';
 import 'package:spotube/provider/metadata_plugin/search/tracks.dart';
@@ -35,18 +35,15 @@ class SearchPageTracksTab extends HookConsumerWidget {
         ref.watch(audioPlayerProvider.select((s) => s.activeTrack?.id));
     final playlistNotifier = ref.watch(audioPlayerProvider.notifier);
 
-    if (searchTracksSnapshot.hasError) {
-      return ErrorBox(
-        error: searchTracksSnapshot.error!,
-        onRetry: () {
-          ref.invalidate(metadataPluginSearchTracksProvider(searchTerm));
-        },
-      );
-    }
-
-    return SearchPlaceholder(
+    return SearchTabScaffold(
       snapshot: searchTracksSnapshot,
-      child: InfiniteList(
+      onRetry: () {
+        ref.invalidate(metadataPluginSearchTracksProvider(searchTerm));
+      },
+      child: searchTracksSnapshot.hasValue &&
+              searchTracksSnapshot.asData?.value.items.isEmpty == true
+          ? const Center(child: NotFound())
+          : InfiniteList(
         itemCount: searchTracksSnapshot.asData?.value.items.length ?? 0,
         hasReachedMax: searchTracksSnapshot.asData?.value.hasMore != true,
         isLoading: searchTracksSnapshot.isLoading &&

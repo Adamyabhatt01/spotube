@@ -18,8 +18,20 @@ import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 
 typedef UseActionCallbacks = ({
+  /// Whether this collection is in the player's queue.
   bool isActive,
+  /// Whether the audio is currently sounding.
+  ///
+  /// Distinct from [isActive]: a collection stays in the queue while
+  /// paused, so the play/pause icon has to follow the audio.
+  bool isPlaying,
   bool isLoading,
+  /// Whether the collection has at least one loaded track.
+  ///
+  /// Header actions stay disabled until this is true: a tap during the first
+  /// page load (or on an empty collection) must never reach
+  /// [Random.nextInt] with a length of zero.
+  bool hasTracks,
   Future<void> Function() onShuffle,
   Future<void> Function() onPlay,
   VoidCallback onAddToQueue,
@@ -40,6 +52,12 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
     [playlistCollections, options.collectionId],
   );
 
+  // Whether the audio is actually sounding right now. Narrowly selected so
+  // the header only rebuilds on start/stop, not on queue edits.
+  final isPlaying = ref.watch(
+    audioPlayerProvider.select((s) => s.playing),
+  );
+
   final onShuffle = useCallback(() async {
     try {
       isLoading.value = true;
@@ -51,6 +69,7 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
       if (isRemoteDevice == null) return;
       if (isRemoteDevice) {
         final allTracks = await options.pagination.onFetchAll();
+        if (allTracks.isEmpty) return;
         final remotePlayback = ref.read(connectProvider.notifier);
         await remotePlayback.load(
           options.collection is SpotubeSimpleAlbumObject
@@ -66,6 +85,11 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
         );
         await remotePlayback.setShuffle(true);
       } else {
+        // An empty list has no valid `nextInt` index. Stopping here keeps the
+        // old crash (`RangeError: 0`) unreachable even if a caller forgets to
+        // disable the button while the collection is still loading.
+        if (initialTracks.isEmpty) return;
+
         await playlistNotifier.load(
           initialTracks,
           autoPlay: true,
@@ -105,10 +129,27 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
 
       if (!context.mounted) return;
 
+      // Already loaded: toggle the existing playback instead of reloading
+      // the collection from the top. This is what makes the header button a
+      // real pause/resume control, and what lets the icon follow the audio
+      // rather than the queue membership.
+      //
+      // Checked before the device dialog, like the album and playlist cards
+      // do: a pause/resume has no target device to pick.
+      if (isActive) {
+        if (isPlaying) {
+          await audioPlayer.pause();
+        } else {
+          await audioPlayer.resume();
+        }
+        return;
+      }
+
       final isRemoteDevice = await showSelectDeviceDialog(context, ref);
       if (isRemoteDevice == null) return;
       if (isRemoteDevice) {
         final allTracks = await options.pagination.onFetchAll();
+        if (allTracks.isEmpty) return;
 
         final remotePlayback = ref.read(connectProvider.notifier);
         await remotePlayback.load(
@@ -154,10 +195,11 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
         isLoading.value = false;
       }
     }
-  }, [options, playlistNotifier, historyNotifier]);
+  }, [options, playlistNotifier, historyNotifier, isActive, isPlaying]);
 
   final onAddToQueue = useCallback(() {
     final tracks = options.tracks;
+    if (tracks.isEmpty) return;
     playlistNotifier.addTracks(tracks);
     playlistNotifier.addCollection(options.collectionId);
     if (options.collection is SpotubeSimpleAlbumObject) {
@@ -173,7 +215,9 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
 
   return (
     isActive: isActive,
+    isPlaying: isPlaying,
     isLoading: isLoading.value,
+    hasTracks: options.tracks.isNotEmpty,
     onShuffle: onShuffle,
     onPlay: onPlay,
     onAddToQueue: onAddToQueue,

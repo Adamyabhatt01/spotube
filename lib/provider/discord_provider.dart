@@ -13,6 +13,11 @@ import 'package:spotube/utils/platform.dart';
 /// discontinuity (seek) rather than normal playback advancement.
 const presenceSeekThreshold = Duration(milliseconds: 1500);
 
+/// How often the library's `autoRetry` wakes to re-attempt a Discord
+/// connection, and how many attempts Spotube tolerates before giving up.
+const discordRetryDelay = Duration(seconds: 5);
+const discordMaxConnectAttempts = 12;
+
 class DiscordNotifier extends AsyncNotifier<void> {
   @override
   FutureOr<void> build() async {
@@ -80,7 +85,42 @@ class DiscordNotifier extends AsyncNotifier<void> {
       await clear();
       await close();
     } else if (enabled) {
-      await FlutterDiscordRPC.instance.connect(autoRetry: true);
+      await _connectWithCappedRetry();
+    }
+  }
+
+  /// `flutter_discord_rpc`'s `autoRetry` is a `Timer.periodic` that only
+  /// ends on success: with Discord closed for the session it re-runs the
+  /// native connect every 5 seconds forever, burning a timer and a local
+  /// socket attempt indefinitely. This wrapper stops it after
+  /// [discordMaxConnectAttempts] by calling `disconnect()` (which cancels
+  /// the library's timer). A later toggle of the preference, or a
+  /// presence-bearing action after Discord reopens, can still reconnect.
+  Future<void> _connectWithCappedRetry() async {
+    var attempts = 0;
+    var connected = FlutterDiscordRPC.instance.isConnected;
+    late final StreamSubscription<bool> sub;
+    sub = FlutterDiscordRPC.instance.isConnectedStream.listen((isConnected) {
+      connected = isConnected;
+    });
+    try {
+      await FlutterDiscordRPC.instance.connect(
+        autoRetry: true,
+        retryDelay: discordRetryDelay,
+      );
+      while (!connected && attempts < discordMaxConnectAttempts) {
+        await Future.delayed(discordRetryDelay);
+        if (connected) break;
+        attempts++;
+      }
+      if (!connected) {
+        await close();
+        AppLogger.log.d(
+          'Discord presence paused after $attempts retries',
+        );
+      }
+    } finally {
+      await sub.cancel();
     }
   }
 

@@ -110,7 +110,7 @@ class PresentationListSection extends HookConsumerWidget {
           isPlaying: activeTrackId == track.id,
           track: track,
           selected: isSelected,
-          onTap: () => onTileTap(track, index),
+          onTap: () => onTileTap(track),
           onChanged: state.selectedTracks.isEmpty
               ? null
               : (isSelected) {

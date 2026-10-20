@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/components/dialogs/link_open_permission_dialog.dart';
+import 'package:spotube/services/artwork_cache_manager.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class AppMarkdown extends StatelessWidget {
@@ -20,6 +21,7 @@ class AppMarkdown extends StatelessWidget {
         return CachedNetworkImage(
           imageUrl: url,
           fit: BoxFit.cover,
+          cacheManager: ArtworkCacheManager.instance,
         );
       },
       onTapLink: (text, href, title) async {

@@ -3,21 +3,28 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
-import 'package:spotube/collections/assets.gen.dart';
 import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/collections/side_bar_tiles.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/models/radio/radio_station.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/root/bottom_player.dart';
+import 'package:spotube/modules/theme_background/theme_background_image_provider.dart';
+import 'package:spotube/modules/theme_background/real_transparency.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_footer.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_pin_cover.dart';
+import 'package:spotube/modules/root/sidebar/sidebar_pin_tile.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_reorderable_item.dart';
+import 'package:spotube/modules/root/sidebar/sidebar_station_pin_tile.dart';
 
+import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
+import 'package:spotube/modules/playlist/liked_playlist_synthetic.dart';
+import 'package:spotube/provider/radio/favorites.dart';
 import 'package:spotube/provider/sidebar/sidebar_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 
@@ -25,10 +32,6 @@ import 'package:spotube/provider/user_preferences/user_preferences_provider.dart
 /// scrolls natively (shadcn renders it as a vertical `CustomScrollView`), so
 /// only the rail — which cannot label rows — needs a cap.
 const _maxRailPins = 8;
-
-/// Fixed cover edge for pinned playlist tiles, in the button's existing icon
-/// slot. The sidebar width (200 * scaling, package-fixed) never changes.
-const _pinCoverSide = 28.0;
 
 class Sidebar extends HookConsumerWidget {
   final Widget child;
@@ -59,8 +62,17 @@ class Sidebar extends HookConsumerWidget {
     final pinnedIds = ref.watch(
       userPreferencesProvider.select((s) => s.pinnedPlaylistIds),
     );
+    final stationPinIds = ref.watch(
+      userPreferencesProvider.select((s) => s.pinnedStationIds),
+    );
     final playlistIndex = ref.watch(sidebarPlaylistIndexProvider);
     final me = ref.watch(metadataPluginUserProvider).asData?.value;
+    // Local plugin state, so it stays true offline — unlike [me], whose
+    // profile fetch has no snapshot fallback. Gating the fallback on it
+    // keeps a pinned Liked entry visible offline without ever showing one
+    // while logged out.
+    final authenticated =
+        ref.watch(metadataPluginAuthenticatedProvider).asData?.value;
 
     final sidebarTileList = useMemoized(
       () => getSidebarTileList(context.l10n),
@@ -73,25 +85,17 @@ class Sidebar extends HookConsumerWidget {
     );
 
     // Synthetic entry, mirroring UserPlaylistsPage: built in UI because its
-    // name needs l10n, which providers cannot reach.
+    // name needs l10n, which providers cannot reach. Falls back to an
+    // anonymous owner while signed in so the pin survives offline — the
+    // tracks themselves come from the savedTracks snapshot.
     final likedTracksPlaylist = useMemoized(
-      () => me == null
-          ? null
-          : SpotubeSimplePlaylistObject(
-              id: "user-liked-tracks",
-              name: context.l10n.liked_tracks,
-              description: context.l10n.liked_tracks_description,
-              externalUri: "",
-              owner: me,
-              images: [
-                SpotubeImageObject(
-                  url: Assets.images.likedTracks.path,
-                  width: 300,
-                  height: 300,
-                )
-              ],
-            ),
-      [context.l10n, me],
+      () => resolveLikedTracksPlaylist(
+        name: context.l10n.liked_tracks,
+        description: context.l10n.liked_tracks_description,
+        me: me,
+        authenticated: authenticated,
+      ),
+      [context.l10n, me, authenticated],
     );
 
     // Library group in the user's order. Reorder is scoped here only —
@@ -113,7 +117,7 @@ class Sidebar extends HookConsumerWidget {
       () {
         final tiles = <SideBarTiles>[];
         for (final id in pinnedIds) {
-          final playlist = id == "user-liked-tracks"
+          final playlist = id == likedTracksPlaylistId
               ? likedTracksPlaylist
               : playlistIndex[id];
           if (playlist == null) continue;
@@ -121,8 +125,9 @@ class Sidebar extends HookConsumerWidget {
             SideBarTiles(
               id: "pin:$id",
               title: playlist.name,
-              pathPrefix:
-                  id == "user-liked-tracks" ? "/liked-tracks" : "/playlist/$id",
+              pathPrefix: id == likedTracksPlaylistId
+                  ? "/liked-tracks"
+                  : "/playlist/$id",
               // The route guard redirects user-liked-tracks to
               // LikedPlaylistRoute, so pins navigate uniformly.
               route: PlaylistRoute(id: id, playlist: playlist),
@@ -130,6 +135,7 @@ class Sidebar extends HookConsumerWidget {
               imageUrl: playlist.images.from200PxTo300PxOrSmallestImage(
                 ImagePlaceholder.collection,
               ),
+              playlist: playlist,
             ),
           );
         }
@@ -167,6 +173,31 @@ class Sidebar extends HookConsumerWidget {
         showLabels ? pinnedTiles : pinnedTiles.take(_maxRailPins).toList();
     final hasRailOverflow =
         !showLabels && pinnedTiles.length > visiblePins.length;
+
+    // Pinned stations in pin order. Resolution happens per row inside
+    // [SidebarStationPinTile] (favorites, history, then directory), so this
+    // only slices keys for the rail cap — an unresolvable pin hides itself.
+    // Drag ids are the raw favorite keys: the shared pins group drops
+    // cross-type moves as no-ops (unknown id => null drop), so playlist and
+    // station pins can never corrupt each other's order.
+    final visibleStationKeys = showLabels
+        ? stationPinIds
+        : stationPinIds.take(_maxRailPins).toList();
+    final hasStationOverflow =
+        !showLabels && stationPinIds.length > visibleStationKeys.length;
+
+    // Best-effort names for the drag ghosts below; the tile itself resolves
+    // the full object. Favorites cover the common case; anything else drags
+    // under its raw key.
+    final favoriteStations =
+        ref.watch(radioFavoritesProvider).asData?.value ??
+            const <RadioStation>[];
+    final stationNames = useMemoized(
+      () => {
+        for (final station in favoriteStations) station.favoriteKey: station.name,
+      },
+      [favoriteStations],
+    );
 
     final List<NavigationBarItem> navigationButtons = [
       NavigationLabel(
@@ -263,8 +294,7 @@ class Sidebar extends HookConsumerWidget {
       ),
       if (pinnedTiles.isNotEmpty) ...[
         const NavigationDivider(),
-        if (showLabels)
-          NavigationLabel(child: Text(context.l10n.pinned_playlists)),
+        if (showLabels) _PinGroupHeading(title: context.l10n.pinned_playlists),
         for (final tile in visiblePins)
           SidebarReorderableItem(
             key: ValueKey(tile.id),
@@ -293,30 +323,12 @@ class Sidebar extends HookConsumerWidget {
               context: context,
               leading: SidebarPinCover(
                 imageUrl: tile.imageUrl,
-                side: _pinCoverSide,
+                side: sidebarPinCoverSide,
               ),
               title: tile.title,
             ),
-            row: NavigationButton(
-              // Same explicit style/alignment contract as the library rows
-              // above: the wrapper re-scopes sidebar container data.
-              style: router.currentPath.startsWith(tile.pathPrefix)
-                  ? const ButtonStyle.secondary()
-                  : (showLabels ? const ButtonStyle.ghost() : null),
-              alignment:
-                  showLabels ? AlignmentDirectional.centerStart : null,
-              label: showLabels ? Text(tile.title) : null,
-              onPressed: () {
-                context.navigateTo(tile.route);
-              },
-              child: Tooltip(
-                tooltip: TooltipContainer(child: Text(tile.title)).call,
-                child: SidebarPinCover(
-                  imageUrl: tile.imageUrl,
-                  side: _pinCoverSide,
-                ),
-              ),
-            ),
+            // The label navigates; the cover plays (see SidebarPinTile).
+            row: SidebarPinTile(tile: tile, showLabels: showLabels),
           ),
         // Drop zone below the last pin (above the rail overflow tile, which
         // stays fixed): the only way to move a playlist to the very bottom.
@@ -351,7 +363,86 @@ class Sidebar extends HookConsumerWidget {
             ),
           ),
       ],
+      if (stationPinIds.isNotEmpty) ...[
+        const _PinSectionGap(),
+        if (showLabels) _PinGroupHeading(title: context.l10n.pinned_stations),
+        for (final key in visibleStationKeys)
+          SidebarReorderableItem(
+            key: ValueKey('station-pin:$key'),
+            group: SidebarReorderGroup.pins,
+            id: key,
+            onAcceptInGroup: (draggedId, targetId, {required bool after}) {
+              final stored =
+                  ref.read(userPreferencesProvider).pinnedStationIds;
+              final visible = List<String>.of(visibleStationKeys);
+              final drop = resolveSidebarDrop(
+                visible,
+                draggedId,
+                targetId,
+                after: after,
+              );
+              if (drop == null) return;
+              ref.read(userPreferencesProvider.notifier).setPinnedStationIds(
+                    moveSidebarPin(stored, visible, drop.from, drop.to),
+                  );
+            },
+            feedback: _sidebarDragGhost(
+              context: context,
+              leading: const Icon(SpotubeIcons.radio),
+              title: stationNames[key] ?? key,
+            ),
+            // The whole row plays; there is no station-detail route to
+            // navigate to (see SidebarStationPinTile).
+            row: SidebarStationPinTile(
+              favoriteKey: key,
+              showLabels: showLabels,
+            ),
+          ),
+        // Drop zone below the last station pin: the only way to move a
+        // station to the very bottom of its block.
+        SidebarTrailingDropZone(
+          key: const ValueKey('station-pins-end'),
+          group: SidebarReorderGroup.pins,
+          visibleIds: visibleStationKeys,
+          onAccept: (draggedId) {
+            final stored =
+                ref.read(userPreferencesProvider).pinnedStationIds;
+            final visible = List<String>.of(visibleStationKeys);
+            final from = visible.indexOf(draggedId);
+            if (from == -1) return;
+            ref.read(userPreferencesProvider.notifier).setPinnedStationIds(
+                  moveSidebarPin(stored, visible, from, visible.length - 1),
+                );
+          },
+        ),
+        if (hasStationOverflow)
+          NavigationButton(
+            label: null,
+            onPressed: () {
+              context.navigateTo(const RadioRoute());
+            },
+            child: Tooltip(
+              tooltip:
+                  const TooltipContainer(child: Text('Radio')).call,
+              child: const Icon(SpotubeIcons.radio),
+            ),
+          ),
+      ],
     ];
+
+    final backdropActive = ref.watch(themeBackdropActiveProvider);
+    // Same rule as the label band below: real transparency also needs the
+    // ground gone, even with no painted backdrop behind it.
+    final transparentGround =
+        backdropActive || ref.watch(realTransparencyActiveProvider);
+    final navigationSidebar = NavigationSidebar(
+      index: selectedIndex,
+      onSelected: (index) {
+        final tile = tileList[index];
+        context.navigateTo(tile.route);
+      },
+      children: navigationButtons,
+    );
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,15 +451,31 @@ class Sidebar extends HookConsumerWidget {
           children: [
             Expanded(
               child: showLabels
-                  ? NavigationSidebar(
-                      index: selectedIndex,
-                      onSelected: (index) {
-                        final tile = tileList[index];
-                        context.navigateTo(tile.route);
-                      },
-                      children: navigationButtons,
-                    )
+                  // shadcn's pinned sidebar labels (NavigationLabel's
+                  // SliverPersistentHeader delegate) paint
+                  // `colorScheme.background` behind themselves, which is opaque
+                  // and punches a solid band across the backdrop at every group
+                  // heading. Transparent in this subtree only, and only while
+                  // a backdrop is actually being painted: with no shell glass
+                  // underneath, that band is the heading's real background.
+                  // The header still hides rows scrolled under it because it is
+                  // pinned over the backdrop layer, not over app content.
+                  ? transparentGround
+                      ? Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: () => colorScheme.copyWith(
+                              background: () => Colors.transparent,
+                            ),
+                          ),
+                          child: navigationSidebar,
+                        )
+                      : navigationSidebar
                   : NavigationRail(
+                      // Opaque `background` by default (shadcn fills
+                      // `colorScheme.background`); transparent with the
+                      // ground, same as the label band above.
+                      backgroundColor:
+                          transparentGround ? Colors.transparent : null,
                       alignment: NavigationRailAlignment.start,
                       index: selectedIndex,
                       onSelected: (index) {
@@ -400,6 +507,73 @@ class Sidebar extends HookConsumerWidget {
                 ),
         ),
       ],
+    );
+  }
+}
+
+/// Compact group heading for the pin sections (pinned playlists, pinned
+/// stations): ~22px tall instead of [NavigationLabel]'s fixed 48px
+/// (`navigation_bar.dart`), small semibold muted text with tight padding.
+///
+/// A plain sliver, not a pinned header — the pin blocks are short and the
+/// heading scrolls with them. Paints no background, so it never punches a
+/// band across the backdrop like the package label delegate does.
+class _PinGroupHeading extends StatelessWidget implements NavigationBarItem {
+  final String title;
+
+  const _PinGroupHeading({required this.title});
+
+  @override
+  bool get selectable => false;
+
+  @override
+  Widget build(BuildContext context) {
+    final navData = Data.maybeOf<NavigationControlData>(context);
+    if (navData?.containerType != NavigationContainerType.sidebar) {
+      return const SizedBox.shrink();
+    }
+    final theme = Theme.of(context);
+    final scaling = theme.scaling;
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          16 * scaling,
+          6 * scaling,
+          16 * scaling,
+          2 * scaling,
+        ),
+        child: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 12 * scaling,
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.mutedForeground,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Slim gap between the pinned-playlists and pinned-stations groups (6px),
+/// replacing the full [NavigationDivider] (1px line + 2×8px padding ≈ 17px)
+/// that used to separate them. Sidebar-only sliver; invisible in the rail.
+class _PinSectionGap extends StatelessWidget implements NavigationBarItem {
+  const _PinSectionGap();
+
+  @override
+  bool get selectable => false;
+
+  @override
+  Widget build(BuildContext context) {
+    final navData = Data.maybeOf<NavigationControlData>(context);
+    if (navData?.containerType != NavigationContainerType.sidebar) {
+      return const SizedBox.shrink();
+    }
+    return SliverToBoxAdapter(
+      child: SizedBox(height: 6 * Theme.of(context).scaling),
     );
   }
 }

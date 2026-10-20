@@ -1,0 +1,373 @@
+#!/usr/bin/env bash
+#
+# mem-report — measure Spotube's real memory footprint on Linux.
+#
+#   scripts/mem-report                 # full run (build, launch, sample)
+#   scripts/mem-report --no-build      # reuse the existing release bundle
+#   scripts/mem-report --binary PATH   # measure an already-built binary
+#   scripts/mem-report --label NAME    # tag this run in the report
+#
+# What it measures, and why each number is reported separately:
+#
+#   PSS  (primary)  /proc/<pid>/smaps_rollup Pss — the process's physical
+#                   memory share, counting each shared page once, split
+#                   proportionally between the processes sharing it. This is
+#                   the closest Linux analogue of "how much RAM does this
+#                   cost me".
+#   RSS  (secondary) /proc/<pid>/statm resident pages — includes pages shared
+#                   with other processes counted in full. Two processes
+#                   sharing 100 MB of libflutter show 100 MB each, so RSS
+#                   over-reports a process tree. Useful as a trend, not as a
+#                   total.
+#   VSZ             virtual address space. NOT memory. A 4 GB VSZ with 300 MB
+#                   RSS is normal (allocator reservations, thread stacks,
+#                   mmap'd-but-untouched pages). Never report VSZ as RAM.
+#
+# The process tree is sampled too, because the app's real cost is not one
+# process: WebKit spawns helper processes for a webview, and the YouTube
+# engines spawn NewPipeCLI / yt-dlp. Summing RSS across the tree double
+# counts shared pages, so the tree total is reported as PSS-based.
+#
+# Output: a report on stdout and a JSON file under build/mem-report/.
+
+set -uo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUT_DIR="$REPO/build/mem-report"
+LABEL="run"
+BINARY=""
+DO_BUILD=1
+# Seconds after launch at which to sample. The last one is the longest
+# observation window; earlier ones show the settling curve.
+SAMPLE_AT=(0 30 300)
+# Optional: seconds to wait for the tree to settle before the first sample.
+# 0 = sample as soon as the process is up.
+
+die() { echo "mem-report: $*" >&2; exit 1; }
+
+usage() {
+  sed -n '3,17p' "${BASH_SOURCE[0]}" | cut -c3-
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-build) DO_BUILD=0 ;;
+    --binary) BINARY="${2:?--binary needs a path}"; shift ;;
+    --label) LABEL="${2:?--label needs a name}"; shift ;;
+    -h | --help) usage; exit 0 ;;
+    *) die "unknown option: $1" ;;
+  esac
+  shift
+done
+
+command -v python3 >/dev/null 2>&1 || die "python3 is required"
+
+# ---------------------------------------------------------------------------
+# Build
+# ---------------------------------------------------------------------------
+
+if [[ $DO_BUILD -eq 1 && -z $BINARY ]]; then
+  echo "==> Building the release bundle (this takes a few minutes)"
+  if command -v fvm >/dev/null 2>&1 && [[ -e "$REPO/.fvm" || -e "$REPO/.fvmrc" ]]; then
+    (cd "$REPO" && fvm flutter build linux --release) || die "build failed"
+  else
+    (cd "$REPO" && flutter build linux --release) || die "build failed"
+  fi
+fi
+
+if [[ -z $BINARY ]]; then
+  arch=$(uname -m)
+  case "$arch" in
+    x86_64) flutter_arch=x64 ;;
+    aarch64 | arm64) flutter_arch=arm64 ;;
+    *) flutter_arch="$arch" ;;
+  esac
+  BUNDLE="$REPO/build/linux/$flutter_arch/release/bundle"
+  if [[ ! -x "$BUNDLE/spotube" ]]; then
+    BUNDLE="$(find "$REPO/build/linux" -maxdepth 3 -type d -name bundle 2>/dev/null | sort | tail -1)"
+  fi
+  [[ -x "$BUNDLE/spotube" ]] || die "no release bundle found — run without --no-build, or pass --binary"
+  BINARY="$BUNDLE/spotube"
+fi
+[[ -x "$BINARY" ]] || die "not executable: $BINARY"
+
+mkdir -p "$OUT_DIR"
+STAMP="$(date +%Y%m%d-%H%M%S)"
+JSON="$OUT_DIR/${LABEL}-${STAMP}.json"
+
+# ---------------------------------------------------------------------------
+# Sampling
+# ---------------------------------------------------------------------------
+
+# Read one process's memory from /proc. Prints a JSON object.
+read_proc() {
+  local pid="$1"
+  python3 - "$pid" <<'PY'
+import json, os, sys
+
+pid = sys.argv[1]
+out = {"pid": int(pid)}
+
+def read(path):
+    try:
+        with open(path) as f:
+            return f.read()
+    except OSError:
+        return None
+
+# smaps_rollup: the PSS/RSS breakdown in one read.
+rollup = read(f"/proc/{pid}/smaps_rollup")
+if rollup:
+    for line in rollup.splitlines():
+        if ":" not in line:
+            continue
+        key, _, value = line.partition(":")
+        key = key.strip()
+        parts = value.split()
+        if not parts:
+            continue
+        try:
+            kb = int(parts[0])
+        except ValueError:
+            continue
+        if key == "Pss":
+            out["pss_kb"] = kb
+        elif key == "Rss":
+            out["rss_kb"] = kb
+        elif key == "Private_Clean" or key == "Private_Dirty":
+            out.setdefault("private_kb", 0)
+            out["private_kb"] += kb
+        elif key == "Shared_Clean" or key == "Shared_Dirty":
+            out.setdefault("shared_kb", 0)
+            out["shared_kb"] += kb
+        elif key == "Swap":
+            out["swap_kb"] = kb
+
+# statm: fallback, and the page count for RSS when rollup is unavailable.
+statm = read(f"/proc/{pid}/statm")
+if statm:
+    fields = statm.split()
+    if len(fields) >= 2:
+        try:
+            out["rss_pages"] = int(fields[1])
+            out["vsz_pages"] = int(fields[0])
+        except ValueError:
+            pass
+
+# cmdline gives the process name for the tree listing.
+cmdline = read(f"/proc/{pid}/cmdline")
+if cmdline:
+    out["name"] = cmdline.replace("\0", " ").strip()[:120]
+else:
+    out["name"] = f"pid {pid}"
+
+# The process's own start time, so a reused PID cannot be mistaken for the
+# same run across samples.
+stat = read(f"/proc/{pid}/stat")
+if stat:
+    # The comm field is parenthesised and may contain spaces; fields after
+    # the final ')' are stable.
+    tail = stat.rsplit(")", 1)[-1].split()
+    if len(tail) > 19:
+        try:
+            out["starttime"] = int(tail[19])
+        except ValueError:
+            pass
+
+print(json.dumps(out))
+PY
+}
+
+# Collect the app process and its descendants.
+collect_tree() {
+  local root_pid="$1"
+  local all_pids
+  # Every descendant of root_pid, via /proc/*/stat's ppid.
+  all_pids=$(python3 - "$root_pid" <<'PY'
+import os, sys
+
+root = int(sys.argv[1])
+children = {}
+for entry in os.listdir("/proc"):
+    if not entry.isdigit():
+        continue
+    try:
+        with open(f"/proc/{entry}/stat") as f:
+            data = f.read()
+    except OSError:
+        continue
+    try:
+        tail = data.rsplit(")", 1)[-1].split()
+        ppid = int(tail[1])
+    except (IndexError, ValueError):
+        continue
+    children.setdefault(ppid, []).append(int(entry))
+
+out = []
+stack = [root]
+while stack:
+    pid = stack.pop()
+    out.append(pid)
+    stack.extend(children.get(pid, []))
+print(" ".join(str(p) for p in out))
+PY
+  )
+
+  local pids=()
+  for pid in $all_pids; do
+    pids+=("$pid")
+  done
+  printf '%s\n' "${pids[@]}"
+}
+
+sample() {
+  local root_pid="$1"
+  local elapsed="$2"
+  local label="$3"
+
+  local pids
+  pids=$(collect_tree "$root_pid")
+
+  local entries=()
+  for pid in $pids; do
+    local rec
+    rec=$(read_proc "$pid")
+    [[ -n $rec ]] && entries+=("$rec")
+  done
+
+  python3 - "$JSON" "$elapsed" "$label" "${entries[@]}" <<'PY'
+import json, os, sys
+
+json_path, elapsed, label = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+procs = []
+for raw in sys.argv[4:]:
+    try:
+        procs.append(json.loads(raw))
+    except json.JSONDecodeError:
+        pass
+
+def total(key):
+    return sum(p.get(key, 0) for p in procs)
+
+# PSS is the primary number: shared pages are already divided among the
+# processes holding them, so summing it across the tree does not double
+# count. RSS does double count, and is reported only as a trend.
+sample = {
+    "label": label,
+    "elapsed_s": elapsed,
+    "process_count": len(procs),
+    "tree_pss_kb": total("pss_kb"),
+    "tree_rss_kb": total("rss_kb"),
+    "tree_private_kb": total("private_kb"),
+    "tree_shared_kb": total("shared_kb"),
+    "tree_swap_kb": total("swap_kb"),
+    "processes": sorted(procs, key=lambda p: -p.get("pss_kb", 0)),
+}
+
+data = []
+if os.path.exists(json_path):
+    try:
+        with open(json_path) as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        data = []
+
+data.append(sample)
+with open(json_path, "w") as f:
+    json.dump(data, f, indent=2)
+
+def mb(kb):
+    return kb / 1024.0
+
+print(
+    f"[{label:>18}] t+{elapsed:>5}s  procs={len(procs):<3} "
+    f"PSS={mb(sample['tree_pss_kb']):8.1f} MB  "
+    f"RSS={mb(sample['tree_rss_kb']):8.1f} MB  "
+    f"private={mb(sample['tree_private_kb']):8.1f} MB"
+)
+for p in sample["processes"][:6]:
+    print(
+        f"{'':>22}pid {p['pid']:<8} {p.get('name', '')[:44]:<46} "
+        f"PSS={mb(p.get('pss_kb', 0)):7.1f} MB  "
+        f"RSS={mb(p.get('rss_kb', 0)):7.1f} MB"
+    )
+PY
+}
+
+# The top private mappings, to attribute the PSS to libraries and regions
+# rather than to a mystery total.
+top_mappings() {
+  local pid="$1"
+  python3 - "$pid" <<'PY'
+import os, sys
+
+pid = sys.argv[1]
+rows = []
+try:
+    with open(f"/proc/{pid}/smaps") as f:
+        name = None
+        for line in f:
+            if "-" in line.split()[0] and ":" in line:
+                parts = line.split()
+                name = parts[-1] if len(parts) > 5 else "[anon]"
+            elif line.startswith("Private_Clean:") or line.startswith("Private_Dirty:"):
+                kb = int(line.split()[1])
+                rows.append((kb, name))
+except OSError:
+    pass
+
+rows.sort(reverse=True)
+print(f"  top private mappings for pid {pid}:")
+for kb, name in rows[:20]:
+    print(f"    {kb/1024.0:8.1f} MB  {name}")
+PY
+}
+
+# ---------------------------------------------------------------------------
+# Run
+# ---------------------------------------------------------------------------
+
+echo "==> binary : $BINARY"
+echo "==> label  : $LABEL"
+echo "==> report : $JSON"
+echo
+
+if pgrep -x spotube >/dev/null 2>&1; then
+  echo "NOTE: a spotube process is already running; the sample may include it."
+  echo "      Quit it first for a clean measurement."
+  echo
+fi
+
+echo "==> Launching"
+"$BINARY" >"$OUT_DIR/${LABEL}-${STAMP}.log" 2>&1 &
+APP_PID=$!
+trap 'kill "$APP_PID" 2>/dev/null; wait "$APP_PID" 2>/dev/null' EXIT
+
+# Wait for the process to actually be up.
+for _ in $(seq 1 50); do
+  [[ -d "/proc/$APP_PID" ]] && break
+  sleep 0.2
+done
+[[ -d "/proc/$APP_PID" ]] || die "the app did not start (see $OUT_DIR/${LABEL}-${STAMP}.log)"
+
+START=$(date +%s)
+prev=0
+for t in "${SAMPLE_AT[@]}"; do
+  wait_for=$((t - prev))
+  ((wait_for > 0)) && sleep "$wait_for"
+  prev=$t
+  if ! [[ -d "/proc/$APP_PID" ]]; then
+    echo "==> The app exited before the t+${t}s sample; stopping early."
+    break
+  fi
+  now=$(date +%s)
+  sample "$APP_PID" "$((now - START))" "t+${t}s"
+done
+
+echo
+echo "==> Top private mappings of the main process"
+top_mappings "$APP_PID"
+
+echo
+echo "==> Done. JSON report: $JSON"
+echo "    app log        : $OUT_DIR/${LABEL}-${STAMP}.log"

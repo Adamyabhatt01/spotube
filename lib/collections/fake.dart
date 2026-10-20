@@ -99,14 +99,6 @@ abstract class FakeData {
     images: [image],
   );
 
-  static final SpotubeBrowseSectionObject browseSection =
-      SpotubeBrowseSectionObject(
-          id: "section-id",
-          title: "Browse Section",
-          browseMore: true,
-          externalUri: "https://example.com/browse/section",
-          items: [playlistSimple, playlistSimple, playlistSimple]);
-
   static const historySummary = PlaybackHistorySummary(
     albums: 1,
     artists: 1,

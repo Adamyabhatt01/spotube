@@ -1,5 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:spotube/services/kv_store/kv_store.dart';
+import 'package:spotube/services/logger/logger.dart';
 import 'package:uuid/uuid.dart';
 import 'package:spotube/utils/platform.dart';
 
@@ -37,7 +38,11 @@ abstract class EncryptedKvStoreService {
       }
 
       return value;
-    } catch (e) {
+    } catch (e, stack) {
+      // The fallback behavior is deliberate (the legacy key keeps the store
+      // readable), but a secure-storage failure must leave a trail: data
+      // written under the secure key can no longer be decrypted after it.
+      AppLogger.reportError(e, stack, "EncryptedKvStoreService.encryptionKey");
       return KVStoreService.encryptionKey;
     }
   }
@@ -50,7 +55,9 @@ abstract class EncryptedKvStoreService {
 
     try {
       await _storage.write(key: 'encryption', value: key);
-    } catch (e) {
+    } catch (e, stack) {
+      AppLogger.reportError(
+          e, stack, "EncryptedKvStoreService.setEncryptionKey");
       await KVStoreService.setEncryptionKey(key);
     } finally {
       _encryptionKeySync = key;

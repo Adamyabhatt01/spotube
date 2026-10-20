@@ -66,7 +66,9 @@ fi
 
 if ((SKIP_BUILD == 0)); then
   echo "==> Building release Linux bundle"
-  run_flutter build linux --release
+  # Obfuscation + split debug info: smaller libapp.so, stack traces stay
+  # symbolicated via build/app/outputs/symbols. No behavior change.
+  run_flutter build linux --release --obfuscate --split-debug-info=build/app/outputs/symbols
 fi
 
 arch=$(uname -m)

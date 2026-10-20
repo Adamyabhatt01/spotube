@@ -24,7 +24,11 @@ class BlackListNotifier extends AsyncNotifier<List<BlacklistTableData>> {
   AppDatabase get _database => ref.read(databaseProvider);
 
   Future<void> add(BlacklistTableCompanion element) async {
-    _database.into(_database.blacklistTable).insert(element);
+    // Awaiting the insert, not firing it: callers already await `add` before
+    // reporting success, and an unobserved rejection (disk full, db closed)
+    // used to vanish as an unhandled async error while the entry silently
+    // never appeared.
+    await _database.into(_database.blacklistTable).insert(element);
   }
 
   Future<void> remove(String elementId) async {

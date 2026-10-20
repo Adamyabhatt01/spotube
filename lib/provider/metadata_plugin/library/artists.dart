@@ -61,7 +61,7 @@ class MetadataPluginSavedArtistNotifier
     for (final artist in artists) {
       ref.invalidate(metadataPluginIsSavedArtistProvider(artist.id));
     }
-    unawaited(persistSnapshot());
+    scheduleSnapshotPersist();
   }
 
   Future<void> removeFavorite(List<SpotubeFullArtistObject> artists) async {
@@ -89,7 +89,7 @@ class MetadataPluginSavedArtistNotifier
     for (final artist in artists) {
       ref.invalidate(metadataPluginIsSavedArtistProvider(artist.id));
     }
-    unawaited(persistSnapshot());
+    scheduleSnapshotPersist();
   }
 }
 

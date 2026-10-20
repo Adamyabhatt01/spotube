@@ -22,6 +22,10 @@ import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 
 import 'package:spotube/provider/volume_provider.dart';
+import 'package:spotube/provider/radio/radio_playback.dart';
+import 'package:spotube/modules/player/radio/radio_player_bar.dart';
+import 'package:spotube/modules/player/radio/radio_player_overlay.dart';
+import 'package:spotube/modules/theme_background/real_transparency.dart';
 import 'package:spotube/utils/platform.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -34,6 +38,10 @@ class BottomPlayer extends HookConsumerWidget {
         ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
     final layoutMode =
         ref.watch(userPreferencesProvider.select((s) => s.layoutMode));
+    // Context-aware source: while a radio station owns audio focus, the bar
+    // swaps to radio content. Everything below stays the untouched music tree.
+    final isRadio =
+        ref.watch(radioPlaybackControllerProvider.select((s) => s.isRadio));
 
     String albumArt = useMemoized(
       () => activeTrack?.album.images.isNotEmpty == true
@@ -48,8 +56,16 @@ class BottomPlayer extends HookConsumerWidget {
     // returning an empty non spacious Container as the overlay will take
     // place in the global overlay stack aka [_entries]
     if (!bottomPlayerVisibleOf(context, layoutMode)) {
-      return PlayerOverlay(albumArt: albumArt);
+      return isRadio
+          ? const RadioPlayerOverlay()
+          : PlayerOverlay(albumArt: albumArt);
     }
+
+    // Radio owns audio focus: swap the docked bar to radio content. This is
+    // placed before `progressBelow` is read, so the radio bar never touches the
+    // music seek-line layout. When `isRadio` is false, the tree below is
+    // byte-identical to the original music player.
+    if (isRadio) return const RadioBottomPlayer();
 
     // `progress: below` pulls the seek bar out of the transport column and
     // stretches it across the whole player. The extra wrapper only appears with
@@ -75,6 +91,17 @@ class BottomPlayer extends HookConsumerWidget {
           children: [
             PlayerActions(
               extraActions: [
+                Tooltip(
+                  tooltip:
+                      TooltipContainer(child: Text(context.l10n.lyrics)).call,
+                  child: IconButton(
+                    variance: ButtonVariance.ghost,
+                    icon: const Icon(SpotubeIcons.lyrics),
+                    onPressed: activeTrack != null
+                        ? () => context.navigateTo(const LyricsRoute())
+                        : null,
+                  ),
+                ),
                 Tooltip(
                   tooltip:
                       TooltipContainer(child: Text(context.l10n.mini_player))
@@ -116,9 +143,18 @@ class BottomPlayer extends HookConsumerWidget {
       ],
     );
 
+    final realTransparent = ref.watch(realTransparencyActiveProvider);
     return SurfaceCard(
       borderRadius: BorderRadius.zero,
-      surfaceBlur: context.theme.surfaceBlur,
+      // In-app blur over a transparent window samples nothing (the
+      // compositor owns blur here) while still costing a filter per frame —
+      // off with it, same rule as the title bar and the nav bar.
+      surfaceBlur: realTransparent ? 0 : context.theme.surfaceBlur,
+      // Footer chrome, not content: transparent with the ground while real
+      // transparency owns the window (`fillColor` only applies with
+      // `filled`, so both flip together).
+      filled: realTransparent ? true : null,
+      fillColor: realTransparent ? Colors.transparent : null,
       child: !progressBelow
           ? bar
           : Column(

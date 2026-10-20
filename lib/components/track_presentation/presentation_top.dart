@@ -6,6 +6,7 @@ import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/heart_button/heart_button.dart';
 import 'package:spotube/components/image/universal_image.dart';
+import 'package:spotube/components/play_pause_icon.dart';
 import 'package:spotube/components/track_presentation/presentation_props.dart';
 import 'package:spotube/components/track_presentation/use_action_callbacks.dart';
 import 'package:spotube/extensions/constrains.dart';
@@ -14,6 +15,7 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/playlist/playlist_create_dialog.dart';
 import 'package:spotube/provider/scroll_motion.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
+import 'package:spotube/utils/primitive_utils.dart';
 
 class TrackPresentationTopSection extends HookConsumerWidget {
   const TrackPresentationTopSection({super.key});
@@ -39,7 +41,7 @@ class TrackPresentationTopSection extends HookConsumerWidget {
       fit: BoxFit.cover,
     );
 
-    final (:isLoading, :isActive, :onPlay, :onShuffle, :onAddToQueue) =
+    final (:isLoading, :isActive, :isPlaying, :hasTracks, :onPlay, :onShuffle, :onAddToQueue) =
         useActionCallbacks(ref);
 
     // Sidebar pins apply to playlists only; albums share this header.
@@ -65,7 +67,7 @@ class TrackPresentationTopSection extends HookConsumerWidget {
                         CircularProgressIndicator(onSurface: false, size: 20),
                   )
                 : const Icon(SpotubeIcons.shuffle),
-            enabled: !isLoading && !isActive,
+            enabled: !isLoading && !isActive && hasTracks,
             onPressed: onShuffle,
           ),
         ),
@@ -76,29 +78,31 @@ class TrackPresentationTopSection extends HookConsumerWidget {
             ).call,
             child: IconButton.secondary(
               icon: const Icon(SpotubeIcons.queueAdd),
-              enabled: !isLoading && !isActive,
+              enabled: !isLoading && !isActive && hasTracks,
               onPressed: onAddToQueue,
             ),
           )
         else
           Button.secondary(
             leading: const Icon(SpotubeIcons.add),
-            enabled: !isLoading && !isActive,
+            enabled: !isLoading && !isActive && hasTracks,
             onPressed: onAddToQueue,
             child: Text(context.l10n.queue),
           ),
         Button.primary(
           alignment: Alignment.center,
-          leading: switch ((isActive, isLoading)) {
-            (true, false) => const Icon(SpotubeIcons.pause),
+          leading: switch ((isActive && isPlaying, isLoading)) {
+            (true, false) => const AnimatedPlayPauseIcon(isPlaying: true),
             (false, true) => const Center(
                 child: CircularProgressIndicator(onSurface: true, size: 18),
               ),
-            _ => const Icon(SpotubeIcons.play),
+            _ => const AnimatedPlayPauseIcon(isPlaying: false),
           },
           onPressed: onPlay,
-          enabled: !isLoading && !isActive,
-          child: isActive ? Text(context.l10n.pause) : Text(context.l10n.play),
+          enabled: !isLoading && (isActive || hasTracks),
+          child: isActive && isPlaying
+              ? Text(context.l10n.pause)
+              : Text(context.l10n.play),
         ),
       ],
     );
@@ -264,7 +268,9 @@ class TrackPresentationTopSection extends HookConsumerWidget {
                                         leading: options.ownerImage != null
                                             ? Avatar(
                                                 initials:
-                                                    options.owner?[0] ?? "U",
+                                                    PrimitiveUtils.initialOf(
+                                                  options.owner,
+                                                ),
                                                 provider: UniversalImage
                                                     .imageProvider(
                                                   options.ownerImage!,

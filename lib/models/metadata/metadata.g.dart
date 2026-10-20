@@ -580,6 +580,7 @@ const _$PluginAbilitiesEnumMap = {
   PluginAbilities.metadata: 'metadata',
   PluginAbilities.audioSource: 'audio-source',
   PluginAbilities.theme: 'theme',
+  PluginAbilities.radio: 'radio',
 };
 
 _$PluginUpdateAvailableImpl _$$PluginUpdateAvailableImplFromJson(Map json) =>
@@ -781,6 +782,7 @@ _$ThemeBackgroundImpl _$$ThemeBackgroundImplFromJson(Map json) =>
       opacity: (json['opacity'] as num?)?.toDouble() ?? 0.0,
       blur: (json['blur'] as num?)?.toDouble() ?? 0.0,
       overlay: json['overlay'] as String?,
+      transparent: _transparentFromJson(json['transparent']),
     );
 
 Map<String, dynamic> _$$ThemeBackgroundImplToJson(
@@ -790,6 +792,7 @@ Map<String, dynamic> _$$ThemeBackgroundImplToJson(
       'opacity': instance.opacity,
       'blur': instance.blur,
       'overlay': instance.overlay,
+      'transparent': instance.transparent,
     };
 
 const _$ThemeBackgroundSourceEnumMap = {

@@ -56,6 +56,16 @@ android {
         compose true
     }
 
+    // The app's memory-backing policy (see cpp/memory_backing.cpp): a
+    // per-process prctl(PR_SET_THP_DISABLE) so the kernel does not back the
+    // Dart VM's sparsely-touched heap arena with 2 MB huge pages.
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version "3.22.1"
+        }
+    }
+
     composeOptions {
         kotlinCompilerExtensionVersion "$composeVersion" // Correlates with org.jetbrains.kotlin.android plugin in settings.gradle
     }
@@ -67,6 +77,15 @@ android {
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
+
+        // Ships the memory-backing helper (libspotube.so) that
+        // MemoryBacking.kt loads.
+        externalNativeBuild {
+            cmake {
+                arguments "-DANDROID_STL=c++_shared"
+                cppFlags "-std=c++14"
+            }
+        }
     }
 
     signingConfigs {
@@ -81,6 +100,13 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
+            // R8 + resource shrink. Keeps live in proguard-rules.pro
+            // (Flutter, Glance/Compose, kotlinx.serialization,
+            // NewPipeExtractor + Rhino). Verify on CI: release APK must
+            // boot, play a track, and render the Glance widget.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
             signingConfig signingConfigs.release

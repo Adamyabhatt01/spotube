@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "name": "Internet Radio SomaFM",
+  "author": "Spotube",
+  "description": "Internet radio directory backed by SomaFM, the listener-supported catalog of curated streaming channels",
+  "entryPoint": "InternetRadioSomaFMPlugin",
+  "apis": [],
+  "abilities": ["radio"],
+  "repository": "https://github.com/KRTirtho/spotube/tree/master/plugins/internet-radio-somafm",
+  "pluginApiVersion": "2.0.0"
+}

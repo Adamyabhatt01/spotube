@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_new_pipe_extractor/flutter_new_pipe_extractor.dart'
     hide Engagement;
 import 'package:spotube/services/youtube_engine/youtube_engine.dart';
@@ -10,10 +12,35 @@ typedef NewPipeSearch = Future<List<SearchResultItem>> Function(
   List<SearchContentFilters> contentFilters,
 );
 
+/// One-shot NewPipe library initialization. Swappable in tests: the real
+/// `NewPipeExtractor.init` needs a platform channel, which unit tests lack.
+typedef NewPipeInit = Future<void> Function();
+
 class NewPipeEngine implements YouTubeEngine {
-  NewPipeEngine({NewPipeSearch? search}) : _search = search ?? _defaultSearch;
+  NewPipeEngine({NewPipeSearch? search, NewPipeInit? init})
+      : _search = search ?? _defaultSearch,
+        _init = init ?? NewPipeExtractor.init;
 
   final NewPipeSearch _search;
+  final NewPipeInit _init;
+
+  /// Single-flight lazy init: the extractor used to be initialized eagerly
+  /// on every start (first deferred step), so every launch paid
+  /// `NewPipe.init(DownloaderImpl.init(OkHttpClient()))` whether or not any
+  /// NewPipe call followed. Now the first actual engine call pays it and
+  /// concurrent first calls share one init. A failed init is forgotten so
+  /// the next call retries instead of failing forever on a cached error.
+  Future<void>? _initFuture;
+
+  Future<void> _ensureInitialized() {
+    final pending = _initFuture;
+    if (pending != null) return pending;
+    final future = _init();
+    _initFuture = future;
+    // ignore: discarded_futures — cleanup only; callers await `future`.
+    future.then((_) {}, onError: (_) => _initFuture = null);
+    return future;
+  }
 
   static Future<List<SearchResultItem>> _defaultSearch(
     String query,
@@ -23,12 +50,17 @@ class NewPipeEngine implements YouTubeEngine {
 
   static bool get isAvailableForPlatform => kIsAndroid || kIsDesktop;
 
-  AudioOnlyStreamInfo _parseAudioStream(AudioStream stream, String videoId) {
+  AudioOnlyStreamInfo? _parseAudioStream(AudioStream stream, String videoId) {
+    // A row without a media format says nothing about the rest of the
+    // manifest: skip it instead of throwing for the whole video (previously
+    // `mediaFormat!` crashed the manifest on one malformed row).
+    final mimeType = stream.mediaFormat?.mimeType;
+    if (mimeType == null) return null;
     return AudioOnlyStreamInfo(
       VideoId(videoId),
       stream.itag,
       Uri.parse(stream.content),
-      StreamContainer.parse(stream.mediaFormat!.mimeType.split("/").last),
+      StreamContainer.parse(mimeType.split("/").last),
       FileSize.unknown,
       Bitrate(stream.bitrate),
       stream.codec,
@@ -38,17 +70,19 @@ class NewPipeEngine implements YouTubeEngine {
         _ => "low",
       },
       [],
-      MediaType.parse(stream.mediaFormat!.mimeType),
+      MediaType.parse(mimeType),
       null,
     );
   }
 
-  AudioOnlyStreamInfo _parseVideoStream(VideoStream stream, String videoId) {
+  AudioOnlyStreamInfo? _parseVideoStream(VideoStream stream, String videoId) {
+    final mimeType = stream.mediaFormat?.mimeType;
+    if (mimeType == null) return null;
     return AudioOnlyStreamInfo(
       VideoId(videoId),
       stream.itag,
       Uri.parse(stream.content),
-      StreamContainer.parse(stream.mediaFormat!.mimeType.split("/").last),
+      StreamContainer.parse(mimeType.split("/").last),
       FileSize.unknown,
       Bitrate(stream.bitrate),
       stream.codec,
@@ -58,7 +92,7 @@ class NewPipeEngine implements YouTubeEngine {
         _ => "low",
       },
       [],
-      MediaType.parse(stream.mediaFormat!.mimeType),
+      MediaType.parse(mimeType),
       null,
     );
   }
@@ -112,17 +146,22 @@ class NewPipeEngine implements YouTubeEngine {
 
   @override
   Future<StreamManifest> getStreamManifest(String videoId) async {
+    await _ensureInitialized();
     final video = await withinEngineCallBudget(
       'newpipe.getStreamManifest',
       () => NewPipeExtractor.getVideoInfo(videoId),
     );
 
-    final streams =
-        video.audioStreams.map((stream) => _parseAudioStream(stream, videoId));
+    final streams = video.audioStreams
+        .map((stream) => _parseAudioStream(stream, videoId))
+        .whereType<AudioOnlyStreamInfo>()
+        .toList();
 
     if (streams.isEmpty) {
       final videoStreams = video.videoStreams
-          .map((stream) => _parseVideoStream(stream, videoId));
+          .map((stream) => _parseVideoStream(stream, videoId))
+          .whereType<AudioOnlyStreamInfo>()
+          .toList();
       if (videoStreams.isNotEmpty) {
         return StreamManifest(videoStreams);
       }
@@ -133,6 +172,7 @@ class NewPipeEngine implements YouTubeEngine {
 
   @override
   Future<Video> getVideo(String videoId) async {
+    await _ensureInitialized();
     final video = await withinEngineCallBudget(
       'newpipe.getVideo',
       () => NewPipeExtractor.getVideoInfo(videoId),
@@ -143,6 +183,7 @@ class NewPipeEngine implements YouTubeEngine {
 
   @override
   Future<List<YouTubeSearchResult>> searchVideos(String query) async {
+    await _ensureInitialized();
     return withinEngineCallBudget('newpipe.searchVideos', () async {
       // The `videos` filter is load-bearing, not an optimization: NewPipe's
       // channel rows carry `description` as a plain String, and

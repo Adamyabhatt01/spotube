@@ -21,6 +21,7 @@ import 'package:spotube/provider/user_preferences/user_preferences_provider.dart
 import 'package:spotube/provider/vpn/vpn_provider.dart';
 import 'package:spotube/services/downloads/download_store.dart';
 import 'package:spotube/services/logger/logger.dart';
+import 'package:spotube/services/music_cache_policy.dart';
 import 'package:spotube/services/sourced_track/source_resolver.dart';
 import 'package:spotube/services/sourced_track/sourced_track.dart';
 import 'package:spotube/services/vpn/vpn_lease.dart';
@@ -321,8 +322,16 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   }) {
     if (!_enqueue(tracks, collectionId: collectionId)) return;
     // Phase 1 (batched existence check) runs async, then pumps the pool.
-    // No await should be invoked to avoid stuck UI
-    _prefilterAndStart();
+    // No await should be invoked to avoid stuck UI — but a throw inside the
+    // prefilter must neither surface as an unhandled async error nor leave
+    // the freshly queued tasks with nobody to pump them, so the pool gets a
+    // final (idempotent) pump either way and the error is reported.
+    unawaited(
+      _prefilterAndStart()
+          .catchError((Object error, StackTrace stackTrace) {
+        AppLogger.reportError(error, stackTrace);
+      }).whenComplete(_pumpDownloadPool),
+    );
   }
 
   static const _statusByDownloadStatus = {
@@ -348,8 +357,18 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   }) {
     final track = task.track;
     final presets = ref.read(audioSourcePresetsProvider);
-    final container =
-        presets.presets[presets.selectedDownloadingContainerIndex];
+    // Presets start empty while the audio plugin loads, and a persisted
+    // index can go stale when the plugin's list shrinks. Direct indexing
+    // threw RangeError here; fail with a meaningful error instead.
+    final container = presets.presets
+        .elementAtOrNull(presets.selectedDownloadingContainerIndex);
+    if (container == null) {
+      throw StateError(
+        'No download container preset at index '
+        '${presets.selectedDownloadingContainerIndex} '
+        '(${presets.presets.length} available)',
+      );
+    }
     final downloadLocation = ref.read(
         userPreferencesProvider.select((value) => value.downloadLocation));
     final savePath = _savePathFor(track, downloadLocation, container);
@@ -454,6 +473,12 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       if (task.status == DownloadStatus.downloading) {
         task.cancelToken.cancel();
       }
+      // Release per-task resources of dropped entries, mirroring
+      // [_pruneTerminalTasks]: state is replaced wholesale here, so the
+      // controller must be closed now or it never is.
+      if (!task._downloadedBytesStreamController.isClosed) {
+        task._downloadedBytesStreamController.close();
+      }
     }
     state = [];
   }
@@ -555,7 +580,10 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     }
   }
 
-  bool _isShowingDialog = false;
+  /// Set while the replace-file dialog is open. Concurrent callers await
+  /// the same [Completer] instead of being answered `false` behind the
+  /// user's back — the decision, once made, is every waiter's answer.
+  Completer<bool>? _replacePolicyDecision;
 
   Future<bool> _shouldReplaceFileOnExist(DownloadTask task) async {
     return _resolveReplacePolicy(task.track);
@@ -567,22 +595,29 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   /// [replaceDownloadedFileState], so the phase-1 prefilter and the
   /// per-track safety net share a single user decision.
   Future<bool> _resolveReplacePolicy(SpotubeTrackObject track) async {
-    if (rootNavigatorKey.currentContext == null || _isShowingDialog) {
-      return false;
-    }
     final replaceAll = ref.read(replaceDownloadedFileState);
     if (replaceAll != null) return replaceAll;
-    _isShowingDialog = true;
+    final inFlight = _replacePolicyDecision;
+    if (inFlight != null) return inFlight.future;
+    if (rootNavigatorKey.currentContext == null) {
+      return false;
+    }
+    final completer = _replacePolicyDecision = Completer<bool>();
     try {
-      return await showDialog<bool>(
+      final answer = await showDialog<bool>(
             context: rootNavigatorKey.currentContext!,
             builder: (context) => ReplaceDownloadedDialog(
               track: track,
             ),
           ) ??
           false;
+      completer.complete(answer);
+      return answer;
+    } catch (error, stackTrace) {
+      if (!completer.isCompleted) completer.complete(false);
+      Error.throwWithStackTrace(error, stackTrace);
     } finally {
-      _isShowingDialog = false;
+      _replacePolicyDecision = null;
     }
   }
 
@@ -683,8 +718,15 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       // second identical write per task and could revert a cancel that
       // arrived while the lease was pending.
       final presets = ref.read(audioSourcePresetsProvider);
-      final container =
-          presets.presets[presets.selectedDownloadingContainerIndex];
+      final container = presets.presets
+          .elementAtOrNull(presets.selectedDownloadingContainerIndex);
+      if (container == null) {
+        throw StateError(
+          'No download container preset at index '
+          '${presets.selectedDownloadingContainerIndex} '
+          '(${presets.presets.length} available)',
+        );
+      }
       final downloadLocation = ref.read(
           userPreferencesProvider.select((value) => value.downloadLocation));
       final autoQuality = ref.read(
@@ -738,63 +780,19 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
 
       // 2. Fallback: walk the source cascade (other engines, other plugins,
       //    sibling matches, any available quality) until one succeeds.
-      final resolver = SourceResolver(ref);
-      final candidates = await resolver.candidates();
-
-      for (final candidate in candidates) {
-        if (task.cancelToken.isCancelled) {
-          _setStatus(task.track, DownloadStatus.canceled,
-              sourceToken: task.cancelToken);
-          return;
-        }
-
-        try {
-          final track = await resolver.resolve(candidate, task.track);
-          final candidatesToTry = [
-            track,
-            for (final sibling in track.siblings)
-              await resolver.resolveMatch(candidate, task.track, sibling),
-          ];
-
-          for (final resolved in candidatesToTry) {
-            if (task.cancelToken.isCancelled) {
-              _setStatus(task.track, DownloadStatus.canceled,
-                  sourceToken: task.cancelToken);
-              return;
-            }
-            final url = _pickDownloadUrl(
-              resolved,
-              container,
-              presets,
-              autoQuality,
-            );
-            if (url == null) continue;
-
-            try {
-              await _chunkDownloadTrack(
-                task,
-                url: url,
-                savePath: savePath,
-                savePathFile: savePathFile,
-                container: container,
-                beforeAttempt: vpnWaitHook,
-              );
-              return;
-            } catch (e, stack) {
-              lastError = e;
-              lastStack = stack;
-            }
-          }
-        } catch (e, stack) {
-          lastError = e;
-          lastStack = stack;
-        }
-      }
-
-      if (lastError case final Object error) {
-        Error.throwWithStackTrace(error, lastStack ?? StackTrace.current);
-      }
-      throw Exception("All download sources failed for ${task.track.name}");
+      //    Extracted verbatim below; [lastError]/[lastStack] carry the
+      //    primary attempt's failure so the final rethrow is unchanged.
+      await _downloadWithFallback(
+        task,
+        savePath: savePath,
+        savePathFile: savePathFile,
+        container: container,
+        presets: presets,
+        autoQuality: autoQuality,
+        vpnWaitHook: vpnWaitHook,
+        lastError: lastError,
+        lastStack: lastStack,
+      );
     } catch (e, stack) {
       if (e is DioException && e.type == DioExceptionType.cancel) {
         // Cancellation (including retry-loop abort) is not a failure.
@@ -827,6 +825,91 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       // early completed/canceled returns above.
       await vpnLease?.release();
     }
+  }
+
+  /// Fallback half of [_downloadTrack], extracted verbatim: walks the source
+  /// cascade (other engines, other plugins, sibling matches, any available
+  /// quality) until one chunked download succeeds. [lastError]/[lastStack]
+  /// carry the primary attempt's failure into the final rethrow, so the
+  /// failure taxonomy the caller's catch handles is unchanged. Cancel
+  /// re-checks, the VPN wait hook and the per-candidate loop all stay as
+  /// they were; every `return` here is a success or cancel exiting the
+  /// attempt, which reaches the caller's `finally` exactly as before.
+  Future<void> _downloadWithFallback(
+    DownloadTask task, {
+    required String savePath,
+    required File savePathFile,
+    required SpotubeAudioSourceContainerPreset container,
+    required AudioSourcePresetsState presets,
+    required bool autoQuality,
+    required Future<void> Function()? vpnWaitHook,
+    required Object? lastError,
+    required StackTrace? lastStack,
+  }) async {
+    final resolver = SourceResolver(ref);
+    final candidates = await resolver.candidates();
+
+    for (final candidate in candidates) {
+      if (task.cancelToken.isCancelled) {
+        _setStatus(task.track, DownloadStatus.canceled,
+            sourceToken: task.cancelToken);
+        return;
+      }
+
+      try {
+        // Bounded like playback's cascade: a stalled search/manifest must
+        // fall through to the next candidate, never hang the worker. The
+        // chunk download below is deliberately unbounded (files take minutes).
+        final track = await resolver
+            .resolve(candidate, task.track)
+            .timeout(sourceCandidateBudget);
+        final candidatesToTry = [
+          track,
+          for (final sibling in track.siblings)
+            await resolver
+                .resolveMatch(candidate, task.track, sibling)
+                .timeout(sourceCandidateBudget),
+        ];
+
+        for (final resolved in candidatesToTry) {
+          if (task.cancelToken.isCancelled) {
+            _setStatus(task.track, DownloadStatus.canceled,
+                sourceToken: task.cancelToken);
+            return;
+          }
+          final url = _pickDownloadUrl(
+            resolved,
+            container,
+            presets,
+            autoQuality,
+          );
+          if (url == null) continue;
+
+          try {
+            await _chunkDownloadTrack(
+              task,
+              url: url,
+              savePath: savePath,
+              savePathFile: savePathFile,
+              container: container,
+              beforeAttempt: vpnWaitHook,
+            );
+            return;
+          } catch (e, stack) {
+            lastError = e;
+            lastStack = stack;
+          }
+        }
+      } catch (e, stack) {
+        lastError = e;
+        lastStack = stack;
+      }
+    }
+
+    if (lastError case final Object error) {
+      Error.throwWithStackTrace(error, lastStack ?? StackTrace.current);
+    }
+    throw Exception("All download sources failed for ${task.track.name}");
   }
 
   /// Selects the download URL for [track]. When [autoQuality] is enabled,
@@ -901,7 +984,6 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
           }
         },
         deleteOnError: true,
-        fileAccessMode: FileAccessMode.write,
       ),
       beforeAttempt: beforeAttempt,
     );
@@ -917,9 +999,16 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       throw Exception("Download failed with status ${response.statusCode}");
     }
 
+    // The file now lives in the library; the playback server's mirrored copy
+    // of the same audio is pure duplicate from here on.
+    await _evictMusicCacheCopies(task.track, container);
+
     if (container.getFileExtension() == "weba") return;
 
-    final imageBytes = await ServiceUtils.downloadImage(
+    // Shared memo with the playback-cache finalizer and palette hook: a track
+    // that was streamed (and mirrored) before being downloaded, or a sibling
+    // from the same album, must not re-fetch the same cover.
+    final imageBytes = await ServiceUtils.artworkBytes(
       (task.track.album.images).asUrlString(
         placeholder: ImagePlaceholder.albumArt,
         index: 1,
@@ -932,6 +1021,50 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
         imageBytes: imageBytes,
       ),
     );
+  }
+
+  /// Deletes music-cache copies of [track] after its download landed.
+  ///
+  /// The cache file is named `"<name> - <artists> (<source id>).<ext>"` (see
+  /// the playback server); the source id belongs to the streaming resolve and
+  /// is unknown here, so copies are matched by the name+artists prefix the
+  /// server writes and this container's extension. A whole one-level list is
+  /// cheap next to the transfer that just finished, and no match is a no-op
+  /// for a track that was never streamed.
+  Future<void> _evictMusicCacheCopies(
+    SpotubeFullTrackObject track,
+    SpotubeAudioSourceContainerPreset container,
+  ) async {
+    try {
+      final prefix = ServiceUtils.sanitizeFilename(
+        ServiceUtils.trackFileStem(track, spaceAfterComma: false),
+      );
+      final extension = '.${container.getFileExtension()}';
+      final dir = Directory(await UserPreferencesNotifier.getMusicCacheDir());
+      if (!await dir.exists()) return;
+
+      final stale = <File>[];
+      await for (final entity in dir.list(followLinks: false)) {
+        if (entity is! File) continue;
+        final name = basename(entity.path);
+        if (name.startsWith(prefix) &&
+            name.length > prefix.length &&
+            name.endsWith(extension)) {
+          stale.add(entity);
+        }
+      }
+      if (stale.isEmpty) return;
+
+      // Gone from the usage map too, so the eviction ranker never treats a
+      // deleted path as recently served.
+      for (final file in stale) {
+        await file.delete();
+        MusicCacheUsage.forget(file.path);
+      }
+    } catch (e, stack) {
+      // Disk hygiene after a completed download: never fails the download.
+      AppLogger.reportError(e, stack, 'music cache eviction after download');
+    }
   }
 
   /// Maximum number of tracks downloaded concurrently.
@@ -955,7 +1088,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     return join(
       downloadLocation,
       ServiceUtils.sanitizeFilename(
-        "${track.name} - ${track.artists.map((e) => e.name).join(", ")}.${container.getFileExtension()}",
+        "${ServiceUtils.trackFileStem(track, spaceAfterComma: true)}.${container.getFileExtension()}",
       ),
     );
   }
@@ -987,8 +1120,26 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     final downloadLocation = ref.read(
         userPreferencesProvider.select((value) => value.downloadLocation));
     final presets = ref.read(audioSourcePresetsProvider);
-    final container =
-        presets.presets[presets.selectedDownloadingContainerIndex];
+    // Direct indexing threw a RangeError when the persisted container index
+    // pointed past the end of the plugin's current list. The same guard the
+    // single-task path uses, so the prefilter degrades to "no container"
+    // instead of crashing the download pump.
+    final container = presets.presets
+        .elementAtOrNull(presets.selectedDownloadingContainerIndex);
+    if (container == null) {
+      // Without a container there is no destination path to group by, so
+      // the prefilter cannot run. Fail the queued tasks with the same
+      // message the single-task path raises, rather than leaving them
+      // queued with nobody to claim them.
+      final message =
+          'No download container preset at index '
+          '${presets.selectedDownloadingContainerIndex} '
+          '(${presets.presets.length} available)';
+      for (final task in queued) {
+        _setStatus(task.track, DownloadStatus.failed, error: message);
+      }
+      return;
+    }
 
     // Group queued tasks by destination path.
     final groups = <String, List<DownloadTask>>{};

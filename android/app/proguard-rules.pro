@@ -9,6 +9,19 @@
 
 -keep class androidx.lifecycle.DefaultLifecycleObserver
 
+# The app's memory-backing helper. The native method is called by name from
+# JNI, so R8 cannot see the reference and would strip it (and the class
+# initializer that loads libspotube.so would go with it).
+-keep class oss.krtirtho.spotube.MemoryBacking { *; }
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+
+# The device-memory platform channel. It is registered by hand
+# (MainActivity.configureFlutterEngine), so R8 sees no reference to it and
+# would strip the class the channel handler lives in.
+-keep class oss.krtirtho.spotube.DeviceMemoryChannel { *; }
+
 -keepnames class kotlinx.serialization.** { *; }
 -keepnames class oss.krtirtho.spotube.glance.models.** { *; }
 -keep @kotlinx.serialization.Serializable class *

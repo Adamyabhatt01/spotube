@@ -1,17 +1,17 @@
-import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:spotube/services/artwork_cache_manager.dart';
 
 import 'package:shadcn_flutter/shadcn_flutter.dart' hide Element;
 import 'package:spotube/models/metadata/metadata.dart';
-import 'package:spotube/pages/library/user_local_tracks/user_local_tracks.dart';
 import 'package:spotube/modules/root/update_dialog.dart';
 
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/services/dio/dio.dart';
 import 'package:spotube/services/logger/logger.dart';
+import 'package:spotube/services/memory/memory_budget.dart';
 
 import 'dart:async';
 
@@ -20,42 +20,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:spotube/collections/env.dart';
 
 import 'package:version/version.dart';
+import 'package:spotube/models/sort.dart';
 
 abstract class ServiceUtils {
-  static String clearArtistsOfTitle(String title, List<String> artists) {
-    return title
-        .replaceAll(RegExp(artists.join("|"), caseSensitive: false), "")
-        .trim();
-  }
-
-  static String getTitle(
-    String title, {
-    List<String> artists = const [],
-    bool onlyCleanArtist = false,
-  }) {
-    final match = RegExp(r"(?<=\().+?(?=\))").firstMatch(title)?.group(0);
-    final artistInBracket =
-        artists.any((artist) => match?.contains(artist) ?? false);
-
-    if (artistInBracket) {
-      title = title.replaceAll(
-        RegExp(" *\\([^)]*\\) *"),
-        '',
-      );
-    }
-
-    title = clearArtistsOfTitle(title, artists);
-    if (onlyCleanArtist) {
-      artists = [];
-    }
-
-    return "$title ${artists.map((e) => e.replaceAll(",", " ")).join(", ")}"
-        .replaceAll(RegExp(r"\s*\[[^\]]*]"), ' ')
-        .replaceAll(RegExp(r"\sfeat\.|\sft\.", caseSensitive: false), ' ')
-        .replaceAll(RegExp(r"\s+"), ' ')
-        .trim();
-  }
-
   static List<T> sortTracks<T extends SpotubeTrackObject>(
       List<T> tracks, SortBy sortBy) {
     if (sortBy == SortBy.none) return tracks;
@@ -70,7 +37,11 @@ abstract class ServiceUtils {
           case SortBy.duration:
             return a.durationMs.compareTo(b.durationMs);
           case SortBy.artist:
-            return a.artists.first.name.compareTo(b.artists.first.name);
+            // Local tracks and some plugin payloads have an empty artist list;
+            // `first` used to throw while the user changed the sort order.
+            return (a.artists.isEmpty ? '' : a.artists.first.name).compareTo(
+              b.artists.isEmpty ? '' : b.artists.first.name,
+            );
           case SortBy.album:
             return a.album.name.compareTo(b.album.name);
           default:
@@ -178,7 +149,7 @@ abstract class ServiceUtils {
     String imageUrl,
   ) async {
     try {
-      final fileStream = DefaultCacheManager().getImageFile(imageUrl);
+      final fileStream = ArtworkCacheManager.instance.getImageFile(imageUrl);
 
       final bytes = List<int>.empty(growable: true);
 
@@ -204,9 +175,25 @@ abstract class ServiceUtils {
   /// callers each started their own fetch. This memo serves repeat and
   /// concurrent requests from one future. Failures are not retained (a null
   /// result evicts its own entry) so a transient outage stays retryable.
-  /// Bounded by entry count; the oldest entry goes first.
+  ///
+  /// Bounded by **bytes**, not by entry count. The entries are encoded
+  /// cover images whose sizes differ by an order of magnitude (a 640x640
+  /// Spotify rendition is ~150 KB, a small one ~5 KB), so an entry-count
+  /// cap lets a handful of large covers cost megabytes without bound. The
+  /// byte budget is device-aware (see [MemoryBudget]); the entry count is
+  /// kept as a backstop so a pathological run of tiny images cannot make
+  /// the map itself large.
   static final Map<String, Future<Uint8List?>> _artworkBytesMemo = {};
+
+  /// The byte size of each resolved entry, so the budget can be enforced
+  /// without awaiting the futures (which would be racy).
+  static final Map<String, int> _artworkBytesSizes = {};
+
+  static int _artworkBytesTotal = 0;
+
   static const int _maxArtworkMemoEntries = 64;
+
+  static int get _maxArtworkMemoBytes => MemoryBudget.artworkMemoBytes;
 
   static Future<Uint8List?> artworkBytes(String imageUrl) {
     return _artworkBytesMemo.putIfAbsent(imageUrl, () {
@@ -217,25 +204,45 @@ abstract class ServiceUtils {
         if (bytes == null) {
           _artworkBytesMemo.remove(imageUrl);
         } else {
-          while (_artworkBytesMemo.length > _maxArtworkMemoEntries) {
-            final oldest = _artworkBytesMemo.keys.first;
-            if (oldest == imageUrl) break;
-            _artworkBytesMemo.remove(oldest);
-          }
+          _artworkBytesSizes[imageUrl] = bytes.length;
+          _artworkBytesTotal += bytes.length;
+          _evictArtworkMemoOverflow(imageUrl);
         }
         return bytes;
       });
     });
   }
 
+  /// Drops the oldest entries until the memo is inside its byte budget and
+  /// its entry-count backstop.
+  ///
+  /// [protected] is the entry that just resolved: it is never evicted, so a
+  /// caller that is about to receive these bytes always gets them.
+  static void _evictArtworkMemoOverflow(String protected) {
+    while (_artworkBytesTotal > _maxArtworkMemoBytes ||
+        _artworkBytesMemo.length > _maxArtworkMemoEntries) {
+      final oldest = _artworkBytesMemo.keys.firstWhere(
+        (key) => key != protected,
+        orElse: () => protected,
+      );
+      if (oldest == protected) break;
+      _artworkBytesMemo.remove(oldest);
+      final size = _artworkBytesSizes.remove(oldest) ?? 0;
+      _artworkBytesTotal -= size;
+    }
+  }
+
   @visibleForTesting
   static int get debugArtworkMemoLength => _artworkBytesMemo.length;
 
   @visibleForTesting
-  static void debugClearArtworkMemo() => _artworkBytesMemo.clear();
+  static int get debugArtworkMemoBytes => _artworkBytesTotal;
 
-  static int randomNumber(int min, int max) {
-    return min + Random().nextInt(max - min);
+  @visibleForTesting
+  static void debugClearArtworkMemo() {
+    _artworkBytesMemo.clear();
+    _artworkBytesSizes.clear();
+    _artworkBytesTotal = 0;
   }
 
   static String sanitizeFilename(String input, {String replacement = ''}) {
@@ -269,5 +276,25 @@ abstract class ServiceUtils {
         .replaceFirst(RegExp(r'[\. ]+$'), replacement);
 
     return result.length > 255 ? result.substring(0, 255) : result;
+  }
+
+  /// The `"<name> - <artists>"` stem a track's files are named by. One source
+  /// of truth for the contract between the downloader (`_savePathFor`), the
+  /// proxy (`downloadedFileBaseName`, `_getTrackCacheFilePath`) and the music
+  /// cache evictor (`_evictMusicCacheCopies`) — previously re-derived inline
+  /// at each site, so one join silently breaking the prefix match could go
+  /// unnoticed.
+  ///
+  /// [spaceAfterComma] is load-bearing, byte-for-byte: downloads name
+  /// user-facing files with `", "` while the streaming-cache file embeds
+  /// `(<source id>)` and is matched by the `","` prefix.
+  static String trackFileStem(
+    SpotubeTrackObject track, {
+    required bool spaceAfterComma,
+  }) {
+    final artists = track.artists
+        .map((e) => e.name)
+        .join(spaceAfterComma ? ", " : ",");
+    return "${track.name} - $artists";
   }
 }

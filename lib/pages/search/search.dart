@@ -1,33 +1,28 @@
-import 'package:flutter/services.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart';
-
-import 'package:flutter_hooks/flutter_hooks.dart';
-import 'package:fuzzywuzzy/fuzzywuzzy.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:spotube/collections/routes.gr.dart';
-
-import 'package:spotube/collections/spotube_icons.dart';
-import 'package:spotube/components/fallbacks/error_box.dart';
-import 'package:spotube/components/fallbacks/no_default_metadata_plugin.dart';
-import 'package:spotube/components/titlebar/titlebar.dart';
-import 'package:spotube/extensions/context.dart';
-import 'package:spotube/extensions/string.dart';
-import 'package:spotube/hooks/controllers/use_shadcn_text_editing_controller.dart';
-import 'package:spotube/pages/search/tabs/albums.dart';
-import 'package:spotube/pages/search/tabs/all.dart';
-import 'package:spotube/pages/search/tabs/artists.dart';
-import 'package:spotube/pages/search/tabs/playlists.dart';
-import 'package:spotube/pages/search/tabs/tracks.dart';
-import 'package:spotube/modules/app_layout/app_layout.dart';
-import 'package:spotube/provider/metadata_plugin/search/all.dart';
-import 'package:spotube/services/kv_store/kv_store.dart';
 import 'package:auto_route/auto_route.dart';
-import 'package:spotube/services/metadata/errors/exceptions.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:spotube/extensions/context.dart';
+import 'package:spotube/modules/home/home_search_bar.dart';
+import 'package:spotube/modules/home/home_search_results.dart';
+import 'package:spotube/modules/search/search_term.dart';
+import 'package:spotube/pages/radio/station_search.dart';
+import 'package:spotube/pages/search/search_landing.dart';
 
-final searchTermStateProvider = StateProvider<String>((ref) {
-  return "";
-});
+/// Which catalog the Search page queries. Music is the default; radio
+/// restores mobile station search now that the Radio page hides its own
+/// row wherever the bottom bar is visible.
+enum SearchScope { music, radio }
 
+/// Dedicated search destination behind the mobile bottom-bar Search tab.
+///
+/// Reuses the Browse search components ([HomeSearchBar] + [HomeSearchResults])
+/// so mobile search and desktop inline search can never diverge: same field,
+/// same suggestions, same shared [searchTermStateProvider].
+///
+/// Deliberately no autofocus on entry: focusing would pop the keyboard over
+/// the landing on every visit, and the open suggestion panel's fullscreen
+/// barrier would absorb the first tap on the scope switcher below.
 @RoutePage()
 class SearchPage extends HookConsumerWidget {
   static const name = "search";
@@ -35,203 +30,124 @@ class SearchPage extends HookConsumerWidget {
   const SearchPage({super.key});
 
   @override
-  Widget build(BuildContext context, ref) {
-    final controller = useShadcnTextEditingController();
-    final focusNode = useFocusNode();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scope = useState(SearchScope.music);
 
-    final searchTerm = ref.watch(searchTermStateProvider);
-    final searchChipSnapshot = ref.watch(metadataPluginSearchChipsProvider);
-    final selectedChip = useState<String?>(
-      searchChipSnapshot.asData?.value.first ?? "all",
-    );
+    final searching =
+        ref.watch(searchTermStateProvider.select((s) => s.trim().isNotEmpty));
 
-    ref.listen(
-      metadataPluginSearchChipsProvider,
-      (previous, next) {
-        selectedChip.value = next.asData?.value.first ?? "all";
-      },
-    );
-
-    useEffect(() {
-      controller.text = searchTerm;
-
-      return null;
-    }, []);
-
-    void onSubmitted(String value) {
-      ref.read(searchTermStateProvider.notifier).state = value;
-      focusNode.unfocus();
-      if (value.trim().isEmpty) {
-        return;
-      }
-      KVStoreService.setRecentSearches(
-        {
-          value,
-          ...KVStoreService.recentSearches,
-        }.toList(),
-      );
-    }
-
-    return PopScope(
-      canPop: false,
-      // `didPop == true` means the router deleted this page out of its stack,
-      // not that the user asked to leave; see library.dart's handler.
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        context.navigateTo(const HomeRoute());
-      },
-      child: SafeArea(
-        bottom: false,
-        child: Scaffold(
-          headers: [
-            if (kTitlebarVisible)
-              const TitleBar(automaticallyImplyLeading: false, height: 30)
-          ],
-          child: Builder(builder: (context) {
-            if (searchChipSnapshot.error
-                case MetadataPluginException(
-                  errorCode: MetadataPluginErrorCode.noDefaultMetadataPlugin,
-                  message: _
-                )) {
-              return const NoDefaultMetadataPlugin();
-            }
-
-            if (searchChipSnapshot.hasError) {
-              return ErrorBox(
-                error: searchChipSnapshot.error!,
-                onRetry: () {
-                  ref.invalidate(metadataPluginSearchChipsProvider);
-                },
-              );
-            }
-
-            return Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                        child: ListenableBuilder(
-                            listenable: controller,
-                            builder: (context, _) {
-                              final suggestions = controller.text.isEmpty
-                                  ? KVStoreService.recentSearches
-                                  : KVStoreService.recentSearches
-                                      .where(
-                                        (s) =>
-                                            weightedRatio(
-                                              s.toLowerCase(),
-                                              controller.text.toLowerCase(),
-                                            ) >
-                                            50,
-                                      )
-                                      .toList();
-
-                              return AutoComplete(
-                                suggestions: suggestions.length <= 2
-                                    ? [
-                                        ...suggestions,
-                                        "Twenty One Pilots",
-                                        "Linkin Park",
-                                      ]
-                                    : suggestions,
-                                completer: (suggestion) => suggestion,
-                                mode: AutoCompleteMode.replaceAll,
-                                child: TextField(
-                                  autofocus: true,
-                                  controller: controller,
-                                  focusNode: focusNode,
-                                  features: [
-                                    const InputFeature.leading(
-                                      Icon(SpotubeIcons.search),
-                                    ),
-                                    InputFeature.trailing(
-                                      AnimatedCrossFade(
-                                        duration:
-                                            const Duration(milliseconds: 300),
-                                        crossFadeState:
-                                            controller.text.isNotEmpty
-                                                ? CrossFadeState.showFirst
-                                                : CrossFadeState.showSecond,
-                                        firstChild: IconButton.ghost(
-                                          size: ButtonSize.small,
-                                          icon: const Icon(SpotubeIcons.close),
-                                          onPressed: () {
-                                            controller.clear();
-                                          },
-                                        ),
-                                        secondChild: const SizedBox.square(
-                                            dimension: 28),
-                                      ),
-                                    )
-                                  ],
-                                  textInputAction: TextInputAction.search,
-                                  placeholder: Text(context.l10n.search),
-                                  onSubmitted: onSubmitted,
-                                ),
-                              );
-                            }),
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  spacing: 8,
-                  children: [
-                    const Gap(12),
-                    if (searchChipSnapshot.asData?.value != null)
-                      for (final chip in searchChipSnapshot.asData!.value)
-                        Chip(
-                          style: selectedChip.value == chip
-                              ? ButtonVariance.primary.copyWith(
-                                  decoration: (context, states, value) {
-                                    return ButtonVariance.primary
-                                        .decoration(context, states)
-                                        .copyWithIfBoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                              context.pillCornerRadius),
-                                        );
-                                  },
-                                )
-                              : ButtonVariance.secondary.copyWith(
-                                  decoration: (context, states, value) {
-                                    return ButtonVariance.secondary
-                                        .decoration(context, states)
-                                        .copyWithIfBoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                              context.pillCornerRadius),
-                                        );
-                                  },
-                                ),
-                          child: Text(chip.capitalize()),
-                          onPressed: () {
-                            selectedChip.value = chip;
-                          },
-                        ),
-                  ],
-                ),
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: switch (selectedChip.value) {
-                      "tracks" => const SearchPageTracksTab(),
-                      "albums" => const SearchPageAlbumsTab(),
-                      "artists" => const SearchPageArtistsTab(),
-                      "playlists" => const SearchPagePlaylistsTab(),
-                      _ => const SearchPageAllTab(),
-                    },
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Compact, scrollable scope row: 12px gutters instead of the old
+          // 28px desktop padding, and translated labels. It stays above the
+          // active scope so switching never moves the thing you tapped.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                spacing: 8,
+                children: [
+                  _ScopeChip(
+                    key: const ValueKey('searchScopeMusic'),
+                    label: context.l10n.music,
+                    selected: scope.value == SearchScope.music,
+                    onPressed: () => scope.value = SearchScope.music,
                   ),
-                ),
-              ],
-            );
-          }),
-        ),
+                  _ScopeChip(
+                    key: const ValueKey('searchScopeRadio'),
+                    // Radio is a proper noun in the rest of the app (sidebar,
+                    // plugin abilities), so it stays untranslated there too.
+                    label: 'Radio',
+                    selected: scope.value == SearchScope.radio,
+                    onPressed: () => scope.value = SearchScope.radio,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (scope.value == SearchScope.music) const HomeSearchBar(),
+          Expanded(
+            child: scope.value == SearchScope.music
+                ? (searching
+                    // The field is pinned above; only the results scroll.
+                    ? const HomeSearchResults()
+                    : const SearchLandingMusic())
+                : const _SearchRadioScope(),
+          ),
+        ],
       ),
     );
+  }
+}
+
+/// The radio scope: station search field, live results and browse rails via
+/// the shared [useStationSearchSlivers] hook, so it can never diverge from
+/// the Radio page.
+///
+/// Mounted only while the scope is active, so the radio hook fires no
+/// directory requests while the user only searches music. The tradeoff is
+/// the radio field resets on scope switch, while the music term survives
+/// via the shared provider.
+class _SearchRadioScope extends HookConsumerWidget {
+  const _SearchRadioScope();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedTag = useState<String?>(null);
+    final selectedCountry = useState<String?>(null);
+    final controller = useScrollController();
+
+    return CustomScrollView(
+      controller: controller,
+      slivers: [
+        ...useStationSearchSlivers(
+          context,
+          ref,
+          controller: controller,
+          // The Search page already has the Music/Radio scope switcher, so the
+          // Radio page's Home shortcut is redundant here. History is replaced
+          // by the station recommendation rails below; both stay untouched on
+          // the actual Radio page.
+          showMusicShortcut: false,
+          showRecentRail: false,
+          selectedTag: selectedTag.value,
+          selectedCountry: selectedCountry.value,
+          onTag: (tag) {
+            selectedCountry.value = null;
+            selectedTag.value = tag;
+          },
+          onCountry: (country) {
+            selectedTag.value = null;
+            selectedCountry.value = country;
+          },
+        ),
+        const RadioAttributionSliver(),
+        const SliverSafeArea(sliver: SliverGap(24)),
+      ],
+    );
+  }
+}
+
+class _ScopeChip extends StatelessWidget {
+  const _ScopeChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return selected
+        ? Button.secondary(onPressed: onPressed, child: Text(label))
+        : Button.outline(onPressed: onPressed, child: Text(label));
   }
 }

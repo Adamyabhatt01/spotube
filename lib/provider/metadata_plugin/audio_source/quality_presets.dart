@@ -6,11 +6,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/services/metadata/metadata.dart';
 
 part 'quality_presets.g.dart';
 part 'quality_presets.freezed.dart';
+
+/// Clamps a persisted preset index into the range the current preset list
+/// actually offers.
+///
+/// The persisted index was chosen against the plugin's list at the time it
+/// was written. A plugin update — or a different plugin under the same
+/// slug — can present a shorter list, leaving the index past the end.
+/// Direct indexing then throws a RangeError in the playback, download and
+/// settings paths, so the index is clamped to the list that is here now.
+///
+/// An empty list clamps to 0: the index is meaningless there, and every
+/// consumer already treats "no preset" as "nothing to serve" rather than
+/// an error.
+int clampPresetIndex(int index, int length) {
+  if (length <= 0) return 0;
+  if (index < 0) return 0;
+  if (index >= length) return length - 1;
+  return index;
+}
 
 @freezed
 class AudioSourcePresetsState with _$AudioSourcePresetsState {
@@ -58,29 +78,66 @@ class AudioSourceAvailableQualityPresetsNotifier
   void _initialize(
     AsyncValue<MetadataPlugin?> audioSourceSnapshot,
     AsyncValue<PluginConfiguration?> audioSourceConfigSnapshot,
-  ) async {
+  ) {
     audioSourceConfigSnapshot.whenData((audioSourceConfig) {
-      audioSourceSnapshot.whenData((audioSource) async {
-        if (audioSource == null || audioSourceConfig == null) {
-          throw MetadataPluginException.noDefaultAudioSourcePlugin();
-        }
-        final preferences = await SharedPreferences.getInstance();
-        final persistedStateStr =
-            preferences.getString("audioSourceState-${audioSourceConfig.slug}");
-
-        if (persistedStateStr != null) {
-          state =
-              AudioSourcePresetsState.fromJson(jsonDecode(persistedStateStr))
-                  .copyWith(
-            presets: audioSource.audioSource.supportedPresets,
-          );
-        } else {
-          state = AudioSourcePresetsState(
-            presets: audioSource.audioSource.supportedPresets,
-          );
-        }
+      audioSourceSnapshot.whenData((audioSource) {
+        _restorePersistedState(audioSource, audioSourceConfig);
       });
     });
+  }
+
+  /// Restores the persisted presets for the resolved audio source. Errors are
+  /// reported, never thrown: [whenData] discards an async callback's future,
+  /// so a throw here surfaced as an unhandled async error instead of an
+  /// `AsyncError` on this provider.
+  Future<void> _restorePersistedState(
+    MetadataPlugin? audioSource,
+    PluginConfiguration? audioSourceConfig,
+  ) async {
+    if (audioSource == null || audioSourceConfig == null) {
+      AppLogger.reportError(
+        MetadataPluginException.noDefaultAudioSourcePlugin(),
+        StackTrace.current,
+        "AudioSourcePresets: no default audio source plugin",
+      );
+      return;
+    }
+
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final persistedStateStr =
+          preferences.getString("audioSourceState-${audioSourceConfig.slug}");
+
+      final presets = audioSource.audioSource.supportedPresets;
+
+      if (persistedStateStr != null) {
+        final restored = AudioSourcePresetsState.fromJson(
+          jsonDecode(persistedStateStr),
+        );
+        state = restored.copyWith(
+          presets: presets,
+          // The persisted indices were chosen against the plugin's list at
+          // the time. A plugin update (or a different plugin under the same
+          // slug) can present a shorter list, leaving the index past the
+          // end — direct indexing then throws a RangeError in the playback
+          // and download paths. Clamp to the list that is actually here.
+          selectedStreamingContainerIndex: clampPresetIndex(
+            restored.selectedStreamingContainerIndex,
+            presets.length,
+          ),
+          selectedDownloadingContainerIndex: clampPresetIndex(
+            restored.selectedDownloadingContainerIndex,
+            presets.length,
+          ),
+        );
+      } else {
+        state = AudioSourcePresetsState(
+          presets: presets,
+        );
+      }
+    } catch (e, stack) {
+      AppLogger.reportError(e, stack, "AudioSourcePresets: restore");
+    }
   }
 
   void setSelectedStreamingContainerIndex(int index) {
@@ -115,7 +172,14 @@ class AudioSourceAvailableQualityPresetsNotifier
     final audioSourceConfig = await ref.read(metadataPluginsProvider
         .selectAsync((data) => data.defaultAudioSourcePluginConfig));
     if (audioSourceConfig == null) {
-      throw MetadataPluginException.noDefaultAudioSourcePlugin();
+      // Same discarded-error shape as [_restorePersistedState]: this is an
+      // async void, so a throw here never reaches a caller.
+      AppLogger.reportError(
+        MetadataPluginException.noDefaultAudioSourcePlugin(),
+        StackTrace.current,
+        "AudioSourcePresets: no default audio source plugin",
+      );
+      return;
     }
 
     final preferences = await SharedPreferences.getInstance();

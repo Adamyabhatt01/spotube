@@ -45,6 +45,7 @@ class SettingsSidebarSection extends HookConsumerWidget {
           onTap: () {
             preferencesNotifier.setSidebarLibraryOrder([]);
             preferencesNotifier.setPinnedPlaylistIds([]);
+            preferencesNotifier.setPinnedStationIds([]);
           },
           trailing: const Icon(SpotubeIcons.angleRight),
         ),

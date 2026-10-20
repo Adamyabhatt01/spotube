@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/remote.dart';
 import 'package:encrypt/encrypt.dart';
+import 'package:spotube/models/color.dart';
 import 'package:media_kit/media_kit.dart' hide Track;
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -14,10 +15,10 @@ import 'package:spotube/models/database/database.steps.dart';
 import 'package:spotube/models/lyrics.dart';
 import 'package:spotube/models/metadata/market.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/models/radio/radio_station.dart';
 import 'package:spotube/services/kv_store/encrypted_kv_store.dart';
 import 'package:spotube/services/kv_store/kv_store.dart';
 import 'package:flutter/widgets.dart' hide Table, Key, View;
-import 'package:spotube/modules/settings/color_scheme_picker_dialog.dart';
 import 'package:drift/native.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/vpn/vpn_mode.dart';
@@ -45,6 +46,7 @@ part 'tables/library_snapshot.dart';
 part 'tables/track_download.dart';
 part 'tables/playlist_download.dart';
 part 'tables/playlist_download_mirror.dart';
+part 'tables/radio_favorites.dart';
 
 part 'typeconverters/color.dart';
 part 'typeconverters/locale.dart';
@@ -71,6 +73,7 @@ part 'typeconverters/subtitle.dart';
     TrackDownloadTable,
     PlaylistDownloadTable,
     PlaylistDownloadMirrorTable,
+    RadioFavoritesTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -84,7 +87,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 23;
+  int get schemaVersion => 27;
 
   /// Raw DDL for the quarantine table, kept as a constant so the v11->v12
   /// step can create it idempotently (`IF NOT EXISTS`) without depending
@@ -828,6 +831,73 @@ class AppDatabase extends _$AppDatabase {
             rethrow;
           }
         },
+        from23To24: (m, schema) async {
+          try {
+            // Internet-radio bookmarks. A brand-new table, so `createTable` is
+            // the whole change — but its composite unique index is declared
+            // with @TableIndex, which `Migrator.createTable` does NOT build
+            // (same trap as v16), so it is created explicitly alongside.
+            // Guarded on table existence so a re-run is a no-op.
+            if (!await _tableExists('radio_favorites_table')) {
+              await m.createTable(schema.radioFavoritesTable);
+              await m.createIndex(schema.uniqueRadioFavorite);
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from24To25: (m, schema) async {
+          try {
+            // Radio became a Hetu plugin ability: a plugin can now be the
+            // default directory, so `plugins_table` needs a `selected_for_radio`
+            // flag alongside the existing theme/audio-source ones. Additive and
+            // guarded so a re-run (or a db seeded at v25) is a no-op.
+            if (!(await _tableColumns('plugins_table'))
+                .contains('selected_for_radio')) {
+              await m.addColumn(
+                schema.pluginsTable,
+                schema.pluginsTable.selectedForRadio,
+              );
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from25To26: (m, schema) async {
+          try {
+            // Pinned radio stations: ids live in their own column next to
+            // the playlist pins, so neither list's semantics change.
+            // Same kill-between-ALTERs guard as every step since v12.
+            if (!(await _tableColumns('preferences_table'))
+                .contains('pinned_station_ids')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.pinnedStationIds,
+              );
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from26To27: (m, schema) async {
+          try {
+            // Real-transparency master switch. Same guarded single-column
+            // pattern as every step since v12.
+            if (!(await _tableColumns('preferences_table'))
+                .contains('transparent_window')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.transparentWindow,
+              );
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
       ),
     );
   }
@@ -846,6 +916,20 @@ LazyDatabase _openConnection() {
     final cacheBase = (await getTemporaryDirectory()).path;
     sqlite3.tempDirectory = cacheBase;
 
-    return NativeDatabase.createInBackground(file);
+    // WAL lets the many watch() readers overlap with writers instead of
+    // serializing behind rollback-journal transactions; with WAL,
+    // synchronous=NORMAL still fsyncs at each checkpoint, so a committed
+    // transaction is only lost to an OS crash, not an app crash. The other
+    // two are per-connection hygiene: a bounded page cache and a real busy
+    // timeout rather than an immediate SQLITE_BUSY failure.
+    return NativeDatabase.createInBackground(
+      file,
+      setup: (db) {
+        db.execute('PRAGMA journal_mode = WAL;');
+        db.execute('PRAGMA synchronous = NORMAL;');
+        db.execute('PRAGMA cache_size = -16384;');
+        db.execute('PRAGMA busy_timeout = 5000;');
+      },
+    );
   });
 }

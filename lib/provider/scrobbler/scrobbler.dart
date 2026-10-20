@@ -12,6 +12,17 @@ import 'package:spotube/services/logger/logger.dart';
 class ScrobblerNotifier extends AsyncNotifier<Scrobblenaut?> {
   final StreamController<SpotubeTrackObject> _scrobbleController =
       StreamController<SpotubeTrackObject>.broadcast();
+
+  /// `username|passwordHash` of the credentials the current [state] was built
+  /// from. `watch()` replays the stored row on subscribe, so without this the
+  /// initial build authenticated twice and emitted state a second time; it
+  /// also skips re-authentication when the row is rewritten unchanged.
+  String? _appliedCredentials;
+
+  static String? _credentialsOf(ScrobblerTableData? row) => row == null
+      ? null
+      : '${row.username}|${row.passwordHash.value}';
+
   @override
   build() async {
     final database = ref.watch(databaseProvider);
@@ -19,9 +30,13 @@ class ScrobblerNotifier extends AsyncNotifier<Scrobblenaut?> {
     final loginInfo = await (database.select(database.scrobblerTable)
           ..where((t) => t.id.equals(0)))
         .getSingleOrNull();
+    _appliedCredentials = _credentialsOf(loginInfo);
 
     final subscription =
         database.select(database.scrobblerTable).watch().listen((event) async {
+      final credentials = _credentialsOf(event.isEmpty ? null : event.first);
+      if (credentials == _appliedCredentials) return;
+      _appliedCredentials = credentials;
       try {
         if (event.isNotEmpty) {
           state = await AsyncValue.guard(
@@ -45,8 +60,15 @@ class ScrobblerNotifier extends AsyncNotifier<Scrobblenaut?> {
     final scrobblerSubscription =
         _scrobbleController.stream.listen((track) async {
       try {
+        final artist = track.artists.asString();
+        if (artist.isEmpty) {
+          AppLogger.log.w(
+            'Skipping scrobble for "${track.name}": no artist metadata',
+          );
+          return;
+        }
         await state.asData?.value?.track.scrobble(
-          artist: track.artists.first.name,
+          artist: artist,
           track: track.name,
           album: track.album.name,
           chosenByUser: true,
@@ -103,6 +125,9 @@ class ScrobblerNotifier extends AsyncNotifier<Scrobblenaut?> {
   }
 
   Future<void> logout() async {
+    // Claim the credential slot first so the delete's watch event is
+    // recognized as already-applied instead of re-emitting `state = null`.
+    _appliedCredentials = null;
     state = const AsyncValue.data(null);
     final database = ref.read(databaseProvider);
     await database.delete(database.scrobblerTable).go();
@@ -113,15 +138,19 @@ class ScrobblerNotifier extends AsyncNotifier<Scrobblenaut?> {
   }
 
   Future<void> love(SpotubeTrackObject track) async {
+    final artist = track.artists.asString();
+    if (artist.isEmpty) return;
     await state.asData?.value?.track.love(
-      artist: track.artists.asString(),
+      artist: artist,
       track: track.name,
     );
   }
 
   Future<void> unlove(SpotubeTrackObject track) async {
+    final artist = track.artists.asString();
+    if (artist.isEmpty) return;
     await state.asData?.value?.track.unLove(
-      artist: track.artists.asString(),
+      artist: artist,
       track: track.name,
     );
   }

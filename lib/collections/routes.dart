@@ -8,6 +8,32 @@ import 'package:spotube/services/kv_store/kv_store.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
+/// Routes inside the shell swap without ever overlapping.
+const _swapNow = CustomRouteType(
+  durationInMilliseconds: 0,
+  reverseDurationInMilliseconds: 0,
+);
+
+/// Gives every route in [routes] a transition that cannot overlap the route it
+/// is replacing.
+///
+/// The shell owns the ground: `ThemeBackgroundLayer` paints behind the router
+/// slot and `ThemeBackgroundScope` hands every `Scaffold` a transparent
+/// background. Two routes alive at once are therefore *both* visible, and
+/// auto_route's default 300ms Material transition keeps the outgoing route
+/// mounted and painting for its entire duration — the previous page shows
+/// through the new one, which is the after-image on every tab switch. There is
+/// no opaque ground to crossfade against, so a real transition cannot be
+/// salvaged here; what goes instead is the overlap window.
+///
+/// Routes outside the shell keep theirs: the queue/sources/lyrics sheets slide
+/// up *over* content, and that overlap is the whole point.
+List<AutoRoute> swapWithoutOverlap(List<AutoRoute> routes) {
+  return [
+    for (final route in routes) route.copyWith(type: _swapNow),
+  ];
+}
+
 @AutoRouterConfig(replaceInRouteName: 'Screen|Page,Route')
 class AppRouter extends RootStackRouter {
   final WidgetRef ref;
@@ -20,7 +46,7 @@ class AppRouter extends RootStackRouter {
           page: RootAppRoute.page,
           path: "/",
           initial: true,
-          children: [
+          children: swapWithoutOverlap([
             AutoRoute(
               path: "home",
               page: HomeRoute.page,
@@ -51,7 +77,7 @@ class AppRouter extends RootStackRouter {
             AutoRoute(
               path: "library",
               page: LibraryRoute.page,
-              children: [
+              children: swapWithoutOverlap([
                 AutoRoute(
                   path: "playlists",
                   page: UserPlaylistsRoute.page,
@@ -72,7 +98,7 @@ class AppRouter extends RootStackRouter {
                   path: "downloads",
                   page: UserDownloadsRoute.page,
                 ),
-              ],
+              ]),
             ),
             AutoRoute(
               path: "local/folder",
@@ -82,6 +108,10 @@ class AppRouter extends RootStackRouter {
             AutoRoute(
               path: "lyrics",
               page: LyricsRoute.page,
+            ),
+            AutoRoute(
+              path: "radio",
+              page: RadioRoute.page,
             ),
             AutoRoute(
               path: "settings",
@@ -185,7 +215,7 @@ class AppRouter extends RootStackRouter {
               path: "stats/playlists",
               page: StatsPlaylistsRoute.page,
             ),
-          ],
+          ]),
         ),
         CustomRoute(
           transitionsBuilder: TransitionsBuilders.slideBottom,

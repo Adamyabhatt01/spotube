@@ -6,15 +6,18 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:spotube/collections/fake.dart';
 import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/collections/spotube_icons.dart';
+import 'package:spotube/components/button/back_button.dart';
 import 'package:spotube/components/heart_button/heart_button.dart';
 import 'package:spotube/components/image/universal_image.dart';
 import 'package:spotube/components/links/artist_link.dart';
+import 'package:spotube/components/play_pause_icon.dart';
 import 'package:spotube/components/links/link_text.dart';
 import 'package:spotube/components/titlebar/titlebar.dart';
 import 'package:spotube/components/track_tile/track_options_button.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/extensions/list.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/theme_background/real_transparency.dart';
 import 'package:spotube/modules/theme_background/theme_background_image_provider.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/track.dart';
@@ -49,6 +52,13 @@ class TrackPage extends HookConsumerWidget {
 
     final isActive = activeTrackId == trackId;
 
+    // Whether the audio is actually sounding. `isActive` only means "this is
+    // the track the player is on" — it survives a pause, so the play/pause
+    // button has to follow the audio instead of the selection.
+    final isSounding = ref.watch(
+      audioPlayerProvider.select((s) => s.playing),
+    );
+
     final trackQuery = ref.watch(metadataPluginTrackProvider(trackId));
 
     final track = trackQuery.asData?.value ?? FakeData.track;
@@ -59,10 +69,17 @@ class TrackPage extends HookConsumerWidget {
     // Frozen while scrolling (sigma 0 draws plain until settle); gradient,
     // tint and sigma at rest are unchanged.
     final blurFrozen = ref.watch(scrollInFlightProvider);
+    final realTransparent = ref.watch(realTransparencyActiveProvider);
 
     void onPlay() async {
       if (isActive) {
-        audioPlayer.pause();
+        // Pausing from here used to leave the button showing "pause" and
+        // unable to resume; follow the real playback state instead.
+        if (isSounding) {
+          await audioPlayer.pause();
+        } else {
+          await audioPlayer.resume();
+        }
       } else {
         await playlistNotifier.load([track], autoPlay: true);
       }
@@ -73,6 +90,7 @@ class TrackPage extends HookConsumerWidget {
       child: Scaffold(
         headers: const [
           TitleBar(
+            leading: [BackButton()],
             backgroundColor: Colors.transparent,
             surfaceBlur: 0,
           )
@@ -80,10 +98,13 @@ class TrackPage extends HookConsumerWidget {
         floatingHeader: true,
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
+            // Real transparency: the compositor is the backdrop — decoding
+            // a cover just to cover the desktop again wastes memory.
+            if (!realTransparent)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
                     image: UniversalImage.imageProvider(
                       track.album.images.asUrlString(
                         placeholder: ImagePlaceholder.albumArt,
@@ -103,16 +124,25 @@ class TrackPage extends HookConsumerWidget {
             ),
             Positioned.fill(
               child: BackdropFilter(
+                // A blur over a transparent window samples nothing (the
+                // desktop lives beneath Flutter's surface) while still
+                // costing a fullscreen filter — off with the image above.
                 filter: ImageFilter.blur(
-                    sigmaX: blurFrozen ? 0 : 10, sigmaY: blurFrozen ? 0 : 10),
+                    sigmaX: blurFrozen || realTransparent ? 0 : 10,
+                    sigmaY: blurFrozen || realTransparent ? 0 : 10),
                 child: Skeletonizer(
                   enabled: trackQuery.isLoading,
                   child: Container(
                     alignment: Alignment.topCenter,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
+                        // Real transparency owns the ground: an opaque
+                        // gradient top would be a solid band across a clear
+                        // window, so the whole wash goes clear with it.
                         colors: [
-                          colorScheme.background,
+                          realTransparent
+                              ? Colors.transparent
+                              : colorScheme.background,
                           Colors.transparent,
                         ],
                         begin: Alignment.topCenter,
@@ -227,17 +257,15 @@ class TrackPage extends HookConsumerWidget {
                                       Tooltip(
                                         tooltip: TooltipContainer(
                                           child: Text(
-                                            isActive
+                                            isActive && isSounding
                                                 ? context.l10n.pause_playback
                                                 : context.l10n.play,
                                           ),
                                         ).call,
                                         child: IconButton.primary(
                                           shape: ButtonShape.circle,
-                                          icon: Icon(
-                                            isActive
-                                                ? SpotubeIcons.pause
-                                                : SpotubeIcons.play,
+                                          icon: AnimatedPlayPauseIcon(
+                                            isPlaying: isActive && isSounding,
                                           ),
                                           onPressed: onPlay,
                                         ),

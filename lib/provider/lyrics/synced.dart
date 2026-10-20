@@ -65,6 +65,27 @@ void clearLyricsFetchState() {
   _lyricsInFlight.clear();
 }
 
+/// Wall-clock ceiling for the whole provider cascade (all providers
+/// combined). Each provider already bounds its own HTTP (LRCLib 10 s receive,
+/// Better Lyrics 8 s, both on globalDio 15 s connect): two sequential misses
+/// on a degraded network could otherwise block the lyrics build for ~60 s.
+/// 30 s never fires on a healthy network (each provider answers in ~1 s) and
+/// on timeout the held plain fallback still wins over a miss.
+const lyricsCascadeBudget = Duration(seconds: 30);
+
+/// Expected "this track has no lyrics" outcome, as opposed to a provider
+/// failure. The UI renders both as the no-lyrics state, but only a real
+/// failure deserves a stack trace in the on-device log: instrumentals and
+/// local files are the common case, not an error.
+class LyricsUnavailableException implements Exception {
+  final String message;
+
+  const LyricsUnavailableException([this.message = "Unable to find lyrics"]);
+
+  @override
+  String toString() => message;
+}
+
 class SyncedLyricsNotifier
     extends FamilyAsyncNotifier<SubtitleSimple, SpotubeTrackObject?> {
   @override
@@ -104,7 +125,7 @@ class SyncedLyricsNotifier
       final database = ref.watch(databaseProvider);
 
       if (track == null) {
-        throw "No track currently";
+        throw const LyricsUnavailableException("No track currently");
       }
 
       // `trackId` has no unique index (the primary key is an autoincrement
@@ -125,60 +146,81 @@ class SyncedLyricsNotifier
       if (lyrics == null &&
           track is SpotubeFullTrackObject &&
           isFreshLyricsMiss(track.id)) {
-        throw Exception("Unable to find lyrics");
+        throw const LyricsUnavailableException();
       }
 
       if (lyrics == null && track is SpotubeFullTrackObject) {
         // Only online tracks have provider-backed lyrics; local files have
         // none to fetch. Try each provider in priority order, isolating
         // failures so one broken source cannot prevent later providers.
+        // The whole cascade races a single budget so two sequential stalls
+        // cannot block the build for a minute.
         SubtitleSimple? plainFallback;
-        for (final provider in lyricsProviders) {
-          try {
-            final candidate = await provider.fetchLyrics(track);
-            if (!candidate.hasContent) continue;
-            if (candidate.isSynced) {
-              lyrics = candidate;
-              break;
+        SubtitleSimple? syncedWinner;
+        try {
+          syncedWinner = await (() async {
+            for (final provider in lyricsProviders) {
+              try {
+                final candidate = await provider.fetchLyrics(track);
+                if (!candidate.hasContent) continue;
+                if (candidate.isSynced) return candidate;
+                // Timestamps beat no timestamps, so an unsynced answer is
+                // held while the remaining providers get a chance to beat it.
+                plainFallback ??= candidate;
+              } catch (e, stackTrace) {
+                AppLogger.reportError(
+                  e,
+                  stackTrace,
+                  'lyrics provider ${provider.id}',
+                );
+              }
             }
-            // Timestamps beat no timestamps, so an unsynced answer is held
-            // while the remaining providers get a chance to beat it.
-            plainFallback ??= candidate;
-          } catch (e, stackTrace) {
-            AppLogger.reportError(
-              e,
-              stackTrace,
-              'lyrics provider ${provider.id}',
-            );
-          }
+            return null;
+          })().timeout(lyricsCascadeBudget);
+        } on TimeoutException catch (e, stackTrace) {
+          AppLogger.reportError(
+            e,
+            stackTrace,
+            'lyrics cascade budget $lyricsCascadeBudget',
+          );
         }
-        lyrics ??= plainFallback;
+        lyrics = syncedWinner ?? plainFallback;
       }
 
       if (lyrics == null || !lyrics.hasContent) {
         // Reachable only for a real track (a null track throws above), so
         // the miss is always attributable to this id.
         _recordLyricsMiss(track.id);
-        throw Exception("Unable to find lyrics");
+        throw const LyricsUnavailableException();
       }
 
       if (fromCache == null) {
         // Replace rather than append, so a track never accumulates rows that
-        // the read above then has to arbitrate between.
-        await (database.delete(database.lyricsTable)
-              ..where((tbl) => tbl.trackId.equals(track.id)))
-            .go();
-        await database.into(database.lyricsTable).insert(
-              LyricsTableCompanion.insert(
-                trackId: track.id,
-                data: lyrics,
-              ),
-            );
+        // the read above then has to arbitrate between. One transaction, so a
+        // kill between the two statements can never leave the track with no
+        // cached lyrics at all (the blob is re-fetched instead of lost).
+        final toCache = lyrics;
+        await database.transaction(() async {
+          await (database.delete(database.lyricsTable)
+                ..where((tbl) => tbl.trackId.equals(track.id)))
+              .go();
+          await database.into(database.lyricsTable).insert(
+                LyricsTableCompanion.insert(
+                  trackId: track.id,
+                  data: toCache,
+                ),
+              );
+        });
       }
 
       return lyrics;
     } catch (e, stackTrace) {
-      AppLogger.reportError(e, stackTrace);
+      // A miss is an expected answer. Reporting it writes a full stack trace
+      // to the Android log file for every instrumental/local track; the UI
+      // already renders the dedicated no-lyrics state from the AsyncError.
+      if (e is! LyricsUnavailableException) {
+        AppLogger.reportError(e, stackTrace);
+      }
       rethrow;
     }
   }

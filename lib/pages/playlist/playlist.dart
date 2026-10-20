@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart' as material;
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart' hide Page;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/components/dialogs/prompt_dialog.dart';
@@ -9,6 +8,7 @@ import 'package:spotube/components/track_presentation/presentation_props.dart';
 import 'package:spotube/components/track_presentation/track_presentation.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/playlist.dart';
@@ -30,18 +30,11 @@ class PlaylistPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, ref) {
-    final playlist = ref
-            .watch(
-              metadataPluginSavedPlaylistsProvider.select(
-                (value) => value.whenData(
-                  (value) =>
-                      value.items.firstWhereOrNull((s) => s.id == _playlist.id),
-                ),
-              ),
-            )
-            .asData
-            ?.value ??
-        _playlist;
+    // Use the object the route was opened with. Watching the saved-playlists
+    // collection here built (and background-revalidated) the entire library on
+    // every playlist open, just to refresh one name/cover. Live edits are rare
+    // and the next open (or a pull-to-refresh of the list) picks them up.
+    final playlist = _playlist;
 
     final tracks = ref.watch(metadataPluginPlaylistTracksProvider(playlist.id));
     final tracksNotifier =
@@ -49,10 +42,14 @@ class PlaylistPage extends HookConsumerWidget {
     final isFavoritePlaylist =
         ref.watch(metadataPluginIsSavedPlaylistProvider(playlist.id));
 
-    final favoritePlaylistsNotifier =
-        ref.watch(metadataPluginSavedPlaylistsProvider.notifier);
-
-    final isUserPlaylist = ref.watch(isUserPlaylistProvider(playlist.id));
+    // Ownership comes from the playlist and the already-cached current user,
+    // not from membership in the saved-playlists list. The old provider walked
+    // that whole list on page open.
+    final currentUserId = ref.watch(
+      metadataPluginUserProvider.select((value) => value.asData?.value?.id),
+    );
+    final isUserPlaylist =
+        currentUserId != null && playlist.owner.id == currentUserId;
 
     // A mirrored playlist is kept in sync by the page that shows it. Listening
     // instead of watching: this is a side effect on the first page arriving, and
@@ -124,7 +121,7 @@ class PlaylistPage extends HookConsumerWidget {
           ),
           title: playlist.name,
           description: playlist.description,
-          owner: playlist.owner.name,
+          owner: playlist.owner.name.isEmpty ? null : playlist.owner.name,
           ownerImage: playlist.owner.images.lastOrNull?.url,
           tracks: visibleTracks,
           error: hasFreshTracks || cachedTracks.isEmpty ? tracks.error : null,
@@ -143,6 +140,11 @@ class PlaylistPage extends HookConsumerWidget {
                         )
                       : true;
                   if (!confirmed) return null;
+
+                  // Read on demand: watching the notifier in build used to
+                  // construct the saved-playlists library on every page open.
+                  final favoritePlaylistsNotifier =
+                      ref.read(metadataPluginSavedPlaylistsProvider.notifier);
 
                   if (isFavoritePlaylist.asData!.value) {
                     if (isUserPlaylist) {

@@ -23,20 +23,6 @@ class ProfilePage extends HookConsumerWidget {
     final me = ref.watch(metadataPluginUserProvider);
     final meData = me.asData?.value ?? FakeData.user;
 
-    // final userProperties = useMemoized(
-    //   () => {
-    //     context.l10n.email: meData.email ?? "N/A",
-    //     context.l10n.profile_followers:
-    //         meData.followers?.total.toString() ?? "N/A",
-    //     context.l10n.birthday: meData.birthdate ?? context.l10n.not_born,
-    //     context.l10n.country: markets
-    //         .firstWhere((market) => market.$1 == meData.country)
-    //         .$2,
-    //     context.l10n.subscription: meData.product ?? context.l10n.hacker,
-    //   },
-    //   [meData],
-    // );
-
     return SafeArea(
       child: Scaffold(
         headers: [
@@ -95,42 +81,6 @@ class ProfilePage extends HookConsumerWidget {
                   ),
                 ),
               ),
-              // SliverCrossAxisConstrained(
-              //   maxCrossAxisExtent: 500,
-              //   child: SliverToBoxAdapter(
-              //     child: Card(
-              //       child: Padding(
-              //         padding: const EdgeInsets.all(8.0),
-              //         child: Table(
-              //           columnWidths: const {
-              //             0: FixedTableSize(120),
-              //           },
-              //           defaultRowHeight: const FixedTableSize(40),
-              //           rows: [
-              //             for (final MapEntry(:key, :value)
-              //                 in userProperties.entries)
-              //               TableRow(
-              //                 cells: [
-              //                   TableCell(
-              //                     child: Padding(
-              //                       padding: const EdgeInsets.all(6),
-              //                       child: Text(key).large(),
-              //                     ),
-              //                   ),
-              //                   TableCell(
-              //                     child: Padding(
-              //                       padding: const EdgeInsets.all(6),
-              //                       child: Text(value),
-              //                     ),
-              //                   ),
-              //                 ],
-              //               )
-              //           ],
-              //         ),
-              //       ),
-              //     ),
-              //   ),
-              // ),
               const SliverGap(200),
             ],
           ),

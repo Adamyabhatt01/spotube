@@ -25,3 +25,13 @@ class NoValidStreamError extends Error {
     return '[NoValidStreamError] $message';
   }
 }
+
+/// Thrown when the yt-dlp engine is asked to do work but no usable binary
+/// is reachable (no stored custom path, nothing on PATH or the well-known
+/// install dirs). A missing binary is blockage, never a miss: it must not
+/// become a cached "not found", and it reads in the log as itself instead
+/// of the package's null binary-location crash.
+class YtDlpNotInstalledError extends Error {
+  @override
+  String toString() => '[YtDlpNotInstalledError] yt-dlp binary not found';
+}

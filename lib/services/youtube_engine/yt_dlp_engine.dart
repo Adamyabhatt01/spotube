@@ -3,6 +3,10 @@ import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:spotube/models/database/database.dart';
+import 'package:spotube/services/kv_store/kv_store.dart';
+import 'package:spotube/services/sourced_track/exceptions.dart';
 import 'package:spotube/services/youtube_engine/youtube_engine.dart';
 import 'package:spotube/utils/platform.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
@@ -69,7 +73,15 @@ class YtDlpEngine implements YouTubeEngine {
     );
   }
 
-  static bool get isAvailableForPlatform => kIsDesktop;
+  /// Whether the engine can be offered on this platform.
+  ///
+  /// yt-dlp is a CPython program, so it needs a Python runtime next to it.
+  /// Desktop ships one. Android does not — there is no official yt-dlp
+  /// build for it, and the app cannot bundle one (see
+  /// `.ai/MEMORY.md`) — but an app *may* exec a binary it can reach, so the
+  /// engine is offered there too and simply reports "not installed" when
+  /// there is none. iOS forbids exec entirely, so it stays off.
+  static bool get isAvailableForPlatform => kIsDesktop || kIsAndroid;
 
   static const String binaryName = 'yt-dlp';
 
@@ -80,6 +92,8 @@ class YtDlpEngine implements YouTubeEngine {
   /// the app reporting the engine missing and every call through it failing,
   /// with the binary sitting right there.
   static List<String> commonInstallDirs(Map<String, String> environment) {
+    if (kIsAndroid) return androidInstallDirs;
+
     final home = environment['HOME'] ?? environment['USERPROFILE'];
     if (kIsWindows) {
       final localAppData = environment['LOCALAPPDATA'];
@@ -101,6 +115,52 @@ class YtDlpEngine implements YouTubeEngine {
     ];
   }
 
+  /// Directories an Android install can put a yt-dlp in.
+  ///
+  /// `/data/local/tmp` is the one location Android still executes from that
+  /// a device owner (or `adb`) can write to: the shared volume is `noexec`
+  /// and one app cannot read another's private data. A file pushed there
+  /// also needs its execute bit set — `adb push` writes 0644 — which
+  /// [isExecutable] checks for.
+  static const List<String> androidInstallDirs = [
+    '/data/local/tmp',
+  ];
+
+  /// The app's own directories, where a seeded yt-dlp can live.
+  ///
+  /// On Android the sandbox is the only place the app can exec from without
+  /// help, and a debuggable build can be seeded into it with
+  /// `adb shell run-as <package>`. Returns empty when the platform channel
+  /// is unavailable (unit tests).
+  static Future<List<String>> appOwnedDirs() async {
+    if (!kIsAndroid) return const [];
+    try {
+      final support = await getApplicationSupportDirectory();
+      return [
+        p.join(support.path, 'bin'),
+        support.path,
+      ];
+    } catch (_) {
+      // No platform channel: nothing app-owned to offer.
+      return const [];
+    }
+  }
+
+  /// Whether the file at [path] carries an execute bit.
+  ///
+  /// POSIX exposes the mode, Windows does not — and there the extension is
+  /// the whole answer.
+  static Future<bool> isExecutable(String path) async {
+    if (kIsWindows) return true;
+    try {
+      final stat = await FileStat.stat(path);
+      // Any of user/group/other execute.
+      return (stat.mode & 0x49) != 0;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Absolute path to a usable yt-dlp, or null if there is none.
   ///
   /// [fallbackDirs] exists for tests; production callers want the default,
@@ -111,9 +171,11 @@ class YtDlpEngine implements YouTubeEngine {
   }) async {
     final env = environment ?? Platform.environment;
     final binary = kIsWindows ? '$binaryName.exe' : binaryName;
+    final extraDirs =
+        fallbackDirs ?? [...commonInstallDirs(env), ...await appOwnedDirs()];
     final searchedDirs = <String>[
       ...?env['PATH']?.split(kIsWindows ? ';' : ':'),
-      ...fallbackDirs ?? commonInstallDirs(env),
+      ...extraDirs,
     ];
 
     for (final dir in searchedDirs) {
@@ -125,7 +187,48 @@ class YtDlpEngine implements YouTubeEngine {
   }
 
   static Future<bool> isInstalled() async {
-    return isAvailableForPlatform && await resolveBinaryPath() != null;
+    if (!isAvailableForPlatform) return false;
+    final resolved = await resolveBinaryPath();
+    if (resolved == null) return false;
+    return await _isUsableBinary(resolved);
+  }
+
+  /// Whether a usable yt-dlp binary is reachable right now: a stored custom
+  /// path that still exists, or one found on PATH / the well-known install
+  /// dirs. Unlike [isInstalled], this honors the custom path — and unlike
+  /// the package's `binaryLocation` getter, it answers instead of throwing.
+  /// Entry points below throw [YtDlpNotInstalledError] when this is false.
+  /// [environment]/[fallbackDirs] exist for tests; production wants the
+  /// default, matching [resolveBinaryPath].
+  static Future<bool> isBinaryReady({
+    Map<String, String>? environment,
+    List<String>? fallbackDirs,
+  }) async {
+    final customPath =
+        KVStoreService.getYoutubeEnginePath(YoutubeClientEngine.ytDlp);
+    if (customPath != null && await File(customPath).exists()) {
+      return await _isUsableBinary(customPath);
+    }
+    final resolved = await resolveBinaryPath(
+      environment: environment,
+      fallbackDirs: fallbackDirs,
+    );
+    if (resolved == null) return false;
+    return await _isUsableBinary(resolved);
+  }
+
+  /// Whether a found binary can actually be run.
+  ///
+  /// Desktop: existence is enough — a broken one fails loudly at exec time,
+  /// which is a clearer error than a silent "not installed".
+  ///
+  /// Android: the file also needs an execute bit. Everything that lands a
+  /// binary on a device (`adb push`, a file manager copy) writes 0644, and
+  /// exec'ing that fails with a permission error that reads like a broken
+  /// engine rather than a file that was never made runnable.
+  static Future<bool> _isUsableBinary(String path) async {
+    if (!kIsAndroid) return true;
+    return isExecutable(path);
   }
 
   /// Parses one `--flat-playlist` search row.
@@ -158,6 +261,7 @@ class YtDlpEngine implements YouTubeEngine {
 
   @override
   Future<StreamManifest> getStreamManifest(String videoId) async {
+    if (!await isBinaryReady()) throw YtDlpNotInstalledError();
     final formats = await withinEngineCallBudget(
       'yt_dlp.getStreamManifest',
       () async {
@@ -180,6 +284,7 @@ class YtDlpEngine implements YouTubeEngine {
 
   @override
   Future<Video> getVideo(String videoId) async {
+    if (!await isBinaryReady()) throw YtDlpNotInstalledError();
     final info = await withinEngineCallBudget(
       'yt_dlp.getVideo',
       () async {
@@ -203,6 +308,7 @@ class YtDlpEngine implements YouTubeEngine {
 
   @override
   Future<List<YouTubeSearchResult>> searchVideos(String query) async {
+    if (!await isBinaryReady()) throw YtDlpNotInstalledError();
     final stdout = await withinEngineCallBudget(
       'yt_dlp.searchVideos',
       () => YtDlp.instance.extractInfoString(

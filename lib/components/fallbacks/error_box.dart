@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
+import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/services/metadata/errors/rate_limit.dart';
@@ -136,6 +137,19 @@ class ErrorBox extends StatelessWidget {
                       leading: const Icon(SpotubeIcons.refresh),
                       onPressed: onRetry,
                       child: Text(context.l10n.retry),
+                    ),
+                  // A rejected login cannot be fixed by retrying the same
+                  // request with the same dead token — the only way out is
+                  // to re-authenticate, which lives in the metadata-plugin
+                  // settings. Offer that directly instead of making the
+                  // user hunt for it.
+                  if (isCredentialError(error))
+                    Button.text(
+                      leading: const Icon(SpotubeIcons.login),
+                      onPressed: () {
+                        context.pushRoute(const SettingsMetadataProviderRoute());
+                      },
+                      child: Text(context.l10n.login),
                     ),
                 ],
               ),

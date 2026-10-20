@@ -26,5 +26,11 @@ final metadataPluginSearchChipsProvider = FutureProvider((ref) async {
   if (metadataPlugin == null) {
     throw MetadataPluginException.noDefaultMetadataPlugin();
   }
-  return metadataPlugin.search.chips;
+  // Same 15 s ceiling as every other interactive read: a stalled plugin must
+  // fail the chips row, not the whole search shell. (`chips` is a sync
+  // getter, so it is lifted into a future for the gated runner.)
+  return runGated(
+    ref.read(rateLimitGateProvider.notifier),
+    () async => metadataPlugin.search.chips,
+  );
 });

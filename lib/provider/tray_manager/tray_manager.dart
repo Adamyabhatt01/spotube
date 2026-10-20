@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/provider/tray_manager/tray_menu.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
+import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/utils/platform.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
@@ -13,7 +16,15 @@ class SystemTrayManager with TrayListener {
     this.ref, {
     required this.enabled,
   }) {
-    initialize();
+    // Construction cannot await: `trayManagerProvider` builds this during
+    // provider initialization. An unobserved rejection (no system tray on
+    // this desktop session) used to surface only as a global unhandled
+    // async error, so it is reported here instead.
+    unawaited(
+      initialize().catchError((Object e, StackTrace s) {
+        AppLogger.reportError(e, s, 'System tray initialization failed');
+      }),
+    );
   }
 
   Future<void> initialize() async {

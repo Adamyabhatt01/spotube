@@ -26,6 +26,7 @@ import 'package:spotube/services/metadata/endpoints/track.dart';
 import 'package:spotube/services/metadata/endpoints/core.dart';
 import 'package:spotube/services/metadata/endpoints/user.dart';
 import 'package:spotube/services/metadata/endpoints/theme.dart';
+import 'package:spotube/services/metadata/endpoints/radio.dart';
 import 'package:spotube/services/youtube_engine/youtube_engine.dart';
 
 const defaultMetadataLimit = "20";
@@ -97,6 +98,11 @@ class MetadataPlugin {
                       'viewCount': video.viewCount,
                       'likeCount': video.likeCount,
                       'isLive': video.isLive,
+                      // A Short is a clip, not a recording. The flag is
+                      // forwarded so the plugin can tell one from a
+                      // full-length upload of the same title; the length
+                      // check is what actually rules a Short out.
+                      'isShortForm': video.isShortForm,
                     })
                 .toList();
           },
@@ -152,6 +158,12 @@ class MetadataPlugin {
     return MetadataPlugin._(hetu);
   }
 
+  /// Wraps an already-booted [hetu] as a plugin, for tests that drive a real
+  /// Hetu VM from an inline bytecode module without a plugin archive,
+  /// SharedPreferences or a Flutter binding.
+  @visibleForTesting
+  static MetadataPlugin forTesting(Hetu hetu) => MetadataPlugin._(hetu);
+
   final Hetu hetu;
 
   late final MetadataAuthEndpoint auth;
@@ -166,6 +178,7 @@ class MetadataPlugin {
   late final MetadataPluginUserEndpoint user;
   late final MetadataPluginCore core;
   late final MetadataPluginThemeEndpoint theme;
+  late final MetadataPluginRadioEndpoint radio;
 
   MetadataPlugin._(this.hetu) {
     auth = MetadataAuthEndpoint(hetu);
@@ -180,5 +193,6 @@ class MetadataPlugin {
     user = MetadataPluginUserEndpoint(hetu);
     core = MetadataPluginCore(hetu);
     theme = MetadataPluginThemeEndpoint(hetu);
+    radio = MetadataPluginRadioEndpoint(hetu);
   }
 }
