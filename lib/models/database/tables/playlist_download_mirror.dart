@@ -17,6 +17,12 @@ class PlaylistDownloadMirrorTable extends Table {
   TextColumn get playlistId => text().unique()();
   TextColumn get playlistData => text()();
 
+  /// Opt-in: keep this playlist's tracks downloaded as it changes.
+  ///
+  /// Turning it off only clears this flag. Membership, download rows and audio
+  /// files stay exactly where they were.
+  BoolColumn get autoDownload => boolean().withDefault(const Constant(false))();
+
   /// Spotify's own count, which can exceed the number of membership rows after
   /// a cheap first-page-only background resync.
   IntColumn get trackCount => integer().withDefault(const Constant(0))();

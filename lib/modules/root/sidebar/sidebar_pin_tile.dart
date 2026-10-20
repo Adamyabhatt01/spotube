@@ -8,8 +8,10 @@ import 'package:spotube/extensions/context.dart';
 import 'package:spotube/modules/playlist/use_playlist_play.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_pin_cover.dart';
 
-/// One pinned playlist row: the label navigates (today's behavior), the
-/// cover plays (mirroring `PlaylistCard`'s cover tap).
+/// One pinned playlist row: the label navigates, the cover plays.
+///
+/// This is deliberately different from `PlaylistCard`, whose cover and title
+/// both open the playlist; the sidebar keeps its dedicated play affordance.
 ///
 /// A per-pin widget rather than inline hooks in the sidebar's pin loop: pin
 /// count changes would reorder hook calls. The desktop drag overlay grabs on
@@ -80,8 +82,7 @@ class SidebarPinTile extends HookConsumerWidget {
                         child: DecoratedBox(
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.55),
-                            borderRadius:
-                                BorderRadius.circular(6 * scaling),
+                            borderRadius: BorderRadius.circular(6 * scaling),
                           ),
                           child: Center(
                             child: play.isLoading

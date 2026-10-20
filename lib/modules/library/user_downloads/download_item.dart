@@ -82,7 +82,10 @@ class DownloadItem extends HookConsumerWidget {
                 IconButton.ghost(
                   icon: const Icon(SpotubeIcons.refresh),
                   onPressed: () {
-                    downloadManager.retry(task.track);
+                    downloadManager.retry(
+                      task.track,
+                      useRetryFilePath: true,
+                    );
                   },
                 ),
               ],

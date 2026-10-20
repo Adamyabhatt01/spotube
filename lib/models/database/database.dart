@@ -87,7 +87,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 27;
+  int get schemaVersion => 28;
 
   /// Raw DDL for the quarantine table, kept as a constant so the v11->v12
   /// step can create it idempotently (`IF NOT EXISTS`) without depending
@@ -893,6 +893,40 @@ class AppDatabase extends _$AppDatabase {
                 schema.preferencesTable.transparentWindow,
               );
             }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from27To28: (m, schema) async {
+          try {
+            // Independent main-section playlist order. Added nullable so a
+            // re-entered step can tell "never initialized" (NULL) from an
+            // intentional empty order ("").
+            if (!(await _tableColumns('preferences_table'))
+                .contains('main_playlist_order')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.mainPlaylistOrder,
+              );
+            }
+
+            // Per-playlist automatic downloads. Additive and defaulted off.
+            if (!(await _tableColumns('playlist_download_mirror_table'))
+                .contains('auto_download')) {
+              await m.addColumn(
+                schema.playlistDownloadMirrorTable,
+                schema.playlistDownloadMirrorTable.autoDownload,
+              );
+            }
+
+            // Seed only uninitialized rows. Existing users keep their current
+            // pinned-first main layout; after this, the two orders diverge.
+            await customStatement(
+              'UPDATE preferences_table '
+              'SET main_playlist_order = pinned_playlist_ids '
+              'WHERE main_playlist_order IS NULL',
+            );
           } catch (e, stack) {
             AppLogger.reportError(e, stack);
             rethrow;

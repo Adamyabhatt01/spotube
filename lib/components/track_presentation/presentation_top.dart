@@ -1,5 +1,6 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
@@ -13,6 +14,7 @@ import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/playlist/playlist_create_dialog.dart';
+import 'package:spotube/provider/playlist_download_provider.dart';
 import 'package:spotube/provider/scroll_motion.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/utils/primitive_utils.dart';
@@ -41,8 +43,15 @@ class TrackPresentationTopSection extends HookConsumerWidget {
       fit: BoxFit.cover,
     );
 
-    final (:isLoading, :isActive, :isPlaying, :hasTracks, :onPlay, :onShuffle, :onAddToQueue) =
-        useActionCallbacks(ref);
+    final (
+      :isLoading,
+      :isActive,
+      :isPlaying,
+      :hasTracks,
+      :onPlay,
+      :onShuffle,
+      :onAddToQueue
+    ) = useActionCallbacks(ref);
 
     // Sidebar pins apply to playlists only; albums share this header.
     final isPinnableCollection =
@@ -52,6 +61,16 @@ class TrackPresentationTopSection extends HookConsumerWidget {
     );
     final isPinned = isPinnableCollection &&
         pinnedPlaylistIds.contains(options.collectionId);
+
+    // Automatic downloads are a playlist concept; albums share this header.
+    final canAutoDownload = isPinnableCollection;
+    final autoDownloadEnabled = canAutoDownload &&
+        (ref
+                .watch(playlistAutoDownloadProvider(options.collectionId))
+                .asData
+                ?.value ??
+            false);
+    final togglingAutoDownload = useState(false);
 
     final playbackActions = Row(
       spacing: 8 * scale,
@@ -192,6 +211,30 @@ class TrackPresentationTopSection extends HookConsumerWidget {
                       );
                     },
                   );
+                }
+              },
+            ),
+          ),
+        if (canAutoDownload)
+          Tooltip(
+            tooltip: TooltipContainer(
+              child: Text(context.l10n.automatic_downloads),
+            ).call,
+            child: IconButton.outline(
+              icon: Icon(
+                autoDownloadEnabled ? SpotubeIcons.done : SpotubeIcons.download,
+              ),
+              size: ButtonSize.small,
+              enabled: !togglingAutoDownload.value,
+              onPressed: () async {
+                togglingAutoDownload.value = true;
+                try {
+                  await ref.read(playlistMirrorServiceProvider).setAutoDownload(
+                        options.collection as SpotubeSimplePlaylistObject,
+                        !autoDownloadEnabled,
+                      );
+                } finally {
+                  if (context.mounted) togglingAutoDownload.value = false;
                 }
               },
             ),

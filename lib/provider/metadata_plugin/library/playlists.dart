@@ -56,6 +56,28 @@ class MetadataPluginSavedPlaylistsNotifier
     scheduleSnapshotPersist();
   }
 
+  /// Registers a playlist that was just created remotely. The create call
+  /// already followed it into the library, so no extra "save" request is
+  /// needed; this only keeps the current screen and its snapshot in sync.
+  void insertPlaylist(SpotubeSimplePlaylistObject playlist) {
+    final current = state.value;
+    if (current == null) return;
+
+    final exists = current.items.any((e) => e.id == playlist.id);
+    state = AsyncData(
+      current.copyWith(
+        items: exists
+            ? current.items
+                .map(
+                    (element) => element.id == playlist.id ? playlist : element)
+                .toList()
+            : [playlist, ...current.items],
+        total: exists ? current.total : current.total + 1,
+      ),
+    );
+    scheduleSnapshotPersist();
+  }
+
   Future<void> addFavorite(SpotubeSimplePlaylistObject playlist) async {
     // The list may never have been opened (the detail page now reads this
     // notifier on demand instead of watching it). Without a cached list there

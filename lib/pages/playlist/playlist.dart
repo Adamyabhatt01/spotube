@@ -14,6 +14,7 @@ import 'package:auto_route/auto_route.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/playlist.dart';
 import 'package:spotube/provider/metadata_plugin/utils/common.dart';
 import 'package:spotube/provider/playlist_download_provider.dart';
+import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/services/connectivity_adapter.dart';
 
 @RoutePage()
@@ -82,7 +83,10 @@ class PlaylistPage extends HookConsumerWidget {
     final hasFreshTracks = tracks.asData != null;
     final cachedTracks = hasFreshTracks
         ? const <SpotubeFullTrackObject>[]
-        : ref.watch(mirroredPlaylistTracksProvider(playlist.id)).asData?.value ??
+        : ref
+                .watch(mirroredPlaylistTracksProvider(playlist.id))
+                .asData
+                ?.value ??
             const [];
     final visibleTracks =
         hasFreshTracks ? tracks.asData!.value.items : cachedTracks;
@@ -149,6 +153,14 @@ class PlaylistPage extends HookConsumerWidget {
                   if (isFavoritePlaylist.asData!.value) {
                     if (isUserPlaylist) {
                       await favoritePlaylistsNotifier.delete(playlist.id);
+                      // The playlist is gone: remove its mirror metadata and
+                      // both order entries, but never its downloaded files.
+                      await ref
+                          .read(playlistMirrorServiceProvider)
+                          .forget(playlist.id);
+                      ref
+                          .read(userPreferencesProvider.notifier)
+                          .removePlaylistFromOrders(playlist.id);
                     } else {
                       await favoritePlaylistsNotifier.removeFavorite(playlist);
                     }

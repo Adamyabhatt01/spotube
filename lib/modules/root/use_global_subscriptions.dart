@@ -8,6 +8,7 @@ import 'package:spotube/extensions/context.dart';
 import 'package:spotube/modules/metadata_plugins/plugin_update_available_dialog.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/updater/update_checker.dart';
+import 'package:spotube/provider/playlist_download_provider.dart';
 import 'package:spotube/provider/server/routes/connect.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
@@ -86,12 +87,33 @@ void useGlobalSubscriptions(WidgetRef ref) {
 
     idleTimer = Timer(_startupIdleDelay, runUpdateChecks);
 
+    // Background playlist maintenance starts after the first frame burst, and
+    // never blocks it: network reads and downloads are queued from here.
+    final autoDownloadTimer = Timer(_startupIdleDelay, () {
+      unawaited(
+        ref
+            .read(playlistMirrorServiceProvider)
+            .syncAutoDownloadPlaylists(force: true),
+      );
+    });
+
     StreamSubscription? audioPlayerSubscription;
     bool pausedByStream = false;
+    var wasConnected = ConnectionCheckerService.instance.isConnectedSync;
 
     final subscriptions = [
       ConnectionCheckerService.instance.onConnectivityChanged
           .listen((connected) async {
+        final restored = connected && !wasConnected;
+        wasConnected = connected;
+        if (restored) {
+          unawaited(
+            ref
+                .read(playlistMirrorServiceProvider)
+                .syncAutoDownloadPlaylists(retryIfBusy: true),
+          );
+        }
+
         audioPlayerSubscription?.cancel();
 
         /// Pausing or resuming based on connectivity to avoid MPV skipping
@@ -189,6 +211,7 @@ void useGlobalSubscriptions(WidgetRef ref) {
 
     return () {
       idleTimer?.cancel();
+      autoDownloadTimer.cancel();
       for (final subscription in subscriptions) {
         subscription.cancel();
       }

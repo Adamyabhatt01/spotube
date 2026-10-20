@@ -12,6 +12,7 @@ import 'package:spotube/hooks/utils/use_debounced_filter.dart';
 import 'package:spotube/components/playbutton_view/playbutton_view.dart';
 import 'package:spotube/modules/playlist/liked_playlist_synthetic.dart';
 import 'package:spotube/modules/playlist/playlist_create_dialog.dart';
+import 'package:spotube/modules/playlist/playlist_order_dialog.dart';
 import 'package:spotube/components/inter_scrollbar/inter_scrollbar.dart';
 import 'package:spotube/components/fallbacks/anonymous_fallback.dart';
 import 'package:spotube/modules/playlist/playlist_card.dart';
@@ -20,7 +21,7 @@ import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/playlist_download_provider.dart';
-import 'package:spotube/provider/sidebar/sidebar_provider.dart';
+import 'package:spotube/provider/playlist_order.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:auto_route/auto_route.dart';
 import 'package:spotube/services/connectivity_adapter.dart';
@@ -58,11 +59,10 @@ class UserPlaylistsPage extends HookConsumerWidget {
     final mirroredPlaylists =
         ref.watch(mirroredPlaylistsProvider).asData?.value ?? const [];
 
-    // Pins have no sidebar to live in on compact/mobile layouts, so the
-    // Playlists page sorts them to the top instead. Watched by id list so
-    // pin/unpin/reorder re-sorts live, in pin order.
-    final pinnedIds = ref.watch(
-      userPreferencesProvider.select((s) => s.pinnedPlaylistIds),
+    // Main-section order only. Sidebar pins are a separate list and a separate
+    // dialog; reordering either must not rewrite the other.
+    final mainOrder = ref.watch(
+      userPreferencesProvider.select((s) => s.mainPlaylistOrder),
     );
 
     // Offline the disk snapshot still lists every Spotify playlist the user
@@ -71,10 +71,9 @@ class UserPlaylistsPage extends HookConsumerWidget {
     // Tracks is the exception: its tracks come from the savedTracks snapshot
     // (stale-while-revalidate), so a signed-in user keeps that one card.
     final isOnline = ref.watch(isOnlineProvider).asData?.value ?? true;
-    final showLikedOffline =
-        !isOnline && authenticated.asData?.value == true;
+    final showLikedOffline = !isOnline && authenticated.asData?.value == true;
 
-    final playlists = useMemoized(
+    final combinedPlaylists = useMemoized(
       () {
         final online = isOnline
             ? [
@@ -89,32 +88,37 @@ class UserPlaylistsPage extends HookConsumerWidget {
         // mirror rows only have to supply what the network did not: merged by
         // id, never a second card for one playlist.
         final seen = online.map((playlist) => playlist.id).toSet();
-        final combined = [
+        return [
           ...online,
           for (final mirrored in mirroredPlaylists)
             if (seen.add(mirrored.id)) mirrored,
         ];
-        if (effectiveQuery.isEmpty) {
-          // Pinned first in pin order; search ranking bypasses this entirely.
-          return pinnedFirstPlaylists(combined, pinnedIds);
-        }
-        return combined
+      },
+      [
+        playlistsQuery,
+        mirroredPlaylists,
+        isOnline,
+        likedTracksPlaylist,
+        showLikedOffline,
+      ],
+    );
+
+    final orderedPlaylists = useMemoized(
+      () => applyMainPlaylistOrder(combinedPlaylists, mainOrder),
+      [combinedPlaylists, mainOrder],
+    );
+
+    final playlists = useMemoized(
+      () {
+        if (effectiveQuery.isEmpty) return orderedPlaylists;
+        return orderedPlaylists
             .map((e) => (weightedRatio(e.name, effectiveQuery), e))
             .sorted((a, b) => b.$1.compareTo(a.$1))
             .where((e) => e.$1 > 50)
             .map((e) => e.$2)
             .toList();
       },
-      [
-        playlistsQuery,
-        effectiveQuery,
-        search.value.isEmpty,
-        mirroredPlaylists,
-        isOnline,
-        pinnedIds,
-        likedTracksPlaylist,
-        showLikedOffline,
-      ],
+      [orderedPlaylists, effectiveQuery, search.value.isEmpty],
     );
 
     final controller = useScrollController();
@@ -177,10 +181,14 @@ class UserPlaylistsPage extends HookConsumerWidget {
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 sliver: PlaybuttonView(
-                  leading: const Expanded(
+                  leading: Expanded(
                     child: Row(
                       children: [
-                        PlaylistCreateDialogButton(),
+                        const PlaylistCreateDialogButton(),
+                        const SizedBox(width: 8),
+                        PlaylistOrderDialogButton(
+                          playlists: orderedPlaylists,
+                        ),
                       ],
                     ),
                   ),
