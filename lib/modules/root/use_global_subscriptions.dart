@@ -101,6 +101,15 @@ void useGlobalSubscriptions(WidgetRef ref) {
     bool pausedByStream = false;
     var wasConnected = ConnectionCheckerService.instance.isConnectedSync;
 
+    // A single failed probe is not an offline episode. The banner is a
+    // full-width destructive surface sliding over the bottom of the screen,
+    // so drawing it for one DNS hiccup read as the app flashing every few
+    // minutes. Wait for a fresh confirmation probe before announcing, and
+    // only announce "restored" when the banner actually appeared.
+    const connectivityConfirmDelay = Duration(seconds: 4);
+    Timer? connectivityToastTimer;
+    var offlineToastShown = false;
+
     final subscriptions = [
       ConnectionCheckerService.instance.onConnectivityChanged
           .listen((connected) async {
@@ -149,40 +158,67 @@ void useGlobalSubscriptions(WidgetRef ref) {
           }
         }
 
-        // Show notification for connection related issues
         if (!context.mounted) return;
 
-        showToast(
-          context: context,
-          location: ToastLocation.bottomCenter,
-          builder: (context, overlay) {
-            if (connected) {
+        if (connected) {
+          connectivityToastTimer?.cancel();
+          connectivityToastTimer = null;
+          // Nothing was announced for this episode: this was a flap, so
+          // there is no recovery to tell the user about either.
+          if (!offlineToastShown) return;
+          offlineToastShown = false;
+
+          showToast(
+            context: context,
+            location: ToastLocation.bottomCenter,
+            builder: (context, overlay) {
               return SurfaceCard(
                 child: Basic(
                   leading: const Icon(SpotubeIcons.wifi),
                   title: Text(context.l10n.connection_restored),
                 ),
               );
-            }
+            },
+          );
+          return;
+        }
 
-            return SurfaceCard(
-              fillColor: theme.colorScheme.destructive,
-              filled: true,
-              child: Basic(
-                leading: const Icon(
-                  SpotubeIcons.noWifi,
-                  color: Colors.white,
-                ),
-                trailing: Text(
-                  context.l10n.you_are_offline,
-                  style: const TextStyle(
+        // One banner per offline episode: repeated probes that agree must not
+        // restart the wait.
+        if (offlineToastShown || connectivityToastTimer != null) return;
+
+        connectivityToastTimer = Timer(connectivityConfirmDelay, () async {
+          connectivityToastTimer = null;
+          // Confirm with a fresh probe instead of trusting the one failure
+          // that started this wait. If the network is back, the listener
+          // clears the episode without the banner ever being drawn.
+          final online = await ConnectionCheckerService.instance.isConnected;
+          if (!context.mounted || online) return;
+
+          offlineToastShown = true;
+          showToast(
+            context: context,
+            location: ToastLocation.bottomCenter,
+            builder: (context, overlay) {
+              return SurfaceCard(
+                fillColor: theme.colorScheme.destructive,
+                filled: true,
+                child: Basic(
+                  leading: const Icon(
+                    SpotubeIcons.noWifi,
                     color: Colors.white,
                   ),
+                  trailing: Text(
+                    context.l10n.you_are_offline,
+                    style: const TextStyle(
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
-              ),
-            );
-          },
-        );
+              );
+            },
+          );
+        });
       }),
       connectRoutes.connectClientStream.listen((clientOrigin) {
         if (!context.mounted) return;
@@ -212,6 +248,7 @@ void useGlobalSubscriptions(WidgetRef ref) {
     return () {
       idleTimer?.cancel();
       autoDownloadTimer.cancel();
+      connectivityToastTimer?.cancel();
       for (final subscription in subscriptions) {
         subscription.cancel();
       }

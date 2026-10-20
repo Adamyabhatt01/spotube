@@ -53,8 +53,7 @@ class UniversalImage extends HookWidget {
     _decodedBytes += decoded.length;
 
     // Evict oldest entries until the total byte budget is respected.
-    while (_decodedBytes > _maxDecodedBytes &&
-        _decodedMemoryCache.isNotEmpty) {
+    while (_decodedBytes > _maxDecodedBytes && _decodedMemoryCache.isNotEmpty) {
       final oldest = _decodedMemoryCache.keys.first;
       final removed = _decodedMemoryCache.remove(oldest);
       if (removed != null) _decodedBytes -= removed.length;
@@ -112,7 +111,8 @@ class UniversalImage extends HookWidget {
   @override
   Widget build(BuildContext context) {
     if (path.startsWith("http")) {
-      return FadeInImage(
+      final placeholderPath = placeholder ?? Assets.images.placeholder.path;
+      final image = Image(
         image: CachedNetworkImageProvider(
           path,
           maxHeight: height?.toInt(),
@@ -121,12 +121,17 @@ class UniversalImage extends HookWidget {
           scale: scale,
           cacheManager: ArtworkCacheManager.instance,
         ),
-        height: height,
+        // Keep the previous artwork until the next one decodes. The old
+        // `FadeInImage` painted the light placeholder first on every provider
+        // change, so a track change blinked the player and a list refresh
+        // blinked every row.
+        gaplessPlayback: true,
         width: width,
-        placeholder: AssetImage(placeholder ?? Assets.images.placeholder.path),
-        imageErrorBuilder: (context, error, stackTrace) {
+        height: height,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) {
           return Image.asset(
-            placeholder ?? Assets.images.placeholder.path,
+            placeholderPath,
             width: width,
             height: height,
             cacheHeight: height?.toInt(),
@@ -134,8 +139,28 @@ class UniversalImage extends HookWidget {
             scale: scale,
           );
         },
-        fit: fit,
       );
+
+      // First paint still needs a ground: sit the artwork on the placeholder
+      // instead of fading *from* it. Only in a fixed box, where the two can
+      // share bounds; an unbounded image keeps its intrinsic size.
+      if (width != null && height != null) {
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Image.asset(
+              placeholderPath,
+              width: width,
+              height: height,
+              cacheHeight: height?.toInt(),
+              cacheWidth: width?.toInt(),
+              scale: scale,
+            ),
+            image,
+          ],
+        );
+      }
+      return image;
     } else if (Uri.tryParse(path) != null && !path.startsWith("assets")) {
       return Image.file(
         File(path),
