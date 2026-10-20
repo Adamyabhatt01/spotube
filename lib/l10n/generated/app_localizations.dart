@@ -2817,6 +2817,24 @@ abstract class AppLocalizations {
   /// **'Reorder the Library section of the sidebar. The top navigation stays fixed.'**
   String get sidebar_order_description;
 
+  /// No description provided for @playlist_order.
+  ///
+  /// In en, this message translates to:
+  /// **'Playlist order'**
+  String get playlist_order;
+
+  /// No description provided for @playlist_order_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Reorder the Playlists section. This does not change the sidebar order.'**
+  String get playlist_order_description;
+
+  /// No description provided for @automatic_downloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic downloads'**
+  String get automatic_downloads;
+
   /// No description provided for @pinned_playlists.
   ///
   /// In en, this message translates to:

@@ -133,6 +133,22 @@ Future<Map<String, DownloadPersistedStatus>> persistedStatuses(
   return {for (final row in rows) row.trackId: row.status};
 }
 
+/// The persisted rows of each of [trackIds] that exist.
+///
+/// One query per page: eligibility and file validation need the whole row, not
+/// just its status.
+Future<Map<String, TrackDownloadTableData>> downloadsOfTracks(
+  AppDatabase database,
+  Iterable<String> trackIds,
+) async {
+  final ids = trackIds.toSet();
+  if (ids.isEmpty) return const {};
+  final rows = await (database.select(database.trackDownloadTable)
+        ..where((t) => t.trackId.isIn(ids)))
+      .get();
+  return {for (final row in rows) row.trackId: row};
+}
+
 Future<TrackDownloadTableData?> downloadOfTrack(
   AppDatabase database,
   String trackId,
@@ -418,12 +434,15 @@ Future<void> writePlaylistMirror(
   required String playlistId,
   required String playlistData,
   required int trackCount,
+  bool? autoDownload,
 }) async {
   final now = DateTime.now().millisecondsSinceEpoch;
   final companion = PlaylistDownloadMirrorTableCompanion.insert(
     playlistId: playlistId,
     playlistData: playlistData,
     trackCount: Value(trackCount),
+    autoDownload:
+        autoDownload == null ? const Value.absent() : Value(autoDownload),
     syncedAtMs: now,
   );
   await database.into(database.playlistDownloadMirrorTable).insert(
@@ -433,6 +452,76 @@ Future<void> writePlaylistMirror(
           target: [database.playlistDownloadMirrorTable.playlistId],
         ),
       );
+}
+
+/// Updates only the metadata payload of an existing mirror.
+///
+/// Used after a rename/edit: download state and `syncedAtMs` are untouched
+/// because no synchronization happened.
+Future<void> updatePlaylistMirrorData(
+  AppDatabase database, {
+  required String playlistId,
+  required String playlistData,
+}) async {
+  await (database.update(database.playlistDownloadMirrorTable)
+        ..where((t) => t.playlistId.equals(playlistId)))
+      .write(
+    PlaylistDownloadMirrorTableCompanion(
+      playlistData: Value(playlistData),
+    ),
+  );
+}
+
+/// Removes the mirror header and membership for [playlistId].
+///
+/// Deliberately does not touch [TrackDownloadTable] or any audio file: those
+/// rows are shared by every playlist that contains the track.
+Future<void> deletePlaylistMirror(
+  AppDatabase database,
+  String playlistId,
+) async {
+  await database.transaction(() async {
+    await (database.delete(database.playlistDownloadTable)
+          ..where((t) => t.playlistId.equals(playlistId)))
+        .go();
+    await (database.delete(database.playlistDownloadMirrorTable)
+          ..where((t) => t.playlistId.equals(playlistId)))
+        .go();
+  });
+}
+
+/// Whether automatic downloads are enabled for [playlistId].
+Future<bool> isPlaylistAutoDownloadEnabled(
+  AppDatabase database,
+  String playlistId,
+) async {
+  final row = await (database.select(database.playlistDownloadMirrorTable)
+        ..where((t) => t.playlistId.equals(playlistId))
+        ..limit(1))
+      .getSingleOrNull();
+  return row?.autoDownload ?? false;
+}
+
+/// Live auto-download flag for one playlist. Missing header means off.
+Stream<bool> watchPlaylistAutoDownload(
+  AppDatabase database,
+  String playlistId,
+) {
+  return (database.select(database.playlistDownloadMirrorTable)
+        ..where((t) => t.playlistId.equals(playlistId))
+        ..limit(1))
+      .watchSingleOrNull()
+      .map((row) => row?.autoDownload ?? false);
+}
+
+/// Headers opted into automatic downloads.
+Future<List<PlaylistDownloadMirrorTableData>> autoDownloadPlaylistMirrors(
+  AppDatabase database,
+) {
+  return (database.select(database.playlistDownloadMirrorTable)
+        ..where((t) => t.autoDownload.equals(true))
+        ..orderBy([(t) => OrderingTerm.asc(t.playlistId)]))
+      .get();
 }
 
 /// Header rows for every mirrored playlist, in id order.

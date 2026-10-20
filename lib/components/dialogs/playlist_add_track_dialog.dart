@@ -109,7 +109,9 @@ class PlaylistAddTrackDialog extends HookConsumerWidget {
               style: typography.large,
             ),
             const Spacer(),
-            const PlaylistCreateDialogButton(),
+            PlaylistCreateDialogButton(
+              trackIds: tracks.map((e) => e.id).toList(),
+            ),
           ],
         ),
         actions: [

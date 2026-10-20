@@ -1463,6 +1463,16 @@ class AppLocalizationsFi extends AppLocalizations {
       'Reorder the Library section of the sidebar. The top navigation stays fixed.';
 
   @override
+  String get playlist_order => 'Playlist order';
+
+  @override
+  String get playlist_order_description =>
+      'Reorder the Playlists section. This does not change the sidebar order.';
+
+  @override
+  String get automatic_downloads => 'Automatic downloads';
+
+  @override
   String get pinned_playlists => 'Pinned playlists';
 
   @override

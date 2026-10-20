@@ -1,20 +1,14 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:auto_route/auto_route.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/form/checkbox_form_field.dart';
 import 'package:spotube/components/form/text_form_field.dart';
-import 'package:spotube/components/image/universal_image.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
@@ -82,6 +76,11 @@ class PlaylistCreateDialog extends HookConsumerWidget {
                   color: theme.colorScheme.destructive,
                 ),
               ),
+              subtitle: Text(
+                error.toString().split('\n').first,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           );
         },
@@ -91,54 +90,54 @@ class PlaylistCreateDialog extends HookConsumerWidget {
     Future<void> onCreate() async {
       if (!formKey.currentState!.saveAndValidate()) return;
 
+      SpotubeFullPlaylistObject? result;
       try {
         isSubmitting.value = true;
         final values = formKey.currentState!.value;
 
-        final payload = (
-          playlistName: values['playlistName'],
-          collaborative: values['collaborative'],
-          public: values['public'],
-          description: values['description'],
-          base64Image: (values['image'] as XFile?)?.path != null
-              ? await (values['image'] as XFile)
-                  .readAsBytes()
-                  .then((bytes) => base64Encode(bytes))
-              : null,
-        );
+        // Only the name is mandatory. Providers can fill in a cover from the
+        // playlist contents, and an empty description is valid for every
+        // provider (the plugin endpoint drops null arguments).
+        final playlistName = (values['playlistName'] as String).trim();
+        final description = (values['description'] as String?)?.trim() ?? '';
+        final public = values['public'] as bool?;
+        final collaborative = values['collaborative'] as bool?;
 
         if (isUpdatingPlaylist) {
           await playlistNotifier.modify(
-            name: payload.playlistName,
-            description: payload.description,
-            public: payload.public,
-            collaborative: payload.collaborative,
+            name: playlistName,
+            description: description,
+            public: public,
+            collaborative: collaborative,
             onError: onError,
           );
+          result = ref
+              .read(metadataPluginPlaylistProvider(playlistId!))
+              .asData
+              ?.value;
         } else {
-          await playlistNotifier.create(
-            name: payload.playlistName,
-            description: payload.description,
-            public: payload.public,
-            collaborative: payload.collaborative,
+          result = await playlistNotifier.create(
+            name: playlistName,
+            description: description,
+            public: public,
+            collaborative: collaborative,
+            trackIds: trackIds,
             onError: onError,
           );
         }
-
-        if (trackIds.isNotEmpty) {
-          await playlistNotifier.addTracks(trackIds, onError);
-        }
+      } catch (_) {
+        // The notifier has already reported the failure. Keep the dialog
+        // open so the user can retry without losing the form values.
+        return;
       } finally {
         isSubmitting.value = false;
-        if (context.mounted &&
-            !ref
-                .read(metadataPluginPlaylistProvider(playlistId ?? ""))
-                .hasError) {
-          context.router.maybePop<SpotubeFullPlaylistObject>(
-            await ref
-                .read(metadataPluginPlaylistProvider(playlistId ?? "").future),
-          );
-        }
+      }
+
+      if (!context.mounted) return;
+      if (result == null) {
+        context.router.maybePop();
+      } else {
+        context.router.maybePop<SpotubeFullPlaylistObject>(result);
       }
     }
 
@@ -177,79 +176,6 @@ class PlaylistCreateDialog extends HookConsumerWidget {
           child: ListView(
             shrinkWrap: true,
             children: [
-              FormBuilderField<XFile?>(
-                name: 'image',
-                validator: (value) {
-                  if (value == null) return null;
-                  final file = File(value.path);
-
-                  if (file.lengthSync() > 256000) {
-                    return "Image size should be less than 256kb";
-                  }
-
-                  if (extension(file.path) != ".png") {
-                    return "Image should be in PNG format";
-                  }
-                  return null;
-                },
-                builder: (field) {
-                  return Column(
-                    spacing: 10,
-                    children: [
-                      UniversalImage(
-                        path: field.value?.path ??
-                            (updatingPlaylist?.images).asUrlString(
-                              placeholder: ImagePlaceholder.collection,
-                            ),
-                        height: 200,
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Button.secondary(
-                            leading: const Icon(SpotubeIcons.edit),
-                            child: Text(
-                              field.value?.path != null ||
-                                      updatingPlaylist?.images != null
-                                  ? context.l10n.change_cover
-                                  : context.l10n.add_cover,
-                            ),
-                            onPressed: () async {
-                              final imageFile = await ImagePicker().pickImage(
-                                source: ImageSource.gallery,
-                              );
-
-                              if (imageFile != null) {
-                                field.didChange(imageFile);
-                                field.validate();
-                                field.save();
-                              }
-                            },
-                          ),
-                          const SizedBox(width: 10),
-                          IconButton.destructive(
-                            icon: const Icon(SpotubeIcons.trash),
-                            enabled: field.value != null,
-                            onPressed: () {
-                              field.didChange(null);
-                              field.validate();
-                              field.save();
-                            },
-                          ),
-                        ],
-                      ),
-                      if (field.hasError)
-                        Text(
-                          field.errorText ?? "",
-                          style: theme.typography.normal.copyWith(
-                            color: theme.colorScheme.destructive,
-                          ),
-                        )
-                    ],
-                  );
-                },
-              ),
-              const Gap(20),
               TextFormBuilderField(
                 name: 'playlistName',
                 label: Text(context.l10n.playlist_name),
@@ -260,7 +186,7 @@ class PlaylistCreateDialog extends HookConsumerWidget {
               TextFormBuilderField(
                 name: 'description',
                 label: Text(context.l10n.description),
-                validator: FormBuilderValidators.required(),
+                // Optional: providers are free to derive or omit it.
                 placeholder: Text(context.l10n.description),
                 keyboardType: TextInputType.multiline,
                 maxLines: 5,
@@ -284,14 +210,17 @@ class PlaylistCreateDialog extends HookConsumerWidget {
 }
 
 class PlaylistCreateDialogButton extends HookConsumerWidget {
-  const PlaylistCreateDialogButton({super.key});
+  /// Tracks that should be added to the newly-created playlist.
+  final List<String> trackIds;
+
+  const PlaylistCreateDialogButton({super.key, this.trackIds = const []});
 
   showPlaylistDialog(BuildContext context) {
     showDialog(
       context: context,
       alignment: Alignment.center,
-      builder: (context) => const ToastLayer(
-        child: PlaylistCreateDialog(),
+      builder: (context) => ToastLayer(
+        child: PlaylistCreateDialog(trackIds: trackIds),
       ),
     );
   }

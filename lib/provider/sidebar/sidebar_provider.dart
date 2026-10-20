@@ -90,30 +90,6 @@ List<String> moveSidebarPin(
   return (from: from, to: to);
 }
 
-/// Stable partition of the Playlists page list: pinned playlists first in pin
-/// order, everything else keeping its existing (Spotify) order.
-///
-/// [pinnedIds] holds raw playlist ids, including the `"user-liked-tracks"`
-/// synthetic. A pinned id with no object in [playlists] (deleted, offline,
-/// not yet loaded) is skipped, never a placeholder — the same rule the
-/// sidebar pinned block uses. Empty [pinnedIds] returns an equal copy, so
-/// non-pinners see zero reorder churn. Never mutates the input. Only applied
-/// when the page filter is empty; search ranking bypasses it.
-List<SpotubeSimplePlaylistObject> pinnedFirstPlaylists(
-  List<SpotubeSimplePlaylistObject> playlists,
-  List<String> pinnedIds,
-) {
-  if (pinnedIds.isEmpty) return List.of(playlists);
-  final byId = {for (final playlist in playlists) playlist.id: playlist};
-  final pinnedSet = pinnedIds.toSet();
-  return [
-    for (final id in pinnedIds)
-      if (byId[id] != null) byId[id]!,
-    for (final playlist in playlists)
-      if (!pinnedSet.contains(playlist.id)) playlist,
-  ];
-}
-
 /// Saved + mirrored playlists keyed by id, for sidebar pins.
 ///
 /// Same merge as `UserPlaylistsPage` (saved first, mirrored supplying what

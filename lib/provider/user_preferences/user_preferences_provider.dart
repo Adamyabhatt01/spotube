@@ -304,6 +304,29 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
     setData(PreferencesTableCompanion(pinnedPlaylistIds: Value(ids)));
   }
 
+  void setMainPlaylistOrder(List<String> ids) {
+    setData(PreferencesTableCompanion(mainPlaylistOrder: Value(ids)));
+  }
+
+  /// Removes [playlistId] from both persisted playlist orders after deletion.
+  ///
+  /// The two lists stay independent; only the deleted id is removed from each,
+  /// preserving the relative order of everything else.
+  void removePlaylistFromOrders(String playlistId) {
+    final pins = state.pinnedPlaylistIds
+        .where((id) => id != playlistId)
+        .toList(growable: false);
+    final mainOrder = (state.mainPlaylistOrder ?? const <String>[])
+        .where((id) => id != playlistId)
+        .toList(growable: false);
+    setData(
+      PreferencesTableCompanion(
+        pinnedPlaylistIds: Value(pins),
+        mainPlaylistOrder: Value(mainOrder),
+      ),
+    );
+  }
+
   void setPinnedStationIds(List<String> ids) {
     setData(PreferencesTableCompanion(pinnedStationIds: Value(ids)));
   }

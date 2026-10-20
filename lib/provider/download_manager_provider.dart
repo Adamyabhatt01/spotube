@@ -121,6 +121,15 @@ class DownloadTask {
   final CancelToken cancelToken;
   final int? totalSizeBytes;
 
+  /// True when this task retries a failed/interrupted attempt.
+  ///
+  /// A failed transfer can leave a partial file at the normal destination.
+  /// Retries therefore write to a deterministic id-suffixed path instead of
+  /// the normal one: the old file is never mistaken for the retry's output and
+  /// is never overwritten. The path is recorded on the row, so later sessions
+  /// reuse the successful retry exactly like any other download.
+  final bool useRetryFilePath;
+
   /// The `SpotubeFullTrackObject.toJson()` this task's database row stores.
   /// Encoded once at enqueue and reused for every later status write; the row
   /// payload is what the mirror parses to render a playlist offline, and it
@@ -139,6 +148,7 @@ class DownloadTask {
     required this.status,
     required this.cancelToken,
     this.totalSizeBytes,
+    this.useRetryFilePath = false,
     this.trackData,
     StreamController<int>? downloadedBytesStreamController,
   }) : _downloadedBytesStreamController =
@@ -149,6 +159,7 @@ class DownloadTask {
     DownloadStatus? status,
     CancelToken? cancelToken,
     int? totalSizeBytes,
+    bool? useRetryFilePath,
     String? trackData,
     StreamController<int>? downloadedBytesStreamController,
   }) {
@@ -157,6 +168,7 @@ class DownloadTask {
       status: status ?? this.status,
       cancelToken: cancelToken ?? this.cancelToken,
       totalSizeBytes: totalSizeBytes ?? this.totalSizeBytes,
+      useRetryFilePath: useRetryFilePath ?? this.useRetryFilePath,
       trackData: trackData ?? this.trackData,
       downloadedBytesStreamController:
           downloadedBytesStreamController ?? _downloadedBytesStreamController,
@@ -166,6 +178,7 @@ class DownloadTask {
 
 class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   final Dio dio;
+  bool _disposed = false;
   DownloadManagerNotifier()
       : dio = (Dio(BaseOptions(
           connectTimeout: const Duration(seconds: 15),
@@ -182,6 +195,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   @override
   build() {
     ref.onDispose(() {
+      _disposed = true;
       for (final task in state) {
         if (task.status == DownloadStatus.downloading) {
           task.cancelToken.cancel();
@@ -195,6 +209,15 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     // and it is the only record that a file downloaded in an earlier session
     // exists at all.
     unawaited(reconcilePersisted());
+
+    // The audio-source plugin resolves asynchronously. A download queued
+    // before its presets exist has no extension or destination path yet, so it
+    // must wait here instead of being failed by the prefilter. Resume the
+    // queue as soon as a container exists.
+    ref.listen(audioSourcePresetsProvider, (previous, next) {
+      if (next.presets.isEmpty) return;
+      unawaited(_prefilterAndStart());
+    });
 
     return [];
   }
@@ -261,6 +284,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   bool _enqueue(
     List<SpotubeFullTrackObject> tracks, {
     String? collectionId,
+    bool useRetryFilePath = false,
   }) {
     if (tracks.isEmpty) return false;
 
@@ -294,6 +318,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
           track: track,
           status: DownloadStatus.queued,
           cancelToken: CancelToken(),
+          useRetryFilePath: useRetryFilePath,
           trackData: jsonEncode(track.toJson()),
         ),
     ];
@@ -303,7 +328,11 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
 
     // The prefetch stays on the first track only, as it was for batches;
     // a per-track prefetch would resolve every row of a playlist at once.
-    ref.read(sourcedTrackProvider(incoming.first));
+    // Without a loaded container the worker cannot start anyway, and resolving
+    // against a half-initialized plugin only produces noise.
+    if (_hasDownloadContainer) {
+      ref.read(sourcedTrackProvider(incoming.first));
+    }
 
     return true;
   }
@@ -319,16 +348,22 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   void addAllToQueue(
     List<SpotubeFullTrackObject> tracks, {
     String? collectionId,
+    bool useRetryFilePath = false,
   }) {
-    if (!_enqueue(tracks, collectionId: collectionId)) return;
+    if (!_enqueue(
+      tracks,
+      collectionId: collectionId,
+      useRetryFilePath: useRetryFilePath,
+    )) {
+      return;
+    }
     // Phase 1 (batched existence check) runs async, then pumps the pool.
     // No await should be invoked to avoid stuck UI — but a throw inside the
     // prefilter must neither surface as an unhandled async error nor leave
     // the freshly queued tasks with nobody to pump them, so the pool gets a
     // final (idempotent) pump either way and the error is reported.
     unawaited(
-      _prefilterAndStart()
-          .catchError((Object error, StackTrace stackTrace) {
+      _prefilterAndStart().catchError((Object error, StackTrace stackTrace) {
         AppLogger.reportError(error, stackTrace);
       }).whenComplete(_pumpDownloadPool),
     );
@@ -341,6 +376,19 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     DownloadStatus.failed: DownloadPersistedStatus.failed,
     DownloadStatus.canceled: DownloadPersistedStatus.canceled,
   };
+
+  /// Whether the plugin's download container list is available yet.
+  ///
+  /// Presets are restored asynchronously after the plugin resolves. Until then
+  /// there is no file extension or destination path, so queue work must wait
+  /// instead of failing.
+  bool get _hasDownloadContainer {
+    if (_disposed) return false;
+    final presets = ref.read(audioSourcePresetsProvider);
+    return presets.presets
+            .elementAtOrNull(presets.selectedDownloadingContainerIndex) !=
+        null;
+  }
 
   /// Where [task]'s track is going on disk, plus everything the row needs.
   ///
@@ -371,7 +419,12 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     }
     final downloadLocation = ref.read(
         userPreferencesProvider.select((value) => value.downloadLocation));
-    final savePath = _savePathFor(track, downloadLocation, container);
+    final savePath = _savePathFor(
+      track,
+      downloadLocation,
+      container,
+      useRetryFilePath: task.useRetryFilePath,
+    );
 
     return DownloadRecord(
       trackId: track.id,
@@ -385,6 +438,10 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   }
 
   Future<void> _recordQueued(List<DownloadTask> tasks) async {
+    // Plugins load after the first frame. Without a container there is no
+    // extension or destination to record yet; the tasks stay queued in memory
+    // and are persisted by their first status write after presets arrive.
+    if (_disposed || !_hasDownloadContainer) return;
     await _writing('queue', () async {
       await recordQueuedDownloads(
         ref.read(databaseProvider),
@@ -443,18 +500,32 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     }
   }
 
-  void retry(SpotubeFullTrackObject track) {
+  void retry(
+    SpotubeFullTrackObject track, {
+    bool useRetryFilePath = false,
+  }) {
     final existing = state.firstWhereOrNull((e) => e.track.id == track.id);
-    if (existing == null ||
-        (existing.status != DownloadStatus.canceled &&
-            existing.status != DownloadStatus.failed)) {
+    if (existing == null) {
+      // A row that failed in a previous process has no live task to revive.
+      // Auto-download synchronization re-queues those; it explicitly asks for
+      // a unique retry path so a stale partial file is left untouched.
+      if (useRetryFilePath && _enqueue([track], useRetryFilePath: true)) {
+        _pumpDownloadPool();
+      }
+      return;
+    }
+    if (existing.status != DownloadStatus.canceled &&
+        existing.status != DownloadStatus.failed) {
       return;
     }
     // A spent CancelToken can never be reused — re-queue with a fresh one.
     state = state
         .map((e) => e.track.id == track.id
             ? e.copyWith(
-                status: DownloadStatus.queued, cancelToken: CancelToken())
+                status: DownloadStatus.queued,
+                cancelToken: CancelToken(),
+                useRetryFilePath: e.useRetryFilePath || useRetryFilePath,
+              )
             : e)
         .toList();
     _pumpDownloadPool(); // No await should be invoked to avoid stuck UI
@@ -735,10 +806,15 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
 
       await Directory(downloadLocation).create(recursive: true);
 
-      final savePath = _savePathFor(task.track, downloadLocation, container);
+      final savePath = _savePathFor(
+        task.track,
+        downloadLocation,
+        container,
+        useRetryFilePath: task.useRetryFilePath,
+      );
 
       final savePathFile = File(savePath);
-      if (await savePathFile.exists()) {
+      if (await savePathFile.exists() && !task.useRetryFilePath) {
         // dio automatically replaces the file if it exists so no deletion required
         if (!await _shouldReplaceFileOnExist(task)) {
           _setStatus(task.track, DownloadStatus.completed,
@@ -1083,13 +1159,20 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   String _savePathFor(
     SpotubeFullTrackObject track,
     String downloadLocation,
-    SpotubeAudioSourceContainerPreset container,
-  ) {
+    SpotubeAudioSourceContainerPreset container, {
+    bool useRetryFilePath = false,
+  }) {
+    final stem = ServiceUtils.trackFileStem(track, spaceAfterComma: true);
+    // A retry must not reuse or overwrite the failed attempt's file: it may be
+    // truncated, or may belong to a distinct track whose name sanitized to the
+    // same path. The track id makes the retry destination deterministic and
+    // unique without deleting anything.
+    final fileName = useRetryFilePath
+        ? "$stem [${track.id}].${container.getFileExtension()}"
+        : "$stem.${container.getFileExtension()}";
     return join(
       downloadLocation,
-      ServiceUtils.sanitizeFilename(
-        "${ServiceUtils.trackFileStem(track, spaceAfterComma: true)}.${container.getFileExtension()}",
-      ),
+      ServiceUtils.sanitizeFilename(fileName),
     );
   }
 
@@ -1110,6 +1193,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   /// claimant but the first. Since [_enqueue] already deduplicates by track
   /// id, a group larger than one can only be a collision.
   Future<void> _prefilterAndStart() async {
+    if (_disposed) return;
     final queued =
         state.where((e) => e.status == DownloadStatus.queued).toList();
     if (queued.isEmpty) {
@@ -1127,24 +1211,22 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     final container = presets.presets
         .elementAtOrNull(presets.selectedDownloadingContainerIndex);
     if (container == null) {
-      // Without a container there is no destination path to group by, so
-      // the prefilter cannot run. Fail the queued tasks with the same
-      // message the single-task path raises, rather than leaving them
-      // queued with nobody to claim them.
-      final message =
-          'No download container preset at index '
-          '${presets.selectedDownloadingContainerIndex} '
-          '(${presets.presets.length} available)';
-      for (final task in queued) {
-        _setStatus(task.track, DownloadStatus.failed, error: message);
-      }
+      // Presets are restored asynchronously. Leave the queue intact; the
+      // presets listener calls this again once a download container exists.
+      // Failing here used to turn every startup download into a permanent
+      // `failed` row before the plugin had even loaded.
       return;
     }
 
     // Group queued tasks by destination path.
     final groups = <String, List<DownloadTask>>{};
     for (final task in queued) {
-      final savePath = _savePathFor(task.track, downloadLocation, container);
+      final savePath = _savePathFor(
+        task.track,
+        downloadLocation,
+        container,
+        useRetryFilePath: task.useRetryFilePath,
+      );
       (groups[savePath] ??= []).add(task);
     }
 
@@ -1163,15 +1245,15 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     }
 
     // A single upfront policy decision for every already-downloaded file,
-    // instead of one modal dialog per track mid-download.
-    final hasExisting = existence.values.any((exists) => exists);
+    // instead of one modal dialog per track mid-download. Retry tasks bypass
+    // it: their id-suffixed destination is theirs alone, and overwriting a
+    // previous failed attempt is the point.
+    final existingNeedingPolicy = groups.entries.where((entry) =>
+        existence[entry.key] == true &&
+        entry.value.any((task) => !task.useRetryFilePath));
     bool replace = false;
-    if (hasExisting) {
-      final firstExisting = groups.entries
-          .firstWhere((entry) => existence[entry.key] == true)
-          .value
-          .first
-          .track;
+    if (existingNeedingPolicy.isNotEmpty) {
+      final firstExisting = existingNeedingPolicy.first.value.first.track;
       replace = await _resolveReplacePolicy(firstExisting);
     }
 
@@ -1183,7 +1265,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
         collidedTracks.addAll(tasks.map((task) => task.track));
         continue;
       }
-      if (existence[entry.key]! && !replace) {
+      if (existence[entry.key]! && !tasks.single.useRetryFilePath && !replace) {
         onDiskTracks.add(tasks.single.track);
       }
     }
@@ -1219,8 +1301,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     final winnerIds = winners.map((t) => t.track.id).toSet();
     state = [
       for (final e in state)
-        if (winnerIds.contains(e.track.id) &&
-            e.status == DownloadStatus.queued)
+        if (winnerIds.contains(e.track.id) && e.status == DownloadStatus.queued)
           e.copyWith(status: DownloadStatus.completed)
         else
           e,
@@ -1235,6 +1316,9 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   /// queue. Late arrivals are picked up as well, since workers claim
   /// whatever is queued when they become free.
   void _pumpDownloadPool() {
+    // Queued work waits for the plugin's presets; the presets listener pumps
+    // it once a destination extension exists.
+    if (!_hasDownloadContainer) return;
     while (_activeWorkers < _maxConcurrentDownloads) {
       final hasQueued = state.any((e) => e.status == DownloadStatus.queued);
       if (!hasQueued) return;

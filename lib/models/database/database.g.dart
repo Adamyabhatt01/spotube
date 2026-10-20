@@ -808,6 +808,13 @@ class $PreferencesTableTable extends PreferencesTable
               defaultValue: const Constant(""))
           .withConverter<List<String>>(
               $PreferencesTableTable.$converterpinnedStationIds);
+  @override
+  late final GeneratedColumnWithTypeConverter<List<String>?, String>
+      mainPlaylistOrder = GeneratedColumn<String>(
+              'main_playlist_order', aliasedName, true,
+              type: DriftSqlType.string, requiredDuringInsert: false)
+          .withConverter<List<String>?>(
+              $PreferencesTableTable.$convertermainPlaylistOrdern);
   static const VerificationMeta _autoDownloadQualityMeta =
       const VerificationMeta('autoDownloadQuality');
   @override
@@ -939,6 +946,7 @@ class $PreferencesTableTable extends PreferencesTable
         sidebarLibraryOrder,
         pinnedPlaylistIds,
         pinnedStationIds,
+        mainPlaylistOrder,
         autoDownloadQuality,
         themeTransition,
         themeTransitionMs,
@@ -1191,6 +1199,9 @@ class $PreferencesTableTable extends PreferencesTable
       pinnedStationIds: $PreferencesTableTable.$converterpinnedStationIds
           .fromSql(attachedDatabase.typeMapping.read(DriftSqlType.string,
               data['${effectivePrefix}pinned_station_ids'])!),
+      mainPlaylistOrder: $PreferencesTableTable.$convertermainPlaylistOrdern
+          .fromSql(attachedDatabase.typeMapping.read(DriftSqlType.string,
+              data['${effectivePrefix}main_playlist_order'])),
       autoDownloadQuality: attachedDatabase.typeMapping.read(
           DriftSqlType.bool, data['${effectivePrefix}auto_download_quality'])!,
       themeTransition: attachedDatabase.typeMapping
@@ -1254,6 +1265,10 @@ class $PreferencesTableTable extends PreferencesTable
       const StringListConverter();
   static TypeConverter<List<String>, String> $converterpinnedStationIds =
       const StringListConverter();
+  static TypeConverter<List<String>, String> $convertermainPlaylistOrder =
+      const StringListConverter();
+  static TypeConverter<List<String>?, String?> $convertermainPlaylistOrdern =
+      NullAwareTypeConverter.wrap($convertermainPlaylistOrder);
   static JsonTypeConverter2<VolumeControlMode, String, String>
       $convertervolumeControlMode =
       const EnumNameConverter<VolumeControlMode>(VolumeControlMode.values);
@@ -1298,6 +1313,14 @@ class PreferencesTableData extends DataClass
   final List<String> sidebarLibraryOrder;
   final List<String> pinnedPlaylistIds;
   final List<String> pinnedStationIds;
+
+  /// Order of the Playlists section, independent of the sidebar pins.
+  ///
+  /// Null is the migration sentinel: v28 seeds it once from
+  /// [pinnedPlaylistIds] so existing users keep their pinned-first layout.
+  /// An intentionally empty list is stored as `""` (not null), so it is never
+  /// repopulated on a re-entered migration step.
+  final List<String>? mainPlaylistOrder;
   final bool autoDownloadQuality;
   final bool themeTransition;
   final int themeTransitionMs;
@@ -1340,6 +1363,7 @@ class PreferencesTableData extends DataClass
       required this.sidebarLibraryOrder,
       required this.pinnedPlaylistIds,
       required this.pinnedStationIds,
+      this.mainPlaylistOrder,
       required this.autoDownloadQuality,
       required this.themeTransition,
       required this.themeTransitionMs,
@@ -1432,6 +1456,11 @@ class PreferencesTableData extends DataClass
           .$converterpinnedStationIds
           .toSql(pinnedStationIds));
     }
+    if (!nullToAbsent || mainPlaylistOrder != null) {
+      map['main_playlist_order'] = Variable<String>($PreferencesTableTable
+          .$convertermainPlaylistOrdern
+          .toSql(mainPlaylistOrder));
+    }
     map['auto_download_quality'] = Variable<bool>(autoDownloadQuality);
     map['theme_transition'] = Variable<bool>(themeTransition);
     map['theme_transition_ms'] = Variable<int>(themeTransitionMs);
@@ -1494,6 +1523,9 @@ class PreferencesTableData extends DataClass
       sidebarLibraryOrder: Value(sidebarLibraryOrder),
       pinnedPlaylistIds: Value(pinnedPlaylistIds),
       pinnedStationIds: Value(pinnedStationIds),
+      mainPlaylistOrder: mainPlaylistOrder == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mainPlaylistOrder),
       autoDownloadQuality: Value(autoDownloadQuality),
       themeTransition: Value(themeTransition),
       themeTransitionMs: Value(themeTransitionMs),
@@ -1557,6 +1589,8 @@ class PreferencesTableData extends DataClass
           serializer.fromJson<List<String>>(json['pinnedPlaylistIds']),
       pinnedStationIds:
           serializer.fromJson<List<String>>(json['pinnedStationIds']),
+      mainPlaylistOrder:
+          serializer.fromJson<List<String>?>(json['mainPlaylistOrder']),
       autoDownloadQuality:
           serializer.fromJson<bool>(json['autoDownloadQuality']),
       themeTransition: serializer.fromJson<bool>(json['themeTransition']),
@@ -1618,6 +1652,7 @@ class PreferencesTableData extends DataClass
           serializer.toJson<List<String>>(sidebarLibraryOrder),
       'pinnedPlaylistIds': serializer.toJson<List<String>>(pinnedPlaylistIds),
       'pinnedStationIds': serializer.toJson<List<String>>(pinnedStationIds),
+      'mainPlaylistOrder': serializer.toJson<List<String>?>(mainPlaylistOrder),
       'autoDownloadQuality': serializer.toJson<bool>(autoDownloadQuality),
       'themeTransition': serializer.toJson<bool>(themeTransition),
       'themeTransitionMs': serializer.toJson<int>(themeTransitionMs),
@@ -1667,6 +1702,7 @@ class PreferencesTableData extends DataClass
           List<String>? sidebarLibraryOrder,
           List<String>? pinnedPlaylistIds,
           List<String>? pinnedStationIds,
+          Value<List<String>?> mainPlaylistOrder = const Value.absent(),
           bool? autoDownloadQuality,
           bool? themeTransition,
           int? themeTransitionMs,
@@ -1710,6 +1746,9 @@ class PreferencesTableData extends DataClass
         sidebarLibraryOrder: sidebarLibraryOrder ?? this.sidebarLibraryOrder,
         pinnedPlaylistIds: pinnedPlaylistIds ?? this.pinnedPlaylistIds,
         pinnedStationIds: pinnedStationIds ?? this.pinnedStationIds,
+        mainPlaylistOrder: mainPlaylistOrder.present
+            ? mainPlaylistOrder.value
+            : this.mainPlaylistOrder,
         autoDownloadQuality: autoDownloadQuality ?? this.autoDownloadQuality,
         themeTransition: themeTransition ?? this.themeTransition,
         themeTransitionMs: themeTransitionMs ?? this.themeTransitionMs,
@@ -1802,6 +1841,9 @@ class PreferencesTableData extends DataClass
       pinnedStationIds: data.pinnedStationIds.present
           ? data.pinnedStationIds.value
           : this.pinnedStationIds,
+      mainPlaylistOrder: data.mainPlaylistOrder.present
+          ? data.mainPlaylistOrder.value
+          : this.mainPlaylistOrder,
       autoDownloadQuality: data.autoDownloadQuality.present
           ? data.autoDownloadQuality.value
           : this.autoDownloadQuality,
@@ -1870,6 +1912,7 @@ class PreferencesTableData extends DataClass
           ..write('sidebarLibraryOrder: $sidebarLibraryOrder, ')
           ..write('pinnedPlaylistIds: $pinnedPlaylistIds, ')
           ..write('pinnedStationIds: $pinnedStationIds, ')
+          ..write('mainPlaylistOrder: $mainPlaylistOrder, ')
           ..write('autoDownloadQuality: $autoDownloadQuality, ')
           ..write('themeTransition: $themeTransition, ')
           ..write('themeTransitionMs: $themeTransitionMs, ')
@@ -1917,6 +1960,7 @@ class PreferencesTableData extends DataClass
         sidebarLibraryOrder,
         pinnedPlaylistIds,
         pinnedStationIds,
+        mainPlaylistOrder,
         autoDownloadQuality,
         themeTransition,
         themeTransitionMs,
@@ -1963,6 +2007,7 @@ class PreferencesTableData extends DataClass
           other.sidebarLibraryOrder == this.sidebarLibraryOrder &&
           other.pinnedPlaylistIds == this.pinnedPlaylistIds &&
           other.pinnedStationIds == this.pinnedStationIds &&
+          other.mainPlaylistOrder == this.mainPlaylistOrder &&
           other.autoDownloadQuality == this.autoDownloadQuality &&
           other.themeTransition == this.themeTransition &&
           other.themeTransitionMs == this.themeTransitionMs &&
@@ -2007,6 +2052,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
   final Value<List<String>> sidebarLibraryOrder;
   final Value<List<String>> pinnedPlaylistIds;
   final Value<List<String>> pinnedStationIds;
+  final Value<List<String>?> mainPlaylistOrder;
   final Value<bool> autoDownloadQuality;
   final Value<bool> themeTransition;
   final Value<int> themeTransitionMs;
@@ -2049,6 +2095,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.sidebarLibraryOrder = const Value.absent(),
     this.pinnedPlaylistIds = const Value.absent(),
     this.pinnedStationIds = const Value.absent(),
+    this.mainPlaylistOrder = const Value.absent(),
     this.autoDownloadQuality = const Value.absent(),
     this.themeTransition = const Value.absent(),
     this.themeTransitionMs = const Value.absent(),
@@ -2092,6 +2139,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.sidebarLibraryOrder = const Value.absent(),
     this.pinnedPlaylistIds = const Value.absent(),
     this.pinnedStationIds = const Value.absent(),
+    this.mainPlaylistOrder = const Value.absent(),
     this.autoDownloadQuality = const Value.absent(),
     this.themeTransition = const Value.absent(),
     this.themeTransitionMs = const Value.absent(),
@@ -2135,6 +2183,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     Expression<String>? sidebarLibraryOrder,
     Expression<String>? pinnedPlaylistIds,
     Expression<String>? pinnedStationIds,
+    Expression<String>? mainPlaylistOrder,
     Expression<bool>? autoDownloadQuality,
     Expression<bool>? themeTransition,
     Expression<int>? themeTransitionMs,
@@ -2182,6 +2231,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
         'sidebar_library_order': sidebarLibraryOrder,
       if (pinnedPlaylistIds != null) 'pinned_playlist_ids': pinnedPlaylistIds,
       if (pinnedStationIds != null) 'pinned_station_ids': pinnedStationIds,
+      if (mainPlaylistOrder != null) 'main_playlist_order': mainPlaylistOrder,
       if (autoDownloadQuality != null)
         'auto_download_quality': autoDownloadQuality,
       if (themeTransition != null) 'theme_transition': themeTransition,
@@ -2228,6 +2278,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       Value<List<String>>? sidebarLibraryOrder,
       Value<List<String>>? pinnedPlaylistIds,
       Value<List<String>>? pinnedStationIds,
+      Value<List<String>?>? mainPlaylistOrder,
       Value<bool>? autoDownloadQuality,
       Value<bool>? themeTransition,
       Value<int>? themeTransitionMs,
@@ -2270,6 +2321,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       sidebarLibraryOrder: sidebarLibraryOrder ?? this.sidebarLibraryOrder,
       pinnedPlaylistIds: pinnedPlaylistIds ?? this.pinnedPlaylistIds,
       pinnedStationIds: pinnedStationIds ?? this.pinnedStationIds,
+      mainPlaylistOrder: mainPlaylistOrder ?? this.mainPlaylistOrder,
       autoDownloadQuality: autoDownloadQuality ?? this.autoDownloadQuality,
       themeTransition: themeTransition ?? this.themeTransition,
       themeTransitionMs: themeTransitionMs ?? this.themeTransitionMs,
@@ -2396,6 +2448,11 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           .$converterpinnedStationIds
           .toSql(pinnedStationIds.value));
     }
+    if (mainPlaylistOrder.present) {
+      map['main_playlist_order'] = Variable<String>($PreferencesTableTable
+          .$convertermainPlaylistOrdern
+          .toSql(mainPlaylistOrder.value));
+    }
     if (autoDownloadQuality.present) {
       map['auto_download_quality'] = Variable<bool>(autoDownloadQuality.value);
     }
@@ -2471,6 +2528,7 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           ..write('sidebarLibraryOrder: $sidebarLibraryOrder, ')
           ..write('pinnedPlaylistIds: $pinnedPlaylistIds, ')
           ..write('pinnedStationIds: $pinnedStationIds, ')
+          ..write('mainPlaylistOrder: $mainPlaylistOrder, ')
           ..write('autoDownloadQuality: $autoDownloadQuality, ')
           ..write('themeTransition: $themeTransition, ')
           ..write('themeTransitionMs: $themeTransitionMs, ')
@@ -6322,6 +6380,16 @@ class $PlaylistDownloadMirrorTableTable extends PlaylistDownloadMirrorTable
   late final GeneratedColumn<String> playlistData = GeneratedColumn<String>(
       'playlist_data', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _autoDownloadMeta =
+      const VerificationMeta('autoDownload');
+  @override
+  late final GeneratedColumn<bool> autoDownload = GeneratedColumn<bool>(
+      'auto_download', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("auto_download" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _trackCountMeta =
       const VerificationMeta('trackCount');
   @override
@@ -6338,7 +6406,7 @@ class $PlaylistDownloadMirrorTableTable extends PlaylistDownloadMirrorTable
       type: DriftSqlType.int, requiredDuringInsert: true);
   @override
   List<GeneratedColumn> get $columns =>
-      [playlistId, playlistData, trackCount, syncedAtMs];
+      [playlistId, playlistData, autoDownload, trackCount, syncedAtMs];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -6365,6 +6433,12 @@ class $PlaylistDownloadMirrorTableTable extends PlaylistDownloadMirrorTable
               data['playlist_data']!, _playlistDataMeta));
     } else if (isInserting) {
       context.missing(_playlistDataMeta);
+    }
+    if (data.containsKey('auto_download')) {
+      context.handle(
+          _autoDownloadMeta,
+          autoDownload.isAcceptableOrUnknown(
+              data['auto_download']!, _autoDownloadMeta));
     }
     if (data.containsKey('track_count')) {
       context.handle(
@@ -6394,6 +6468,8 @@ class $PlaylistDownloadMirrorTableTable extends PlaylistDownloadMirrorTable
           .read(DriftSqlType.string, data['${effectivePrefix}playlist_id'])!,
       playlistData: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}playlist_data'])!,
+      autoDownload: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}auto_download'])!,
       trackCount: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}track_count'])!,
       syncedAtMs: attachedDatabase.typeMapping
@@ -6412,6 +6488,12 @@ class PlaylistDownloadMirrorTableData extends DataClass
   final String playlistId;
   final String playlistData;
 
+  /// Opt-in: keep this playlist's tracks downloaded as it changes.
+  ///
+  /// Turning it off only clears this flag. Membership, download rows and audio
+  /// files stay exactly where they were.
+  final bool autoDownload;
+
   /// Spotify's own count, which can exceed the number of membership rows after
   /// a cheap first-page-only background resync.
   final int trackCount;
@@ -6419,6 +6501,7 @@ class PlaylistDownloadMirrorTableData extends DataClass
   const PlaylistDownloadMirrorTableData(
       {required this.playlistId,
       required this.playlistData,
+      required this.autoDownload,
       required this.trackCount,
       required this.syncedAtMs});
   @override
@@ -6426,6 +6509,7 @@ class PlaylistDownloadMirrorTableData extends DataClass
     final map = <String, Expression>{};
     map['playlist_id'] = Variable<String>(playlistId);
     map['playlist_data'] = Variable<String>(playlistData);
+    map['auto_download'] = Variable<bool>(autoDownload);
     map['track_count'] = Variable<int>(trackCount);
     map['synced_at_ms'] = Variable<int>(syncedAtMs);
     return map;
@@ -6435,6 +6519,7 @@ class PlaylistDownloadMirrorTableData extends DataClass
     return PlaylistDownloadMirrorTableCompanion(
       playlistId: Value(playlistId),
       playlistData: Value(playlistData),
+      autoDownload: Value(autoDownload),
       trackCount: Value(trackCount),
       syncedAtMs: Value(syncedAtMs),
     );
@@ -6446,6 +6531,7 @@ class PlaylistDownloadMirrorTableData extends DataClass
     return PlaylistDownloadMirrorTableData(
       playlistId: serializer.fromJson<String>(json['playlistId']),
       playlistData: serializer.fromJson<String>(json['playlistData']),
+      autoDownload: serializer.fromJson<bool>(json['autoDownload']),
       trackCount: serializer.fromJson<int>(json['trackCount']),
       syncedAtMs: serializer.fromJson<int>(json['syncedAtMs']),
     );
@@ -6456,6 +6542,7 @@ class PlaylistDownloadMirrorTableData extends DataClass
     return <String, dynamic>{
       'playlistId': serializer.toJson<String>(playlistId),
       'playlistData': serializer.toJson<String>(playlistData),
+      'autoDownload': serializer.toJson<bool>(autoDownload),
       'trackCount': serializer.toJson<int>(trackCount),
       'syncedAtMs': serializer.toJson<int>(syncedAtMs),
     };
@@ -6464,11 +6551,13 @@ class PlaylistDownloadMirrorTableData extends DataClass
   PlaylistDownloadMirrorTableData copyWith(
           {String? playlistId,
           String? playlistData,
+          bool? autoDownload,
           int? trackCount,
           int? syncedAtMs}) =>
       PlaylistDownloadMirrorTableData(
         playlistId: playlistId ?? this.playlistId,
         playlistData: playlistData ?? this.playlistData,
+        autoDownload: autoDownload ?? this.autoDownload,
         trackCount: trackCount ?? this.trackCount,
         syncedAtMs: syncedAtMs ?? this.syncedAtMs,
       );
@@ -6480,6 +6569,9 @@ class PlaylistDownloadMirrorTableData extends DataClass
       playlistData: data.playlistData.present
           ? data.playlistData.value
           : this.playlistData,
+      autoDownload: data.autoDownload.present
+          ? data.autoDownload.value
+          : this.autoDownload,
       trackCount:
           data.trackCount.present ? data.trackCount.value : this.trackCount,
       syncedAtMs:
@@ -6492,6 +6584,7 @@ class PlaylistDownloadMirrorTableData extends DataClass
     return (StringBuffer('PlaylistDownloadMirrorTableData(')
           ..write('playlistId: $playlistId, ')
           ..write('playlistData: $playlistData, ')
+          ..write('autoDownload: $autoDownload, ')
           ..write('trackCount: $trackCount, ')
           ..write('syncedAtMs: $syncedAtMs')
           ..write(')'))
@@ -6499,14 +6592,15 @@ class PlaylistDownloadMirrorTableData extends DataClass
   }
 
   @override
-  int get hashCode =>
-      Object.hash(playlistId, playlistData, trackCount, syncedAtMs);
+  int get hashCode => Object.hash(
+      playlistId, playlistData, autoDownload, trackCount, syncedAtMs);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is PlaylistDownloadMirrorTableData &&
           other.playlistId == this.playlistId &&
           other.playlistData == this.playlistData &&
+          other.autoDownload == this.autoDownload &&
           other.trackCount == this.trackCount &&
           other.syncedAtMs == this.syncedAtMs);
 }
@@ -6515,12 +6609,14 @@ class PlaylistDownloadMirrorTableCompanion
     extends UpdateCompanion<PlaylistDownloadMirrorTableData> {
   final Value<String> playlistId;
   final Value<String> playlistData;
+  final Value<bool> autoDownload;
   final Value<int> trackCount;
   final Value<int> syncedAtMs;
   final Value<int> rowid;
   const PlaylistDownloadMirrorTableCompanion({
     this.playlistId = const Value.absent(),
     this.playlistData = const Value.absent(),
+    this.autoDownload = const Value.absent(),
     this.trackCount = const Value.absent(),
     this.syncedAtMs = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -6528,6 +6624,7 @@ class PlaylistDownloadMirrorTableCompanion
   PlaylistDownloadMirrorTableCompanion.insert({
     required String playlistId,
     required String playlistData,
+    this.autoDownload = const Value.absent(),
     this.trackCount = const Value.absent(),
     required int syncedAtMs,
     this.rowid = const Value.absent(),
@@ -6537,6 +6634,7 @@ class PlaylistDownloadMirrorTableCompanion
   static Insertable<PlaylistDownloadMirrorTableData> custom({
     Expression<String>? playlistId,
     Expression<String>? playlistData,
+    Expression<bool>? autoDownload,
     Expression<int>? trackCount,
     Expression<int>? syncedAtMs,
     Expression<int>? rowid,
@@ -6544,6 +6642,7 @@ class PlaylistDownloadMirrorTableCompanion
     return RawValuesInsertable({
       if (playlistId != null) 'playlist_id': playlistId,
       if (playlistData != null) 'playlist_data': playlistData,
+      if (autoDownload != null) 'auto_download': autoDownload,
       if (trackCount != null) 'track_count': trackCount,
       if (syncedAtMs != null) 'synced_at_ms': syncedAtMs,
       if (rowid != null) 'rowid': rowid,
@@ -6553,12 +6652,14 @@ class PlaylistDownloadMirrorTableCompanion
   PlaylistDownloadMirrorTableCompanion copyWith(
       {Value<String>? playlistId,
       Value<String>? playlistData,
+      Value<bool>? autoDownload,
       Value<int>? trackCount,
       Value<int>? syncedAtMs,
       Value<int>? rowid}) {
     return PlaylistDownloadMirrorTableCompanion(
       playlistId: playlistId ?? this.playlistId,
       playlistData: playlistData ?? this.playlistData,
+      autoDownload: autoDownload ?? this.autoDownload,
       trackCount: trackCount ?? this.trackCount,
       syncedAtMs: syncedAtMs ?? this.syncedAtMs,
       rowid: rowid ?? this.rowid,
@@ -6573,6 +6674,9 @@ class PlaylistDownloadMirrorTableCompanion
     }
     if (playlistData.present) {
       map['playlist_data'] = Variable<String>(playlistData.value);
+    }
+    if (autoDownload.present) {
+      map['auto_download'] = Variable<bool>(autoDownload.value);
     }
     if (trackCount.present) {
       map['track_count'] = Variable<int>(trackCount.value);
@@ -6591,6 +6695,7 @@ class PlaylistDownloadMirrorTableCompanion
     return (StringBuffer('PlaylistDownloadMirrorTableCompanion(')
           ..write('playlistId: $playlistId, ')
           ..write('playlistData: $playlistData, ')
+          ..write('autoDownload: $autoDownload, ')
           ..write('trackCount: $trackCount, ')
           ..write('syncedAtMs: $syncedAtMs, ')
           ..write('rowid: $rowid')
@@ -7318,6 +7423,7 @@ typedef $$PreferencesTableTableCreateCompanionBuilder
   Value<List<String>> sidebarLibraryOrder,
   Value<List<String>> pinnedPlaylistIds,
   Value<List<String>> pinnedStationIds,
+  Value<List<String>?> mainPlaylistOrder,
   Value<bool> autoDownloadQuality,
   Value<bool> themeTransition,
   Value<int> themeTransitionMs,
@@ -7362,6 +7468,7 @@ typedef $$PreferencesTableTableUpdateCompanionBuilder
   Value<List<String>> sidebarLibraryOrder,
   Value<List<String>> pinnedPlaylistIds,
   Value<List<String>> pinnedStationIds,
+  Value<List<String>?> mainPlaylistOrder,
   Value<bool> autoDownloadQuality,
   Value<bool> themeTransition,
   Value<int> themeTransitionMs,
@@ -7506,6 +7613,11 @@ class $$PreferencesTableTableFilterComposer
   ColumnWithTypeConverterFilters<List<String>, List<String>, String>
       get pinnedStationIds => $composableBuilder(
           column: $table.pinnedStationIds,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnWithTypeConverterFilters<List<String>?, List<String>, String>
+      get mainPlaylistOrder => $composableBuilder(
+          column: $table.mainPlaylistOrder,
           builder: (column) => ColumnWithTypeConverterFilters(column));
 
   ColumnFilters<bool> get autoDownloadQuality => $composableBuilder(
@@ -7675,6 +7787,10 @@ class $$PreferencesTableTableOrderingComposer
       column: $table.pinnedStationIds,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get mainPlaylistOrder => $composableBuilder(
+      column: $table.mainPlaylistOrder,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get autoDownloadQuality => $composableBuilder(
       column: $table.autoDownloadQuality,
       builder: (column) => ColumnOrderings(column));
@@ -7828,6 +7944,10 @@ class $$PreferencesTableTableAnnotationComposer
       $composableBuilder(
           column: $table.pinnedStationIds, builder: (column) => column);
 
+  GeneratedColumnWithTypeConverter<List<String>?, String>
+      get mainPlaylistOrder => $composableBuilder(
+          column: $table.mainPlaylistOrder, builder: (column) => column);
+
   GeneratedColumn<bool> get autoDownloadQuality => $composableBuilder(
       column: $table.autoDownloadQuality, builder: (column) => column);
 
@@ -7925,6 +8045,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<List<String>> sidebarLibraryOrder = const Value.absent(),
             Value<List<String>> pinnedPlaylistIds = const Value.absent(),
             Value<List<String>> pinnedStationIds = const Value.absent(),
+            Value<List<String>?> mainPlaylistOrder = const Value.absent(),
             Value<bool> autoDownloadQuality = const Value.absent(),
             Value<bool> themeTransition = const Value.absent(),
             Value<int> themeTransitionMs = const Value.absent(),
@@ -7968,6 +8089,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             sidebarLibraryOrder: sidebarLibraryOrder,
             pinnedPlaylistIds: pinnedPlaylistIds,
             pinnedStationIds: pinnedStationIds,
+            mainPlaylistOrder: mainPlaylistOrder,
             autoDownloadQuality: autoDownloadQuality,
             themeTransition: themeTransition,
             themeTransitionMs: themeTransitionMs,
@@ -8012,6 +8134,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<List<String>> sidebarLibraryOrder = const Value.absent(),
             Value<List<String>> pinnedPlaylistIds = const Value.absent(),
             Value<List<String>> pinnedStationIds = const Value.absent(),
+            Value<List<String>?> mainPlaylistOrder = const Value.absent(),
             Value<bool> autoDownloadQuality = const Value.absent(),
             Value<bool> themeTransition = const Value.absent(),
             Value<int> themeTransitionMs = const Value.absent(),
@@ -8055,6 +8178,7 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             sidebarLibraryOrder: sidebarLibraryOrder,
             pinnedPlaylistIds: pinnedPlaylistIds,
             pinnedStationIds: pinnedStationIds,
+            mainPlaylistOrder: mainPlaylistOrder,
             autoDownloadQuality: autoDownloadQuality,
             themeTransition: themeTransition,
             themeTransitionMs: themeTransitionMs,
@@ -10164,6 +10288,7 @@ typedef $$PlaylistDownloadMirrorTableTableCreateCompanionBuilder
     = PlaylistDownloadMirrorTableCompanion Function({
   required String playlistId,
   required String playlistData,
+  Value<bool> autoDownload,
   Value<int> trackCount,
   required int syncedAtMs,
   Value<int> rowid,
@@ -10172,6 +10297,7 @@ typedef $$PlaylistDownloadMirrorTableTableUpdateCompanionBuilder
     = PlaylistDownloadMirrorTableCompanion Function({
   Value<String> playlistId,
   Value<String> playlistData,
+  Value<bool> autoDownload,
   Value<int> trackCount,
   Value<int> syncedAtMs,
   Value<int> rowid,
@@ -10191,6 +10317,9 @@ class $$PlaylistDownloadMirrorTableTableFilterComposer
 
   ColumnFilters<String> get playlistData => $composableBuilder(
       column: $table.playlistData, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get autoDownload => $composableBuilder(
+      column: $table.autoDownload, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get trackCount => $composableBuilder(
       column: $table.trackCount, builder: (column) => ColumnFilters(column));
@@ -10215,6 +10344,10 @@ class $$PlaylistDownloadMirrorTableTableOrderingComposer
       column: $table.playlistData,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get autoDownload => $composableBuilder(
+      column: $table.autoDownload,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get trackCount => $composableBuilder(
       column: $table.trackCount, builder: (column) => ColumnOrderings(column));
 
@@ -10236,6 +10369,9 @@ class $$PlaylistDownloadMirrorTableTableAnnotationComposer
 
   GeneratedColumn<String> get playlistData => $composableBuilder(
       column: $table.playlistData, builder: (column) => column);
+
+  GeneratedColumn<bool> get autoDownload => $composableBuilder(
+      column: $table.autoDownload, builder: (column) => column);
 
   GeneratedColumn<int> get trackCount => $composableBuilder(
       column: $table.trackCount, builder: (column) => column);
@@ -10277,6 +10413,7 @@ class $$PlaylistDownloadMirrorTableTableTableManager extends RootTableManager<
           updateCompanionCallback: ({
             Value<String> playlistId = const Value.absent(),
             Value<String> playlistData = const Value.absent(),
+            Value<bool> autoDownload = const Value.absent(),
             Value<int> trackCount = const Value.absent(),
             Value<int> syncedAtMs = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -10284,6 +10421,7 @@ class $$PlaylistDownloadMirrorTableTableTableManager extends RootTableManager<
               PlaylistDownloadMirrorTableCompanion(
             playlistId: playlistId,
             playlistData: playlistData,
+            autoDownload: autoDownload,
             trackCount: trackCount,
             syncedAtMs: syncedAtMs,
             rowid: rowid,
@@ -10291,6 +10429,7 @@ class $$PlaylistDownloadMirrorTableTableTableManager extends RootTableManager<
           createCompanionCallback: ({
             required String playlistId,
             required String playlistData,
+            Value<bool> autoDownload = const Value.absent(),
             Value<int> trackCount = const Value.absent(),
             required int syncedAtMs,
             Value<int> rowid = const Value.absent(),
@@ -10298,6 +10437,7 @@ class $$PlaylistDownloadMirrorTableTableTableManager extends RootTableManager<
               PlaylistDownloadMirrorTableCompanion.insert(
             playlistId: playlistId,
             playlistData: playlistData,
+            autoDownload: autoDownload,
             trackCount: trackCount,
             syncedAtMs: syncedAtMs,
             rowid: rowid,
