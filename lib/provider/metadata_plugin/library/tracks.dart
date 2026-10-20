@@ -41,60 +41,61 @@ class MetadataPluginSavedTracksNotifier
   }
 
   Future<void> addFavorite(List<SpotubeTrackObject> tracks) async {
-    if (state.value == null) {
-      return;
-    }
-
+    // The saved-tracks list can still be loading (or absent because this
+    // notifier is auto-disposed). That must not turn a like into a no-op:
+    // write the backend first, and only update/persist the optimistic list
+    // when there is one to update.
     final oldState = state.value;
-    state = AsyncData(
-      state.value!.copyWith(
-        items: [
-          ...tracks.whereType<SpotubeFullTrackObject>(),
-          ...state.value!.items
-        ],
-      ),
-    );
+    if (oldState != null) {
+      state = AsyncData(
+        oldState.copyWith(
+          items: [
+            ...tracks.whereType<SpotubeFullTrackObject>(),
+            ...oldState.items,
+          ],
+        ),
+      );
+    }
 
     try {
       await (await metadataPlugin).track.save(tracks.map((e) => e.id).toList());
     } catch (e) {
-      state = AsyncData(oldState!);
+      if (oldState != null) state = AsyncData(oldState);
       rethrow;
     }
     for (final track in tracks) {
       ref.invalidate(metadataPluginIsSavedTrackProvider(track.id));
     }
-    scheduleSnapshotPersist();
+    if (oldState != null) scheduleSnapshotPersist();
   }
 
   Future<void> removeFavorite(List<SpotubeTrackObject> tracks) async {
-    if (state.value == null) {
-      return;
-    }
-
     final oldState = state.value;
-    state = AsyncData(
-      state.value!.copyWith(
-        items: state.value!.items
-            .where(
-              (savedTrack) => !tracks.any((track) => track.id == savedTrack.id),
-            )
-            .toList(),
-      ),
-    );
+    if (oldState != null) {
+      state = AsyncData(
+        oldState.copyWith(
+          items: oldState.items
+              .where(
+                (savedTrack) =>
+                    !tracks.any((track) => track.id == savedTrack.id),
+              )
+              .toList(),
+        ),
+      );
+    }
 
     try {
       await (await metadataPlugin)
           .track
           .unsave(tracks.map((e) => e.id).toList());
     } catch (e) {
-      state = AsyncData(oldState!);
+      if (oldState != null) state = AsyncData(oldState);
       rethrow;
     }
     for (final track in tracks) {
       ref.invalidate(metadataPluginIsSavedTrackProvider(track.id));
     }
-    scheduleSnapshotPersist();
+    if (oldState != null) scheduleSnapshotPersist();
   }
 }
 
