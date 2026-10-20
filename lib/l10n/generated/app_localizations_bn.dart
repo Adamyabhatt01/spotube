@@ -309,9 +309,6 @@ class AppLocalizationsBn extends AppLocalizations {
   String get share => 'শেয়ার করুন';
 
   @override
-  String get mini_player => 'মিনি প্লেয়ার';
-
-  @override
   String get slide_to_seek => 'গান সামনে বা পিছনে নিতে স্লাইড করুন';
 
   @override
@@ -363,9 +360,6 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get always_on_top => 'সর্বদা উপরে';
-
-  @override
-  String get exit_mini_player => 'মিনি প্লেয়ার থেকে বের হয়ে যান';
 
   @override
   String get download_location => 'ডাউনলোড স্থান';
@@ -1495,6 +1489,9 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

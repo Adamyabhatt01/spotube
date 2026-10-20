@@ -239,11 +239,6 @@ class AppRouter extends RootStackRouter {
           page: PlayerLyricsRoute.page,
         ),
         AutoRoute(
-          path: "/mini-player",
-          page: MiniLyricsRoute.page,
-          // parentNavigatorKey: rootNavigatorKey,
-        ),
-        AutoRoute(
           path: "/getting-started",
           page: GettingStartedRoute.page,
           // parentNavigatorKey: rootNavigatorKey,

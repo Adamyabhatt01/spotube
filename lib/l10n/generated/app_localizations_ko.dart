@@ -309,9 +309,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get share => '공유';
 
   @override
-  String get mini_player => '미니 플레이어';
-
-  @override
   String get slide_to_seek => '앞뒤로 슬라이드하여 탐색';
 
   @override
@@ -363,9 +360,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get always_on_top => '항상 위에 표시';
-
-  @override
-  String get exit_mini_player => '미니 플레이어 닫기';
 
   @override
   String get download_location => '다운로드 경로';
@@ -1479,6 +1473,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

@@ -309,9 +309,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get share => 'مشاكرة';
 
   @override
-  String get mini_player => 'مشغل مصغر';
-
-  @override
   String get slide_to_seek => 'قم بالتمرير للبحث للأمام أو للخلف';
 
   @override
@@ -363,9 +360,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get always_on_top => 'دائما في القمة';
-
-  @override
-  String get exit_mini_player => 'خروج من المشغل المصغر';
 
   @override
   String get download_location => 'تنزيل الموقع';
@@ -1496,6 +1490,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

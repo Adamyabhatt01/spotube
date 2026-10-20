@@ -309,9 +309,6 @@ class AppLocalizationsFi extends AppLocalizations {
   String get share => 'Jaa';
 
   @override
-  String get mini_player => 'Minisoitin';
-
-  @override
   String get slide_to_seek => 'Liu\'uta mennäkseen eteenpäin tai taaksepäin';
 
   @override
@@ -363,9 +360,6 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get always_on_top => 'Aina päällimmäisenä';
-
-  @override
-  String get exit_mini_player => 'Lähde minisoittimesta';
 
   @override
   String get download_location => 'Lataus sijainti';
@@ -1494,6 +1488,9 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

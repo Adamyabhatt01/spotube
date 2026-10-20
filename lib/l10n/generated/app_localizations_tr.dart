@@ -310,9 +310,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get share => 'Paylaş';
 
   @override
-  String get mini_player => 'Mini oynatıcı';
-
-  @override
   String get slide_to_seek => 'İleri veya geri arama yapmak için kaydırın';
 
   @override
@@ -365,9 +362,6 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get always_on_top => 'Her zaman üstte';
-
-  @override
-  String get exit_mini_player => 'Mini oynatıcıdan çık';
 
   @override
   String get download_location => 'İndirme konumu';
@@ -1498,6 +1492,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

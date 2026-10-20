@@ -310,9 +310,6 @@ class AppLocalizationsTl extends AppLocalizations {
   String get share => 'Ibahagi';
 
   @override
-  String get mini_player => 'Mini Player';
-
-  @override
   String get slide_to_seek => 'I-slide para mag-seek pasulong o pabalik';
 
   @override
@@ -365,9 +362,6 @@ class AppLocalizationsTl extends AppLocalizations {
 
   @override
   String get always_on_top => 'Palaging nasa ibabaw';
-
-  @override
-  String get exit_mini_player => 'Lumabas sa Mini player';
 
   @override
   String get download_location => 'Lokasyon ng pag-download';
@@ -1504,6 +1498,9 @@ class AppLocalizationsTl extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

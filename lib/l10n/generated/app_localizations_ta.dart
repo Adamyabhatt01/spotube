@@ -310,9 +310,6 @@ class AppLocalizationsTa extends AppLocalizations {
   String get share => 'பகிர்';
 
   @override
-  String get mini_player => 'சிறிய இயக்கி';
-
-  @override
   String get slide_to_seek => 'முன்னோக்கி அல்லது பின்னோக்கி செல்ல சறுக்கவும்';
 
   @override
@@ -364,9 +361,6 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get always_on_top => 'எப்போதும் மேலே';
-
-  @override
-  String get exit_mini_player => 'சிறிய இயக்கியிலிருந்து வெளியேறு';
 
   @override
   String get download_location => 'பதிவிறக்க இடம்';
@@ -1504,6 +1498,9 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

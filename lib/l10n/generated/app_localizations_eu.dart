@@ -309,9 +309,6 @@ class AppLocalizationsEu extends AppLocalizations {
   String get share => 'Elkarbanatu';
 
   @override
-  String get mini_player => 'Mini Erreproduzitzailea';
-
-  @override
   String get slide_to_seek => 'Arrastatu aurrerantz edo atzearantz bilatzeko';
 
   @override
@@ -364,9 +361,6 @@ class AppLocalizationsEu extends AppLocalizations {
 
   @override
   String get always_on_top => 'Beti ikusgai';
-
-  @override
-  String get exit_mini_player => 'Irten mini erreproduzitzailetik';
 
   @override
   String get download_location => 'Deskargen kokapena';
@@ -1500,6 +1494,9 @@ class AppLocalizationsEu extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

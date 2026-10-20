@@ -26,8 +26,6 @@ import 'package:spotube/provider/radio/radio_playback.dart';
 import 'package:spotube/modules/player/radio/radio_player_bar.dart';
 import 'package:spotube/modules/player/radio/radio_player_overlay.dart';
 import 'package:spotube/modules/theme_background/real_transparency.dart';
-import 'package:spotube/utils/platform.dart';
-import 'package:window_manager/window_manager.dart';
 
 class BottomPlayer extends HookConsumerWidget {
   const BottomPlayer({super.key});
@@ -100,39 +98,6 @@ class BottomPlayer extends HookConsumerWidget {
                     onPressed: activeTrack != null
                         ? () => context.navigateTo(const LyricsRoute())
                         : null,
-                  ),
-                ),
-                Tooltip(
-                  tooltip:
-                      TooltipContainer(child: Text(context.l10n.mini_player))
-                          .call,
-                  child: IconButton(
-                    variance: ButtonVariance.ghost,
-                    icon: const Icon(SpotubeIcons.miniPlayer),
-                    onPressed: () async {
-                      if (!kIsDesktop) return;
-
-                      final prevSize = await windowManager.getSize();
-                      await windowManager.setMinimumSize(
-                        const Size(300, 300),
-                      );
-                      await windowManager.setAlwaysOnTop(true);
-                      if (!kIsLinux) {
-                        await windowManager.setHasShadow(false);
-                      }
-                      await windowManager.setAlignment(Alignment.topRight);
-                      await windowManager.setSize(const Size(400, 500));
-                      await Future.delayed(
-                        const Duration(milliseconds: 100),
-                        () async {
-                          if (context.mounted) {
-                            context.navigateTo(
-                              MiniLyricsRoute(prevSize: prevSize),
-                            );
-                          }
-                        },
-                      );
-                    },
                   ),
                 ),
               ],

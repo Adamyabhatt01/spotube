@@ -309,9 +309,6 @@ class AppLocalizationsNl extends AppLocalizations {
   String get share => 'Delen';
 
   @override
-  String get mini_player => 'Minispeler';
-
-  @override
   String get slide_to_seek => 'Schuiven om vooruit of achteruit te zoeken';
 
   @override
@@ -363,9 +360,6 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get always_on_top => 'Altijd bovenaan';
-
-  @override
-  String get exit_mini_player => 'Minispeler afsluiten';
 
   @override
   String get download_location => 'Downloadlocatie';
@@ -1496,6 +1490,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

@@ -311,9 +311,6 @@ class AppLocalizationsFr extends AppLocalizations {
   String get share => 'Partager';
 
   @override
-  String get mini_player => 'Lecteur mini';
-
-  @override
   String get slide_to_seek => 'Faites glisser pour avancer ou reculer';
 
   @override
@@ -367,9 +364,6 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get always_on_top => 'Toujours au-dessus';
-
-  @override
-  String get exit_mini_player => 'Quitter le lecteur mini';
 
   @override
   String get download_location => 'Emplacement de téléchargement';
@@ -1505,6 +1499,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

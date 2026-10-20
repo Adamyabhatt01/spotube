@@ -309,9 +309,6 @@ class AppLocalizationsId extends AppLocalizations {
   String get share => 'Bagikan';
 
   @override
-  String get mini_player => 'Pemutar Mini';
-
-  @override
   String get slide_to_seek => 'Geser untuk maju atau mundur';
 
   @override
@@ -364,9 +361,6 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get always_on_top => 'Selalu di atas';
-
-  @override
-  String get exit_mini_player => 'Keluar Pemutar Mini';
 
   @override
   String get download_location => 'Lokasi unduhan';
@@ -1499,6 +1493,9 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

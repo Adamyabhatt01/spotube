@@ -94,7 +94,7 @@ class SettingsPlaybackSection extends HookConsumerWidget {
           trailing: const Icon(SpotubeIcons.angleRight),
         ),
         AdaptiveSelectTile<PlayerDock>(
-          secondary: const Icon(SpotubeIcons.miniPlayer),
+          secondary: const Icon(SpotubeIcons.window),
           title: Text(context.l10n.player_position),
           subtitle: Text(context.l10n.player_position_description),
           value: preferences.playerDock,
@@ -138,9 +138,10 @@ class SettingsPlaybackSection extends HookConsumerWidget {
               // container index pointed past the end of the plugin's current
               // list. An absent container has no qualities to offer.
               for (final MapEntry(:key, value: quality) in (sourcePresets
-                      .presets
-                      .elementAtOrNull(sourcePresets.selectedStreamingContainerIndex)
-                      ?.qualities ??
+                          .presets
+                          .elementAtOrNull(
+                              sourcePresets.selectedStreamingContainerIndex)
+                          ?.qualities ??
                       const [])
                   .asMap()
                   .entries)
@@ -173,10 +174,10 @@ class SettingsPlaybackSection extends HookConsumerWidget {
               // See the streaming-quality tile above: an absent container
               // has no qualities to offer.
               for (final MapEntry(:key, value: quality) in (sourcePresets
-                      .presets
-                      .elementAtOrNull(
-                          sourcePresets.selectedDownloadingContainerIndex)
-                      ?.qualities ??
+                          .presets
+                          .elementAtOrNull(
+                              sourcePresets.selectedDownloadingContainerIndex)
+                          ?.qualities ??
                       const [])
                   .asMap()
                   .entries)

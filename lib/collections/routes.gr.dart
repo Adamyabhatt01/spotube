@@ -31,7 +31,6 @@ import 'package:spotube/pages/library/user_local_tracks/user_local_tracks.dart'
     as _i40;
 import 'package:spotube/pages/library/user_playlists.dart' as _i41;
 import 'package:spotube/pages/lyrics/lyrics.dart' as _i15;
-import 'package:spotube/pages/lyrics/mini_lyrics.dart' as _i16;
 import 'package:spotube/pages/player/lyrics.dart' as _i17;
 import 'package:spotube/pages/player/queue.dart' as _i18;
 import 'package:spotube/pages/player/sources.dart' as _i19;
@@ -446,43 +445,6 @@ class LyricsRoute extends _i42.PageRouteInfo<void> {
       return const _i15.LyricsPage();
     },
   );
-}
-
-/// generated route for
-/// [_i16.MiniLyricsPage]
-class MiniLyricsRoute extends _i42.PageRouteInfo<MiniLyricsRouteArgs> {
-  MiniLyricsRoute({
-    _i45.Key? key,
-    required _i45.Size prevSize,
-    List<_i42.PageRouteInfo>? children,
-  }) : super(
-         MiniLyricsRoute.name,
-         args: MiniLyricsRouteArgs(key: key, prevSize: prevSize),
-         initialChildren: children,
-       );
-
-  static const String name = 'MiniLyricsRoute';
-
-  static _i42.PageInfo page = _i42.PageInfo(
-    name,
-    builder: (data) {
-      final args = data.argsAs<MiniLyricsRouteArgs>();
-      return _i16.MiniLyricsPage(key: args.key, prevSize: args.prevSize);
-    },
-  );
-}
-
-class MiniLyricsRouteArgs {
-  const MiniLyricsRouteArgs({this.key, required this.prevSize});
-
-  final _i45.Key? key;
-
-  final _i45.Size prevSize;
-
-  @override
-  String toString() {
-    return 'MiniLyricsRouteArgs{key: $key, prevSize: $prevSize}';
-  }
 }
 
 /// generated route for

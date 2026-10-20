@@ -309,9 +309,6 @@ class AppLocalizationsFa extends AppLocalizations {
   String get share => 'اشتراک گذاری';
 
   @override
-  String get mini_player => 'پخش کننده ';
-
-  @override
   String get slide_to_seek => 'برای جستجو عقب یا جلو بکشید';
 
   @override
@@ -363,9 +360,6 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get always_on_top => 'همیشه روشن';
-
-  @override
-  String get exit_mini_player => 'از پخش کننده خارج شوید';
 
   @override
   String get download_location => 'محل بارگیری';
@@ -1491,6 +1485,9 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

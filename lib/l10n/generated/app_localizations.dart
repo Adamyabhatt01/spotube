@@ -693,12 +693,6 @@ abstract class AppLocalizations {
   /// **'Share'**
   String get share;
 
-  /// No description provided for @mini_player.
-  ///
-  /// In en, this message translates to:
-  /// **'Mini Player'**
-  String get mini_player;
-
   /// No description provided for @slide_to_seek.
   ///
   /// In en, this message translates to:
@@ -800,12 +794,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Always on top'**
   String get always_on_top;
-
-  /// No description provided for @exit_mini_player.
-  ///
-  /// In en, this message translates to:
-  /// **'Exit Mini player'**
-  String get exit_mini_player;
 
   /// No description provided for @download_location.
   ///
@@ -2876,6 +2864,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pinned to sidebar'**
   String get pinned_to_sidebar;
+
+  /// No description provided for @pinned_to_playlists.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned to the top'**
+  String get pinned_to_playlists;
 
   /// No description provided for @reset_sidebar.
   ///

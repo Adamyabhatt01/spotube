@@ -309,9 +309,6 @@ class AppLocalizationsTh extends AppLocalizations {
   String get share => 'แชร์';
 
   @override
-  String get mini_player => 'มินิเพลเยอร์';
-
-  @override
   String get slide_to_seek => 'เลื่อนเพื่อไปข้างหน้าหรือถอยหลัง';
 
   @override
@@ -363,9 +360,6 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get always_on_top => 'อยู่ด้านบนเสมอ';
-
-  @override
-  String get exit_mini_player => 'ออกจากมินิเพลย์เยอร์';
 
   @override
   String get download_location => 'ตำแหน่งดาวน์โหลด';
@@ -1492,6 +1486,9 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

@@ -309,9 +309,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get share => 'साझा करें';
 
   @override
-  String get mini_player => 'मिनी प्लेयर';
-
-  @override
   String get slide_to_seek => 'आगे या पीछे खोजने के लिए स्लाइड करें';
 
   @override
@@ -363,9 +360,6 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get always_on_top => 'हमेशा ऊपर हो';
-
-  @override
-  String get exit_mini_player => 'मिनी प्लेयर से बाहर निकलें';
 
   @override
   String get download_location => 'डाउनलोड स्थान';
@@ -1497,6 +1491,9 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

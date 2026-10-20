@@ -309,9 +309,6 @@ class AppLocalizationsCa extends AppLocalizations {
   String get share => 'Compartir';
 
   @override
-  String get mini_player => 'Reproductor Petit';
-
-  @override
   String get slide_to_seek => 'Lliscar per cercar endavant o endarrere';
 
   @override
@@ -364,9 +361,6 @@ class AppLocalizationsCa extends AppLocalizations {
 
   @override
   String get always_on_top => 'Sempre visible';
-
-  @override
-  String get exit_mini_player => 'Sortir del reproductor petit';
 
   @override
   String get download_location => 'Ubicació de descàrregues';
@@ -1504,6 +1498,9 @@ class AppLocalizationsCa extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

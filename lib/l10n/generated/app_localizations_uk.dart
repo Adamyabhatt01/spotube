@@ -309,9 +309,6 @@ class AppLocalizationsUk extends AppLocalizations {
   String get share => 'Поділитися';
 
   @override
-  String get mini_player => 'Міні-плеєр';
-
-  @override
   String get slide_to_seek =>
       'Проведіть пальцем, щоб перемотати вперед або назад';
 
@@ -366,9 +363,6 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get always_on_top => 'Завжди зверху';
-
-  @override
-  String get exit_mini_player => 'Вийти з міні-плеєра';
 
   @override
   String get download_location => 'Шлях завантаження';
@@ -1499,6 +1493,9 @@ class AppLocalizationsUk extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

@@ -309,9 +309,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get share => '分享';
 
   @override
-  String get mini_player => '小窗模式';
-
-  @override
   String get slide_to_seek => '滑动以前进或后退';
 
   @override
@@ -363,9 +360,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get always_on_top => '置顶';
-
-  @override
-  String get exit_mini_player => '退出小窗模式';
 
   @override
   String get download_location => '下载路径';
@@ -1475,6 +1469,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pinned_to_sidebar => 'Pinned to sidebar';
 
   @override
+  String get pinned_to_playlists => 'Pinned to the top';
+
+  @override
   String get reset_sidebar => 'Reset sidebar';
 
   @override
@@ -2085,9 +2082,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get share => '分享';
 
   @override
-  String get mini_player => '小窗模式';
-
-  @override
   String get slide_to_seek => '滑動以前進或後退';
 
   @override
@@ -2139,9 +2133,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get always_on_top => '置頂';
-
-  @override
-  String get exit_mini_player => '退出小窗模式';
 
   @override
   String get download_location => '下載路徑';

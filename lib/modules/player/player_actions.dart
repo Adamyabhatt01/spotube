@@ -13,7 +13,9 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/player/player_queue.dart';
 import 'package:spotube/modules/player/sibling_tracks_sheet.dart';
 import 'package:spotube/components/adaptive/adaptive_pop_sheet_list.dart';
+import 'package:spotube/components/dialogs/playlist_add_track_dialog.dart';
 import 'package:spotube/components/heart_button/heart_button.dart';
+import 'package:spotube/components/track_presentation/presentation_actions.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/extensions/duration.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
@@ -190,6 +192,30 @@ class PlayerActions extends HookConsumerWidget {
             !isLocalTrack &&
             authenticated.asData?.value == true)
           TrackHeartButton(track: activeTrack),
+        // Same playlist picker the track rows use, for the song that is
+        // actually playing: adding it used to require opening the queue.
+        if (activeTrack is SpotubeFullTrackObject &&
+            !isLocalTrack &&
+            authenticated.asData?.value == true)
+          Tooltip(
+            tooltip: TooltipContainer(
+              child: Text(context.l10n.add_to_playlist),
+            ).call,
+            child: IconButton.ghost(
+              icon: const Icon(SpotubeIcons.playlistAdd),
+              onPressed: () async {
+                final added = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => PlaylistAddTrackDialog(
+                    openFromPlaylist: null,
+                    tracks: [activeTrack],
+                  ),
+                );
+                if (!context.mounted || added != true) return;
+                showToastForAction(context, "add-to-playlist", 1);
+              },
+            ),
+          ),
         AdaptivePopSheetList<Duration>(
           tooltip: context.l10n.sleep_timer,
           offset: Offset(0, -50 * (sleepTimerEntries.values.length + 2)),

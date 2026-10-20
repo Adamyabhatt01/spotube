@@ -309,9 +309,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get share => '共有';
 
   @override
-  String get mini_player => 'ミニプレイヤー';
-
-  @override
   String get slide_to_seek => '前後にスライドしてシーク';
 
   @override
@@ -363,9 +360,6 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get always_on_top => '常に手前に表示';
-
-  @override
-  String get exit_mini_player => 'ミニプレイヤーを終了';
 
   @override
   String get download_location => 'ダウンロード先';
@@ -1474,6 +1468,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';

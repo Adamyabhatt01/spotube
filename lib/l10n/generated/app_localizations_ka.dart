@@ -309,9 +309,6 @@ class AppLocalizationsKa extends AppLocalizations {
   String get share => 'გაზიარება';
 
   @override
-  String get mini_player => 'მინი დამკვრელი';
-
-  @override
   String get slide_to_seek => 'გადახვევისთვის გაასრიალეთ წინ ან უკან';
 
   @override
@@ -363,9 +360,6 @@ class AppLocalizationsKa extends AppLocalizations {
 
   @override
   String get always_on_top => 'ტოველთვის ზემოდან';
-
-  @override
-  String get exit_mini_player => 'მინი დამკვრელიდან გამოსვლა';
 
   @override
   String get download_location => 'ჩამოტვირთვის მდებარეობა';
@@ -1497,6 +1491,9 @@ class AppLocalizationsKa extends AppLocalizations {
 
   @override
   String get pinned_to_sidebar => 'Pinned to sidebar';
+
+  @override
+  String get pinned_to_playlists => 'Pinned to the top';
 
   @override
   String get reset_sidebar => 'Reset sidebar';
