@@ -66,9 +66,12 @@ fi
 
 if ((SKIP_BUILD == 0)); then
   echo "==> Building release Linux bundle"
-  # Obfuscation + split debug info: smaller libapp.so, stack traces stay
-  # symbolicated via build/app/outputs/symbols. No behavior change.
-  run_flutter build linux --release --obfuscate --split-debug-info=build/app/outputs/symbols
+  # Split debug info keeps libapp.so smaller and stack traces symbolicated via
+  # build/app/outputs/symbols. Do NOT add --obfuscate: Flutter documents that
+  # obfuscation renames Object.runtimeType/Type.toString, and Hetu resolves
+  # external plugin classes through those runtime names. An obfuscated build
+  # makes every plugin fail with "Undefined identifier [Rb/lRa/OSa]".
+  run_flutter build linux --release --split-debug-info=build/app/outputs/symbols
 fi
 
 arch=$(uname -m)
