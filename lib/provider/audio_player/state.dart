@@ -16,6 +16,9 @@ class AudioPlayerState with _$AudioPlayerState {
     required List<String> collections,
     @Default(0) int currentIndex,
     @Default([]) List<SpotubeTrackObject> tracks,
+    @JsonKey(includeFromJson: false, includeToJson: false)
+    @Default(false)
+    bool hasStarted,
   }) = _AudioPlayerState;
 
   factory AudioPlayerState({
@@ -25,6 +28,7 @@ class AudioPlayerState with _$AudioPlayerState {
     required List<String> collections,
     int currentIndex = 0,
     List<SpotubeTrackObject> tracks = const [],
+    bool hasStarted = false,
   }) {
     assert(
       tracks.every((track) =>
@@ -39,6 +43,7 @@ class AudioPlayerState with _$AudioPlayerState {
       currentIndex: currentIndex,
       tracks: tracks,
       collections: collections,
+      hasStarted: hasStarted,
     );
   }
 

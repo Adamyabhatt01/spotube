@@ -114,7 +114,14 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
         ? 0
         : nativeIndex.clamp(0, state.tracks.length - 1);
     if (state.currentIndex != clamped) {
-      state = state.copyWith(currentIndex: clamped);
+      final previousActiveId = state.activeTrack?.id;
+      final nextActiveId =
+          state.tracks.isEmpty ? null : state.tracks[clamped].id;
+      state = state.copyWith(
+        currentIndex: clamped,
+        hasStarted:
+            previousActiveId == nextActiveId ? state.hasStarted : state.playing,
+      );
     }
     await database.transaction(() async {
       await _updatePlayerState(
@@ -262,14 +269,25 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
         isSameQueue ? null : _permutedQueue(state.tracks, playlist.medias);
     if (permuted != null) PerfCounters.note('queue.shufflePermute');
 
+    final nextTracks = isSameQueue
+        ? state.tracks
+        : permuted ??
+            playlist.medias.map((e) => SpotubeMedia.media(e).track).toList();
+    final previousActiveId = state.activeTrack?.id;
+    final nextActiveId = nextTracks.isEmpty
+        ? null
+        : nextTracks[playlist.index.clamp(0, nextTracks.length - 1)].id;
+
     // One state emission per event, as before: publishing `tracks` and
     // `currentIndex` separately would rebuild every queue listener twice.
     state = state.copyWith(
-      tracks: isSameQueue
-          ? state.tracks
-          : permuted ??
-              playlist.medias.map((e) => SpotubeMedia.media(e).track).toList(),
+      tracks: nextTracks,
       currentIndex: playlist.index,
+      // A different track starts a new audible-session boundary. If the
+      // backend already reports playing, the new track is audible now;
+      // otherwise it must resolve before the spinner can be replaced.
+      hasStarted:
+          previousActiveId == nextActiveId ? state.hasStarted : state.playing,
     );
 
     await _updatePlayerState(
@@ -325,7 +343,12 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     final subscriptions = [
       audioPlayer.playingStream.listen((playing) async {
         try {
-          state = state.copyWith(playing: playing);
+          state = state.copyWith(
+            playing: playing,
+            // Sticky for the lifetime of the active track: the moment audio
+            // starts, a later pause must show the play icon, not a spinner.
+            hasStarted: state.hasStarted || playing,
+          );
 
           _flagPersistDebouncer(
             () => _updatePlayerState(
@@ -691,6 +714,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       tracks: medias.map((media) => media.track).toList(),
       currentIndex: safeInitialIndex,
       collections: [],
+      hasStarted: false,
     );
 
     try {
@@ -732,6 +756,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       loopMode: oldState.loopMode,
       playing: oldState.playing,
       shuffled: false,
+      hasStarted: oldState.hasStarted,
     );
     await audioPlayer.setLoopMode(oldState.loopMode);
     await _updatePlayerState(
@@ -774,6 +799,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       loopMode: PlaylistMode.none,
       playing: false,
       shuffled: false,
+      hasStarted: false,
     );
     await audioPlayer.stop();
     await _updatePlayerState(

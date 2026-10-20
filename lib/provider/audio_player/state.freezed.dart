@@ -26,6 +26,8 @@ mixin _$AudioPlayerState {
   List<String> get collections => throw _privateConstructorUsedError;
   int get currentIndex => throw _privateConstructorUsedError;
   List<SpotubeTrackObject> get tracks => throw _privateConstructorUsedError;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  bool get hasStarted => throw _privateConstructorUsedError;
 
   /// Serializes this AudioPlayerState to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -49,7 +51,8 @@ abstract class $AudioPlayerStateCopyWith<$Res> {
       bool shuffled,
       List<String> collections,
       int currentIndex,
-      List<SpotubeTrackObject> tracks});
+      List<SpotubeTrackObject> tracks,
+      @JsonKey(includeFromJson: false, includeToJson: false) bool hasStarted});
 }
 
 /// @nodoc
@@ -73,6 +76,7 @@ class _$AudioPlayerStateCopyWithImpl<$Res, $Val extends AudioPlayerState>
     Object? collections = null,
     Object? currentIndex = null,
     Object? tracks = null,
+    Object? hasStarted = null,
   }) {
     return _then(_value.copyWith(
       playing: null == playing
@@ -99,6 +103,10 @@ class _$AudioPlayerStateCopyWithImpl<$Res, $Val extends AudioPlayerState>
           ? _value.tracks
           : tracks // ignore: cast_nullable_to_non_nullable
               as List<SpotubeTrackObject>,
+      hasStarted: null == hasStarted
+          ? _value.hasStarted
+          : hasStarted // ignore: cast_nullable_to_non_nullable
+              as bool,
     ) as $Val);
   }
 }
@@ -117,7 +125,8 @@ abstract class _$$AudioPlayerStateImplCopyWith<$Res>
       bool shuffled,
       List<String> collections,
       int currentIndex,
-      List<SpotubeTrackObject> tracks});
+      List<SpotubeTrackObject> tracks,
+      @JsonKey(includeFromJson: false, includeToJson: false) bool hasStarted});
 }
 
 /// @nodoc
@@ -139,6 +148,7 @@ class __$$AudioPlayerStateImplCopyWithImpl<$Res>
     Object? collections = null,
     Object? currentIndex = null,
     Object? tracks = null,
+    Object? hasStarted = null,
   }) {
     return _then(_$AudioPlayerStateImpl(
       playing: null == playing
@@ -165,6 +175,10 @@ class __$$AudioPlayerStateImplCopyWithImpl<$Res>
           ? _value._tracks
           : tracks // ignore: cast_nullable_to_non_nullable
               as List<SpotubeTrackObject>,
+      hasStarted: null == hasStarted
+          ? _value.hasStarted
+          : hasStarted // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }
@@ -178,7 +192,9 @@ class _$AudioPlayerStateImpl extends _AudioPlayerState {
       required this.shuffled,
       required final List<String> collections,
       this.currentIndex = 0,
-      final List<SpotubeTrackObject> tracks = const []})
+      final List<SpotubeTrackObject> tracks = const [],
+      @JsonKey(includeFromJson: false, includeToJson: false)
+      this.hasStarted = false})
       : _collections = collections,
         _tracks = tracks,
         super._();
@@ -213,8 +229,12 @@ class _$AudioPlayerStateImpl extends _AudioPlayerState {
   }
 
   @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  final bool hasStarted;
+
+  @override
   String toString() {
-    return 'AudioPlayerState._inner(playing: $playing, loopMode: $loopMode, shuffled: $shuffled, collections: $collections, currentIndex: $currentIndex, tracks: $tracks)';
+    return 'AudioPlayerState._inner(playing: $playing, loopMode: $loopMode, shuffled: $shuffled, collections: $collections, currentIndex: $currentIndex, tracks: $tracks, hasStarted: $hasStarted)';
   }
 
   @override
@@ -231,7 +251,9 @@ class _$AudioPlayerStateImpl extends _AudioPlayerState {
                 .equals(other._collections, _collections) &&
             (identical(other.currentIndex, currentIndex) ||
                 other.currentIndex == currentIndex) &&
-            const DeepCollectionEquality().equals(other._tracks, _tracks));
+            const DeepCollectionEquality().equals(other._tracks, _tracks) &&
+            (identical(other.hasStarted, hasStarted) ||
+                other.hasStarted == hasStarted));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -243,7 +265,8 @@ class _$AudioPlayerStateImpl extends _AudioPlayerState {
       shuffled,
       const DeepCollectionEquality().hash(_collections),
       currentIndex,
-      const DeepCollectionEquality().hash(_tracks));
+      const DeepCollectionEquality().hash(_tracks),
+      hasStarted);
 
   /// Create a copy of AudioPlayerState
   /// with the given fields replaced by the non-null parameter values.
@@ -269,7 +292,9 @@ abstract class _AudioPlayerState extends AudioPlayerState {
       required final bool shuffled,
       required final List<String> collections,
       final int currentIndex,
-      final List<SpotubeTrackObject> tracks}) = _$AudioPlayerStateImpl;
+      final List<SpotubeTrackObject> tracks,
+      @JsonKey(includeFromJson: false, includeToJson: false)
+      final bool hasStarted}) = _$AudioPlayerStateImpl;
   _AudioPlayerState._() : super._();
 
   factory _AudioPlayerState.fromJson(Map<String, dynamic> json) =
@@ -287,6 +312,9 @@ abstract class _AudioPlayerState extends AudioPlayerState {
   int get currentIndex;
   @override
   List<SpotubeTrackObject> get tracks;
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  bool get hasStarted;
 
   /// Create a copy of AudioPlayerState
   /// with the given fields replaced by the non-null parameter values.
