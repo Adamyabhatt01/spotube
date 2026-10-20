@@ -15,6 +15,7 @@ import 'package:spotube/provider/connect/connect.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/audio_player/state.dart';
 import 'package:spotube/provider/metadata_plugin/artist/top_tracks.dart';
+import 'package:spotube/services/audio_player/audio_player.dart';
 
 class ArtistPageTopTracks extends HookConsumerWidget {
   final String artistId;
@@ -46,6 +47,9 @@ class ArtistPageTopTracks extends HookConsumerWidget {
     final isSounding = ref.watch(
       audioPlayerProvider.select((s) => s.playing),
     );
+    // Only this collection's own audio should suppress its loading spinner;
+    // unrelated playback keeps the preparation spinner honest.
+    final isThisCollectionSounding = isPlaylistPlaying && isSounding;
 
     if (topTracksQuery.hasError) {
       return SliverToBoxAdapter(
@@ -58,7 +62,7 @@ class ArtistPageTopTracks extends HookConsumerWidget {
     final topTracks = topTracksQuery.asData?.value.items ??
         List.generate(10, (index) => FakeData.track);
 
-    void playPlaylist(
+    Future<void> playPlaylist(
       List<SpotubeFullTrackObject> tracks, {
       SpotubeTrackObject? currentTrack,
     }) async {
@@ -146,18 +150,30 @@ class ArtistPageTopTracks extends HookConsumerWidget {
               const SizedBox(width: 5),
               IconButton.primary(
                 shape: ButtonShape.circle,
-                enabled: !isPlaylistPlaying && !isLoading.value,
-                icon: isLoading.value
+                // An active collection can always be paused/resumed, even
+                // while its initial load future is still settling.
+                enabled: isPlaylistPlaying || !isLoading.value,
+                icon: isLoading.value && !isThisCollectionSounding
                     ? CircularProgressIndicator(
                         size: 20 * context.theme.scaling,
                         color: theme.colorScheme.primaryForeground,
                       )
                     : Skeleton.keep(
                         child: AnimatedPlayPauseIcon(
-                          isPlaying: isPlaylistPlaying && isSounding,
+                          isPlaying: isThisCollectionSounding,
                         ),
                       ),
-                onPressed: () => playPlaylist(topTracks.toList()),
+                onPressed: () async {
+                  if (isPlaylistPlaying) {
+                    if (isSounding) {
+                      await audioPlayer.pause();
+                    } else {
+                      await audioPlayer.resume();
+                    }
+                    return;
+                  }
+                  await playPlaylist(topTracks.toList());
+                },
               )
             ],
           ),

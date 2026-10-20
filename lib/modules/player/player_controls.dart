@@ -49,7 +49,8 @@ class PlayerControls extends HookConsumerWidget {
               SeekIntent: SeekAction(),
             },
         []);
-    final isFetchingActiveTrack = ref.watch(queryingTrackInfoProvider);
+    final isResolvingActiveTrack =
+        ref.watch(isResolvingActiveTrackProvider);
     final theme = Theme.of(context);
 
     final buttonSize =
@@ -96,7 +97,7 @@ class PlayerControls extends HookConsumerWidget {
                         variance: shuffled
                             ? ButtonVariance.secondary
                             : ButtonVariance.ghost,
-                        onPressed: isFetchingActiveTrack
+                        onPressed: isResolvingActiveTrack
                             ? null
                             : () {
                                 if (shuffled) {
@@ -114,7 +115,7 @@ class PlayerControls extends HookConsumerWidget {
                     ).call,
                     child: IconButton.ghost(
                       size: buttonSize,
-                      enabled: !isFetchingActiveTrack,
+                      enabled: !isResolvingActiveTrack,
                       icon: const Icon(SpotubeIcons.skipBack),
                       onPressed: audioPlayer.skipToPrevious,
                     ),
@@ -132,7 +133,7 @@ class PlayerControls extends HookConsumerWidget {
                       size: buttonSize,
                       icon: const Icon(SpotubeIcons.skipForward),
                       onPressed:
-                          isFetchingActiveTrack ? null : audioPlayer.skipToNext,
+                          isResolvingActiveTrack ? null : audioPlayer.skipToNext,
                     ),
                   ),
                   Consumer(builder: (context, ref, _) {
@@ -163,7 +164,7 @@ class PlayerControls extends HookConsumerWidget {
                                 loopMode == PlaylistMode.loop
                             ? ButtonVariance.secondary
                             : ButtonVariance.ghost,
-                        onPressed: isFetchingActiveTrack
+                        onPressed: isResolvingActiveTrack
                             ? null
                             : () async {
                                 await audioPlayer.setLoopMode(

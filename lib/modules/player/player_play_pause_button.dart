@@ -46,14 +46,13 @@ class PlayerPlayPauseButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final playing = ref.watch(audioPlayerProvider.select((s) => s.playing));
-    final isFetchingActiveTrack = ref.watch(queryingTrackInfoProvider);
 
     // Audio can start before source resolution settles: the playback route
     // serves a downloaded/local copy without waiting for the source manifest.
     // In that state the button must behave like a normal pause control. A
     // spinner (and a disabled button) is only honest while there is no audio
     // to pause yet.
-    final isResolving = isFetchingActiveTrack && !playing;
+    final isResolving = ref.watch(isResolvingActiveTrackProvider);
 
     final button = IconButton(
       size: size ?? ButtonSize.normal,

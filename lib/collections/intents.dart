@@ -115,8 +115,9 @@ class SeekIntent extends Intent {
 class SeekAction extends Action<SeekIntent> {
   @override
   invoke(intent) async {
-    final isFetchingActiveTrack = intent.ref.read(queryingTrackInfoProvider);
-    if (isFetchingActiveTrack) {
+    final isResolvingActiveTrack =
+        intent.ref.read(isResolvingActiveTrackProvider);
+    if (isResolvingActiveTrack) {
       DirectionalFocusAction().invoke(
         DirectionalFocusIntent(
           intent.forward ? TraversalDirection.right : TraversalDirection.left,

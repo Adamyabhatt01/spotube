@@ -35,6 +35,9 @@ class SidebarPinTile extends HookConsumerWidget {
     final playlist = tile.playlist!;
     final play = usePlaylistPlay(ref, playlist);
     final hovered = useState(false);
+    // The hook already excludes audible playback from `isLoading`; keep the
+    // glyph correct even if a caller's preparation future outlives startup.
+    final showSpinner = play.isLoading && !play.isPlaying;
 
     final router = context.watchRouter;
     final selected = router.currentPath.startsWith(tile.pathPrefix);
@@ -61,7 +64,9 @@ class SidebarPinTile extends HookConsumerWidget {
           onExit: (_) => hovered.value = false,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: play.isLoading ? null : play.onPlaybuttonPressed,
+            onTap: play.isLoading && !play.isPlaying
+                ? null
+                : play.onPlaybuttonPressed,
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
               child: Semantics(
@@ -84,7 +89,7 @@ class SidebarPinTile extends HookConsumerWidget {
                                 BorderRadius.circular(6 * scaling),
                           ),
                           child: Center(
-                            child: play.isLoading
+                            child: showSpinner
                                 ? const CircularProgressIndicator(size: 14)
                                 : AnimatedPlayPauseIcon(
                                     // The icon follows the audio, not the

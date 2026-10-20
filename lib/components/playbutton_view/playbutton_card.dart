@@ -67,6 +67,10 @@ class PlaybuttonCard extends StatelessWidget {
   final bool isActuallyPlaying;
 
   final bool isLoading;
+
+  /// Add-to-queue work only. Kept separate from [isLoading] so filling the
+  /// queue never turns the play/pause control into a spinner.
+  final bool isQueueLoading;
   final bool isPinned;
   final String title;
   final bool isOwner;
@@ -75,6 +79,7 @@ class PlaybuttonCard extends StatelessWidget {
     required this.isPlaying,
     this.isActuallyPlaying = false,
     required this.isLoading,
+    this.isQueueLoading = false,
     required this.title,
     this.description,
     this.onPlaybuttonPressed,
@@ -99,6 +104,14 @@ class PlaybuttonCard extends StatelessWidget {
     // image; the cover is square, so one value serves both edges.
     final coverSize = context.gridCardWidth;
     final coverRadius = BorderRadius.circular(context.cardCornerRadius);
+    // A play spinner is only honest while nothing is sounding. This guards
+    // against a caller whose loading flag outlives audible playback (for
+    // example, a slow manifest after a downloaded copy has already started).
+    final showPlaySpinner = isLoading && !isActuallyPlaying;
+    // A preparation flag can outlive audio startup. Once the collection is
+    // audible, the control has to become an enabled pause button even if the
+    // source manifest (or a tail fetch) is still settling.
+    final canPressPlay = !isLoading || isActuallyPlaying;
 
     final cover = imageUrl != null
         ? Container(
@@ -132,7 +145,7 @@ class PlaybuttonCard extends StatelessWidget {
         ? cover
         : GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: isLoading ? null : onCoverPressed,
+            onTap: canPressPlay ? onCoverPressed : null,
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
               child: Semantics(
@@ -165,6 +178,7 @@ class PlaybuttonCard extends StatelessWidget {
                         child: IconButton.secondary(
                           icon: const Icon(SpotubeIcons.queueAdd),
                           onPressed: onAddToQueuePressed,
+                          enabled: !isLoading && !isQueueLoading,
                           size: ButtonSize.small,
                         ),
                       ),
@@ -174,7 +188,7 @@ class PlaybuttonCard extends StatelessWidget {
                         duration: const Duration(milliseconds: 150),
                         animated: !kIsMobile,
                         child: IconButton.secondary(
-                          icon: switch ((isLoading, isActuallyPlaying)) {
+                          icon: switch ((showPlaySpinner, isActuallyPlaying)) {
                             (true, _) => const CircularProgressIndicator(
                                 size: 15,
                               ),
@@ -182,7 +196,7 @@ class PlaybuttonCard extends StatelessWidget {
                                 isPlaying: isActuallyPlaying,
                               ),
                           },
-                          enabled: !isLoading,
+                          enabled: canPressPlay,
                           onPressed: onPlaybuttonPressed,
                           size: ButtonSize.small,
                         ),

@@ -24,3 +24,19 @@ final queryingTrackInfoProvider = Provider<bool>((ref) {
       )
       .isLoading;
 });
+
+/// Whether the active track is still resolving and there is no audible
+/// playback to control.
+///
+/// [queryingTrackInfoProvider] alone is too broad: a downloaded/local fallback
+/// can already be playing while the source manifest is still settling. Playback
+/// controls must stay usable in that state. Reading `playing` only after the
+/// query is known to be in flight keeps ordinary play/pause toggles from
+/// rebuilding every observer of this provider.
+final isResolvingActiveTrackProvider = Provider<bool>((ref) {
+  if (!ref.watch(queryingTrackInfoProvider)) {
+    return false;
+  }
+
+  return !ref.watch(audioPlayerProvider.select((s) => s.playing));
+});

@@ -41,8 +41,16 @@ class TrackPresentationTopSection extends HookConsumerWidget {
       fit: BoxFit.cover,
     );
 
-    final (:isLoading, :isActive, :isPlaying, :hasTracks, :onPlay, :onShuffle, :onAddToQueue) =
-        useActionCallbacks(ref);
+    final (
+      :isPlayLoading,
+      :isShuffleLoading,
+      :isActive,
+      :isPlaying,
+      :hasTracks,
+      :onPlay,
+      :onShuffle,
+      :onAddToQueue
+    ) = useActionCallbacks(ref);
 
     // Sidebar pins apply to playlists only; albums share this header.
     final isPinnableCollection =
@@ -61,13 +69,13 @@ class TrackPresentationTopSection extends HookConsumerWidget {
             child: Text(context.l10n.shuffle_playlist),
           ).call,
           child: IconButton.secondary(
-            icon: isLoading
+            icon: isShuffleLoading
                 ? const Center(
                     child:
                         CircularProgressIndicator(onSurface: false, size: 20),
                   )
                 : const Icon(SpotubeIcons.shuffle),
-            enabled: !isLoading && !isActive && hasTracks,
+            enabled: !isShuffleLoading && !isActive && hasTracks,
             onPressed: onShuffle,
           ),
         ),
@@ -78,28 +86,30 @@ class TrackPresentationTopSection extends HookConsumerWidget {
             ).call,
             child: IconButton.secondary(
               icon: const Icon(SpotubeIcons.queueAdd),
-              enabled: !isLoading && !isActive && hasTracks,
+              enabled: !isPlayLoading && !isActive && hasTracks,
               onPressed: onAddToQueue,
             ),
           )
         else
           Button.secondary(
             leading: const Icon(SpotubeIcons.add),
-            enabled: !isLoading && !isActive && hasTracks,
+            enabled: !isPlayLoading && !isActive && hasTracks,
             onPressed: onAddToQueue,
             child: Text(context.l10n.queue),
           ),
         Button.primary(
           alignment: Alignment.center,
-          leading: switch ((isActive && isPlaying, isLoading)) {
-            (true, false) => const AnimatedPlayPauseIcon(isPlaying: true),
+          leading: switch ((isActive && isPlaying, isPlayLoading)) {
+            (true, _) => const AnimatedPlayPauseIcon(isPlaying: true),
             (false, true) => const Center(
                 child: CircularProgressIndicator(onSurface: true, size: 18),
               ),
             _ => const AnimatedPlayPauseIcon(isPlaying: false),
           },
           onPressed: onPlay,
-          enabled: !isLoading && (isActive || hasTracks),
+          // An active collection can always be paused/resumed, even while a
+          // preparation future from its initial load is still settling.
+          enabled: isActive || (!isPlayLoading && hasTracks),
           child: isActive && isPlaying
               ? Text(context.l10n.pause)
               : Text(context.l10n.play),

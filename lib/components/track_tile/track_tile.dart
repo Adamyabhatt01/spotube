@@ -210,34 +210,36 @@ class TrackTile extends HookConsumerWidget {
                               // Gated on this row being the active one, so a
                               // track change only rebuilds that row's overlay
                               // instead of every visible tile's.
-                              final isFetchingActiveTrack = isPlaying &&
-                                  ref.watch(queryingTrackInfoProvider);
+                              final isResolving = isPlaying &&
+                                  ref.watch(isResolvingActiveTrackProvider);
                               // The icon follows whether the audio is
                               // actually sounding, not whether this row is
                               // the active track: pausing from the sidebar
                               // used to leave the tile showing "pause".
                               final sounding = isSounding;
+                              // Both the active-track query and the row's own
+                              // tap future can outlive audible playback. A
+                              // spinner is only honest while nothing is
+                              // sounding.
+                              final showSpinner =
+                                  !sounding && (isResolving || isLoading.value);
                               return AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 300),
                                 child: switch ((
-                                  isPlaying,
-                                  isFetchingActiveTrack,
+                                  showSpinner,
                                   sounding,
                                   isHovering,
-                                  isLoading.value
                                 )) {
-                                  (true, true, _, _, _) ||
-                                  (_, _, _, _, true) =>
-                                    const SizedBox(
+                                  (true, _, _) => const SizedBox(
                                       width: 26,
                                       height: 26,
                                       child: CircularProgressIndicator(),
                                     ),
-                                  (_, _, true, _, _) => Icon(
+                                  (_, true, _) => Icon(
                                       SpotubeIcons.pause,
                                       color: theme.colorScheme.primary,
                                     ),
-                                  (_, _, _, true, _) => const Icon(
+                                  (_, _, true) => const Icon(
                                       SpotubeIcons.play,
                                       color: Colors.white,
                                     ),

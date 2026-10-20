@@ -159,7 +159,8 @@ class PlayerProgress extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isFetchingActiveTrack = ref.watch(queryingTrackInfoProvider);
+    final isResolvingActiveTrack =
+        ref.watch(isResolvingActiveTrackProvider);
 
     final (:bufferProgress, :duration, :position, :progressStatic) =
         useProgress(ref);
@@ -179,7 +180,7 @@ class PlayerProgress extends HookConsumerWidget {
       buffered: bufferProgress,
       elapsed: position.toHumanReadableString(),
       total: duration.toHumanReadableString(),
-      enabled: !isFetchingActiveTrack,
+      enabled: !isResolvingActiveTrack,
       onScrub: (fraction) => progress.value = fraction,
       onSeek: (fraction) async {
         await audioPlayer.seek(

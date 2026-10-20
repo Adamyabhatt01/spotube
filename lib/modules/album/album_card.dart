@@ -52,10 +52,14 @@ class AlbumCard extends HookConsumerWidget {
     );
     // Short-circuits the watch, so only the card that is actually in the queue
     // subscribes: a track change used to rebuild every visible card.
-    final isFetchingActiveTrack =
-        isPlaylistPlaying && ref.watch(queryingTrackInfoProvider);
+    final isResolving =
+        isPlaylistPlaying && ref.watch(isResolvingActiveTrackProvider);
 
-    final updating = useState(false);
+    // Play preparation and add-to-queue are separate jobs. Reusing one flag
+    // for both turned the play button into a spinner while the card was only
+    // fetching tracks to append.
+    final playUpdating = useState(false);
+    final queueUpdating = useState(false);
 
     final fetchInitialTracks = useCallback(() async {
       final page =
@@ -77,8 +81,7 @@ class AlbumCard extends HookConsumerWidget {
       [album.images],
     );
 
-    final isLoading =
-        (isPlaylistPlaying && isFetchingActiveTrack) || updating.value;
+    final isLoading = isResolving || playUpdating.value;
     final description = "${album.albumType.name} • ${album.artists.asString()}";
 
     final onTap = useCallback(() {
@@ -86,12 +89,14 @@ class AlbumCard extends HookConsumerWidget {
     }, [context, album]);
 
     final onPlaybuttonPressed = useCallback(() async {
-      updating.value = true;
-      try {
-        if (isPlaylistPlaying) {
-          return playing ? audioPlayer.pause() : audioPlayer.resume();
-        }
+      // Pause/resume has no preparation step and must not flash the play
+      // button back into a spinner while audio is still stopping/starting.
+      if (isPlaylistPlaying) {
+        return playing ? audioPlayer.pause() : audioPlayer.resume();
+      }
 
+      playUpdating.value = true;
+      try {
         final fetchedInitialTracks = await fetchInitialTracks();
 
         if (fetchedInitialTracks.isEmpty || !context.mounted) return;
@@ -121,7 +126,7 @@ class AlbumCard extends HookConsumerWidget {
           ));
         }
       } finally {
-        updating.value = false;
+        playUpdating.value = false;
       }
     }, [
       isPlaylistPlaying,
@@ -134,7 +139,7 @@ class AlbumCard extends HookConsumerWidget {
       playlistNotifier,
       album,
       historyNotifier,
-      updating
+      playUpdating
     ]);
 
     final onAddToQueuePressed = useCallback(() async {
@@ -142,7 +147,7 @@ class AlbumCard extends HookConsumerWidget {
         return;
       }
 
-      updating.value = true;
+      queueUpdating.value = true;
       try {
         final fetchedTracks = await fetchAllTrack();
 
@@ -172,11 +177,11 @@ class AlbumCard extends HookConsumerWidget {
           );
         }
       } finally {
-        updating.value = false;
+        queueUpdating.value = false;
       }
     }, [
       isPlaylistPlaying,
-      updating.value,
+      queueUpdating.value,
       fetchAllTrack,
       playlistNotifier,
       album.id,
@@ -193,6 +198,7 @@ class AlbumCard extends HookConsumerWidget {
         // from elsewhere left the button showing "pause".
         isActuallyPlaying: isPlaylistPlaying && playing,
         isLoading: isLoading,
+        isQueueLoading: queueUpdating.value,
         title: album.name,
         description: description,
         onTap: onTap,
@@ -209,6 +215,7 @@ class AlbumCard extends HookConsumerWidget {
       // from elsewhere left the button showing "pause".
       isActuallyPlaying: isPlaylistPlaying && playing,
       isLoading: isLoading,
+      isQueueLoading: queueUpdating.value,
       title: album.name,
       description: description,
       onTap: onTap,

@@ -117,8 +117,8 @@ UsePlaylistPlay usePlaylistPlay(
   );
   // Short-circuits the watch, so only the tile that is actually in the queue
   // subscribes: a track change used to rebuild every visible card.
-  final isFetchingActiveTrack =
-      isPlaylistPlaying && ref.watch(queryingTrackInfoProvider);
+  final isResolving =
+      isPlaylistPlaying && ref.watch(isResolvingActiveTrackProvider);
 
   final updating = useState(false);
 
@@ -134,12 +134,13 @@ UsePlaylistPlay usePlaylistPlay(
 
   final onPlaybuttonPressed = useCallback(() async {
     try {
-      updating.value = true;
-      if (isPlaylistPlaying && playing) {
-        return audioPlayer.pause();
-      } else if (isPlaylistPlaying && !playing) {
-        return audioPlayer.resume();
+      // Pause/resume has no preparation step and must not flash the button
+      // into a spinner while the player is still stopping/starting.
+      if (isPlaylistPlaying) {
+        return playing ? audioPlayer.pause() : audioPlayer.resume();
       }
+
+      updating.value = true;
 
       late final List<SpotubeFullTrackObject> fetchedInitialTracks;
       try {
@@ -210,7 +211,7 @@ UsePlaylistPlay usePlaylistPlay(
   return (
     isPlaylistPlaying: isPlaylistPlaying,
     isPlaying: isPlaylistPlaying && playing,
-    isLoading: (isPlaylistPlaying && isFetchingActiveTrack) || updating.value,
+    isLoading: isResolving || updating.value,
     fetchInitialTracks: fetchInitialTracks,
     fetchAllTracks: fetchAllTracks,
     onPlaybuttonPressed: onPlaybuttonPressed,

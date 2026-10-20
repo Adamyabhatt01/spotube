@@ -91,8 +91,7 @@ class _CollapsedTransportControls extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final playing = ref.watch(audioPlayerProvider.select((s) => s.playing));
-    final isResolving = ref.watch(queryingTrackInfoProvider) && !playing;
+    final isResolving = ref.watch(isResolvingActiveTrackProvider);
 
     return Row(
       children: [

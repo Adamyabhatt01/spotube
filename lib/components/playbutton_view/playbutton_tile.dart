@@ -33,6 +33,10 @@ class PlaybuttonTile extends HookWidget {
   final bool isActuallyPlaying;
 
   final bool isLoading;
+
+  /// Add-to-queue work only. Kept separate from [isLoading] so filling the
+  /// queue never turns the play/pause control into a spinner.
+  final bool isQueueLoading;
   final bool isPinned;
   final String title;
   final bool isOwner;
@@ -41,6 +45,7 @@ class PlaybuttonTile extends HookWidget {
     required this.isPlaying,
     this.isActuallyPlaying = false,
     required this.isLoading,
+    this.isQueueLoading = false,
     required this.title,
     this.description,
     this.onPlaybuttonPressed,
@@ -62,6 +67,14 @@ class PlaybuttonTile extends HookWidget {
   Widget build(BuildContext context) {
     final cleanDescription = description.strippedHtml();
     final scale = context.theme.scaling;
+    // A play spinner is only honest while nothing is sounding. This guards
+    // against a caller whose loading flag outlives audible playback (for
+    // example, a slow manifest after a downloaded copy has already started).
+    final showPlaySpinner = isLoading && !isActuallyPlaying;
+    // A preparation flag can outlive audio startup. Once the collection is
+    // audible, the control has to become an enabled pause button even if the
+    // source manifest (or a tail fetch) is still settling.
+    final canPressPlay = !isLoading || isActuallyPlaying;
 
     // Memoized like the card/tile siblings: building a fresh provider per
     // build re-resolves the image cache on every row rebuild while
@@ -109,7 +122,7 @@ class PlaybuttonTile extends HookWidget {
           ? tileCover
           : GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: isLoading ? null : onCoverPressed,
+              onTap: canPressPlay ? onCoverPressed : null,
               child: MouseRegion(
                 cursor: SystemMouseCursors.click,
                 child: Semantics(
@@ -150,14 +163,14 @@ class PlaybuttonTile extends HookWidget {
             child: IconButton.outline(
               icon: const Icon(SpotubeIcons.queueAdd),
               onPressed: onAddToQueuePressed,
-              enabled: !isLoading,
+              enabled: !isLoading && !isQueueLoading,
             ),
           ),
           const Gap(8),
           Tooltip(
             tooltip: TooltipContainer(child: Text(context.l10n.play)).call,
             child: IconButton.secondary(
-              icon: switch ((isLoading, isActuallyPlaying)) {
+              icon: switch ((showPlaySpinner, isActuallyPlaying)) {
                 (true, _) => const CircularProgressIndicator(
                     size: 22,
                   ),
@@ -166,12 +179,12 @@ class PlaybuttonTile extends HookWidget {
                   ),
               },
               onPressed: onPlaybuttonPressed,
-              enabled: !isLoading,
+              enabled: canPressPlay,
             ),
           ),
         ],
       ),
-      enabled: !isLoading,
+      enabled: canPressPlay,
       onPressed: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,

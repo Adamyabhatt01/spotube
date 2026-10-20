@@ -25,7 +25,10 @@ typedef UseActionCallbacks = ({
   /// Distinct from [isActive]: a collection stays in the queue while
   /// paused, so the play/pause icon has to follow the audio.
   bool isPlaying,
-  bool isLoading,
+  /// Whether starting playback is still being prepared.
+  bool isPlayLoading,
+  /// Whether the shuffle action is still being prepared.
+  bool isShuffleLoading,
   /// Whether the collection has at least one loaded track.
   ///
   /// Header actions stay disabled until this is true: a tap during the first
@@ -38,7 +41,8 @@ typedef UseActionCallbacks = ({
 });
 
 UseActionCallbacks useActionCallbacks(WidgetRef ref) {
-  final isLoading = useState(false);
+  final isPlayLoading = useState(false);
+  final isShuffleLoading = useState(false);
   final context = useContext();
   final options = TrackPresentationOptions.of(context);
   // Perf: only the collection membership is consumed (isActive memo).
@@ -60,7 +64,7 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
 
   final onShuffle = useCallback(() async {
     try {
-      isLoading.value = true;
+      isShuffleLoading.value = true;
 
       final initialTracks = options.tracks;
       if (!context.mounted) return;
@@ -117,18 +121,12 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
       AppLogger.reportError(e, stack);
       rethrow;
     } finally {
-      isLoading.value = false;
+      isShuffleLoading.value = false;
     }
   }, [options, playlistNotifier, historyNotifier]);
 
   final onPlay = useCallback(() async {
     try {
-      isLoading.value = true;
-
-      final initialTracks = options.tracks;
-
-      if (!context.mounted) return;
-
       // Already loaded: toggle the existing playback instead of reloading
       // the collection from the top. This is what makes the header button a
       // real pause/resume control, and what lets the icon follow the audio
@@ -144,6 +142,12 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
         }
         return;
       }
+
+      isPlayLoading.value = true;
+
+      final initialTracks = options.tracks;
+
+      if (!context.mounted) return;
 
       final isRemoteDevice = await showSelectDeviceDialog(context, ref);
       if (isRemoteDevice == null) return;
@@ -192,7 +196,7 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
       rethrow;
     } finally {
       if (context.mounted) {
-        isLoading.value = false;
+        isPlayLoading.value = false;
       }
     }
   }, [options, playlistNotifier, historyNotifier, isActive, isPlaying]);
@@ -216,7 +220,8 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
   return (
     isActive: isActive,
     isPlaying: isPlaying,
-    isLoading: isLoading.value,
+    isPlayLoading: isPlayLoading.value,
+    isShuffleLoading: isShuffleLoading.value,
     hasTracks: options.tracks.isNotEmpty,
     onShuffle: onShuffle,
     onPlay: onPlay,

@@ -33,10 +33,10 @@ class PlaylistCard extends HookConsumerWidget {
     // collection plays, otherwise load page 1 + stream the tail behind it.
     final play = usePlaylistPlay(ref, playlist);
     final isPlaylistPlaying = play.isPlaylistPlaying;
-    final updating = useState(false);
-    // The hook's spinner covers playback; the card's own `updating` covers
-    // add-to-queue below — together they are the original `isLoading`.
-    final isLoading = play.isLoading || updating.value;
+    // Add-to-queue is not play preparation. Keeping it out of `isLoading`
+    // stops the play button from turning into a spinner while the queue is
+    // being filled.
+    final queueUpdating = useState(false);
     final fetchAllTracks = play.fetchAllTracks;
     final onPlaybuttonPressed = play.onPlaybuttonPressed;
 
@@ -50,7 +50,7 @@ class PlaylistCard extends HookConsumerWidget {
     }, [context, playlist]);
 
     final onAddToQueuePressed = useCallback(() async {
-      updating.value = true;
+      queueUpdating.value = true;
       try {
         if (isPlaylistPlaying) return;
 
@@ -84,7 +84,7 @@ class PlaylistCard extends HookConsumerWidget {
           );
         }
       } finally {
-        updating.value = false;
+        queueUpdating.value = false;
       }
     }, [
       isPlaylistPlaying,
@@ -94,7 +94,7 @@ class PlaylistCard extends HookConsumerWidget {
       historyNotifier,
       playlist,
       context,
-      updating
+      queueUpdating
     ]);
 
     final imageUrl = useMemoized(
@@ -141,7 +141,8 @@ class PlaylistCard extends HookConsumerWidget {
         // The icon follows the audio, not the queue membership: pausing
         // from elsewhere left the button showing "pause".
         isActuallyPlaying: play.isPlaying,
-        isLoading: isLoading,
+        isLoading: play.isLoading,
+        isQueueLoading: queueUpdating.value,
         isOwner: isOwner,
         isPinned: isPinned,
         onTap: onTap,
@@ -161,7 +162,8 @@ class PlaylistCard extends HookConsumerWidget {
       // The icon follows the audio, not the queue membership: pausing from
       // elsewhere left the button showing "pause".
       isActuallyPlaying: play.isPlaying,
-      isLoading: isLoading,
+      isLoading: play.isLoading,
+      isQueueLoading: queueUpdating.value,
       isOwner: isOwner,
       isPinned: isPinned,
       onTap: onTap,
