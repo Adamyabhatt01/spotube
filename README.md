@@ -27,11 +27,13 @@ Get a file from [**Releases**](../../releases) and open it on your phone.
 | You want | File | Size | Use it when |
 | --- | --- | --- | --- |
 | **Arm64** (recommended) | `Spotube-android-arm64-v8a.apk` | 66 MB | Almost any phone sold since ~2017 |
-| **Universal** | `Spotube-android-universal.apk` | 142 MB | You don't know the ABI, or the device is 32-bit / x86 |
+| **32-bit ARM** | `Spotube-android-armeabi-v7a.apk` | 62 MB | Older 32-bit phones and tablets |
+| **x86_64** | `Spotube-android-x86_64.apk` | 68 MB | Emulators and x86_64 devices |
+| **Universal** | `Spotube-android-universal.apk` | 141 MB | You don't know the ABI, or want one file that runs anywhere |
 
-Both need **Android 7.0 (API 24) or newer**. The universal build carries `arm64-v8a`, `armeabi-v7a`
-and `x86_64` machine code; the arm64 build carries only `arm64-v8a`. Check what you downloaded with
-`sha256sum -c RELEASE.sha256sum`.
+All four need **Android 7.0 (API 24) or newer**. The universal build carries `arm64-v8a`,
+`armeabi-v7a` and `x86_64` machine code; each split build carries only its own ABI. Check what you
+downloaded with `sha256sum -c RELEASE.sha256sum`.
 
 Three things to know **before** you install:
 
@@ -39,9 +41,10 @@ Three things to know **before** you install:
    Android treats it as a different app. Uninstall the official one first. Your Spotify account,
    playlists and listening history are safe — they live with your account — but the local library
    index, downloaded files and in-app settings don't carry across between the two builds.
-2. **Going from universal → arm64 needs a reinstall.** The per-ABI build carries a higher version
-   code (6501 vs 4501), so Android refuses it as a downgrade over the universal one. The other
-   direction is fine.
+2. **Going from universal → a split build needs a reinstall.** The per-ABI builds carry higher
+   version codes (5501 armeabi-v7a, 6501 arm64-v8a, 8501 x86_64) than the universal build (4501),
+   so Android refuses a split build as a downgrade over the universal one. The other direction is
+   fine.
 3. **Nothing will tell you an update exists.** This fork has no update feed — re-check
    [Releases](../../releases) when you want a newer build. Android will also warn about an unfamiliar
    publisher and about media-playback permissions; that's normal for any sideloaded APK.
@@ -68,8 +71,14 @@ the binary is already identical, and warns if `libmpv`, `libsecret` or the tray 
 
 ## ✨ What you'll notice
 
-Seven changes people actually feel. Each one links to the mechanics further down.
+The changes people actually feel. Each one links to the mechanics further down.
 
+- **The play button tells the truth.** Once audio is audible the transport shows pause and stays
+  usable, even if the source manifest is still settling in the background. The frosted bottom bar
+  also keeps its tint through play/pause and scrolling.
+- **Search is scoped.** The mobile Search tab now has separate Music and Radio landings: Music
+  shows personalised rails and New Releases, Radio drops the Music shortcut and Recent rail. The
+  real Browse and Radio pages are untouched.
 - **You get the recording you asked for.** Searches used to land on a lyric video, a slowed + reverb
   edit or a random fan channel — and keep that answer for six hours. The studio version wins now.
   → [Finding the right recording](#finding-the-right-recording)
@@ -222,7 +231,9 @@ Android first, because that's the device where it hurt:
 
 - Home-screen widget updates coalesced instead of one platform round trip per second.
 - Single 1 Hz playback-position ticker; queue persisted on mutation rather than on tick.
-- Scroll-time blur frozen once per gesture instead of recomputed per frame.
+- Large background/header blur frozen once per gesture instead of recomputed per frame; the pinned
+  bottom chrome keeps its frost because dropping it there was not a measured win and made the bar
+  disappear under translucent themes.
 - Bounded local-library scan concurrency, resize-aware local artwork, and pruning of orphaned
   artwork after a full scan.
 - Top-track history aggregated in SQL and auto-disposing stats providers.
@@ -230,6 +241,32 @@ Android first, because that's the device where it hurt:
   glance.
 - yt-dlp is located by **absolute path** rather than relying on the process `PATH`, which is why
   desktop detection no longer depends on how the app happened to be launched.
+
+#### Why RAM use went down
+
+The short version: most of the reported "Dart heap" was not the Dart heap. The kernel was backing
+the VM's large, sparsely-touched heap arena with 2 MB transparent huge pages (THP), so touching a
+few KB charged megabytes of resident memory. The VM's own accounting put the live heap at
+**27.5 MB**; RSS said hundreds.
+
+The fix is a per-process `prctl(PR_SET_THP_DISABLE)` in the Linux runner and on Android
+(`MemoryBacking.kt` + `memory_backing.cpp`). It affects only Spotube and is a no-op where THP is
+already off. Measured on Linux:
+
+| | PSS | RSS | Live Dart heap |
+| --- | --- | --- | --- |
+| Before | 548 MB | 648 MB | 27.5 MB |
+| **After** | **315 MB** | **415 MB** | **27.5 MB** |
+
+The smoothness cost was measured over four 25-second windows: minor faults and CPU overlapped
+run-to-run with no consistent direction, because the hot paths are native mpv/FFmpeg and Impeller
+buffers, not the Dart heap. The app's three artwork caches also share one device-aware budget now —
+a quarter of Android's per-app heap limit, clamped to 8–64 MB — instead of fixed ceilings plus an
+unbounded per-URL memo.
+
+The same measurements explain what *did not* help: replacing spinners, removing the nav bar, or
+dropping `surfaceBlur`. Each was tested and reverted; idle CPU is spent in always-mounted animated
+widgets and the framework's per-frame work, not in the frosted chrome.
 
 Then a pass over desktop, each item measured before and after:
 
@@ -295,6 +332,12 @@ Note this project defines Gradle product flavors, so `flutter build apk` needs `
 builds are signed with `android/key.properties`, which points at a local test keystore — supply your
 own if you publish your own builds. Automatic VPN needs `nmcli` (NetworkManager) on the machine
 running the app; nothing needs to be installed to build without it.
+
+Android builds disable Impeller in `android/app/src/main/AndroidManifest.xml`. Flutter 3.35's
+Impeller drops the backdrop-filter pass when more than one blurred surface is on screen
+([flutter/flutter#173622](https://github.com/flutter/flutter/issues/173622)); Skia keeps the frosted
+bottom chrome stable. The engine fix first shipped in Flutter 3.38, so remove that manifest flag
+when `.fvmrc` is updated past 3.35.x.
 
 ## ⚠️ Status and caveats
 

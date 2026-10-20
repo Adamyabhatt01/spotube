@@ -28,14 +28,17 @@ final navigationPanelCoversBar = Provider<bool>(
   (ref) => ref.watch(navigationPanelHeight.select((height) => height < 10)),
 );
 
-/// Whether the chrome pinned over the content should skip its backdrop blur.
+/// Whether full-screen backdrop surfaces should skip their blur while moving.
 ///
-/// Both writers below change value on a frame where something is moving across
-/// the surface behind the nav bar and the collapsed player: a scroll anywhere in
-/// the app, and the player sheet, whose [navigationPanelHeight] is rewritten on
-/// every frame of a drag. Either way a `BackdropFilter` would re-blur that frame's
-/// content for a frost nobody sees while it moves, so the surfaces draw plain
-/// until the motion stops. The threshold is a state change, not a per-frame one.
+/// The writers below change value on a frame where content is moving behind a
+/// `BackdropFilter`: a scroll anywhere in the app, and the player sheet, whose
+/// [navigationPanelHeight] is rewritten on every frame of a drag. Used by the
+/// theme wallpaper and the track header, where the filter covers a large area.
+///
+/// The pinned bottom chrome deliberately does **not** consume this anymore.
+/// Dropping sigma to zero there was not a measured CPU win, and with a
+/// translucent theme it removed the bar's only visible tint mid-scroll — the
+/// exact "frost disappears while scrolling" regression.
 final chromeBlurFrozen = Provider<bool>((ref) {
   return ref.watch(scrollInFlightProvider) ||
       ref.watch(navigationPanelHeight.select((height) => height != 50));
@@ -70,7 +73,6 @@ class SpotubeNavigationBar extends HookConsumerWidget {
     );
 
     final coveredByPanel = ref.watch(navigationPanelCoversBar);
-    final blurFrozen = ref.watch(chromeBlurFrozen);
     // Same rule as the desktop title bar: with the desktop behind the bar,
     // any fill is the window, and in-app blur over transparency blurs
     // nothing (the compositor owns blur here).
@@ -102,16 +104,16 @@ class SpotubeNavigationBar extends HookConsumerWidget {
             const Divider(),
             NavigationBar(
               index: selectedIndex,
-              backgroundColor:
-                  realTransparent ? Colors.transparent : null,
+              backgroundColor: realTransparent ? Colors.transparent : null,
               // The inner AppBar fills `card` at the surface opacity, so
               // blur alone cannot clear it — opacity goes to zero with it.
-              surfaceOpacity: realTransparent
-                  ? 0
-                  : context.theme.surfaceOpacity,
-              surfaceBlur: realTransparent
-                  ? 0
-                  : (blurFrozen ? 0 : context.theme.surfaceBlur),
+              surfaceOpacity:
+                  realTransparent ? 0 : context.theme.surfaceOpacity,
+              // Do not drop the frost during scroll: with a translucent theme
+              // that removed the bar's only visible tint. The Android
+              // manifest disables Impeller until the 3.38 engine fix, so the
+              // filter can stay live instead of being swapped out mid-scroll.
+              surfaceBlur: realTransparent ? 0 : context.theme.surfaceBlur,
               children: [
                 for (final tile in navbarTileList)
                   NavigationButton(

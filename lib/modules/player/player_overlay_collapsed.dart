@@ -23,12 +23,9 @@ class PlayerOverlayCollapsedSection extends HookConsumerWidget {
         ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
     final canShow = activeTrack != null;
 
-    final isFetchingActiveTrack = ref.watch(queryingTrackInfoProvider);
-
     final theme = Theme.of(context);
 
     final shouldShow = useState(true);
-    final blurFrozen = ref.watch(chromeBlurFrozen);
 
     ref.listen(navigationPanelHeight, (_, height) {
       shouldShow.value = height.ceil() == 50;
@@ -40,7 +37,12 @@ class PlayerOverlayCollapsedSection extends HookConsumerWidget {
           ? Padding(
               padding: const EdgeInsets.all(5),
               child: SurfaceCard(
-                surfaceBlur: blurFrozen ? 0 : theme.surfaceBlur,
+                // Keep the frost through scrolls and play/pause. The old
+                // freeze dropped the filter (and with a translucent theme,
+                // the bar itself) exactly while the user was looking at it;
+                // scrolling it was not a measured CPU win. The Android
+                // manifest disables Impeller until the engine fix in 3.38.
+                surfaceBlur: theme.surfaceBlur,
                 surfaceOpacity: theme.surfaceOpacity,
                 padding: EdgeInsets.zero,
                 borderRadius: theme.borderRadiusLg,
@@ -66,26 +68,7 @@ class PlayerOverlayCollapsedSection extends HookConsumerWidget {
                               ),
                             ),
                           ),
-                          Row(
-                            children: [
-                              IconButton.ghost(
-                                icon: const Icon(SpotubeIcons.skipBack),
-                                onPressed: isFetchingActiveTrack
-                                    ? null
-                                    : audioPlayer.skipToPrevious,
-                              ),
-                              const PlayerPlayPauseButton(
-                                showTooltip: false,
-                              ),
-                              IconButton.ghost(
-                                icon: const Icon(SpotubeIcons.skipForward),
-                                onPressed: isFetchingActiveTrack
-                                    ? null
-                                    : audioPlayer.skipToNext,
-                              ),
-                              const Gap(5),
-                            ],
-                          ),
+                          const _CollapsedTransportControls(),
                         ],
                       ),
                     ),
@@ -94,6 +77,36 @@ class PlayerOverlayCollapsedSection extends HookConsumerWidget {
               ),
             )
           : const SizedBox.shrink(),
+    );
+  }
+}
+
+/// The mini player's transport row.
+///
+/// It watches source-resolution and playback state here, not in
+/// [PlayerOverlayCollapsedSection.build], so a spinner finishing or a
+/// play/pause toggle cannot rebuild the frosted [SurfaceCard] around it.
+class _CollapsedTransportControls extends ConsumerWidget {
+  const _CollapsedTransportControls();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final playing = ref.watch(audioPlayerProvider.select((s) => s.playing));
+    final isResolving = ref.watch(queryingTrackInfoProvider) && !playing;
+
+    return Row(
+      children: [
+        IconButton.ghost(
+          icon: const Icon(SpotubeIcons.skipBack),
+          onPressed: isResolving ? null : audioPlayer.skipToPrevious,
+        ),
+        const PlayerPlayPauseButton(showTooltip: false),
+        IconButton.ghost(
+          icon: const Icon(SpotubeIcons.skipForward),
+          onPressed: isResolving ? null : audioPlayer.skipToNext,
+        ),
+        const Gap(5),
+      ],
     );
   }
 }

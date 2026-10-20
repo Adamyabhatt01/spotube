@@ -48,18 +48,25 @@ class PlayerPlayPauseButton extends ConsumerWidget {
     final playing = ref.watch(audioPlayerProvider.select((s) => s.playing));
     final isFetchingActiveTrack = ref.watch(queryingTrackInfoProvider);
 
+    // Audio can start before source resolution settles: the playback route
+    // serves a downloaded/local copy without waiting for the source manifest.
+    // In that state the button must behave like a normal pause control. A
+    // spinner (and a disabled button) is only honest while there is no audio
+    // to pause yet.
+    final isResolving = isFetchingActiveTrack && !playing;
+
     final button = IconButton(
       size: size ?? ButtonSize.normal,
       shape: shape ?? ButtonShape.rectangle,
       variance: primary ? ButtonVariance.primary : ButtonVariance.ghost,
-      icon: isFetchingActiveTrack
+      icon: isResolving
           ? const SizedBox(
               height: 20,
               width: 20,
               child: CircularProgressIndicator(),
             )
           : Icon(playing ? SpotubeIcons.pause : SpotubeIcons.play),
-      onPressed: isFetchingActiveTrack
+      onPressed: isResolving
           ? null
           : Actions.handler<PlayPauseIntent>(context, PlayPauseIntent(ref)),
     );
