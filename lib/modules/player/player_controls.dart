@@ -8,6 +8,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/collections/intents.dart';
 import 'package:spotube/extensions/context.dart';
+import 'package:spotube/modules/player/player_play_pause_button.dart';
 import 'package:spotube/modules/player/player_progress.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/audio_player/querying_track_info.dart';
@@ -49,9 +50,6 @@ class PlayerControls extends HookConsumerWidget {
             },
         []);
     final isFetchingActiveTrack = ref.watch(queryingTrackInfoProvider);
-
-    final playing =
-        useStream(audioPlayer.playingStream).data ?? audioPlayer.isPlaying;
     final theme = Theme.of(context);
 
     final buttonSize =
@@ -121,33 +119,10 @@ class PlayerControls extends HookConsumerWidget {
                       onPressed: audioPlayer.skipToPrevious,
                     ),
                   ),
-                  Tooltip(
-                    tooltip: TooltipContainer(
-                      child: Text(
-                        playing
-                            ? context.l10n.pause_playback
-                            : context.l10n.resume_playback,
-                      ),
-                    ).call,
-                    child: IconButton.primary(
-                      size: buttonSize,
-                      shape: ButtonShape.circle,
-                      icon: isFetchingActiveTrack
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(),
-                            )
-                          : Icon(
-                              playing ? SpotubeIcons.pause : SpotubeIcons.play,
-                            ),
-                      onPressed: isFetchingActiveTrack
-                          ? null
-                          : Actions.handler<PlayPauseIntent>(
-                              context,
-                              PlayPauseIntent(ref),
-                            ),
-                    ),
+                  PlayerPlayPauseButton(
+                    size: buttonSize,
+                    shape: ButtonShape.circle,
+                    primary: true,
                   ),
                   Tooltip(
                     tooltip:

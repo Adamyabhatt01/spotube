@@ -2,8 +2,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
-import 'package:spotube/collections/intents.dart';
 import 'package:spotube/collections/spotube_icons.dart';
+import 'package:spotube/modules/player/player_play_pause_button.dart';
 import 'package:spotube/modules/player/player_track_details.dart';
 import 'package:spotube/modules/root/spotube_navigation_bar.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
@@ -24,8 +24,6 @@ class PlayerOverlayCollapsedSection extends HookConsumerWidget {
     final canShow = activeTrack != null;
 
     final isFetchingActiveTrack = ref.watch(queryingTrackInfoProvider);
-    final playing =
-        useStream(audioPlayer.playingStream).data ?? audioPlayer.isPlaying;
 
     final theme = Theme.of(context);
 
@@ -76,26 +74,8 @@ class PlayerOverlayCollapsedSection extends HookConsumerWidget {
                                     ? null
                                     : audioPlayer.skipToPrevious,
                               ),
-                              Consumer(
-                                builder: (context, ref, _) {
-                                  return IconButton.ghost(
-                                    icon: isFetchingActiveTrack
-                                        ? const SizedBox(
-                                            height: 20,
-                                            width: 20,
-                                            child: CircularProgressIndicator(),
-                                          )
-                                        : Icon(
-                                            playing
-                                                ? SpotubeIcons.pause
-                                                : SpotubeIcons.play,
-                                          ),
-                                    onPressed: Actions.handler<PlayPauseIntent>(
-                                      context,
-                                      PlayPauseIntent(ref),
-                                    ),
-                                  );
-                                },
+                              const PlayerPlayPauseButton(
+                                showTooltip: false,
                               ),
                               IconButton.ghost(
                                 icon: const Icon(SpotubeIcons.skipForward),
