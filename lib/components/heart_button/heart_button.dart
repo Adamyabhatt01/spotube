@@ -77,23 +77,29 @@ class TrackHeartButton extends HookConsumerWidget {
   Widget build(BuildContext context, ref) {
     final savedTracks = ref.watch(metadataPluginSavedTracksProvider);
     final me = ref.watch(metadataPluginUserProvider);
-    final (:isLiked, :isLoading, :toggleTrackLike) =
+    final (:isLiked, :isLoading, :hasLocalState, :toggleTrackLike) =
         useTrackToggleLike(track, ref);
 
     if (me.isLoading) {
       return const CircularProgressIndicator();
     }
 
+    // The list is only needed for the optimistic insert. A track the user
+    // already toggled has an optimistic state of its own, so it does not wait
+    // for that list to finish loading before the heart works.
+    final canToggle =
+        hasLocalState || (savedTracks.asData?.value != null && !isLoading);
+
     return HeartButton(
       tooltip: isLiked
           ? context.l10n.remove_from_favorites
           : context.l10n.save_as_favorite,
       isLiked: isLiked,
-      onPressed: savedTracks.asData?.value == null || isLoading
-          ? null
-          : () {
+      onPressed: canToggle
+          ? () {
               toggleTrackLike(track);
-            },
+            }
+          : null,
     );
   }
 }

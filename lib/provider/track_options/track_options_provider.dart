@@ -201,15 +201,9 @@ class TrackOptionsActions {
         }
         break;
       case TrackOptionValue.favorite:
-        final isLikedTrack = await ref.read(
-          metadataPluginIsSavedTrackProvider(track.id).future,
-        );
-
-        if (isLikedTrack) {
-          await favoriteTracks.removeFavorite([track]);
-        } else {
-          await favoriteTracks.addFavorite([track]);
-        }
+        // The same optimistic toggle the heart uses: one write per tap, and
+        // one shared answer to "did the previous tap save it?".
+        await favoriteTracks.toggleFavorite(track);
         break;
       case TrackOptionValue.addToPlaylist:
         actionAddToPlaylist(context, playlistId);

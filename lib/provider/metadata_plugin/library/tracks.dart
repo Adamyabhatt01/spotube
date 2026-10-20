@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/library/is_saved_batcher.dart';
+import 'package:spotube/provider/metadata_plugin/library/saved_track_likes.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/utils/common.dart';
 import 'package:spotube/provider/metadata_plugin/utils/paginated.dart';
@@ -40,26 +41,69 @@ class MetadataPluginSavedTracksNotifier
     return await buildSavedList();
   }
 
+  /// Tracks with a save/unsave request in flight.
+  ///
+  /// The heart flips on the first tap, so a second tap before the first write
+  /// finishes would otherwise race it: both would read the same stale answer
+  /// and both would save. One write per track at a time makes the second tap
+  /// a no-op while the first is still landing.
+  final _toggling = <String>{};
+
+  /// Flips the saved state of [track] using the app's optimistic view, so the
+  /// heart and this decision can never disagree about what the last tap asked
+  /// for.
+  Future<void> toggleFavorite(SpotubeTrackObject track) async {
+    if (!_toggling.add(track.id)) return;
+    try {
+      final liked = await ref.read(
+        metadataPluginIsSavedTrackProvider(track.id).future,
+      );
+      if (liked) {
+        await removeFavorite([track]);
+      } else {
+        await addFavorite([track]);
+      }
+    } finally {
+      _toggling.remove(track.id);
+    }
+  }
+
   Future<void> addFavorite(List<SpotubeTrackObject> tracks) async {
+    // The tap is the freshest fact we have. Write it before the request so
+    // the heart and a second toggle both see it immediately, even while
+    // Spotify's library query still says "not saved".
+    final likes = ref.read(savedTrackLikesProvider.notifier);
+    for (final track in tracks) {
+      likes.set(track.id, true);
+    }
+
     // The saved-tracks list can still be loading (or absent because this
     // notifier is auto-disposed). That must not turn a like into a no-op:
     // write the backend first, and only update/persist the optimistic list
     // when there is one to update.
     final oldState = state.value;
     if (oldState != null) {
-      state = AsyncData(
-        oldState.copyWith(
-          items: [
-            ...tracks.whereType<SpotubeFullTrackObject>(),
-            ...oldState.items,
-          ],
-        ),
-      );
+      // A track can only be in Liked Songs once. The optimistic prepend used
+      // to skip that rule, so a duplicate tap showed the same song twice
+      // until the next full refresh.
+      final known = {for (final saved in oldState.items) saved.id};
+      final additions = <SpotubeFullTrackObject>[
+        for (final track in tracks)
+          if (track is SpotubeFullTrackObject && known.add(track.id)) track,
+      ];
+      if (additions.isNotEmpty) {
+        state = AsyncData(
+          oldState.copyWith(items: [...additions, ...oldState.items]),
+        );
+      }
     }
 
     try {
       await (await metadataPlugin).track.save(tracks.map((e) => e.id).toList());
     } catch (e) {
+      for (final track in tracks) {
+        likes.set(track.id, false);
+      }
       if (oldState != null) state = AsyncData(oldState);
       rethrow;
     }
@@ -70,6 +114,11 @@ class MetadataPluginSavedTracksNotifier
   }
 
   Future<void> removeFavorite(List<SpotubeTrackObject> tracks) async {
+    final likes = ref.read(savedTrackLikesProvider.notifier);
+    for (final track in tracks) {
+      likes.set(track.id, false);
+    }
+
     final oldState = state.value;
     if (oldState != null) {
       state = AsyncData(
@@ -89,6 +138,9 @@ class MetadataPluginSavedTracksNotifier
           .track
           .unsave(tracks.map((e) => e.id).toList());
     } catch (e) {
+      for (final track in tracks) {
+        likes.set(track.id, true);
+      }
       if (oldState != null) state = AsyncData(oldState);
       rethrow;
     }
@@ -122,5 +174,16 @@ final savedTrackBatcherProvider = Provider<IsSavedBatcher>((ref) {
 
 final metadataPluginIsSavedTrackProvider =
     FutureProvider.autoDispose.family<bool, String>(
-  (ref, trackId) => ref.watch(savedTrackBatcherProvider).request(trackId),
+  (ref, trackId) {
+    // A tap this session outranks the plugin answer: `areEntitiesInLibrary`
+    // trails `addToLibrary` by seconds. Returning it without awaiting the
+    // query also keeps the heart out of AsyncLoading right after a tap, when
+    // it must already show the new colour.
+    final local = ref.watch(
+      savedTrackLikesProvider.select((likes) => likes[trackId]),
+    );
+    if (local != null) return local;
+
+    return ref.watch(savedTrackBatcherProvider).request(trackId);
+  },
 );
