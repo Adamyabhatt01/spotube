@@ -190,6 +190,10 @@ class AlbumCard extends HookConsumerWidget {
       context
     ]);
 
+    // The cover stays part of the card's navigation target, like playlist
+    // cards. Mapping it to playback made a touch on the artwork start or
+    // pause the album instead of opening it; the explicit play button is the
+    // only direct-play action.
     if (_isTile) {
       return PlaybuttonTile(
         imageUrl: imageUrl,
@@ -202,7 +206,6 @@ class AlbumCard extends HookConsumerWidget {
         title: album.name,
         description: description,
         onTap: onTap,
-        onCoverPressed: onPlaybuttonPressed,
         onPlaybuttonPressed: onPlaybuttonPressed,
         onAddToQueuePressed: onAddToQueuePressed,
       );
@@ -219,7 +222,6 @@ class AlbumCard extends HookConsumerWidget {
       title: album.name,
       description: description,
       onTap: onTap,
-      onCoverPressed: onPlaybuttonPressed,
       onPlaybuttonPressed: onPlaybuttonPressed,
       onAddToQueuePressed: onAddToQueuePressed,
     );
