@@ -8,6 +8,7 @@ import 'package:spotube/components/playbutton_view/playbutton_tile.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/playlist/use_playlist_play.dart';
+import 'package:spotube/modules/root/sidebar/sidebar_visibility.dart';
 import 'package:spotube/provider/history/history.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
@@ -111,6 +112,10 @@ class PlaylistCard extends HookConsumerWidget {
       userPreferencesProvider
           .select((s) => s.pinnedPlaylistIds.contains(playlist.id)),
     );
+    final layoutMode = ref.watch(
+      userPreferencesProvider.select((s) => s.layoutMode),
+    );
+    final sidebarVisible = sidebarVisibleOf(context, layoutMode);
     final onPinPressed = useCallback(() {
       final wasPinned = ref
           .read(userPreferencesProvider)
@@ -124,12 +129,19 @@ class PlaylistCard extends HookConsumerWidget {
           context: context,
           builder: (context, overlay) {
             return SurfaceCard(
-              child: Text(context.l10n.pinned_to_sidebar),
+              // No sidebar on phones: the pin lands at the top of this page
+              // instead, so naming the sidebar would describe a UI the user
+              // cannot see.
+              child: Text(
+                sidebarVisible
+                    ? context.l10n.pinned_to_sidebar
+                    : context.l10n.pinned_to_playlists,
+              ),
             );
           },
         );
       }
-    }, [playlist.id, ref, context]);
+    }, [playlist.id, ref, context, sidebarVisible]);
 
     if (_isTile) {
       return PlaybuttonTile(

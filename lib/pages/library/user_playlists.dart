@@ -12,6 +12,7 @@ import 'package:spotube/hooks/utils/use_debounced_filter.dart';
 import 'package:spotube/components/playbutton_view/playbutton_view.dart';
 import 'package:spotube/modules/playlist/liked_playlist_synthetic.dart';
 import 'package:spotube/modules/playlist/playlist_create_dialog.dart';
+import 'package:spotube/modules/root/sidebar/sidebar_visibility.dart';
 import 'package:spotube/modules/playlist/playlist_order_dialog.dart';
 import 'package:spotube/components/inter_scrollbar/inter_scrollbar.dart';
 import 'package:spotube/components/fallbacks/anonymous_fallback.dart';
@@ -64,6 +65,16 @@ class UserPlaylistsPage extends HookConsumerWidget {
     final mainOrder = ref.watch(
       userPreferencesProvider.select((s) => s.mainPlaylistOrder),
     );
+    final pinnedIds = ref.watch(
+      userPreferencesProvider.select((s) => s.pinnedPlaylistIds),
+    );
+    final layoutMode = ref.watch(
+      userPreferencesProvider.select((s) => s.layoutMode),
+    );
+    // With a sidebar, pins already have a home and this page stays in main
+    // order. Without one (phone layouts) this page is the only place a pin is
+    // visible, so it has to rank pinned playlists first.
+    final sidebarVisible = sidebarVisibleOf(context, layoutMode);
 
     // Offline the disk snapshot still lists every Spotify playlist the user
     // ever saved, but only the mirrored ones can render their songs. Showing
@@ -104,8 +115,23 @@ class UserPlaylistsPage extends HookConsumerWidget {
     );
 
     final orderedPlaylists = useMemoized(
-      () => applyMainPlaylistOrder(combinedPlaylists, mainOrder),
-      [combinedPlaylists, mainOrder],
+      () {
+        final ordered = applyMainPlaylistOrder(combinedPlaylists, mainOrder);
+        return sidebarVisible ? ordered : applyPinnedFirst(ordered, pinnedIds);
+      },
+      [combinedPlaylists, mainOrder, sidebarVisible, pinnedIds],
+    );
+
+    // The pinned block is ordered by pins, not by the main order, so the
+    // dialog only gets the rows it can actually move. Showing pinned rows
+    // there would let a drag silently do nothing.
+    final orderDialogPlaylists = useMemoized(
+      () => sidebarVisible
+          ? orderedPlaylists
+          : orderedPlaylists
+              .where((playlist) => !pinnedIds.contains(playlist.id))
+              .toList(),
+      [orderedPlaylists, sidebarVisible, pinnedIds],
     );
 
     final playlists = useMemoized(
@@ -187,7 +213,7 @@ class UserPlaylistsPage extends HookConsumerWidget {
                         const PlaylistCreateDialogButton(),
                         const SizedBox(width: 8),
                         PlaylistOrderDialogButton(
-                          playlists: orderedPlaylists,
+                          playlists: orderDialogPlaylists,
                         ),
                       ],
                     ),

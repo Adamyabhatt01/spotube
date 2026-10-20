@@ -14,6 +14,7 @@ import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/playlist/playlist_create_dialog.dart';
+import 'package:spotube/modules/root/sidebar/sidebar_visibility.dart';
 import 'package:spotube/provider/playlist_download_provider.dart';
 import 'package:spotube/provider/scroll_motion.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
@@ -62,6 +63,10 @@ class TrackPresentationTopSection extends HookConsumerWidget {
     );
     final isPinned = isPinnableCollection &&
         pinnedPlaylistIds.contains(options.collectionId);
+    final layoutMode = ref.watch(
+      userPreferencesProvider.select((s) => s.layoutMode),
+    );
+    final sidebarVisible = sidebarVisibleOf(context, layoutMode);
 
     // Automatic downloads are a playlist concept; albums share this header.
     final canAutoDownload = isPinnableCollection;
@@ -210,7 +215,11 @@ class TrackPresentationTopSection extends HookConsumerWidget {
                     location: ToastLocation.topRight,
                     builder: (context, overlay) {
                       return SurfaceCard(
-                        child: Text(context.l10n.pinned_to_sidebar).small(),
+                        child: Text(
+                          sidebarVisible
+                              ? context.l10n.pinned_to_sidebar
+                              : context.l10n.pinned_to_playlists,
+                        ).small(),
                       );
                     },
                   );

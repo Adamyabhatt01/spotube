@@ -30,6 +30,36 @@ List<SpotubeSimplePlaylistObject> applyMainPlaylistOrder(
   return ordered;
 }
 
+/// Ranks pinned playlists first, in pin order, then everything else in the
+/// order it arrived in.
+///
+/// The sidebar renders pins in `pinnedPlaylistIds` order. A phone has no
+/// sidebar, so pinning there used to change nothing the user could see; this
+/// applies the same list to the Playlists page in that layout. Pinned ids with
+/// no playlist behind them are skipped, and unpinned playlists keep their
+/// [playlists] order.
+List<SpotubeSimplePlaylistObject> applyPinnedFirst(
+  List<SpotubeSimplePlaylistObject> playlists,
+  List<String> pinnedIds,
+) {
+  if (pinnedIds.isEmpty) return List.of(playlists);
+
+  final byId = {for (final playlist in playlists) playlist.id: playlist};
+  final seen = <String>{};
+  final ordered = <SpotubeSimplePlaylistObject>[];
+
+  for (final id in pinnedIds) {
+    final playlist = byId[id];
+    if (playlist != null && seen.add(id)) ordered.add(playlist);
+  }
+  if (ordered.isEmpty) return List.of(playlists);
+
+  for (final playlist in playlists) {
+    if (seen.add(playlist.id)) ordered.add(playlist);
+  }
+  return ordered;
+}
+
 /// Moves the visible main-section entry at [from] to [to].
 ///
 /// [visible] is what the dialog actually shows; [storedOrder] may also hold ids

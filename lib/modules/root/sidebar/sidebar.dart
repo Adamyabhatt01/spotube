@@ -20,6 +20,7 @@ import 'package:spotube/modules/root/sidebar/sidebar_pin_cover.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_pin_tile.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_reorderable_item.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_station_pin_tile.dart';
+import 'package:spotube/modules/root/sidebar/sidebar_visibility.dart';
 
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
@@ -162,10 +163,7 @@ class Sidebar extends HookConsumerWidget {
       (e) => router.currentPath.startsWith(e.pathPrefix),
     );
 
-    if (layoutMode == LayoutMode.compact ||
-        (mediaQuery.smAndDown && layoutMode == LayoutMode.adaptive)) {
-      return child;
-    }
+    if (!sidebarVisibleOf(context, layoutMode)) return child;
 
     final showLabels = mediaQuery.lgAndUp && !context.iconOnlyNav;
 
@@ -180,21 +178,20 @@ class Sidebar extends HookConsumerWidget {
     // Drag ids are the raw favorite keys: the shared pins group drops
     // cross-type moves as no-ops (unknown id => null drop), so playlist and
     // station pins can never corrupt each other's order.
-    final visibleStationKeys = showLabels
-        ? stationPinIds
-        : stationPinIds.take(_maxRailPins).toList();
+    final visibleStationKeys =
+        showLabels ? stationPinIds : stationPinIds.take(_maxRailPins).toList();
     final hasStationOverflow =
         !showLabels && stationPinIds.length > visibleStationKeys.length;
 
     // Best-effort names for the drag ghosts below; the tile itself resolves
     // the full object. Favorites cover the common case; anything else drags
     // under its raw key.
-    final favoriteStations =
-        ref.watch(radioFavoritesProvider).asData?.value ??
-            const <RadioStation>[];
+    final favoriteStations = ref.watch(radioFavoritesProvider).asData?.value ??
+        const <RadioStation>[];
     final stationNames = useMemoized(
       () => {
-        for (final station in favoriteStations) station.favoriteKey: station.name,
+        for (final station in favoriteStations)
+          station.favoriteKey: station.name,
       },
       [favoriteStations],
     );
@@ -243,9 +240,7 @@ class Sidebar extends HookConsumerWidget {
               after: after,
             );
             if (drop == null) return;
-            ref
-                .read(userPreferencesProvider.notifier)
-                .setSidebarLibraryOrder(
+            ref.read(userPreferencesProvider.notifier).setSidebarLibraryOrder(
                   moveSidebarEntry(visible, drop.from, drop.to),
                 );
           },
@@ -263,8 +258,7 @@ class Sidebar extends HookConsumerWidget {
             style: router.currentPath.startsWith(tile.pathPrefix)
                 ? const ButtonStyle.secondary()
                 : (showLabels ? const ButtonStyle.ghost() : null),
-            alignment:
-                showLabels ? AlignmentDirectional.centerStart : null,
+            alignment: showLabels ? AlignmentDirectional.centerStart : null,
             label: showLabels ? Text(tile.title) : null,
             onPressed: () {
               context.navigateTo(tile.route);
@@ -285,9 +279,7 @@ class Sidebar extends HookConsumerWidget {
           final visible = [for (final t in orderedLibraryTiles) t.id];
           final from = visible.indexOf(draggedId);
           if (from == -1) return;
-          ref
-              .read(userPreferencesProvider.notifier)
-              .setSidebarLibraryOrder(
+          ref.read(userPreferencesProvider.notifier).setSidebarLibraryOrder(
                 moveSidebarEntry(visible, from, visible.length - 1),
               );
         },
@@ -337,8 +329,7 @@ class Sidebar extends HookConsumerWidget {
           group: SidebarReorderGroup.pins,
           visibleIds: [for (final t in visiblePins) t.id.substring(4)],
           onAccept: (draggedId) {
-            final stored =
-                ref.read(userPreferencesProvider).pinnedPlaylistIds;
+            final stored = ref.read(userPreferencesProvider).pinnedPlaylistIds;
             final visible = [
               for (final t in visiblePins) t.id.substring(4),
             ];
@@ -372,8 +363,7 @@ class Sidebar extends HookConsumerWidget {
             group: SidebarReorderGroup.pins,
             id: key,
             onAcceptInGroup: (draggedId, targetId, {required bool after}) {
-              final stored =
-                  ref.read(userPreferencesProvider).pinnedStationIds;
+              final stored = ref.read(userPreferencesProvider).pinnedStationIds;
               final visible = List<String>.of(visibleStationKeys);
               final drop = resolveSidebarDrop(
                 visible,
@@ -405,8 +395,7 @@ class Sidebar extends HookConsumerWidget {
           group: SidebarReorderGroup.pins,
           visibleIds: visibleStationKeys,
           onAccept: (draggedId) {
-            final stored =
-                ref.read(userPreferencesProvider).pinnedStationIds;
+            final stored = ref.read(userPreferencesProvider).pinnedStationIds;
             final visible = List<String>.of(visibleStationKeys);
             final from = visible.indexOf(draggedId);
             if (from == -1) return;
@@ -422,8 +411,7 @@ class Sidebar extends HookConsumerWidget {
               context.navigateTo(const RadioRoute());
             },
             child: Tooltip(
-              tooltip:
-                  const TooltipContainer(child: Text('Radio')).call,
+              tooltip: const TooltipContainer(child: Text('Radio')).call,
               child: const Icon(SpotubeIcons.radio),
             ),
           ),
