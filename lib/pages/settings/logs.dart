@@ -38,9 +38,7 @@ class LogsPage extends HookConsumerWidget {
                 onPressed: () async {
                   final logsSnapshot = await ref.read(logsProvider.future);
 
-                  if (logsSnapshot != null) {
-                    await Clipboard.setData(ClipboardData(text: logsSnapshot));
-                  }
+                  await Clipboard.setData(ClipboardData(text: logsSnapshot));
                   if (context.mounted) {
                     showToast(
                       context: context,
@@ -82,7 +80,7 @@ class LogsPage extends HookConsumerWidget {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(8.0),
                 controller: controller,
-                child: Card(child: SelectableText(value ?? '')),
+                child: Card(child: SelectableText(value)),
               ),
             ),
           AsyncError(:final error) => switch (error) {

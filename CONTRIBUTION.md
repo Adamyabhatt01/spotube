@@ -120,7 +120,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/KRTirt
 Do the following:
 
 - Install [Dart](https://dart.dev/get-dart) and [fvm](https://fvm.app/documentation/getting-started/installation)
-- Install the pinned Flutter SDK (see `.fvmrc`, currently 3.35.2):
+- Install the pinned Flutter SDK (see `.fvmrc`, currently 3.38.10):
   ```bash
   fvm install
   ```

@@ -322,7 +322,7 @@ arm64 reports 6501 while universal reports 4501.
 
 ## 🛠 Build from source
 
-Requires [FVM](https://fvm.app) with the Flutter version pinned in `.fvmrc` (currently 3.35.2).
+Requires [FVM](https://fvm.app) with the Flutter version pinned in `.fvmrc` (currently 3.38.10).
 
 ```bash
 # Linux system deps (Debian/Ubuntu); see upstream docs for other platforms
@@ -353,11 +353,9 @@ builds are signed with `android/key.properties`, which points at a local test ke
 own if you publish your own builds. Automatic VPN needs `nmcli` (NetworkManager) on the machine
 running the app; nothing needs to be installed to build without it.
 
-Android builds disable Impeller in `android/app/src/main/AndroidManifest.xml`. Flutter 3.35's
-Impeller drops the backdrop-filter pass when more than one blurred surface is on screen
-([flutter/flutter#173622](https://github.com/flutter/flutter/issues/173622)); Skia keeps the frosted
-bottom chrome stable. The engine fix first shipped in Flutter 3.38, so remove that manifest flag
-when `.fvmrc` is updated past 3.35.x.
+Android builds run on Impeller. Flutter 3.38 includes the engine fix for the backdrop-filter pass
+([flutter/flutter#173622](https://github.com/flutter/flutter/issues/173622)), so the frosted bottom
+chrome stays stable without the temporary Skia fallback.
 
 ## ⚠️ Status and caveats
 
