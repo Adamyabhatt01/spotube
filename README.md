@@ -71,7 +71,7 @@ the binary is already identical, and warns if `libmpv`, `libsecret` or the tray 
 
 ## ✨ What you'll notice
 
-The changes people actually feel. Each one links to the mechanics further down.
+The changes people actually feel. Several link to the mechanics further down.
 
 - **The play button tells the truth.** Once audio is audible the transport shows pause and stays
   usable, even if the source manifest is still settling in the background. The frosted bottom bar
@@ -242,6 +242,30 @@ Android first, because that's the device where it hurt:
 - yt-dlp is located by **absolute path** rather than relying on the process `PATH`, which is why
   desktop detection no longer depends on how the app happened to be launched.
 
+#### Benchmarks: RAM and CPU
+
+Linux release bundle from fork build 2 (`2be74adf`), Flutter 3.35.2, visible window on
+Hyprland/Wayland with an NVIDIA GPU. Fresh launch, no interaction, two five-minute runs. PSS and
+RSS are the process tree (the app plus any helper still alive at that sample); CPU is the Spotube
+process as a percentage of one core.
+
+| Time after launch | PSS | RSS | Processes |
+| --- | --- | --- | --- |
+| 30 s | 323–330 MB | 409–419 MB | 4 |
+| 3 min | 338–368 MB | 411–444 MB | 1 |
+| 5 min | 303–328 MB | 376–401 MB | 1 |
+
+The 3-minute bump is the Home/library artwork loading, not a leak; it settles again by five
+minutes. Live Dart heap was **27.5 MB** in the VM's own accounting.
+
+Idle CPU over ten 25-second windows: **median 27%, range 23–33% of one core** (the two runs averaged
+29% and 27%). "Idle" here means no input, not no work: the visible window keeps drawing every vsync,
+and the earlier ticker audit found 24 always-mounted animations. A 0% figure would mean the window
+had stopped rendering. Compositor and NVIDIA driver work is excluded.
+
+Android has no comparable on-device numbers from this machine (no `adb` or device); the THP fix
+there is the same kernel setting, but Android CPU and frame-time numbers remain unmeasured.
+
 #### Why RAM use went down
 
 The short version: most of the reported "Dart heap" was not the Dart heap. The kernel was backing
@@ -251,12 +275,8 @@ few KB charged megabytes of resident memory. The VM's own accounting put the liv
 
 The fix is a per-process `prctl(PR_SET_THP_DISABLE)` in the Linux runner and on Android
 (`MemoryBacking.kt` + `memory_backing.cpp`). It affects only Spotube and is a no-op where THP is
-already off. Measured on Linux:
-
-| | PSS | RSS | Live Dart heap |
-| --- | --- | --- | --- |
-| Before | 548 MB | 648 MB | 27.5 MB |
-| **After** | **315 MB** | **415 MB** | **27.5 MB** |
+already off. The pre-fix build measured **PSS 548 MB / RSS 648 MB** at five minutes; the current
+runs settle at **PSS 303–328 MB / RSS 376–401 MB**.
 
 The smoothness cost was measured over four 25-second windows: minor faults and CPU overlapped
 run-to-run with no consistent direction, because the hot paths are native mpv/FFmpeg and Impeller
@@ -351,9 +371,9 @@ when `.fvmrc` is updated past 3.35.x.
   build it yourself from the steps above.
 - **No signature continuity.** The test key means this fork's builds are only interchangeable with
   each other, never with official releases.
-- **The regression suite is not published.** 932 tests guard this fork's own code — the VPN lease
-  logic, download reconciliation, source ranking, snapshot revalidation — and none of them are in
-  this repo; `test/` is gitignored on purpose. So a clone has nothing to run, and the CI test gate
+- **The regression suite is not published.** About 1,500 tests guard this fork's own code — the VPN
+  lease logic, download reconciliation, source ranking, snapshot revalidation — and none of them are
+  in this repo; `test/` is gitignored on purpose. So a clone has nothing to run, and the CI test gate
   passes because it finds zero tests. Treat the shipped binary as better tested than the source
   tree looks.
 
