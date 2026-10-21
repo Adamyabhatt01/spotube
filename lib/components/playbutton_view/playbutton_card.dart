@@ -44,10 +44,6 @@ class PlaybuttonCard extends StatelessWidget {
   final void Function()? onPlaybuttonPressed;
   final void Function()? onAddToQueuePressed;
   final void Function()? onPinPressed;
-
-  /// Direct playback on a cover tap. When null the cover stays part of the
-  /// card's own navigation tap target.
-  final void Function()? onCoverPressed;
   final String? description;
 
   final String? imageUrl;
@@ -85,7 +81,6 @@ class PlaybuttonCard extends StatelessWidget {
     this.onPlaybuttonPressed,
     this.onAddToQueuePressed,
     this.onPinPressed,
-    this.onCoverPressed,
     this.onTap,
     this.isOwner = false,
     this.isPinned = false,
@@ -138,32 +133,21 @@ class PlaybuttonCard extends StatelessWidget {
             ),
           );
 
-    // First in the Stack: the overlay buttons sit above it and are hit-tested
-    // first, so play/queue/pin keep their own taps; everywhere else on the
-    // cover, this wins over CardImage's whole-card navigation tap.
-    final coverTapTarget = onCoverPressed == null
-        ? cover
-        : GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: canPressPlay ? onCoverPressed : null,
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: Semantics(
-                label: context.l10n.play,
-                button: true,
-                child: cover,
-              ),
-            ),
-          );
-
+    // First in the Stack: the overlay buttons are hit-tested before it, so
+    // play/queue/pin keep their own small taps while the rest of the cover
+    // falls through to CardImage's whole-card navigation tap.
     return SizedBox(
       width: coverSize,
       child: CardImage(
         image: Stack(
           children: [
-            coverTapTarget,
+            cover,
             StatedWidget.builder(
               builder: (context, states) {
+                // Touch never reports hover, so the corner buttons stay shown
+                // there. They are small descendants of CardImage's Button and
+                // only win their own regions; everywhere else the tap falls
+                // through to the card's navigation.
                 final hovered = states.contains(WidgetState.hovered) ||
                     kIsMobile;
                 return Positioned(

@@ -12,10 +12,6 @@ class PlaybuttonTile extends HookWidget {
   final void Function()? onPlaybuttonPressed;
   final void Function()? onAddToQueuePressed;
   final void Function()? onPinPressed;
-
-  /// Direct playback on a cover tap; null keeps the cover part of the row's
-  /// navigation tap.
-  final void Function()? onCoverPressed;
   final String? description;
 
   final String? imageUrl;
@@ -51,7 +47,6 @@ class PlaybuttonTile extends HookWidget {
     this.onPlaybuttonPressed,
     this.onAddToQueuePressed,
     this.onPinPressed,
-    this.onCoverPressed,
     this.onTap,
     this.isOwner = false,
     this.isPinned = false,
@@ -91,9 +86,8 @@ class PlaybuttonTile extends HookWidget {
       [imageUrl, decodeSide],
     );
 
-    // The outer Button does not gate an inner tap detector, so the loading
-    // guard lives here. The trailing buttons are in a separate row slot and
-    // keep winning their own regions.
+    // The trailing buttons are in a separate row slot and keep winning their
+    // own regions; the cover stays part of the row's navigation tap.
     final tileCover = imageUrl != null
         ? Container(
             width: 50 * scale,
@@ -118,20 +112,7 @@ class PlaybuttonTile extends HookWidget {
           );
 
     return Button(
-      leading: onCoverPressed == null
-          ? tileCover
-          : GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: canPressPlay ? onCoverPressed : null,
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: Semantics(
-                  label: context.l10n.play,
-                  button: true,
-                  child: tileCover,
-                ),
-              ),
-            ),
+      leading: tileCover,
       style: ButtonVariance.ghost.copyWith(
         padding: (context, states, value) {
           return (ButtonVariance.ghost.padding(context, states) as EdgeInsets)
@@ -184,7 +165,9 @@ class PlaybuttonTile extends HookWidget {
           ),
         ],
       ),
-      enabled: canPressPlay,
+      // Navigation is independent of playback readiness: gating it on
+      // canPressPlay made the whole row a dead tap while tracks resolved.
+      enabled: onTap != null,
       onPressed: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
