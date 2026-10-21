@@ -1,5 +1,45 @@
 # Changelog
 
+## [5.1.2-fork.6](https://github.com/Adamyabhatt01/spotube/releases/tag/v5.1.2-fork.6) - 2026-10-22
+
+Fork release. App version `5.1.2+4506`, Android artifacts signed with the fork's test key and
+built from this tag.
+
+### Added
+
+- The fork's Spotify metadata plugin is bundled inside the app (`assets/plugins/spotube-plugin-spotify/plugin.smplug`,
+  version 0.2.10), seeded on first run and selected as the default metadata source. An install
+  carrying 0.2.9 upgrades to the bundled copy automatically.
+- *Delete local library* on Library → Local files: forgets every downloaded playlist, deletes the
+  files this app wrote (download and cache roots only), and cancels downloads in progress. Folders
+  you added yourself, play history, pinned playlists and Spotify playlists are untouched; the
+  confirmation reports file count and bytes first.
+- Anonymous sessions on Home show the login fallback instead of the plugin's raw credential error.
+
+### Bug Fixes
+
+- Removing a track from a playlist reaches Spotify, reports failure when it can't, and deletes the
+  membership row in the local download mirror so the track doesn't reappear on reload
+  (plugin 0.2.10 + `detachTracksFromPlaylist`).
+- On Android the playlist/album header frost and the lyrics backdrop appear on the first painted
+  frame instead of arriving with the first scroll: the artwork is blurred as it is painted rather
+  than sampled from behind the panel.
+- The lyrics loading shimmer overflowed each of its rows by ~417 px on a phone, and the lyrics
+  header by 33 px; both now size from the viewport.
+- A playlist or album card row was an unusable tap while its audio source resolved; navigation is no
+  longer gated on playback readiness, and a cover tap navigates on every platform.
+
+### Performance
+
+- Lyrics page open cost: the full-screen `BackdropFilter` over a still-decoding cover is gone, the
+  active lyric's scroll runs after the frame instead of during build, and the plain-text join is
+  linear instead of quadratic.
+
+### Build
+
+- `androidx.multidex` replaces the legacy `com.android.support` coordinate; Gradle runs with
+  `parallel` and `caching` enabled; `version` bumped to `5.1.2+4506`.
+
 ## [5.1.2](https://github.com/KRTirtho/spotube/compare/v5.1.1...v5.1.2) (2026-06-05)
 
 ### Bug Fixes

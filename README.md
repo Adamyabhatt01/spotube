@@ -24,12 +24,15 @@ This fork is **not** affiliated with, endorsed by, or maintained by the Spotube 
 
 Get a file from [**Releases**](../../releases) and open it on your phone.
 
-| You want | File | Size | Use it when |
-| --- | --- | --- | --- |
-| **Arm64** (recommended) | `Spotube-android-arm64-v8a.apk` | 66 MB | Almost any phone sold since ~2017 |
-| **32-bit ARM** | `Spotube-android-armeabi-v7a.apk` | 62 MB | Older 32-bit phones and tablets |
-| **x86_64** | `Spotube-android-x86_64.apk` | 68 MB | Emulators and x86_64 devices |
-| **Universal** | `Spotube-android-universal.apk` | 141 MB | You don't know the ABI, or want one file that runs anywhere |
+| You want | File (in the latest release) | Use it when |
+| --- | --- | --- |
+| **Arm64** (recommended) | `Spotube-<ver>-android-arm64-v8a.apk` | Almost any phone sold since ~2017 |
+| **32-bit ARM** | `Spotube-<ver>-android-armeabi-v7a.apk` | Older 32-bit phones and tablets |
+| **x86_64** | `Spotube-<ver>-android-x86_64.apk` | Emulators and x86_64 devices |
+| **Universal** | `Spotube-<ver>-android-universal.apk` | You don't know the ABI, or want one file that runs anywhere |
+
+`<ver>` is the release version on the tag you downloaded, e.g. `5.1.2-fork.6`. Sizes vary per
+build and are listed on the release page.
 
 All four need **Android 7.0 (API 24) or newer**. The universal build carries `arm64-v8a`,
 `armeabi-v7a` and `x86_64` machine code; each split build carries only its own ABI. Check what you
@@ -42,12 +45,14 @@ Three things to know **before** you install:
    playlists and listening history are safe — they live with your account — but the local library
    index, downloaded files and in-app settings don't carry across between the two builds.
 2. **Going from universal → a split build needs a reinstall.** The per-ABI builds carry higher
-   version codes (5501 armeabi-v7a, 6501 arm64-v8a, 8501 x86_64) than the universal build (4501),
+   version codes (5506 armeabi-v7a, 6506 arm64-v8a, 8506 x86_64) than the universal build (4506),
    so Android refuses a split build as a downgrade over the universal one. The other direction is
    fine.
-3. **Nothing will tell you an update exists.** This fork has no update feed — re-check
-   [Releases](../../releases) when you want a newer build. Android will also warn about an unfamiliar
-   publisher and about media-playback permissions; that's normal for any sideloaded APK.
+3. **The app itself won't tell you an update exists.** This fork has no update feed — re-check
+   [Releases](../../releases) when you want a newer build. The Spotify **metadata plugin** does
+   check its own repository once a day ([why that matters](#the-spotify-plugin-comes-bundled)).
+   Android will also warn about an unfamiliar publisher and about media-playback permissions;
+   that's normal for any sideloaded APK.
 
 ### Linux — one command, from a checkout
 
@@ -69,6 +74,26 @@ the binary is already identical, and warns if `libmpv`, `libsecret` or the tray 
   `build/linux/x64/release/bundle/spotube` without installing anything at all. There is **no `.deb`,
   `.rpm` or `.AppImage` build here** — see [caveats](#-status-and-caveats).
 
+### The Spotify plugin comes bundled
+
+Spotube resolves metadata through plugins, and upstream ships none for Spotify. This fork builds its
+own ([Adamyabhatt01/spotube-plugin-spotify](https://github.com/Adamyabhatt01/spotube-plugin-spotify))
+and puts it **inside the app**: `assets/plugins/spotube-plugin-spotify/plugin.smplug`, currently
+version 0.2.10. A fresh install seeds it, preinstalls it and selects it as the default metadata
+source, so signing in is the only step — there is nothing to find and install by hand.
+
+- **Updating an older install.** The bundled copy is compared against what's installed by
+  `plugin.json`'s version, so an install carrying 0.2.9 moves to the bundled 0.2.10 on the next
+  launch. The plugin also checks its own repository's latest release about once a day and offers
+  the update in Settings → Metadata plugins.
+- **Installing by hand** (only if you're on a build that predates the bundle) — Settings →
+  Metadata plugins → Install:
+  `https://raw.githubusercontent.com/Adamyabhatt01/spotube-plugin-spotify/0.2.10/dist/plugin.smplug`
+- **What it does.** Search, albums, artists, playlists, Liked Songs (against Spotify's real
+  library membership), playlist edits including removing a track, and stream resolution against
+  the logged-in account. Anonymous sessions get the "please log in" fallback rather than the
+  plugin's raw error.
+
 ## ✨ What you'll notice
 
 The changes people actually feel. Several link to the mechanics further down.
@@ -80,8 +105,10 @@ The changes people actually feel. Several link to the mechanics further down.
 - **Likes are real likes.** The heart reads Spotify's actual library membership, so liking a track
   adds it to Liked Songs and unliking removes it, instead of trusting editorial metadata that was
   true for most of the catalogue.
-- **Artwork opens the album.** On touch, tapping an album cover opens the album like the title does;
-  the play button is the direct-play action. Playlist cards already worked this way.
+- **Artwork opens the album.** Tapping a cover navigates — on touch and on desktop — because the
+  cover is part of the card's own tap target instead of a competing play gesture. The play, queue
+  and pin buttons keep their own small taps, and a card or row stays tappable while its audio
+  source is still resolving.
 - **Search is scoped.** The mobile Search tab now has separate Music and Radio landings: Music
   shows personalised rails and New Releases, Radio drops the Music shortcut and Recent rail. The
   real Browse and Radio pages are untouched.
@@ -95,6 +122,20 @@ The changes people actually feel. Several link to the mechanics further down.
   noticed from the link's own expiry stamp and refreshed. → [Playback](#playback-and-streaming)
 - **Downloads survive interruptions.** Chunked and resumable, up to 3 at a time, and importing a
   playlist asks "already downloaded, skip?" once instead of once per track.
+- **Removing a song from a playlist works.** It failed silently for a long time: the call died in
+  the plugin, the app didn't await it and nothing reported the failure. Now it reaches Spotify,
+  says so when it can't, and drops the track from the local download mirror too, so it doesn't come
+  back on reload.
+- **The frost is there when you arrive.** On Android, a playlist or album header used to show a flat
+  translucent panel until the first scroll blurred it, and the lyrics backdrop likewise. The artwork
+  is now blurred as it's painted rather than sampled from behind, so it's correct on the first frame.
+- **Lyrics open without the hitch.** The 1–2 s stutter on entering the lyrics page came from a
+  full-screen blur over a cover that was still decoding, plus a loading shimmer that overflowed its
+  own row by hundreds of pixels on a phone. Both are gone.
+- **One button to clear downloaded music.** Library → Local files → *Delete local library* forgets
+  every downloaded playlist and deletes the files this app wrote, cancelling downloads in progress.
+  Music in folders you added yourself, play history, pinned playlists and your Spotify playlists are
+  left alone, and the confirmation tells you how many files and how much space it's about to free.
 - **Smoother on cheap phones and long sessions.** Less work per scroll, per second of playback, and
   per library row. → [Performance](#performance)
 - **Optional: put your traffic through your own VPN** for downloads, streaming, or both — opt-in, off
@@ -136,7 +177,9 @@ Everything here is **off or default until you change it** — a fresh install be
 - **`Automatic VPN is not supported on this platform yet`.** System connections need Linux with
   NetworkManager and `nmcli` on PATH. Live tunnel devices work on any platform; if `nmcli` is absent,
   only the system-connection kind is unavailable.
-- **Update check never announces anything.** By design — this fork publishes no update feed.
+- **Update check never announces anything.** By design — this fork publishes no update feed for the
+  app. The bundled Spotify plugin is the exception: it checks its own repository's latest release and
+  will offer an update there.
 
 ---
 
@@ -323,8 +366,9 @@ under Settings → Appearance.
 Database schema through **v27** with per-step migration guards (each step re-checks the live column
 set, so a half-applied migration can be finished rather than only retried), dependency pinning with
 a CI job that detects drift, and a reproducible build script. APKs are versioned
-`5.1.2+4501`; per-ABI builds get Flutter's `abiIndex * 1000 + versionCode` override, which is why
-arm64 reports 6501 while universal reports 4501.
+`5.1.2+4506` — upstream's build `45` plus the fork's own `06` — and per-ABI builds get Flutter's
+`abiIndex * 1000 + versionCode` override, which is why arm64 reports 6506 while universal reports
+4506.
 
 ## 🛠 Build from source
 
@@ -370,9 +414,9 @@ chrome stays stable without the temporary Skia fallback.
   what breaks is this fork's own code.
 - **Linux packaging is thin.** Only the portable bundle is published; `.deb`, `.rpm` and `.AppImage`
   need `fastforge`, which isn't installed in the environment that builds these binaries.
-- **Source may run behind the binaries.** Releases here can include a working tree that hasn't been
-  tagged, so an APK is not necessarily reproducible from the commit it names. If that matters to you,
-  build it yourself from the steps above.
+- **Older releases may not match their commit.** From `v5.1.2-fork.6` the published binaries are
+  built from the tagged commit, so the tag is the source of the artifact. Fork builds `.1`–`.4` were
+  made from working trees, which is why that caveat used to apply to every release here.
 - **No signature continuity.** The test key means this fork's builds are only interchangeable with
   each other, never with official releases.
 - **The regression suite is not published.** About 1,500 tests guard this fork's own code — the VPN
@@ -388,5 +432,7 @@ Spotube is open source under the **[BSD-4-Clause](LICENSE)** license, copyright
 the same license and keeps that license file intact; the advertising clause of BSD-4-Clause applies
 to upstream's name. Fork-specific changes carry the same license and are offered without warranty.
 
-For everything upstream — the plugin ecosystem, translations, full platform guides and the
-community — go to [spotube.krtirtho.dev](https://spotube.krtirtho.dev).
+For everything upstream — the wider plugin ecosystem, translations, full platform guides and the
+community — go to [spotube.krtirtho.dev](https://spotube.krtirtho.dev). The Spotify metadata plugin
+is the exception: it is this fork's own, so issues about metadata, playlists or likes belong on
+[Adamyabhatt01/spotube-plugin-spotify](https://github.com/Adamyabhatt01/spotube-plugin-spotify).
