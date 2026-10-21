@@ -22,6 +22,7 @@ import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 import 'package:spotube/provider/metadata_plugin/library/tracks.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 
 enum TrackOptionValue {
@@ -209,7 +210,29 @@ class TrackOptionsActions {
         actionAddToPlaylist(context, playlistId);
         break;
       case TrackOptionValue.removeFromPlaylist:
-        favoritePlaylistsNotifier.removeTracks(playlistId ?? "", [track.id]);
+        // `playlistId` comes from the menu's owning page, so an entry opened
+        // from anywhere else has no playlist to remove from. Passing "" reached
+        // the plugin, which failed on it, and nothing said so.
+        if (playlistId == null || playlistId.isEmpty) break;
+        try {
+          await favoritePlaylistsNotifier.removeTracks(playlistId, [track.id]);
+        } catch (e, stack) {
+          AppLogger.reportError(e, stack);
+          if (context.mounted) {
+            showToast(
+              context: context,
+              location: ToastLocation.topRight,
+              builder: (context, overlay) {
+                return SurfaceCard(
+                  child: Text(
+                    context.l10n.something_went_wrong,
+                    textAlign: TextAlign.center,
+                  ),
+                );
+              },
+            );
+          }
+        }
         break;
       case TrackOptionValue.blacklist:
         final isBlacklisted = blacklist.contains(track);

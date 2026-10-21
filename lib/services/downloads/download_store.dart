@@ -257,6 +257,33 @@ Future<void> attachTracksToPlaylist(
   );
 }
 
+/// Drops [trackIds] from [playlistId]'s membership, leaving every other
+/// playlist's rows and the downloaded files alone.
+///
+/// Used when a track is removed from a playlist: the mirror has to forget the
+/// row, or an offline view and the page's reload fallback keep offering a track
+/// the user just deleted. A file on disk is not this playlist's property — it
+/// can be a member of several — so [track_download_table] is deliberately not
+/// touched here.
+///
+/// Remaining rows keep their positions, which leaves a gap rather than
+/// renumbering the list. Order is what the row means, not its index, and
+/// [writePlaylistMembership] compacts the whole list on the next sync.
+Future<void> detachTracksFromPlaylist(
+  AppDatabase database, {
+  required String playlistId,
+  required List<String> trackIds,
+}) async {
+  if (playlistId.isEmpty || trackIds.isEmpty) return;
+
+  await (database.delete(database.playlistDownloadTable)
+        ..where(
+          (t) =>
+              t.playlistId.equals(playlistId) & t.trackId.isIn(trackIds),
+        ))
+      .go();
+}
+
 /// Replaces a playlist's membership with [trackIds], in that order.
 ///
 /// [addedAtMs] is carried over for tracks that were already present, so
@@ -487,6 +514,28 @@ Future<void> deletePlaylistMirror(
     await (database.delete(database.playlistDownloadMirrorTable)
           ..where((t) => t.playlistId.equals(playlistId)))
         .go();
+  });
+}
+
+/// Every download row, whatever its status.
+///
+/// The only bulk reader: a whole-library wipe needs the paths and the byte total
+/// of everything the app owns, and nothing else asks for the full table.
+Future<List<TrackDownloadTableData>> allDownloads(AppDatabase database) {
+  return database.select(database.trackDownloadTable).get();
+}
+
+/// Removes every mirrored playlist, its membership, and every download row.
+///
+/// The bulk counterpart of [deletePlaylistMirror], and the one place allowed to
+/// clear [TrackDownloadTable] wholesale. It still deletes no file: paths are
+/// recorded, not owned, and the caller decides which ones are safe to unlink
+/// (`selectFilesToDelete` in `lib/services/downloads/local_library_wipe.dart`).
+Future<void> clearAllDownloadRecords(AppDatabase database) async {
+  await database.transaction(() async {
+    await database.delete(database.playlistDownloadTable).go();
+    await database.delete(database.playlistDownloadMirrorTable).go();
+    await database.delete(database.trackDownloadTable).go();
   });
 }
 

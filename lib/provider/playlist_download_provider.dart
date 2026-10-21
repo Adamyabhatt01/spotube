@@ -31,9 +31,11 @@ typedef PlaylistTracksPageFetcher
 /// - [syncAutoDownloadPlaylists] walks every opted-in playlist page-by-page.
 ///
 /// Identity is the Spotify playlist id throughout; the name is payload, never a
-/// key. Nothing here deletes an audio file, and nothing here deletes the record
-/// of one either: a `track_download` row outlives the membership that created it
-/// because it is the app's list of the files it owns.
+/// key. Nothing here deletes an audio file, and no per-playlist path deletes the
+/// record of one either: a `track_download` row outlives the membership that
+/// created it because it is the app's list of the files it owns. The single
+/// exception is [forgetEverything], the user's explicit whole-library wipe — it
+/// clears the records and still deletes no file.
 /// Thrown inside a guarded write when the playlist was deleted after the job
 /// started. It rolls the transaction back and is treated as a clean stop.
 class _PlaylistSyncAborted implements Exception {
@@ -79,6 +81,15 @@ class PlaylistMirrorService {
   /// it before every playlist-scoped write; [forget] bumps it first.
   final Map<String, int> _generations = {};
 
+  /// A second, global invalidation counter folded into every generation.
+  ///
+  /// Per-id bumps cannot cover a playlist this instance has never seen: an
+  /// unknown id reads as `0`, and a walk that captured `0` before a wipe would
+  /// still match `0` after one. [_epoch] makes every answer strictly increasing
+  /// over the service lifetime, so a generation captured before an invalidation
+  /// can never re-equal one asked for after it.
+  int _epoch = 0;
+
   /// One deferred follow-up per playlist when a sync request lands while that
   /// playlist is already being walked (a page reconcile racing the toggle, for
   /// example). The in-flight job schedules it again as it leaves.
@@ -98,7 +109,8 @@ class PlaylistMirrorService {
     _autoSyncRetryTimer = null;
   }
 
-  int _generationOf(String playlistId) => _generations[playlistId] ?? 0;
+  int _generationOf(String playlistId) =>
+      _epoch + (_generations[playlistId] ?? 0);
 
   bool _isCurrent(String playlistId, int generation) =>
       _generationOf(playlistId) == generation;
@@ -180,12 +192,37 @@ class PlaylistMirrorService {
 
   /// Removes mirror metadata for [playlistId] without touching downloads.
   Future<void> forget(String playlistId) async {
-    _generations[playlistId] = _generationOf(playlistId) + 1;
+    // The per-id delta only: [_generationOf] already folds in [_epoch], so
+    // bumping through it would count the epoch twice.
+    _generations[playlistId] = (_generations[playlistId] ?? 0) + 1;
     try {
       await deletePlaylistMirror(database, playlistId);
     } catch (e, stack) {
       AppLogger.reportError(e, stack);
     }
+  }
+
+  /// Drops every download and mirror record this app holds, deleting no file.
+  ///
+  /// Ordering is the whole contract:
+  /// 1. Invalidate synchronously, and drop deferred follow-ups so a walk that is
+  ///    finishing cannot relaunch one behind our back.
+  /// 2. Yield once, so a walk already parked on an `await` inside [_stillWanted]
+  ///    lands its enqueue against the queue about to be emptied rather than
+  ///    after it.
+  /// 3. Empty the download queue. A transfer that finishes late only reaches the
+  ///    database through `_setStatus`'s live-task match, so with no live task it
+  ///    writes neither a row nor a file.
+  /// 4. Delete, after nothing else can land.
+  ///
+  /// Throws if the write fails — this is a user-initiated action, and a silent
+  /// "cleared" that kept the records would be worse than an error.
+  Future<void> forgetEverything() async {
+    _epoch++;
+    _deferredAutoSync.clear();
+    await Future<void>.delayed(Duration.zero);
+    downloads.clearAll();
+    await clearAllDownloadRecords(database);
   }
 
   /// Refreshes a mirrored playlist from [firstPage], then pages through the

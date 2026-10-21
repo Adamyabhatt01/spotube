@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/playlist/playlist.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/playlist.dart';
 import 'package:spotube/provider/metadata_plugin/utils/paginated.dart';
+import 'package:spotube/services/downloads/download_store.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/services/metadata/library_snapshot.dart';
 
@@ -171,6 +173,16 @@ class MetadataPluginSavedPlaylistsNotifier
     await (await metadataPlugin)
         .playlist
         .removeTracks(playlistId, trackIds: trackIds);
+
+    // Spotify is not the only copy. The download mirror keeps its own
+    // membership rows, and the playlist page falls back to them while the
+    // refetch is in flight — without this delete the removed track is
+    // re-painted from the local table a moment after succeeding upstream.
+    await detachTracksFromPlaylist(
+      ref.read(databaseProvider),
+      playlistId: playlistId,
+      trackIds: trackIds,
+    );
 
     ref.invalidate(metadataPluginPlaylistTracksProvider(playlistId));
     refreshCoverLater(playlistId);
