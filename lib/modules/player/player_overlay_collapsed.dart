@@ -40,8 +40,9 @@ class PlayerOverlayCollapsedSection extends HookConsumerWidget {
                 // Keep the frost through scrolls and play/pause. The old
                 // freeze dropped the filter (and with a translucent theme,
                 // the bar itself) exactly while the user was looking at it;
-                // scrolling it was not a measured CPU win. The Android
-                // manifest disables Impeller until the engine fix in 3.38.
+                // scrolling it was not a measured CPU win. Android runs on
+                // Impeller again since the 3.38.10 bump, which carries the
+                // engine fix for the nested-BackdropFilter pass.
                 surfaceBlur: theme.surfaceBlur,
                 surfaceOpacity: theme.surfaceOpacity,
                 padding: EdgeInsets.zero,

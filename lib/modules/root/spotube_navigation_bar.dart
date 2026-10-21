@@ -110,9 +110,10 @@ class SpotubeNavigationBar extends HookConsumerWidget {
               surfaceOpacity:
                   realTransparent ? 0 : context.theme.surfaceOpacity,
               // Do not drop the frost during scroll: with a translucent theme
-              // that removed the bar's only visible tint. The Android
-              // manifest disables Impeller until the 3.38 engine fix, so the
-              // filter can stay live instead of being swapped out mid-scroll.
+              // that removed the bar's only visible tint. Android is on
+              // Impeller again since the 3.38.10 bump, whose engine carries
+              // the flutter/flutter#173622 fix, so the filter can stay live
+              // instead of being swapped out mid-scroll.
               surfaceBlur: realTransparent ? 0 : context.theme.surfaceBlur,
               children: [
                 for (final tile in navbarTileList)
