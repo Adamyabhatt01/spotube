@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:palette_generator/palette_generator.dart';
@@ -42,6 +41,28 @@ class PlainLyrics extends HookConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     final textZoomLevel = useState<int>(defaultTextZoom);
+
+    // One pass over the lines, keyed on the query result. The previous version
+    // looked each line's successor up with `elementAtOrNull(i + 1)` inside
+    // `mapIndexed`, and `elementAtOrNull` walks `i + 1` elements to do it -
+    // quadratic in the number of lines, re-run on every build (each zoom tap
+    // rebuilds this page and rejoins the whole file).
+    final joinedLyrics = useMemoized(() {
+      final lines = lyricsQuery.asData?.value.lyrics;
+      if (lines == null) return null;
+
+      const verseGap = Duration(milliseconds: 700);
+      final buffer = StringBuffer();
+      for (var i = 0; i < lines.length; i++) {
+        if (i > 0) buffer.write("\n");
+        buffer.write(lines[i].text);
+        if (i + 1 < lines.length &&
+            lines[i].time - lines[i + 1].time > verseGap) {
+          buffer.write("\n");
+        }
+      }
+      return buffer.toString();
+    }, [lyricsQuery]);
 
     return Stack(
       children: [
@@ -105,19 +126,6 @@ class PlainLyrics extends HookConsumerWidget {
                           );
                         }
 
-                        final lyrics =
-                            lyricsQuery.asData?.value.lyrics.mapIndexed((i, e) {
-                          final next = lyricsQuery.asData?.value.lyrics
-                              .elementAtOrNull(i + 1);
-                          if (next != null &&
-                              e.time - next.time >
-                                  const Duration(milliseconds: 700)) {
-                            return "${e.text}\n";
-                          }
-
-                          return e.text;
-                        }).join("\n");
-
                         return AnimatedDefaultTextStyle(
                           duration: const Duration(milliseconds: 200),
                           style: TextStyle(
@@ -132,9 +140,9 @@ class PlainLyrics extends HookConsumerWidget {
                                     : 2,
                           ),
                           child: SelectableText(
-                            lyrics == null && activeTrack == null
+                            joinedLyrics == null && activeTrack == null
                                 ? context.l10n.no_tracks_playing
-                                : lyrics ?? "",
+                                : joinedLyrics ?? "",
                             textAlign: TextAlign.center,
                           ),
                         );

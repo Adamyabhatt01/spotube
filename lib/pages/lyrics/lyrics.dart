@@ -4,6 +4,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 
 import 'package:spotube/components/titlebar/titlebar.dart';
+import 'package:spotube/components/image/frosted_artwork.dart';
 import 'package:spotube/components/image/universal_image.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/hooks/utils/use_palette_color.dart';
@@ -53,24 +54,35 @@ class LyricsPage extends HookConsumerWidget {
     tabbar = Row(
       children: [
         tabbar,
-        const Spacer(),
-        Consumer(
-          builder: (context, ref, child) {
-            final activeTrackForProvider = ref.watch(
-              audioPlayerProvider.select((s) => s.activeTrack),
-            );
-            final lyric = ref.watch(syncedLyricsProvider(activeTrackForProvider));
-            final providerName = lyric.asData?.value.provider;
+        // The tabs keep their natural width and the attribution takes what is
+        // left, right-aligned. A `Spacer` plus a non-flexible `Text` overflowed
+        // this row by 33px on a phone-width page and pushed the label off the
+        // screen.
+        Expanded(
+          child: Consumer(
+            builder: (context, ref, child) {
+              final activeTrackForProvider = ref.watch(
+                audioPlayerProvider.select((s) => s.activeTrack),
+              );
+              final lyric =
+                  ref.watch(syncedLyricsProvider(activeTrackForProvider));
+              final providerName = lyric.asData?.value.provider;
 
-            if (providerName == null) {
-              return const SizedBox.shrink();
-            }
+              if (providerName == null) {
+                return const SizedBox.shrink();
+              }
 
-            return Align(
-              alignment: Alignment.bottomRight,
-              child: Text(context.l10n.powered_by_provider(providerName)),
-            );
-          },
+              return Align(
+                alignment: Alignment.bottomRight,
+                child: Text(
+                  context.l10n.powered_by_provider(providerName),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                ),
+              );
+            },
+          ),
         ),
         const Gap(5),
       ],
@@ -81,6 +93,43 @@ class LyricsPage extends HookConsumerWidget {
     // resize from re-decoding for every pixel it moves.
     final backdropSide =
         (MediaQuery.sizeOf(context).longestSide / 256).ceilToDouble() * 256;
+
+    final panel = SurfaceCard(
+      // Where the artwork frosts itself there is no backdrop left for this card
+      // to sample, and no scroll worth freezing for. Elsewhere the blur is
+      // frozen while the lyrics scroll (sigma 0 draws plain until settle); blur
+      // and opacity at rest are unchanged.
+      surfaceBlur: artworkIsSelfFrosted
+          ? 0.0
+          : ref.watch(scrollInFlightProvider)
+              ? 0.0
+              : context.theme.surfaceBlur,
+      surfaceOpacity: context.theme.surfaceOpacity,
+      padding: EdgeInsets.zero,
+      borderRadius: BorderRadius.zero,
+      borderWidth: 0,
+      child: ColoredBox(
+        color:
+            hasArtwork ? palette.color.withValues(alpha: .7) : Colors.transparent,
+        child: SafeArea(
+          child: IndexedStack(
+            index: selectedIndex.value,
+            children: [
+              SyncedLyrics(
+                palette: palette,
+                isModal: false,
+                hasArtwork: hasArtwork,
+              ),
+              PlainLyrics(
+                palette: palette,
+                isModal: false,
+                hasArtwork: hasArtwork,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
 
     return SafeArea(
       bottom: false,
@@ -98,52 +147,19 @@ class LyricsPage extends HookConsumerWidget {
               : tabbar
         ],
         child: Container(
-          clipBehavior: Clip.hardEdge,
-          decoration: BoxDecoration(
-            image: hasArtwork
-                ? DecorationImage(
-                    image: UniversalImage.imageProvider(
-                      albumArt,
-                      width: backdropSide,
-                      height: backdropSide,
-                    ),
-                    fit: BoxFit.cover,
-                  )
-                : null,
-          ),
           margin: const EdgeInsets.only(bottom: 10),
-          child: SurfaceCard(
-            // Frozen while the lyrics scroll (sigma 0 draws plain until
-            // settle); blur and opacity at rest are unchanged.
-            surfaceBlur:
-                ref.watch(scrollInFlightProvider) ? 0 : context.theme.surfaceBlur,
-            surfaceOpacity: context.theme.surfaceOpacity,
-            padding: EdgeInsets.zero,
-            borderRadius: BorderRadius.zero,
-            borderWidth: 0,
-            child: ColoredBox(
-              color: hasArtwork
-                  ? palette.color.withValues(alpha: .7)
-                  : Colors.transparent,
-              child: SafeArea(
-                child: IndexedStack(
-                  index: selectedIndex.value,
-                  children: [
-                    SyncedLyrics(
-                      palette: palette,
-                      isModal: false,
-                      hasArtwork: hasArtwork,
-                    ),
-                    PlainLyrics(
-                      palette: palette,
-                      isModal: false,
-                      hasArtwork: hasArtwork,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+          child: hasArtwork
+              ? FrostedArtwork(
+                  image: UniversalImage.imageProvider(
+                    albumArt,
+                    width: backdropSide,
+                    height: backdropSide,
+                  ),
+                  borderRadius: BorderRadius.zero,
+                  sigma: context.theme.surfaceBlur,
+                  child: panel,
+                )
+              : panel,
         ),
       ),
     );

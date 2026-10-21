@@ -6,6 +6,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/heart_button/heart_button.dart';
+import 'package:spotube/components/image/frosted_artwork.dart';
 import 'package:spotube/components/image/universal_image.dart';
 import 'package:spotube/components/play_pause_icon.dart';
 import 'package:spotube/components/track_presentation/presentation_props.dart';
@@ -263,11 +264,10 @@ class TrackPresentationTopSection extends HookConsumerWidget {
           ),
           sliver: SliverList.list(
             children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  image: decorationImage,
-                  borderRadius: BorderRadius.circular(45),
-                ),
+              FrostedArtwork(
+                image: decorationImage.image,
+                borderRadius: BorderRadius.circular(45),
+                sigma: context.theme.surfaceBlur,
                 child: _HeaderSurface(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -380,11 +380,18 @@ class _HeaderSurface extends ConsumerWidget {
   @override
   Widget build(BuildContext context, ref) {
     final scale = context.theme.scaling;
-    final blurFrozen = ref.watch(scrollInFlightProvider);
+    // Where the artwork frosts itself there is no backdrop left to sample, and
+    // no scroll worth freezing for - which also means this surface stops
+    // rebuilding on every scroll start and settle.
+    final sigma = artworkIsSelfFrosted
+        ? 0.0
+        : ref.watch(scrollInFlightProvider)
+            ? 0.0
+            : context.theme.surfaceBlur;
 
     return OutlinedContainer(
       surfaceOpacity: context.theme.surfaceOpacity,
-      surfaceBlur: blurFrozen ? 0 : context.theme.surfaceBlur,
+      surfaceBlur: sigma,
       padding: EdgeInsets.all(24 * scale),
       borderRadius: BorderRadius.circular(22 * scale),
       borderWidth: 2,

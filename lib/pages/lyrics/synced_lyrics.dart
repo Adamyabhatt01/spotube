@@ -115,6 +115,37 @@ class SyncedLyrics extends HookConsumerWidget {
       return subscription.cancel;
     }, [controller]);
 
+    // The active line used to be scrolled into view from inside `itemBuilder`:
+    // a layout-mutating side effect issued mid-build, re-issued on every
+    // rebuild of this widget (each lyric change, zoom change, query-state
+    // flicker) for as long as the row stayed in the built range. Running it
+    // after the frame keeps the same target - `isIndexStateInLayoutRange` is
+    // the build-side condition, so a row the list never built is still ignored
+    // - without forcing a second layout pass in the frame that positioned it.
+    useEffect(() {
+      if (currentTime < 0) return null;
+      var cancelled = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (cancelled ||
+            !controller.hasClients ||
+            !controller.isIndexStateInLayoutRange(currentTime)) {
+          return;
+        }
+        // Nothing awaits this: scrollToIndex only rejects when the list goes
+        // away mid-animation, and an uncaught error on that future would
+        // surface as an unhandled zone error rather than a lyric-page crash.
+        controller
+            .scrollToIndex(
+          currentTime,
+          preferPosition: AutoScrollPosition.middle,
+        )
+            .catchError((error, stack) {
+          AppLogger.reportError(error, stack);
+        });
+      });
+      return () => cancelled = true;
+    }, [currentTime, controller]);
+
     return Stack(
       children: [
         CustomScrollView(
@@ -147,12 +178,6 @@ class SyncedLyrics extends HookConsumerWidget {
                   final lyricSlice = lyricValue.lyrics[index];
                   final isActive = index == currentTime;
 
-                  if (isActive) {
-                    controller.scrollToIndex(
-                      index,
-                      preferPosition: AutoScrollPosition.middle,
-                    );
-                  }
                   return AutoScrollTag(
                     key: ValueKey(index),
                     index: index,
