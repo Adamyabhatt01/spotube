@@ -2937,6 +2937,36 @@ abstract class AppLocalizations {
   /// **'Exported {filesExported} out of {files} files'**
   String exported_n_out_of_m_files(Object files, Object filesExported);
 
+  /// No description provided for @delete_local_library.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete local library'**
+  String get delete_local_library;
+
+  /// No description provided for @delete_local_library_confirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {count} downloaded files ({size}) from this device and forget every downloaded playlist? Downloads in progress will be canceled. Music in your own library folders, play history, pinned playlists and your Spotify playlists are left alone.'**
+  String delete_local_library_confirmation(Object count, Object size);
+
+  /// No description provided for @deleted_local_library.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted {count} files'**
+  String deleted_local_library(Object count);
+
+  /// No description provided for @deleted_local_library_with_failures.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed records, but {undeletable} of {files} files could not be deleted'**
+  String deleted_local_library_with_failures(Object files, Object undeletable);
+
+  /// No description provided for @delete_local_library_nothing_to_delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to delete'**
+  String get delete_local_library_nothing_to_delete;
+
   /// No description provided for @undo.
   ///
   /// In en, this message translates to:

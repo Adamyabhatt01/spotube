@@ -1533,6 +1533,27 @@ class AppLocalizationsKa extends AppLocalizations {
   }
 
   @override
+  String get delete_local_library => 'Delete local library';
+
+  @override
+  String delete_local_library_confirmation(Object count, Object size) {
+    return 'Delete $count downloaded files ($size) from this device and forget every downloaded playlist? Downloads in progress will be canceled. Music in your own library folders, play history, pinned playlists and your Spotify playlists are left alone.';
+  }
+
+  @override
+  String deleted_local_library(Object count) {
+    return 'Deleted $count files';
+  }
+
+  @override
+  String deleted_local_library_with_failures(Object files, Object undeletable) {
+    return 'Removed records, but $undeletable of $files files could not be deleted';
+  }
+
+  @override
+  String get delete_local_library_nothing_to_delete => 'Nothing to delete';
+
+  @override
   String get undo => 'დაბრუნება';
 
   @override
