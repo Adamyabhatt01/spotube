@@ -2,11 +2,15 @@ import 'package:auto_route/auto_route.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/routes.gr.dart';
+import 'package:spotube/components/fallbacks/anonymous_fallback.dart';
 import 'package:spotube/components/fallbacks/error_box.dart';
 import 'package:spotube/components/fallbacks/no_default_metadata_plugin.dart';
 import 'package:spotube/components/horizontal_playbutton_card_view/horizontal_playbutton_card_view.dart';
 import 'package:spotube/extensions/context.dart';
+import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/browse/sections.dart';
+import 'package:spotube/provider/metadata_plugin/core/auth.dart';
+import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/utils/common.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:very_good_infinite_list/very_good_infinite_list.dart';
@@ -20,6 +24,25 @@ class HomePageBrowseSection extends HookConsumerWidget {
     final browseSections = ref.watch(metadataPluginBrowseSectionsProvider);
     final sections = browseSections.asData?.value.items;
     final ThemeData(:colorScheme) = Theme.of(context);
+
+    // The bundled Spotify plugin resolves browse from the logged-in account,
+    // so an anonymous session fails inside the plugin rather than returning an
+    // empty list. Ask for the login instead of showing its exception.
+    final requiresAuth = ref.watch(
+      metadataPluginsProvider.select(
+        (state) =>
+            state.asData?.value.defaultMetadataPluginConfig?.abilities.contains(
+              PluginAbilities.authentication,
+            ) ??
+            false,
+      ),
+    );
+    final authenticated = ref.watch(metadataPluginAuthenticatedProvider);
+    if (requiresAuth && authenticated.asData?.value != true) {
+      return const SliverFillRemaining(
+        child: Center(child: AnonymousFallback()),
+      );
+    }
 
     if (browseSections.isLoading) {
       return SliverToBoxAdapter(

@@ -28,6 +28,27 @@ final allowedDomainsRegex = RegExp(
   r"^(https?:\/\/)?(www\.)?(github\.com|codeberg\.org)\/.+",
 );
 
+/// Plugins shipped inside the APK, in install order.
+///
+/// Order is the seed policy: [MetadataPluginNotifier.addPlugin] hands the
+/// default metadata slot to the first installed plugin carrying `metadata`,
+/// the audio slot to the first carrying `audio-source`, and the radio slot to
+/// the first carrying `radio`. So the Spotify plugin is listed ahead of
+/// Musicbrainz/Listenbrainz to be the recommended default, while it cannot
+/// disturb the audio default (it has no `audio-source` ability). Radio Browser
+/// precedes SomaFM for the radio slot.
+///
+/// Each entry must exist at `assets/plugins/<slug>/plugin.smplug` and be
+/// declared in `pubspec.yaml` — `test/bundled_plugins_seed_test.dart` holds
+/// all three to the same list.
+const bundledPlugins = [
+  "spotube-plugin-spotify",
+  "spotube-plugin-musicbrainz-listenbrainz",
+  "spotube-plugin-youtube-audio",
+  "spotube-plugin-internet-radio-browser",
+  "spotube-plugin-internet-radio-somafm",
+];
+
 class MetadataPluginState {
   final List<PluginConfiguration> plugins;
   final int defaultMetadataPlugin;
@@ -230,16 +251,11 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
   }
 
   Future<void> _loadDefaultPlugins(MetadataPluginState pluginState) async {
-    const plugins = [
-      "spotube-plugin-musicbrainz-listenbrainz",
-      "spotube-plugin-youtube-audio",
-      // Radio Browser first so it wins the default-radio slot on a fresh
-      // install; SomaFM is added after it and stays non-default.
-      "spotube-plugin-internet-radio-browser",
-      "spotube-plugin-internet-radio-somafm",
-    ];
+    final seedConfigs = <PluginConfiguration>[];
+    // Identity is (name, author), not slug — same rule as the duplicate check.
+    final installedNow = <String>{};
 
-    for (final plugin in plugins) {
+    for (final plugin in bundledPlugins) {
       final byteData = await rootBundle.load(
         "assets/plugins/$plugin/plugin.smplug",
       );
@@ -248,6 +264,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
       // on the startup path for every launch of an up-to-date install.
       final archive = ZipDecoder().decodeBytes(byteData.buffer.asUint8List());
       final pluginConfig = readPluginArchiveConfig(archive);
+      seedConfigs.add(pluginConfig);
 
       if (!await isBundledPluginUpToDate(
         pluginConfig,
@@ -263,6 +280,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
 
       try {
         await addPlugin(pluginConfig);
+        installedNow.add('${pluginConfig.name}|${pluginConfig.author}');
       } on MetadataPluginException catch (e) {
         if (e.errorCode != MetadataPluginErrorCode.duplicatePlugin) {
           continue;
@@ -283,12 +301,59 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
           // install rather than failing startup.
           try {
             await addPlugin(pluginConfig);
+            installedNow.add('${pluginConfig.name}|${pluginConfig.author}');
           } on MetadataPluginException {
             // Another writer won the race; its row is authoritative.
           }
         }
       }
     }
+
+    await handOverDefaultMetadata(
+      recommended: seedConfigs.firstWhereOrNull(
+        (config) =>
+            config.abilities.contains(PluginAbilities.metadata) &&
+            installedNow.contains('${config.name}|${config.author}'),
+      ),
+      seedConfigs: seedConfigs,
+    );
+  }
+
+  /// Makes the newly bundled metadata seed the default on installs that
+  /// predate it.
+  ///
+  /// [addPlugin] claims a default slot only when nothing else holds one, so on
+  /// an existing install the bundled plugin would land as merely available and
+  /// the previous seed would keep the recommendation. Two guards keep this
+  /// from stomping a deliberate choice: it runs only for a row this very pass
+  /// created (so it fires once per install, never again), and only while the
+  /// current default is one of the *other bundled seeds* — a default the user
+  /// picked from the plugin index is left alone.
+  @visibleForTesting
+  Future<void> handOverDefaultMetadata({
+    required PluginConfiguration? recommended,
+    required List<PluginConfiguration> seedConfigs,
+  }) async {
+    if (recommended == null) return;
+
+    final current = (await (database.pluginsTable.select()
+              ..where((tbl) => tbl.selectedForMetadata.equals(true))
+              ..limit(1))
+            .get())
+        .firstOrNull;
+    if (current == null) return;
+    if (current.name == recommended.name &&
+        current.author == recommended.author) {
+      return;
+    }
+
+    final isBundledSeed = seedConfigs.any(
+      (config) =>
+          config.name == current.name && config.author == current.author,
+    );
+    if (!isBundledSeed) return;
+
+    await setDefaultMetadataPlugin(recommended);
   }
 
   /// Whether the bundled [config] is already registered and complete on disk,
