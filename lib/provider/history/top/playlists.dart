@@ -94,9 +94,10 @@ class HistoryTopPlaylistsNotifier
         HistoryDuration> {
   HistoryTopPlaylistsNotifier() : super();
 
-  /// Start of the watched window. Shared by the typed page query and the SQL
-  /// aggregation so both agree on what "this period" means.
-  DateTime get windowStart => DateTime.now().subtract(arg.duration);
+  /// Start of the watched window. Shared by the typed page query, the SQL
+  /// aggregation and the other Stats families so "this week" is the same week
+  /// in every tab.
+  DateTime get windowStart => historyWindowStart(arg);
 
   SimpleSelectStatement<$HistoryTableTable, HistoryTableData>
       createPlaylistsQuery() {
@@ -166,12 +167,20 @@ class HistoryTopPlaylistsNotifier
   List<PlaybackHistoryPlaylist> getPlaylistsWithCount(
     List<HistoryTableData> playlists,
   ) {
-    return groupBy(playlists, (playlist) => playlist.playlist!.id)
+    // Legacy rows store the whole source object under `external_urls` and
+    // have no `playlist`; the old `playlist!` threw on them. Drop them before
+    // grouping, exactly like the tracks aggregation and the watch query.
+    final parsed = <SpotubeSimplePlaylistObject>[
+      for (final row in playlists)
+        if (row.playlist case final playlist?) playlist,
+    ];
+
+    return groupBy(parsed, (playlist) => playlist.id)
         .entries
         .map((entry) {
           return (
             count: entry.value.length,
-            playlist: entry.value.first.playlist!,
+            playlist: entry.value.first,
           );
         })
         .sorted((a, b) => b.count.compareTo(a.count))

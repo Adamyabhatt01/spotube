@@ -162,6 +162,7 @@ mixin PaginatedAsyncNotifierMixin<K>
       var limit = state.value!.limit;
       var lastPage = state.value!;
       var pagesWalked = 0;
+      var capped = false;
 
       while (hasMore) {
         if (pagesWalked >= fetchAllMaxPages) {
@@ -172,6 +173,7 @@ mixin PaginatedAsyncNotifierMixin<K>
             ),
             StackTrace.current,
           );
+          capped = true;
           break;
         }
         pagesWalked++;
@@ -198,7 +200,14 @@ mixin PaginatedAsyncNotifierMixin<K>
         }
       }
 
-      state = AsyncData(lastPage.copyWith(items: allItems));
+      // A capped walk is final by construction: if `hasMore` stayed true the
+      // list would advertise another page that this method refuses to fetch,
+      // so callers would keep re-entering it.
+      state = AsyncData(lastPage.copyWith(
+        items: allItems,
+        hasMore: capped ? false : lastPage.hasMore,
+        nextOffset: capped ? null : lastPage.nextOffset,
+      ));
       await persistSnapshot();
     } catch (e, stack) {
       AppLogger.reportError(e, stack);

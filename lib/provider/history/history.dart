@@ -68,10 +68,6 @@ class PlaybackHistoryActions {
           ),
         );
   }
-
-  Future<void> clear() async {
-    _db.delete(_db.historyTable).go();
-  }
 }
 
 final playbackHistoryActionsProvider =

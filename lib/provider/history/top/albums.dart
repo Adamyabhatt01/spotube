@@ -19,16 +19,7 @@ class HistoryTopAlbumsNotifier extends AutoDisposeFamilyPaginatedAsyncNotifier<
       {int? limit, int? offset}) {
     final database = ref.read(databaseProvider);
 
-    final duration = switch (arg) {
-      HistoryDuration.allTime => '0',
-      HistoryDuration.days7 => "strftime('%s', 'now', 'weekday 0', '-7 days')",
-      HistoryDuration.days30 => "strftime('%s', 'now', 'start of month')",
-      HistoryDuration.months6 =>
-        "strftime('%s', date('now', '-5 months', 'start of month'))",
-      HistoryDuration.year => "strftime('%s', date('now', 'start of year'))",
-      HistoryDuration.years2 =>
-        "strftime('%s', date('now', '-1 years', 'start of year'))",
-    };
+    final windowStart = historyWindowStart(arg);
 
     return database.customSelect(
       """
@@ -43,7 +34,9 @@ class HistoryTopAlbumsNotifier extends AutoDisposeFamilyPaginatedAsyncNotifier<
       """
         FROM history_table 
         WHERE type = 'track' AND
-              created_at >= $duration
+              created_at >= ? AND
+              json_extract(history_table.data, '\$.external_urls') IS NULL AND
+              json_extract(history_table.data, '\$.album') IS NOT NULL
         UNION ALL
         SELECT
             history_table.created_at,
@@ -52,10 +45,15 @@ class HistoryTopAlbumsNotifier extends AutoDisposeFamilyPaginatedAsyncNotifier<
             history_table.type
         FROM history_table
         WHERE type = 'album' AND
-              created_at >= $duration
+              created_at >= ? AND
+              json_extract(history_table.data, '\$.external_urls') IS NULL
         ORDER BY created_at desc
         ${limit != null && offset != null ? 'LIMIT $limit OFFSET $offset' : ''}
       """,
+      variables: [
+        Variable.withDateTime(windowStart),
+        Variable.withDateTime(windowStart),
+      ],
       readsFrom: {database.historyTable},
     ).map((row) {
       final data = row.read<String>('data');
