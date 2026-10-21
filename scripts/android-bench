@@ -1,0 +1,627 @@
+#!/usr/bin/env bash
+#
+# android-bench — measure Spotube on an Android target, in repeatable rounds.
+#
+#   scripts/android-bench --label baseline --rounds 3
+#   scripts/android-bench --label fix1 --rounds 3 --no-install
+#   scripts/android-bench --label probe --rounds 1 --build-type profile
+#
+# Preconditions, because a measurement is only comparable to the one before it:
+#   * an AVD booted (or a phone plugged in) — see AGENTS.md "Android bench"
+#   * the app installed and past onboarding
+#   * the local fixture library seeded (see --seed-info)
+#   * nothing else running on the host: frame numbers are relative, so a
+#     concurrent Gradle build invalidates the round
+#
+# WHY THE FRAME SOURCE IS SurfaceFlinger AND NOT gfxinfo
+#
+#   `dumpsys gfxinfo <pkg>` reports "Total frames rendered: 0" for this app.
+#   Flutter rasterizes into its own SurfaceView (Impeller drives that surface
+#   directly), so the Android view framework never traverses a frame and its
+#   FrameStats stay empty. Measured on the android-35 x86_64 AVD, release
+#   stable build, 2026-10-21. Anyone reaching for gfxinfo here will get a clean
+#   zero and no jank at all, which is how "Android frame time" stayed unmeasured
+#   for as long as it did.
+#
+#   `dumpsys SurfaceFlinger --latency '<SurfaceView[..](BLAST)#id>'` does report
+#   this app's frames: one row per queued buffer with (queue, present, deadline)
+#   in monotonic ns. The present column gives the real delivered cadence, which
+#   is what jank is. It is downstream of both the UI thread and the raster
+#   thread, so it detects a missed frame without saying who caused it — that is
+#   what the CPU columns are for.
+#
+# What each metric is:
+#
+#   frames (primary)  inter-present intervals over a FIXED swipe script:
+#                     frames delivered, p50/p90/p99 interval, the share over
+#                     20ms and over 32ms, and the longest single stall. At the
+#                     AVD's 60Hz vsync a 20ms interval is one missed deadline.
+#   cold start        `am start -W` TotalTime/WaitTime.
+#   memory            `dumpsys meminfo`: TOTAL PSS, Java/Native heap, Graphics.
+#                     Graphics is the one that moves with artwork caches.
+#   cpu               utime+stime from /proc/<pid>/stat across the drive window,
+#                     as a share of one core (needs adb root; a production phone
+#                     refuses it and the number is then omitted, not guessed).
+#   health            `logcat -b crash` plus a scan for R8's signature failures:
+#                   ClassNotFoundException / NoSuchMethodError / VerifyError.
+#
+# Rounds are independent: each force-stops, cold-starts, re-navigates and
+# re-drives. The report prints median, min and max, and a claim of improvement
+# needs the WORST round of the new build to beat the BEST round of the old one.
+# Otherwise it is noise and the change should be reverted.
+#
+# An AVD is not a phone. With -gpu host the raster still runs through gfxstream
+# on this machine's GPU, and with swiftshader it runs on the CPU; either way the
+# absolute numbers describe this guest, not a device. Use them for relative
+# deltas between two builds under an identical script, and say so in any write-up.
+#
+# Output: a table on stdout, raw dumps plus summary.json under
+# build/android-bench/<label>-<stamp>/.
+
+set -uo pipefail
+
+REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUT_ROOT="$REPO/build/android-bench"
+
+LABEL="run"
+ROUNDS=3
+DO_BUILD=1
+DO_INSTALL=1
+BUILD_TYPE="release"
+FLAVOR="stable"
+ABI="x86_64"
+APK=""
+SERIAL=""
+AVD=""
+PKG="oss.krtirtho.spotube"
+ACT="${ACT:-com.ryanheise.audioservice.AudioServiceActivity}"
+SETTLE=12          # seconds after launch before the drive script starts
+SWIPES=12          # list swipes per round
+SWIPE_MS=650       # one swipe's duration — the gesture velocity is part of the workload
+GAP_MS=400         # pause between swipes
+FIXTURE_DIR="$REPO/build/bench-fixtures"
+
+die() { echo "android-bench: $*" >&2; exit 1; }
+
+usage() { sed -n '3,60p' "${BASH_SOURCE[0]}" | cut -c3-; }
+
+seed_info() {
+  cat <<EOF
+The workload is the Local library's cached-folder track list, so it needs files
+on the device. One-time seeding (identical fixtures make rounds comparable):
+
+  # 60 tagged mp3s with an 800x800 embedded cover each, ~53 kB per file
+  mkdir -p $FIXTURE_DIR && cd $FIXTURE_DIR
+  for i in \$(seq -w 2 60); do
+    n=\$((10#\$i))
+    ffmpeg -hide_banner -loglevel error -y -f lavfi -i "sine=frequency=\$((180+n*7)):duration=18" \\
+      -f lavfi -i "testsrc=size=800x800:rate=1:duration=1,hue=h=\$((n*11))" \\
+      -map 0:a -map 1:v -c:a libmp3lame -b:a 128k -c:v mjpeg -frames:v 1 -id3v2_version 3 \\
+      -metadata title="Bench Track \$i" -metadata artist="Spotube Bench" \\
+      -metadata album="Bench Set" -metadata track="\$n" "bench-\$i.mp3"
+  done
+  D="/sdcard/Android/data/$PKG/cache/Cached Tracks"
+  adb shell "mkdir -p '\$D'" && adb push . "\$D/"
+
+  # skip onboarding without tapping through it (needs root, i.e. an AVD)
+  adb shell am force-stop $PKG
+  P=/data/data/$PKG/shared_prefs/FlutterSharedPreferences.xml
+  adb shell "sed -i 's#</map>#    <boolean name=\"flutter.doneGettingStarted\" value=\"true\" />\\n</map>#' \$P"
+
+The embedded covers are the point: scrolling that list is what exercises the
+sized artwork decode and the image cache, which is where Android artwork jank
+would live.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --label) LABEL="${2:?}"; shift ;;
+    --rounds) ROUNDS="${2:?}"; shift ;;
+    --no-build) DO_BUILD=0 ;;
+    --no-install) DO_INSTALL=0 ;;
+    --build-type) BUILD_TYPE="${2:?release|profile|debug}"; shift ;;
+    --flavor) FLAVOR="${2:?}"; shift ;;
+    --abi) ABI="${2:?}"; shift ;;
+    --apk) APK="${2:?}"; DO_BUILD=0; shift ;;
+    --serial) SERIAL="${2:?}"; shift ;;
+    --avd) AVD="${2:?}"; shift ;;
+    --pkg) PKG="${2:?}"; shift ;;
+    --settle) SETTLE="${2:?}"; shift ;;
+    --swipes) SWIPES="${2:?}"; shift ;;
+    --seed-info) seed_info; exit 0 ;;
+    -h | --help) usage; exit 0 ;;
+    *) die "unknown option: $1" ;;
+  esac
+  shift
+done
+
+command -v python3 >/dev/null 2>&1 || die "python3 is required"
+
+SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Android/Sdk}}"
+[[ -d $SDK/platform-tools ]] && PATH="$PATH:$SDK/platform-tools"
+command -v adb >/dev/null 2>&1 || die "adb not found — sdkmanager \"platform-tools\""
+
+ADB=(adb)
+[[ -n $SERIAL ]] && ADB=(adb -s "$SERIAL")
+adb_sh() { "${ADB[@]}" shell "$@"; }
+# Monotonic seconds since boot, matching SurfaceFlinger's clock domain.
+dev_now_ns() {
+  adb_sh "cat /proc/uptime" | tr -d '\r' | awk '{printf "%d", $1*1000000000}'
+}
+
+# ---------------------------------------------------------------------------
+# preflight
+# ---------------------------------------------------------------------------
+
+ROOTED=0
+preflight() {
+  echo "==> Preflight"
+  local devices
+  devices=$("${ADB[@]}" devices | awk 'NR>1 && $2=="device" {print $1}')
+  if [[ -z $devices && -n $AVD ]]; then
+    echo "    no device; booting AVD '$AVD' headless"
+    "$SDK/emulator/emulator" -avd "$AVD" -no-window -no-audio -no-boot-anim >/dev/null 2>&1 &
+    disown
+    "${ADB[@]}" wait-for-device >/dev/null 2>&1
+    devices=$("${ADB[@]}" devices | awk 'NR>1 && $2=="device" {print $1}')
+  fi
+  [[ -n $devices ]] || die "no adb device online. Start one:
+    $SDK/emulator/emulator -avd spotube -cores 4 -memory 3072 -gpu host -no-window -no-audio -no-boot-anim &
+  or pass --avd <name>. Run 'fvm flutter devices' to see what the tool sees."
+  [[ $(wc -l <<<"$devices") -eq 1 ]] ||
+    die "more than one device online — pin one with --serial; two targets split the host's GPU and both numbers become meaningless"
+  SERIAL=$(awk 'NR>1 && $2=="device" {print $1; exit}' <<<"$devices")
+
+  [[ $(adb_sh getprop sys.boot_completed | tr -d '\r') == "1" ]] ||
+    die "device '$SERIAL' has not finished booting"
+  echo "    serial : $SERIAL  ($(adb_sh getprop ro.product.model | tr -d '\r'), Android $(adb_sh getprop ro.build.version.release | tr -d '\r'))"
+
+  if [[ $(adb_sh id -u | tr -d '\r') != "0" ]]; then
+    "${ADB[@]}" root >/dev/null 2>&1 && "${ADB[@]}" wait-for-device >/dev/null 2>&1
+  fi
+  [[ $(adb_sh id -u | tr -d '\r') == "0" ]] && ROOTED=1
+  echo "    root   : $([[ $ROOTED -eq 1 ]] && echo yes || echo 'no — /proc cpu deltas will be omitted')"
+
+  adb_sh pm list packages "$PKG" | grep -q "^package:$PKG$" ||
+    die "$PKG is not installed — drop --no-install or pass --apk"
+
+  local seeded
+  seeded=$(adb_sh "ls '/sdcard/Android/data/$PKG/cache/Cached Tracks' 2>/dev/null" | grep -c '\.mp3' || true)
+  echo "    fixtures: $seeded mp3s in the cache folder"
+  if [[ ${seeded:-0} -lt 40 ]]; then
+    echo "    WARNING: too few local tracks — the list will not scroll and the"
+    echo "             artwork cache will not be exercised. Run --seed-info."
+  fi
+  echo
+}
+
+# ---------------------------------------------------------------------------
+# build / install
+# ---------------------------------------------------------------------------
+
+build_apk() {
+  echo "==> Building the $BUILD_TYPE $ABI APK (flavor $FLAVOR)"
+  echo "    do not run anything else heavy during this: the guest shares this CPU"
+  local flutter=(flutter)
+  command -v fvm >/dev/null 2>&1 && [[ -e $REPO/.fvm || -e $REPO/.fvmrc ]] && flutter=(fvm)
+
+  local target
+  case $ABI in
+    x86_64) target=android-x64 ;;
+    arm64-v8a) target=android-arm64 ;;
+    armeabi-v7a) target=android-arm ;;
+    *) target="android-$ABI" ;;
+  esac
+  local args=(flutter build apk "--$BUILD_TYPE" --target-platform "$target" --flavor "$FLAVOR")
+  [[ $BUILD_TYPE == release ]] && args+=(--split-per-abi)
+  (cd "$REPO" && "${flutter[@]}" "${args[@]}") || die "apk build failed"
+
+  APK=$(find "$REPO/build/app/outputs/flutter-apk" -maxdepth 1 -name "*-${ABI}-${FLAVOR}-release.apk" 2>/dev/null | head -1)
+  [[ -z $APK && $BUILD_TYPE != release ]] &&
+    APK=$(find "$REPO/build/app/outputs/flutter-apk" -maxdepth 1 -name "*-${ABI}-${FLAVOR}-${BUILD_TYPE}*.apk" 2>/dev/null | head -1)
+  [[ -z $APK ]] && APK=$(find "$REPO/build/app/outputs/flutter-apk" -maxdepth 1 -name "*.apk" -newermt "-20 minutes" 2>/dev/null | sort | tail -1)
+  [[ -n $APK && -f $APK ]] || die "no apk under build/app/outputs/flutter-apk"
+  echo "    apk: $APK"
+}
+
+install_apk() {
+  echo "==> Installing"
+  "${ADB[@]}" install -r -g "$APK" >/dev/null || die "install failed: $APK"
+  echo "    $(basename "$APK")"
+}
+
+# ---------------------------------------------------------------------------
+# frames
+# ---------------------------------------------------------------------------
+
+# The SurfaceView layer id is per-window-creation, so it is discovered each round.
+find_layer() {
+  adb_sh "dumpsys SurfaceFlinger --list" | tr -d '\r' |
+    grep -o "SurfaceView\[${PKG}/${ACT}\](BLAST)#[0-9]*" | head -1
+}
+
+# ---------------------------------------------------------------------------
+# one round
+# ---------------------------------------------------------------------------
+
+cpu_ticks() {
+  [[ $ROOTED -eq 1 ]] || { echo "-1 -1"; return; }
+  adb_sh "cat /proc/$1/stat 2>/dev/null" | tr -d '\r'
+}
+
+round_once() { # $1=index $2=dir ; returns non-zero if the app did not stay up
+  local i=$1 dir=$2
+  local raw="$dir/round-$i-raw"
+  mkdir -p "$raw"
+  echo "==> Round $i"
+
+  adb_sh am force-stop "$PKG" >/dev/null
+  sleep 2
+  "${ADB[@]}" logcat -c >/dev/null 2>&1
+  "${ADB[@]}" logcat -b crash -c >/dev/null 2>&1
+
+  local start_out total_time wait_time status
+  start_out=$(adb_sh am start -W -n "$PKG/$ACT" 2>&1 | tr -d '\r')
+  total_time=$(sed -n 's/^TotalTime: *\([0-9.]*\).*/\1/p' <<<"$start_out")
+  wait_time=$(sed -n 's/^WaitTime: *\([0-9.]*\).*/\1/p' <<<"$start_out")
+  status=$(sed -n 's/^Status: *//p' <<<"$start_out")
+  echo "    cold start: TotalTime=${total_time:-?}ms WaitTime=${wait_time:-?}ms ${status:-?}"
+
+  sleep "$SETTLE"
+  local pid
+  pid=$(adb_sh pidof "$PKG" | tr -d '\r' | awk '{print $1}')
+  if [[ -z $pid ]]; then
+    "${ADB[@]}" logcat -b crash -d >"$raw/crash.txt" 2>&1
+    echo "    ROUND FAILED: the process is gone after launch — see $raw/crash.txt"
+    return 1
+  fi
+
+  local screen w h
+  read -r w h <<<"$(adb_sh "wm size" | tr -d '\r' | sed -n 's/.*: *\([0-9]*\)x\([0-9]*\)/\1 \2/p')"
+  w=${w:-1080}
+  h=${h:-2400}
+  # Verified on the android-35 x86_64 AVD at 1080x2400: the bottom nav's Library
+  # tab, the Local library tab in the library page's TabBar, and the cache folder
+  # card. Fractions so another resolution at least has a chance.
+  adb_sh input tap $((w * 681 / 1000)) $((h * 954 / 1000)) >/dev/null; sleep 3   # Library
+  adb_sh input tap $((w * 730 / 1000)) $((h * 81 / 1000)) >/dev/null; sleep 5    # Local library
+  adb_sh input tap $((w * 751 / 1000)) $((h * 278 / 1000)) >/dev/null; sleep 6   # cache folder card
+  adb exec-out screencap -p >"$raw/before-drive.png" 2>/dev/null
+
+  local layer
+  layer=$(find_layer)
+  [[ -n $layer ]] || echo "    WARNING: no SurfaceView layer found — frame metrics will be empty"
+
+  local ticks_before ticks_after cpu_win_start cpu_win_end
+  ticks_before=$(cpu_ticks "$pid")
+
+  local t0
+  t0=$(dev_now_ns)
+  local cx=$((w / 2)) y_from=$((h * 70 / 100)) y_to=$((h * 25 / 100))
+  local drive_t0=$SECONDS
+
+  # --latency returns a ring buffer of the last ~128 present times, so one dump
+  # after the drive would only cover the tail of it. Sample it on the device
+  # during the drive instead — one shell loop, so the host is not adding binder
+  # round trips between the swipes — and dedupe the overlapping rows afterwards.
+  local lat_dev="/data/local/tmp/android-bench-lat-$i.txt"
+  adb_sh "rm -f $lat_dev" >/dev/null 2>&1
+  if [[ -n $layer ]]; then
+    adb_sh "nohup sh -c 'for n in \$(seq 1 40); do dumpsys SurfaceFlinger --latency \"$layer\" >> $lat_dev 2>/dev/null; sleep 0.5; done' >/dev/null 2>&1 &" >/dev/null
+    sleep 0.6
+  fi
+
+  for _ in $(seq 1 "$SWIPES"); do
+    adb_sh input touchscreen swipe "$cx" "$y_from" "$cx" "$y_to" "$SWIPE_MS" >/dev/null
+    sleep "$(python3 -c "print($GAP_MS/1000)")"
+  done
+  local drive_wall=$((SECONDS - drive_t0))
+  local t1
+  t1=$(dev_now_ns)
+  ticks_after=$(cpu_ticks "$pid")
+
+  # Raw dumps, all of them after the window they describe.
+  if [[ -n $layer ]]; then
+    adb_sh "cat $lat_dev" 2>&1 | tr -d '\r' >"$raw/latency.txt"
+    adb_sh "rm -f $lat_dev" >/dev/null 2>&1
+  fi
+  adb_sh dumpsys gfxinfo "$PKG" >"$raw/gfxinfo.txt" 2>&1   # kept for reference: reports 0 frames
+  adb_sh dumpsys meminfo "$PKG" >"$raw/meminfo.txt" 2>&1
+  [[ $ROOTED -eq 1 ]] && adb_sh "top -b -n 1 -H -p $pid" >"$raw/top-h.txt" 2>&1
+  "${ADB[@]}" logcat -b crash -d >"$raw/crash.txt" 2>&1
+  "${ADB[@]}" logcat -d >"$raw/logcat.txt" 2>&1
+  adb exec-out screencap -p >"$raw/after-drive.png" 2>/dev/null
+
+  echo "    layer=${layer:-none} drive=${drive_wall}s frames-window=${t0}..${t1}"
+
+  python3 - "$dir/round-$i.json" "$i" "$raw" "$LABEL" "$PKG" "$t0" "$t1" \
+    "$total_time" "$wait_time" "$status" "$drive_wall" "$ticks_before" "$ticks_after" <<'PY'
+import json, os, re, sys
+
+out_path, idx, raw, label, pkg = sys.argv[1:6]
+t0, t1 = int(sys.argv[6]), int(sys.argv[7])
+total_time, wait_time, status = sys.argv[8], sys.argv[9], sys.argv[10]
+drive_wall = int(sys.argv[11])
+
+
+def read(name):
+    try:
+        with open(os.path.join(raw, name), errors="replace") as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def parse_ticks(text):
+    text = text.strip()
+    if not text:
+        return [-1, -1]
+    tail = text.rsplit(")", 1)[-1].split()
+    try:
+        return [int(tail[11]), int(tail[12])]
+    except (IndexError, ValueError):
+        return [-1, -1]
+
+
+before = parse_ticks(sys.argv[12])
+after = parse_ticks(sys.argv[13])
+
+
+def pct(values, q):
+    if not values:
+        return None
+    s = sorted(values)
+    return s[min(len(s) - 1, int(round(q / 100.0 * (len(s) - 1))))]
+
+
+# --- frames: SurfaceFlinger present timestamps ------------------------------
+# The file is a concatenation of ~26 ring-buffer dumps taken during the drive,
+# each starting with the refresh period. Row format: <queue> <present> <deadline>.
+# present is when the buffer actually reached the display, so consecutive
+# presents are the delivered cadence. Dedupe across dumps.
+refresh_ns = None
+seen = set()
+presents = []
+for line in read("latency.txt").splitlines():
+    parts = line.split()
+    if len(parts) == 1 and parts[0].isdigit():
+        if refresh_ns is None:
+            refresh_ns = int(parts[0])
+        continue
+    if len(parts) >= 3 and all(p.lstrip("-").isdigit() for p in parts[:3]):
+        q, p_, d = int(parts[0]), int(parts[1]), int(parts[2])
+        if p_ <= 0 or q <= 0 or p_ in seen:
+            continue
+        if t0 <= p_ <= t1:
+            seen.add(p_)
+            presents.append(p_)
+presents.sort()
+if not refresh_ns or refresh_ns <= 0:
+    refresh_ns = 16_666_666  # 60Hz, what the google_apis x86_64 image reports
+
+intervals = [(b - a) / 1e6 for a, b in zip(presents, presents[1:]) if b > a]
+# The presents only cover the span they span, which is shorter than the drive
+# whenever the guest produced no new frame (an idle stretch). Report the covered
+# span so a low frame count is not read as a low frame rate.
+covered_s = round((presents[-1] - presents[0]) / 1e9, 2) if len(presents) > 1 else 0.0
+deadline = refresh_ns / 1e6
+# A frame that arrives later than one vsync after its predecessor missed a
+# deadline; 1.2x allows for rounding in the reported timestamps.
+over_deadline = sum(1 for v in intervals if v > deadline * 1.2)
+over_2x = sum(1 for v in intervals if v > deadline * 2)
+
+frames = {
+    "refresh_ms": round(refresh_ns / 1e6, 3),
+    "delivered": len(presents),
+    "window_s": round((t1 - t0) / 1e9, 2),
+    "covered_s": covered_s,
+    "fps": round(len(intervals) / covered_s, 1) if covered_s > 0.5 else None,
+    "interval_p50_ms": round(pct(intervals, 50) or 0, 2),
+    "interval_p90_ms": round(pct(intervals, 90) or 0, 2),
+    "interval_p99_ms": round(pct(intervals, 99) or 0, 2),
+    "interval_max_ms": round(max(intervals), 1) if intervals else None,
+    "missed_deadline": over_deadline,
+    "missed_deadline_pct": round(100.0 * over_deadline / len(intervals), 2) if intervals else None,
+    "dropped_2x": over_2x,
+    "janky_pct": round(100.0 * over_2x / len(intervals), 2) if intervals else None,
+}
+
+# --- gfxinfo, kept only to record that it is empty -------------------------
+gfx = read("gfxinfo.txt")
+gfx_frames = re.search(r"Total frames rendered:\s*(\d+)", gfx)
+gfx_janky = re.search(r"Janky frames:\s*(\d+)\s*\(([\d.]+)%\)", gfx)
+
+# --- memory ---------------------------------------------------------------
+mem = read("meminfo.txt")
+
+
+def memnum(pattern):
+    m = re.search(pattern, mem, re.M)
+    return int(m.group(1)) if m else None
+
+
+memory = {
+    "total_pss_kb": memnum(r"TOTAL PSS:\s*(\d+)"),
+    "java_heap_kb": memnum(r"Java Heap:\s*(\d+)"),
+    "native_heap_kb": memnum(r"Native Heap:\s*(\d+)"),
+    "graphics_kb": memnum(r"^\s*Graphics:\s*(\d+)"),
+    "code_kb": memnum(r"^\s*Code:\s*(\d+)"),
+    "stack_kb": memnum(r"^\s*Stack:\s*(\d+)"),
+}
+if memory["total_pss_kb"] is None:
+    # Some releases print the summary table without a "TOTAL PSS:" label.
+    memory["total_pss_kb"] = memnum(r"^\s*TOTAL\s+(\d+)\s+\d+\s+\d+")
+
+# --- cpu ------------------------------------------------------------------
+cpu_pct = None
+if before[0] >= 0 and after[0] >= 0:
+    delta = (after[0] + after[1]) - (before[0] + before[1])
+    # The guest kernel is 100 Hz (CONFIG_HZ=100), which is what makes ticks
+    # comparable across rounds here. Re-check if the target changes.
+    cpu_pct = round(100.0 * (delta / 100.0) / max(1, drive_wall), 1)
+
+# --- health ---------------------------------------------------------------
+crash_text = read("crash.txt") + read("logcat.txt")
+markers = [name for pat, name in [
+    ("ClassNotFoundException", "ClassNotFoundException"),
+    ("NoSuchMethodError", "NoSuchMethodError"),
+    ("NoSuchFieldError", "NoSuchFieldError"),
+    ("VerifyError", "VerifyError"),
+    ("AbstractMethodError", "AbstractMethodError"),
+    ("FATAL EXCEPTION", "FATAL EXCEPTION"),
+    ("Native crash", "Native crash"),
+] if re.search(pat, crash_text)]
+
+startup = [ln.strip()[-160:] for ln in read("logcat.txt").splitlines() if "[startup]" in ln][-24:]
+
+def as_num(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+rec = {
+    "label": label,
+    "round": idx,
+    "pkg": pkg,
+    "start": {"total_ms": as_num(total_time), "wait_ms": as_num(wait_time), "status": status or None},
+    "frames": frames,
+    "gfxinfo_reference": {
+        "total_frames_rendered": int(gfx_frames.group(1)) if gfx_frames else None,
+        "janky_pct": float(gfx_janky.group(2)) if gfx_janky else None,
+        "note": "gfxinfo does not see Flutter's SurfaceView frames; not a metric",
+    },
+    "memory_kb": memory,
+    "cpu": {"pct_of_one_core": cpu_pct, "drive_wall_s": drive_wall},
+    "health": {"crash_markers": markers, "startup_lines": startup},
+}
+with open(out_path, "w") as f:
+    json.dump(rec, f, indent=2)
+
+print(
+    f"    frames: {frames['delivered']} delivered over {frames['covered_s']}s of a "
+    f"{frames['window_s']}s drive ({frames['fps']} fps) p50={frames['interval_p50_ms']}ms "
+    f"p90={frames['interval_p90_ms']}ms p99={frames['interval_p99_ms']}ms "
+    f"max={frames['interval_max_ms']}ms janky={frames['janky_pct']}%"
+)
+print(
+    f"    memory: PSS={memory['total_pss_kb']}KB native={memory['native_heap_kb']}KB "
+    f"graphics={memory['graphics_kb']}KB cpu={cpu_pct}%"
+)
+print(f"    health: {'no crash markers' if not markers else 'CRASH MARKERS: ' + ', '.join(markers)}")
+PY
+
+  return 0
+}
+
+# ---------------------------------------------------------------------------
+# report
+# ---------------------------------------------------------------------------
+
+report() {
+  python3 - "$1" "$LABEL" <<'PY'
+import glob, json, os, statistics, sys
+
+round_dir, label = sys.argv[1], sys.argv[2]
+recs = []
+for p in sorted(glob.glob(os.path.join(round_dir, "round-*.json"))):
+    try:
+        with open(p) as f:
+            recs.append(json.load(f))
+    except (OSError, json.JSONDecodeError):
+        pass
+if not recs:
+    print("android-bench: no rounds recorded")
+    raise SystemExit(1)
+
+
+def stat(vals):
+    vals = [v for v in vals if isinstance(v, (int, float))]
+    if not vals:
+        return None
+    return {"median": round(statistics.median(vals), 2), "min": round(min(vals), 2),
+            "max": round(max(vals), 2), "n": len(vals)}
+
+
+def path(r, *keys):
+    cur = r
+    for k in keys:
+        if not isinstance(cur, dict) or k not in cur:
+            return None
+        cur = cur[k]
+    return cur
+
+
+metrics = [
+    ("cold start", "ms", lambda r: path(r, "start", "total_ms")),
+    ("frames delivered", "", lambda r: path(r, "frames", "delivered")),
+    ("covered span", "s", lambda r: path(r, "frames", "covered_s")),
+    ("fps", "", lambda r: path(r, "frames", "fps")),
+    ("interval p50", "ms", lambda r: path(r, "frames", "interval_p50_ms")),
+    ("interval p90", "ms", lambda r: path(r, "frames", "interval_p90_ms")),
+    ("interval p99", "ms", lambda r: path(r, "frames", "interval_p99_ms")),
+    ("worst stall", "ms", lambda r: path(r, "frames", "interval_max_ms")),
+    ("missed deadlines", "", lambda r: path(r, "frames", "missed_deadline")),
+    ("janky (>2 vsync)", "%", lambda r: path(r, "frames", "janky_pct")),
+    ("TOTAL PSS", "KB", lambda r: path(r, "memory_kb", "total_pss_kb")),
+    ("Native heap", "KB", lambda r: path(r, "memory_kb", "native_heap_kb")),
+    ("Graphics", "KB", lambda r: path(r, "memory_kb", "graphics_kb")),
+    ("cpu", "%core", lambda r: path(r, "cpu", "pct_of_one_core")),
+]
+
+print()
+print(f"==> {label}: {len(recs)} round(s)")
+print(f"{'metric':<22} {'median':>10} {'min':>10} {'max':>10}   unit")
+for name, unit, get in metrics:
+    s = stat([get(r) for r in recs])
+    if not s:
+        print(f"{name:<22} {'-':>10} {'-':>10} {'-':>10}   {unit}")
+    else:
+        print(f"{name:<22} {s['median']:>10} {s['min']:>10} {s['max']:>10}   {unit}")
+
+markers = sorted({m for r in recs for m in path(r, "health", "crash_markers") or []})
+print()
+if markers:
+    print(f"CRASH MARKERS: {', '.join(markers)}")
+    print("  This build is not comparable on frame numbers; fix the crash first.")
+else:
+    print("no crash markers in any round")
+
+with open(os.path.join(round_dir, "summary.json"), "w") as f:
+    json.dump({"label": label, "rounds": len(recs),
+               "medians": {n: stat([g(r) for r in recs]) for n, _, g in metrics},
+               "crash_markers": markers, "records": recs}, f, indent=2)
+print(f"\njson: {os.path.join(round_dir, 'summary.json')}")
+print("An AVD is not a phone: report these as relative deltas under a fixed")
+print("workload, never as absolute device smoothness.")
+PY
+}
+
+# ---------------------------------------------------------------------------
+# main
+# ---------------------------------------------------------------------------
+
+STAMP="$(date +%Y%m%d-%H%M%S)"
+OUT_DIR="$OUT_ROOT/${LABEL}-${STAMP}"
+mkdir -p "$OUT_DIR"
+
+preflight
+[[ $DO_BUILD -eq 1 ]] && build_apk
+if [[ -n ${APK:-} && $DO_INSTALL -eq 1 ]]; then
+  [[ -f $APK ]] || die "apk not found: $APK"
+  install_apk
+else
+  echo "==> Using the app already installed on the device"
+fi
+echo
+
+FAILED=0
+for i in $(seq 1 "$ROUNDS"); do
+  round_once "$i" "$OUT_DIR" || FAILED=$((FAILED + 1))
+done
+
+report "$OUT_DIR"
+adb_sh am force-stop "$PKG" >/dev/null
+[[ $FAILED -eq 0 ]] || die "$FAILED of $ROUNDS round(s) failed — the app did not stay up"
