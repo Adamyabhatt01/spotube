@@ -157,8 +157,9 @@ dependencies {
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
 
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.1'
-    // other deps so just ignore
-    implementation 'com.android.support:multidex:2.0.1'
+    // Flutter's own FlutterMultiDexApplication imports androidx.multidex, so
+    // the legacy coordinate was only usable through jetifier rewriting.
+    implementation 'androidx.multidex:multidex:2.0.1'
 
     implementation "androidx.glance:glance-appwidget:$glanceVersion"
     implementation "androidx.glance:glance-appwidget-preview:$glanceVersion"
