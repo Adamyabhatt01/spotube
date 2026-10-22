@@ -1,5 +1,48 @@
 # Changelog
 
+## [5.1.2-fork.7](https://github.com/Adamyabhatt01/spotube/releases/tag/v5.1.2-fork.7) - 2026-10-22
+
+Fork release. App version `5.1.2+4507`, Android artifacts signed with the fork's test key and
+built from this tag.
+
+### Added
+
+- **Saved radio stations have a home.** The stations you bookmark with the heart were only
+  reachable from the Radio page's own rail, with nowhere to review the list or drop one. They are
+  now a **Stations** entry in the library (desktop sidebar and the mobile Library tabs), on their
+  own page with a filter, and the Radio page's *Your favorites* rail links to it.
+- The browse-by-country control is now a **row of its own**, under the search field, instead of the
+  last item of a horizontally scrolling tag rail - where it sat after up to thirty tag chips and was
+  off-screen on a phone. Its popup is searchable (the directory can answer with a hundred
+  countries), and the country you picked now survives a typed search term instead of being dropped
+  by it.
+
+### Bug Fixes
+
+- The Radio page refetched itself on every visit. The station pages and the tag/country lists were
+  auto-disposed and the page is torn down whenever you leave the tab, so every visit asked the
+  directory for five pages again. The answers are now held for a few minutes, and a plugin-state
+  update that does not change the set of radio directories no longer throws them away.
+
+### Performance
+
+- **The hidden Plain lyrics tab was laid out on every open.** `IndexedStack` keeps its
+  non-selected child mounted *and laid out* (only painting is skipped), so the plain view's one
+  giant, non-lazy `SelectableText` was laid out as a paragraph as tall as the whole lyric file -
+  for a tab that may never be opened. It now only enters the tree once it has been asked for.
+- **The artwork palette was quantised at full resolution, on the UI thread.** The code claimed a
+  50px sample, but `MemoryImage` ignores the size hint, so the whole cover was decoded and every
+  pixel walked - ~81 ms for a 640x640 cover on a desktop host, and it re-ran on every track
+  change while the lyrics page was open. The artwork is now downscaled by the decode itself, and
+  the palette reads the smallest rendition instead of pulling the full-size cover a second time.
+- On Android the lyrics backdrop is decoded at a fraction of the screen size (it is only ever seen
+  through the blur) and has its own repaint boundary, so scrolling the lyrics no longer drags the
+  blurred artwork through a repaint.
+
+### Build
+
+- `version` bumped to `5.1.2+4507`; the Android registrant regenerated for release.
+
 ## [5.1.2-fork.6](https://github.com/Adamyabhatt01/spotube/releases/tag/v5.1.2-fork.6) - 2026-10-22
 
 Fork release. App version `5.1.2+4506`, Android artifacts signed with the fork's test key and
