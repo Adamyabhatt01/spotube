@@ -190,3 +190,12 @@ final isOnlineProvider = StreamProvider<bool>((ref) async* {
   yield ConnectionCheckerService.instance.isConnectedSync;
   yield* ConnectionCheckerService.instance.onConnectivityChanged;
 });
+
+/// Whether the network is up right now.
+///
+/// The synchronous answer the service already holds, behind a provider so a
+/// unit test can stand in for it: the real service opens a platform channel
+/// when it is first touched, which a test process has no binding for.
+final networkAvailableProvider = Provider<bool>(
+  (ref) => ConnectionCheckerService.instance.isConnectedSync,
+);

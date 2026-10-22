@@ -23,6 +23,13 @@ class MetadataPluginSavedTracksNotifier
   SpotubeFullTrackObject Function(Map<String, dynamic>)? get snapshotDecoder =>
       SpotubeFullTrackObject.fromJson;
 
+  /// The liked-tracks list is probed, never walked.
+  ///
+  /// It can hold thousands of rows — a full walk is a hundred requests —
+  /// and it does not need one: Spotify orders liked tracks by the time they
+  /// were saved, so a track liked on another device arrives at the *head* of
+  /// the list, which the first page covers.
+
   @override
   fetch(offset, limit) async {
     final tracks = await (await metadataPlugin).user.savedTracks(
@@ -37,7 +44,13 @@ class MetadataPluginSavedTracksNotifier
   build() async {
     ref.cacheFor();
 
-    await ref.watch(metadataPluginAuthenticatedProvider.future);
+    // The account, not the auth provider: the auth provider's state flaps
+    // whenever the plugin is reloaded, and every flap rebuilt this list.
+    // `select` so an unchanged answer does not notify: the auth provider is
+    // rebuilt whenever the plugin is reloaded, and every one of those
+    // rebuilds re-read the whole library for nothing — and threw away
+    // whatever the library sync was in the middle of.
+    ref.watch(metadataAccountProvider.select((signedIn) => signedIn));
     return await buildSavedList();
   }
 

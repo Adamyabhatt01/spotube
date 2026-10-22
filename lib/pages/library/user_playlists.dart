@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' as material;
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:fuzzywuzzy/fuzzywuzzy.dart';
@@ -19,6 +21,7 @@ import 'package:spotube/components/fallbacks/anonymous_fallback.dart';
 import 'package:spotube/modules/playlist/playlist_card.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
+import 'package:spotube/provider/metadata_plugin/library/library_refresh.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/playlist_download_provider.dart';
@@ -37,6 +40,14 @@ class UserPlaylistsPage extends HookConsumerWidget {
   Widget build(BuildContext context, ref) {
     final search = useDebouncedFilter();
     final effectiveQuery = search.query;
+
+    // Opening the page is the moment the user expects the library to be
+    // current — this list is otherwise read once per app session, so a
+    // playlist created on another device would never show up here.
+    useEffect(() {
+      unawaited(ref.read(savedLibraryRefreshProvider).refreshAll());
+      return null;
+    }, const []);
 
     final authenticated = ref.watch(metadataPluginAuthenticatedProvider);
 

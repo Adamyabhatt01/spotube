@@ -706,6 +706,16 @@ class AppLocalizationsTl extends AppLocalizations {
   String get country => 'Bansa';
 
   @override
+  String get stations => 'Stations';
+
+  @override
+  String get filter_stations => 'Filter stations';
+
+  @override
+  String get no_saved_stations =>
+      'Save a station with the heart on the Radio page and it shows up here.';
+
+  @override
   String get number_of_tracks_generate => 'Bilang ng mga track na gagawin';
 
   @override
@@ -1852,4 +1862,12 @@ class AppLocalizationsTl extends AppLocalizations {
   @override
   String get dab_music_source_description =>
       'Para sa mga audiophile. Nagbibigay ng de-kalidad/walang loss na audio streams. Tumpak na pagtutugma ng track batay sa ISRC.';
+
+  @override
+  String get warning => 'Warning';
+
+  @override
+  String playlist_library_sync_failed(Object name) {
+    return 'The playlist \"$name\" was created, but it could not be added to your Spotify library, so it may not appear on your other devices.';
+  }
 }

@@ -31,8 +31,13 @@ class MetadataPluginSavedPlaylistsNotifier
   /// every playlist past it showing last session's collage until the user
   /// happened to scroll to its page, so this list re-walks all pages in the
   /// background instead.
+  ///
+  /// It also makes a manual refresh walk every page, which this list needs
+  /// for a second reason: Spotify appends a newly created playlist to the
+  /// *end* of the library, so a page-one probe cannot see it — and that is
+  /// exactly the row a second device is missing.
   @override
-  bool get refreshAllPagesOnWarmBuild => true;
+  bool get refreshAllPages => true;
 
   /// Attempts after an in-app add/remove, cumulative from the write. Spotify
   /// rebuilds the collage asynchronously, so one read right after the write
@@ -54,7 +59,13 @@ class MetadataPluginSavedPlaylistsNotifier
 
   @override
   build() async {
-    await ref.watch(metadataPluginAuthenticatedProvider.future);
+    // The account, not the auth provider: the auth provider's state flaps
+    // whenever the plugin is reloaded, and every flap rebuilt this list.
+    // `select` so an unchanged answer does not notify: the auth provider is
+    // rebuilt whenever the plugin is reloaded, and every one of those
+    // rebuilds re-read the whole library for nothing — and threw away
+    // whatever the library sync was in the middle of.
+    ref.watch(metadataAccountProvider.select((signedIn) => signedIn));
 
     final playlists = await buildSavedList();
 

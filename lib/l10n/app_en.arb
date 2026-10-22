@@ -212,6 +212,9 @@
   "select_genres": "Select Genres",
   "add_genres": "Add Genres",
   "country": "Country",
+  "stations": "Stations",
+  "filter_stations": "Filter stations",
+  "no_saved_stations": "Save a station with the heart on the Radio page and it shows up here.",
   "number_of_tracks_generate": "Number of tracks to generate",
   "acousticness": "Acousticness",
   "danceability": "Danceability",
@@ -550,5 +553,7 @@
   "scrobbling": "Scrobbling",
   "source": "Source: ",
   "uncompressed": "Uncompressed",
-  "dab_music_source_description": "For audiophiles. Provides high-quality/lossless audio streams. Accurate ISRC based track matching."
+  "dab_music_source_description": "For audiophiles. Provides high-quality/lossless audio streams. Accurate ISRC based track matching.",
+  "warning": "Warning",
+  "playlist_library_sync_failed": "The playlist \"{name}\" was created, but it could not be added to your Spotify library, so it may not appear on your other devices."
 }

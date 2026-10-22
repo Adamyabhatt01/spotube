@@ -19,6 +19,15 @@ class MetadataPluginSavedAlbumNotifier
   SpotubeSimpleAlbumObject Function(Map<String, dynamic>)?
       get snapshotDecoder => SpotubeSimpleAlbumObject.fromJson;
 
+  /// The saved-albums list is small — tens of rows, not thousands — so a
+  /// re-read walks all of it.
+  ///
+  /// That is what makes a re-read able to see an album saved on another
+  /// device: the library grid's order puts a new album where the grid puts
+  /// it, and only a full walk is sure to include it.
+  @override
+  bool get refreshAllPages => true;
+
   @override
   Future<SpotubePaginationResponseObject<SpotubeSimpleAlbumObject>> fetch(
     int offset,
@@ -32,7 +41,13 @@ class MetadataPluginSavedAlbumNotifier
 
   @override
   build() async {
-    await ref.watch(metadataPluginAuthenticatedProvider.future);
+    // The account, not the auth provider: the auth provider's state flaps
+    // whenever the plugin is reloaded, and every flap rebuilt this list.
+    // `select` so an unchanged answer does not notify: the auth provider is
+    // rebuilt whenever the plugin is reloaded, and every one of those
+    // rebuilds re-read the whole library for nothing — and threw away
+    // whatever the library sync was in the middle of.
+    ref.watch(metadataAccountProvider.select((signedIn) => signedIn));
     return await buildSavedList();
   }
 

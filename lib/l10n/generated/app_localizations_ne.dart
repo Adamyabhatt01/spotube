@@ -707,6 +707,16 @@ class AppLocalizationsNe extends AppLocalizations {
   String get country => 'देश';
 
   @override
+  String get stations => 'Stations';
+
+  @override
+  String get filter_stations => 'Filter stations';
+
+  @override
+  String get no_saved_stations =>
+      'Save a station with the heart on the Radio page and it shows up here.';
+
+  @override
   String get number_of_tracks_generate => 'बनाउनका लागि ट्र्याकहरूको संख्या';
 
   @override
@@ -1849,4 +1859,12 @@ class AppLocalizationsNe extends AppLocalizations {
   @override
   String get dab_music_source_description =>
       'अडियोप्रेमीहरूका लागि। उच्च गुणस्तर/लसलेस अडियो स्ट्रिमहरू उपलब्ध गराउँछ। ISRC-मा आधारित सटीक ट्र्याक मिलान।';
+
+  @override
+  String get warning => 'Warning';
+
+  @override
+  String playlist_library_sync_failed(Object name) {
+    return 'The playlist \"$name\" was created, but it could not be added to your Spotify library, so it may not appear on your other devices.';
+  }
 }

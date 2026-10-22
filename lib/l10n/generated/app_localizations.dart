@@ -1431,6 +1431,24 @@ abstract class AppLocalizations {
   /// **'Country'**
   String get country;
 
+  /// No description provided for @stations.
+  ///
+  /// In en, this message translates to:
+  /// **'Stations'**
+  String get stations;
+
+  /// No description provided for @filter_stations.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter stations'**
+  String get filter_stations;
+
+  /// No description provided for @no_saved_stations.
+  ///
+  /// In en, this message translates to:
+  /// **'Save a station with the heart on the Radio page and it shows up here.'**
+  String get no_saved_stations;
+
   /// No description provided for @number_of_tracks_generate.
   ///
   /// In en, this message translates to:
@@ -3464,6 +3482,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'For audiophiles. Provides high-quality/lossless audio streams. Accurate ISRC based track matching.'**
   String get dab_music_source_description;
+
+  /// No description provided for @warning.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning'**
+  String get warning;
+
+  /// No description provided for @playlist_library_sync_failed.
+  ///
+  /// In en, this message translates to:
+  /// **'The playlist \"{name}\" was created, but it could not be added to your Spotify library, so it may not appear on your other devices.'**
+  String playlist_library_sync_failed(Object name);
 }
 
 class _AppLocalizationsDelegate

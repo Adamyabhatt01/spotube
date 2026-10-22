@@ -5,7 +5,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/extensions/context.dart';
+import 'package:spotube/hooks/configurators/use_window_listener.dart';
 import 'package:spotube/modules/metadata_plugins/plugin_update_available_dialog.dart';
+import 'package:spotube/provider/metadata_plugin/library/library_refresh.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/updater/update_checker.dart';
 import 'package:spotube/provider/playlist_download_provider.dart';
@@ -26,10 +28,32 @@ const _startupIdleDelay = Duration(seconds: 5);
 /// a long-listening session still gets its once-a-day check.
 const _maxIdleDeferrals = 3;
 
+/// How often the saved library is re-read while the app is in the foreground.
+///
+/// Long enough to be cheap, short enough that a playlist created on a phone
+/// shows up on a desktop that was left open. The library is small — a user
+/// has tens of playlists, not thousands — and the re-read is one request for
+/// anyone whose library fits on a page.
+const _libraryRefreshHeartbeat = Duration(minutes: 10);
+
 void useGlobalSubscriptions(WidgetRef ref) {
   final context = useContext();
   final theme = Theme.of(context);
   final connectRoutes = ref.watch(serverConnectRoutesProvider);
+
+  // The saved library is read once per app session, so a device that stays
+  // open never learns about a playlist created on another one. This is the
+  // single owner of every "the library may have changed" trigger.
+  final libraryRefresher = ref.read(savedLibraryRefreshProvider);
+
+  // Window focus is the desktop equivalent of the app coming back to the
+  // foreground. The callback is stabilized so the listener is registered
+  // once instead of on every rebuild.
+  final onWindowFocus = useCallback(() {
+    unawaited(libraryRefresher.refreshAll());
+  }, [libraryRefresher]);
+
+  useWindowListener(onWindowFocus: onWindowFocus);
 
   useEffect(() {
     Timer? idleTimer;
@@ -97,6 +121,34 @@ void useGlobalSubscriptions(WidgetRef ref) {
       );
     });
 
+    // Coming back to the app is the moment a user expects to see what their
+    // other devices did while they were away.
+    final lifecycleListener = AppLifecycleListener(
+      onResume: () => unawaited(libraryRefresher.refreshAll()),
+    );
+
+    // A device that was closed while another one changed the account has to
+    // re-read it when it comes back: the saved lists are otherwise read once
+    // per session, so a playlist created in the meantime would never arrive.
+    final librarySyncTimer = Timer(_startupIdleDelay, () {
+      unawaited(libraryRefresher.refreshAll());
+    });
+
+    // The heartbeat covers the case no event covers: the app was left open
+    // and in the foreground the whole time, on a device that made a change
+    // somewhere else.
+    final libraryHeartbeat = Timer.periodic(
+      _libraryRefreshHeartbeat,
+      (_) {
+        final state = WidgetsBinding.instance.lifecycleState;
+        if (state == AppLifecycleState.paused ||
+            state == AppLifecycleState.hidden) {
+          return;
+        }
+        unawaited(libraryRefresher.refreshAll());
+      },
+    );
+
     StreamSubscription? audioPlayerSubscription;
     bool pausedByStream = false;
     var wasConnected = ConnectionCheckerService.instance.isConnectedSync;
@@ -121,6 +173,10 @@ void useGlobalSubscriptions(WidgetRef ref) {
                 .read(playlistMirrorServiceProvider)
                 .syncAutoDownloadPlaylists(retryIfBusy: true),
           );
+          // The network was down, so the library could not be read while it
+          // was. Whatever another device did in the meantime is only
+          // visible now.
+          unawaited(libraryRefresher.refreshAll());
         }
 
         audioPlayerSubscription?.cancel();
@@ -249,6 +305,9 @@ void useGlobalSubscriptions(WidgetRef ref) {
       idleTimer?.cancel();
       autoDownloadTimer.cancel();
       connectivityToastTimer?.cancel();
+      librarySyncTimer.cancel();
+      libraryHeartbeat.cancel();
+      lifecycleListener.dispose();
       for (final subscription in subscriptions) {
         subscription.cancel();
       }

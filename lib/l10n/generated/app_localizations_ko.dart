@@ -693,6 +693,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get country => '국가';
 
   @override
+  String get stations => 'Stations';
+
+  @override
+  String get filter_stations => 'Filter stations';
+
+  @override
+  String get no_saved_stations =>
+      'Save a station with the heart on the Radio page and it shows up here.';
+
+  @override
   String get number_of_tracks_generate => '생성할 곡 수';
 
   @override
@@ -1809,4 +1819,12 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String get dab_music_source_description =>
       '오디오파일을 위한 소스입니다. 고음질/무손실 오디오 스트림을 제공하며 ISRC 기반으로 정확한 트랙 매칭을 지원합니다.';
+
+  @override
+  String get warning => 'Warning';
+
+  @override
+  String playlist_library_sync_failed(Object name) {
+    return 'The playlist \"$name\" was created, but it could not be added to your Spotify library, so it may not appear on your other devices.';
+  }
 }

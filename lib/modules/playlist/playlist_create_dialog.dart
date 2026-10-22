@@ -6,6 +6,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
+import 'package:spotube/collections/routes.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/form/checkbox_form_field.dart';
 import 'package:spotube/components/form/text_form_field.dart';
@@ -87,6 +88,38 @@ class PlaylistCreateDialog extends HookConsumerWidget {
       );
     }, [l10n, theme]);
 
+    final onWarning = useCallback((String playlistName) {
+      // The toast cannot use the dialog's own context: the dialog puts a
+      // ToastLayer around itself, that layer dies with the dialog, and this
+      // warning only arrives after the network has answered — long after
+      // the dialog is gone. The root navigator's context lives under the
+      // app's own ToastLayer and stays alive.
+      final toastContext = rootNavigatorKey.currentContext ?? context;
+      if (!toastContext.mounted) return;
+
+      showToast(
+        context: toastContext,
+        location: ToastLocation.topRight,
+        builder: (context, overlay) {
+          return SurfaceCard(
+            child: Basic(
+              title: Text(
+                l10n.warning,
+                style: theme.typography.normal.copyWith(
+                  color: theme.colorScheme.destructive,
+                ),
+              ),
+              subtitle: Text(
+                l10n.playlist_library_sync_failed(playlistName),
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          );
+        },
+      );
+    }, [l10n, theme]);
+
     Future<void> onCreate() async {
       if (!formKey.currentState!.saveAndValidate()) return;
 
@@ -123,6 +156,7 @@ class PlaylistCreateDialog extends HookConsumerWidget {
             collaborative: collaborative,
             trackIds: trackIds,
             onError: onError,
+            onWarning: onWarning,
           );
         }
       } catch (_) {

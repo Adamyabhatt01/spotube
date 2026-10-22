@@ -19,6 +19,15 @@ class MetadataPluginSavedArtistNotifier
   SpotubeFullArtistObject Function(Map<String, dynamic>)? get snapshotDecoder =>
       SpotubeFullArtistObject.fromJson;
 
+  /// The followed-artists list is small — tens of rows, not thousands — so a
+  /// re-read walks all of it.
+  ///
+  /// That is what makes a re-read able to see an artist followed on another
+  /// device: only a full walk is sure to include a row that was not there
+  /// before.
+  @override
+  bool get refreshAllPages => true;
+
   @override
   Future<SpotubePaginationResponseObject<SpotubeFullArtistObject>> fetch(
     int offset,
@@ -34,7 +43,13 @@ class MetadataPluginSavedArtistNotifier
 
   @override
   build() async {
-    await ref.watch(metadataPluginAuthenticatedProvider.future);
+    // The account, not the auth provider: the auth provider's state flaps
+    // whenever the plugin is reloaded, and every flap rebuilt this list.
+    // `select` so an unchanged answer does not notify: the auth provider is
+    // rebuilt whenever the plugin is reloaded, and every one of those
+    // rebuilds re-read the whole library for nothing — and threw away
+    // whatever the library sync was in the middle of.
+    ref.watch(metadataAccountProvider.select((signedIn) => signedIn));
     return await buildSavedList();
   }
 

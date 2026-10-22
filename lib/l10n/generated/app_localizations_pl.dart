@@ -702,6 +702,16 @@ class AppLocalizationsPl extends AppLocalizations {
   String get country => 'Kraj';
 
   @override
+  String get stations => 'Stations';
+
+  @override
+  String get filter_stations => 'Filter stations';
+
+  @override
+  String get no_saved_stations =>
+      'Save a station with the heart on the Radio page and it shows up here.';
+
+  @override
   String get number_of_tracks_generate => 'Liczba utworów do wygenerowania';
 
   @override
@@ -1843,4 +1853,12 @@ class AppLocalizationsPl extends AppLocalizations {
   @override
   String get dab_music_source_description =>
       'Dla audiofilów. Oferuje strumienie audio wysokiej jakości/lossless. Precyzyjne dopasowanie utworów na podstawie ISRC.';
+
+  @override
+  String get warning => 'Warning';
+
+  @override
+  String playlist_library_sync_failed(Object name) {
+    return 'The playlist \"$name\" was created, but it could not be added to your Spotify library, so it may not appear on your other devices.';
+  }
 }

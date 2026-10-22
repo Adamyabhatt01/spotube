@@ -27,6 +27,21 @@ final _loggingToLoggerLevel = {
 class AppLogger {
   static late final Logger log;
 
+  /// The logger, or null when [initialize] has not run yet.
+  ///
+  /// The reporting path must never be the thing that throws: an error
+  /// reported before the logger exists used to die with a
+  /// LateInitializationError here, which hid the very error it was
+  /// supposed to report — and turned a warning into a crash.
+  static Logger? get _safeLog {
+    try {
+      return log;
+    } catch (_) {
+      // The `late final` was never assigned. Nothing to log through.
+      return null;
+    }
+  }
+
   static Future<File>? _logFile;
 
   /// Resolved on first use rather than cached eagerly: the previous
@@ -98,11 +113,31 @@ class AppLogger {
   /// and a failure here is dropped silently (a logging path that throws
   /// would be worse than a missing line).
   static void logStartupLine(String line) {
-    log.i(line);
+    _safeLog?.i(line);
     if (kReleaseMode) {
       // Startup must never await logging; the shared queue keeps this line
       // from interleaving with a concurrent error report.
       unawaited(_appendLog('$line\n'));
+    }
+  }
+
+  /// One-line record of something that happened at runtime, visible in the
+  /// on-device log (Settings → Logs) on a release build.
+  ///
+  /// The log file otherwise only receives error reports, so an operation
+  /// that fails *quietly* — a library re-read that never lands, a playlist
+  /// that is created but never reaches the account's library — leaves
+  /// nothing to look at. These lines are the difference between "it did not
+  /// work" and "here is what it did".
+  ///
+  /// Fire-and-forget for the same reason as [logStartupLine]: logging must
+  /// never block the caller, and a failure to write is dropped.
+  static void logEvent(String line) {
+    _safeLog?.i(line);
+    if (kReleaseMode) {
+      unawaited(
+        _appendLog('[${DateTime.now()}] $line\n'),
+      );
     }
   }
 
@@ -127,7 +162,7 @@ class AppLogger {
         // Drop the cached path so the next report retries resolution (the
         // first one can run before plugins are registered).
         _logFile = null;
-        log.w(
+        _safeLog?.w(
           "Could not write to the log file",
           error: writeError,
           stackTrace: writeStackTrace,
@@ -218,7 +253,7 @@ class AppLogger {
     StackTrace? stackTrace,
     message = "",
   ]) async {
-    log.e(message, error: error, stackTrace: stackTrace);
+    _safeLog?.e(message, error: error, stackTrace: stackTrace);
 
     if (kReleaseMode) {
       await _appendLog(
