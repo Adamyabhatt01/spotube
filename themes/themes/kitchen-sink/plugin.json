@@ -1,0 +1,11 @@
+{
+  "name": "Kitchen Sink Theme",
+  "description": "Every field the v3 payload has, in one theme. The contract's reference example — it is not published.",
+  "version": "1.0.0",
+  "author": "Adamya Bhatt",
+  "entryPoint": "KitchenSinkTheme",
+  "pluginApiVersion": "2.0.0",
+  "apis": [],
+  "abilities": ["theme"],
+  "repository": "https://github.com/Adamyabhatt01/Caelestia-theme-plugin-spotube"
+}

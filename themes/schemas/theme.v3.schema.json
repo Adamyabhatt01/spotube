@@ -1,0 +1,1517 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Adamyabhatt01/Caelestia-theme-plugin-spotube/schemas/theme.v3.schema.json",
+  "title": "Spotube theme payload, v3",
+  "description": "The full v3 payload: everything a theme may decide about the app's appearance, its components, its shell and the content it puts in them. A v2 host ignores the v3 blocks and draws the two colour schemes, which is what lets a v3 theme ship to an older app.",
+  "type": "object",
+  "required": [
+    "light",
+    "dark"
+  ],
+  "additionalProperties": true,
+  "$defs": {
+    "color": {
+      "type": "string",
+      "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+    },
+    "role": {
+      "type": "string",
+      "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
+    },
+    "colorOrRole": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        {
+          "type": "string",
+          "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
+        }
+      ]
+    },
+    "palette": {
+      "type": "object",
+      "required": [
+        "background",
+        "foreground",
+        "card",
+        "cardForeground",
+        "primary",
+        "primaryForeground",
+        "secondary",
+        "secondaryForeground",
+        "muted",
+        "mutedForeground",
+        "accent",
+        "accentForeground",
+        "destructive",
+        "destructiveForeground",
+        "border",
+        "input",
+        "ring"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "background": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "foreground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "card": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "cardForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "primary": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "primaryForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "secondary": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "secondaryForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "muted": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "mutedForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "accent": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "accentForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "destructive": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "destructiveForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "border": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "input": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "ring": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "popover": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "popoverForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebar": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebarForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebarPrimary": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebarPrimaryForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebarAccent": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebarAccentForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebarBorder": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebarRing": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "success": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "successForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "warning": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "warningForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "info": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "infoForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "chart1": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "chart2": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "chart3": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "chart4": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "chart5": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "chart6": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        }
+      }
+    },
+    "uiNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "row",
+            "column",
+            "stack",
+            "wrap",
+            "padding",
+            "align",
+            "expanded",
+            "scroll",
+            "text",
+            "icon",
+            "image",
+            "button",
+            "card",
+            "divider",
+            "spacer",
+            "gap",
+            "conditional",
+            "template"
+          ]
+        },
+        "props": {
+          "type": "object"
+        },
+        "children": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "$ref": "#/$defs/uiNode"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "enum": [
+                  "navigate",
+                  "playPause",
+                  "next",
+                  "previous",
+                  "seek",
+                  "setVolume",
+                  "setShuffle",
+                  "setLoopMode",
+                  "like",
+                  "download",
+                  "openSettings",
+                  "openLyrics",
+                  "openQueue",
+                  "openDownloads",
+                  "toast",
+                  "plugin"
+                ]
+              },
+              "args": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "componentStyle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "padding": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "margin": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 999
+        },
+        "borderWidth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 400
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 400
+        },
+        "background": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+            },
+            {
+              "type": "string",
+              "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
+            }
+          ]
+        },
+        "foreground": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+            },
+            {
+              "type": "string",
+              "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
+            }
+          ]
+        },
+        "borderColor": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+            },
+            {
+              "type": "string",
+              "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
+            }
+          ]
+        },
+        "surfaceOpacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "surfaceBlur": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "fontFamily": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 48
+        },
+        "fontWeight": {
+          "type": "number",
+          "minimum": 100,
+          "maximum": 900
+        },
+        "fontStyle": {
+          "enum": [
+            "normal",
+            "italic"
+          ]
+        },
+        "letterSpacing": {
+          "type": "number",
+          "minimum": -2,
+          "maximum": 8
+        },
+        "iconSize": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 64
+        },
+        "indicatorColor": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+            },
+            {
+              "type": "string",
+              "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
+            }
+          ]
+        },
+        "thumbColor": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+            },
+            {
+              "type": "string",
+              "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
+            }
+          ]
+        },
+        "trackColor": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+            },
+            {
+              "type": "string",
+              "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "properties": {
+    "specVersion": {
+      "const": 3
+    },
+    "light": {
+      "$ref": "#/$defs/palette"
+    },
+    "dark": {
+      "$ref": "#/$defs/palette"
+    },
+    "surfaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "blur": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "tint": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        }
+      }
+    },
+    "background": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "enum": [
+            "none",
+            "albumArt",
+            "shell",
+            "asset"
+          ]
+        },
+        "asset": {
+          "type": "string",
+          "pattern": "^asset://"
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "blur": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "overlay": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "transparent": {
+          "type": "boolean"
+        }
+      }
+    },
+    "radius": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "small": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "medium": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "large": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "pill": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 9999
+        }
+      }
+    },
+    "density": {
+      "type": "number",
+      "minimum": 0.7,
+      "maximum": 1.5
+    },
+    "tokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cardWidth": {
+          "type": "number",
+          "minimum": 80,
+          "maximum": 400
+        },
+        "cardHeight": {
+          "type": "number",
+          "minimum": 120,
+          "maximum": 600
+        },
+        "artistCardWidth": {
+          "type": "number",
+          "minimum": 80,
+          "maximum": 480
+        },
+        "artistCardHeight": {
+          "type": "number",
+          "minimum": 120,
+          "maximum": 640
+        },
+        "gutter": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 40
+        },
+        "fontFamily": {
+          "type": "string",
+          "maxLength": 64
+        }
+      }
+    },
+    "typography": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "monoFamily": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "brandFamily": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "styles": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "fontSize": {
+                "type": "number",
+                "minimum": 8,
+                "maximum": 96
+              },
+              "fontWeight": {
+                "type": "number",
+                "minimum": 100,
+                "maximum": 900
+              },
+              "height": {
+                "type": "number",
+                "minimum": 0.8,
+                "maximum": 2.4
+              },
+              "letterSpacing": {
+                "type": "number",
+                "minimum": -2,
+                "maximum": 8
+              },
+              "color": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
+                  }
+                ]
+              },
+              "fontFamily": {
+                "type": "string",
+                "maxLength": 64
+              },
+              "fontStyle": {
+                "enum": [
+                  "normal",
+                  "italic"
+                ]
+              }
+            }
+          }
+        },
+        "fonts": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "family": {
+                "type": "string",
+                "maxLength": 64
+              },
+              "asset": {
+                "type": "string",
+                "pattern": "^asset://"
+              },
+              "weight": {
+                "type": "number",
+                "minimum": 100,
+                "maximum": 900
+              },
+              "style": {
+                "enum": [
+                  "normal",
+                  "italic"
+                ]
+              }
+            },
+            "required": [
+              "family",
+              "asset"
+            ]
+          }
+        }
+      }
+    },
+    "spacing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "xs": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "sm": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "md": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "lg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "xl": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "xxl": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "page": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "section": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "cardGap": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "pageHorizontal": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "custom": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000
+          }
+        }
+      }
+    },
+    "motion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fast": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "normal": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "slow": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "pageTransition": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "sheet": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "easing": {
+          "enum": [
+            "linear",
+            "ease",
+            "easeIn",
+            "easeOut",
+            "easeInOut",
+            "easeOutCubic",
+            "easeInOutCubic"
+          ]
+        },
+        "custom": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000
+          }
+        }
+      }
+    },
+    "scale": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "size": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2
+        },
+        "text": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2
+        },
+        "icon": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2
+        },
+        "spacing": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2
+        }
+      }
+    },
+    "icons": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sm": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 64
+        },
+        "md": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 64
+        },
+        "lg": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 64
+        },
+        "xl": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 64
+        },
+        "overrides": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "asset": {
+                "type": "string",
+                "pattern": "^asset://"
+              },
+              "size": {
+                "type": "number",
+                "minimum": 8,
+                "maximum": 64
+              }
+            }
+          }
+        },
+        "custom": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000
+          }
+        }
+      }
+    },
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "buttons": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "primary": {
+              "$ref": "#/$defs/componentStyle"
+            },
+            "secondary": {
+              "$ref": "#/$defs/componentStyle"
+            },
+            "outline": {
+              "$ref": "#/$defs/componentStyle"
+            },
+            "ghost": {
+              "$ref": "#/$defs/componentStyle"
+            },
+            "destructive": {
+              "$ref": "#/$defs/componentStyle"
+            },
+            "link": {
+              "$ref": "#/$defs/componentStyle"
+            },
+            "fixed": {
+              "$ref": "#/$defs/componentStyle"
+            },
+            "muted": {
+              "$ref": "#/$defs/componentStyle"
+            }
+          }
+        },
+        "card": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "input": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "tabs": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "nav": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "tooltip": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "badge": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "select": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "switch": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "slider": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "scrollbar": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "avatar": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "skeleton": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "progress": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "divider": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "menu": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "dropdown": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "modal": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "dialog": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "sheet": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "table": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "checkbox": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "radio": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "toggle": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "toggleGroup": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "accordion": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "alert": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "breadcrumb": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "carousel": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "collapsible": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "command": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "contextMenu": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "drawer": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "hoverCard": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "pagination": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "popover": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "resizable": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "sidebar": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "stepper": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "toast": {
+          "$ref": "#/$defs/componentStyle"
+        },
+        "tree": {
+          "$ref": "#/$defs/componentStyle"
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "chrome": {
+          "enum": [
+            "flat",
+            "inset"
+          ]
+        },
+        "nav": {
+          "enum": [
+            "labels",
+            "rail"
+          ]
+        },
+        "progress": {
+          "enum": [
+            "inline",
+            "below"
+          ]
+        },
+        "navItems": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "enum": [
+              "home",
+              "radio",
+              "stats",
+              "search"
+            ]
+          }
+        },
+        "navbarItems": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "enum": [
+              "home",
+              "search",
+              "radio",
+              "library",
+              "stats"
+            ]
+          }
+        },
+        "libraryItems": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "enum": [
+              "playlists",
+              "artists",
+              "albums",
+              "local_library"
+            ]
+          }
+        },
+        "player": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "dock": {
+              "enum": [
+                "full",
+                "compact",
+                "floating"
+              ]
+            },
+            "showTrackDetails": {
+              "type": "boolean"
+            },
+            "showActions": {
+              "type": "boolean"
+            },
+            "showVolume": {
+              "type": "boolean"
+            },
+            "showLyrics": {
+              "type": "boolean"
+            },
+            "showProgress": {
+              "type": "boolean"
+            }
+          }
+        },
+        "home": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sections": {
+              "type": "array",
+              "maxItems": 20,
+              "items": {
+                "enum": [
+                  "recent",
+                  "featured",
+                  "new_releases",
+                  "browse"
+                ]
+              }
+            }
+          }
+        },
+        "settings": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sections": {
+              "type": "array",
+              "maxItems": 20,
+              "items": {
+                "enum": [
+                  "accounts",
+                  "language_region",
+                  "appearance",
+                  "sidebar",
+                  "playback",
+                  "downloads",
+                  "desktop",
+                  "developers",
+                  "about"
+                ]
+              }
+            }
+          }
+        },
+        "titlebar": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "height": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 200
+            },
+            "padding": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 48
+            },
+            "showBack": {
+              "type": "boolean"
+            }
+          }
+        },
+        "splash": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "logo": {
+              "type": "string",
+              "pattern": "^asset://"
+            },
+            "background": {
+              "type": "string",
+              "pattern": "^asset://"
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 80
+            }
+          }
+        },
+        "enforce": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "enum": [
+              "nav",
+              "navItems",
+              "libraryItems",
+              "navOrder",
+              "player",
+              "playerDock",
+              "volume",
+              "home",
+              "settings",
+              "titlebar",
+              "splash"
+            ]
+          }
+        },
+        "responsive": {
+          "type": "object",
+          "maxProperties": 4,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "nav": {
+                "enum": [
+                  "labels",
+                  "rail"
+                ]
+              },
+              "navItems": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "enum": [
+                    "home",
+                    "radio",
+                    "stats",
+                    "search"
+                  ]
+                }
+              },
+              "navbarItems": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "enum": [
+                    "home",
+                    "search",
+                    "radio",
+                    "library",
+                    "stats"
+                  ]
+                }
+              },
+              "libraryItems": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "enum": [
+                    "playlists",
+                    "artists",
+                    "albums",
+                    "local_library"
+                  ]
+                }
+              },
+              "player": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "dock": {
+                    "enum": [
+                      "full",
+                      "compact",
+                      "floating"
+                    ]
+                  },
+                  "showTrackDetails": {
+                    "type": "boolean"
+                  },
+                  "showActions": {
+                    "type": "boolean"
+                  },
+                  "showVolume": {
+                    "type": "boolean"
+                  },
+                  "showLyrics": {
+                    "type": "boolean"
+                  },
+                  "showProgress": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "home": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "sections": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "items": {
+                      "enum": [
+                        "recent",
+                        "featured",
+                        "new_releases",
+                        "browse"
+                      ]
+                    }
+                  }
+                }
+              },
+              "settings": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "sections": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "items": {
+                      "enum": [
+                        "accounts",
+                        "language_region",
+                        "appearance",
+                        "sidebar",
+                        "playback",
+                        "downloads",
+                        "desktop",
+                        "developers",
+                        "about"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "branding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "appName": {
+          "type": "string",
+          "maxLength": 48
+        },
+        "shortName": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "tagline": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "wordmark": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "type": "string",
+              "maxLength": 48
+            },
+            "fontFamily": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "asset": {
+              "type": "string",
+              "pattern": "^asset://"
+            }
+          }
+        },
+        "logo": {
+          "type": "string",
+          "pattern": "^asset://"
+        },
+        "titlebarTitle": {
+          "type": "string",
+          "maxLength": 48
+        },
+        "windowTitle": {
+          "type": "string",
+          "maxLength": 48
+        },
+        "aboutName": {
+          "type": "string",
+          "maxLength": 48
+        },
+        "notificationName": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "showHostAttribution": {
+          "type": "boolean"
+        }
+      }
+    },
+    "assets": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "maxItems": 64,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^asset://"
+            },
+            "kind": {
+              "enum": [
+                "image",
+                "font",
+                "icon",
+                "other"
+              ]
+            },
+            "role": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    "ui": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "specVersion": {
+          "const": 1
+        },
+        "slots": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "children": {
+                "type": "array",
+                "maxItems": 200,
+                "items": {
+                  "$ref": "#/$defs/uiNode"
+                }
+              },
+              "refreshSeconds": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 3600
+              }
+            }
+          }
+        },
+        "screens": {
+          "type": "object",
+          "maxProperties": 16,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "title": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "showBack": {
+                "type": "boolean"
+              },
+              "children": {
+                "type": "array",
+                "maxItems": 500,
+                "items": {
+                  "$ref": "#/$defs/uiNode"
+                }
+              }
+            }
+          }
+        },
+        "templates": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "params": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "children": {
+                "type": "array",
+                "maxItems": 200,
+                "items": {
+                  "$ref": "#/$defs/uiNode"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ext": {
+      "type": "object"
+    }
+  }
+}

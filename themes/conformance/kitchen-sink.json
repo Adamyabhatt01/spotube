@@ -1,0 +1,669 @@
+{
+  "specVersion": 3,
+  "light": {
+    "background": "#fbfbfc",
+    "foreground": "#1f1929",
+    "card": "#ffffff",
+    "cardForeground": "#1f1929",
+    "primary": "#5412c4",
+    "primaryForeground": "#fcfcfd",
+    "secondary": "#efedf2",
+    "secondaryForeground": "#1f1929",
+    "muted": "#f3f2f5",
+    "mutedForeground": "#6c5f81",
+    "accent": "#e9e3f2",
+    "accentForeground": "#2f2244",
+    "destructive": "#dc2626",
+    "destructiveForeground": "#ffffff",
+    "border": "#e1dee6",
+    "input": "#e1dee6",
+    "ring": "#5412c4",
+    "popover": "#ffffff",
+    "popoverForeground": "#1f1929",
+    "sidebar": "#f3f2f5",
+    "sidebarForeground": "#1f1929",
+    "sidebarPrimary": "#5412c4",
+    "sidebarPrimaryForeground": "#fcfcfd",
+    "sidebarAccent": "#e9e3f2",
+    "sidebarAccentForeground": "#2f2244",
+    "sidebarBorder": "#e1dee6",
+    "sidebarRing": "#5412c4",
+    "success": "#16a34a",
+    "successForeground": "#ffffff",
+    "warning": "#b45309",
+    "warningForeground": "#ffffff",
+    "info": "#2563eb",
+    "infoForeground": "#ffffff",
+    "chart1": "#5412c4",
+    "chart2": "#c412be",
+    "chart3": "#c41247",
+    "chart4": "#bec412",
+    "chart5": "#47c412",
+    "chart6": "#12bec4"
+  },
+  "dark": {
+    "background": "#121017",
+    "foreground": "#f2f1f3",
+    "card": "#1a171e",
+    "cardForeground": "#f2f1f3",
+    "primary": "#9f77e4",
+    "primaryForeground": "#1d1726",
+    "secondary": "#2b2733",
+    "secondaryForeground": "#f2f1f3",
+    "muted": "#26242b",
+    "mutedForeground": "#9c96a6",
+    "accent": "#342848",
+    "accentForeground": "#eae7ee",
+    "destructive": "#f87171",
+    "destructiveForeground": "#1a0a0a",
+    "border": "#312d39",
+    "input": "#312d39",
+    "ring": "#9f77e4",
+    "popover": "#1a171e",
+    "popoverForeground": "#f2f1f3",
+    "sidebar": "#26242b",
+    "sidebarForeground": "#f2f1f3",
+    "sidebarPrimary": "#9f77e4",
+    "sidebarPrimaryForeground": "#1d1726",
+    "sidebarAccent": "#342848",
+    "sidebarAccentForeground": "#eae7ee",
+    "sidebarBorder": "#312d39",
+    "sidebarRing": "#9f77e4",
+    "success": "#4ade80",
+    "successForeground": "#052e16",
+    "warning": "#fbbf24",
+    "warningForeground": "#451a03",
+    "info": "#60a5fa",
+    "infoForeground": "#082f49",
+    "chart1": "#9c69f1",
+    "chart2": "#f169ed",
+    "chart3": "#f16992",
+    "chart4": "#edf169",
+    "chart5": "#92f169",
+    "chart6": "#69edf1"
+  },
+  "surfaces": {
+    "opacity": 0.85,
+    "blur": 24.0,
+    "tint": "#0b0b0f"
+  },
+  "background": {
+    "source": "albumArt",
+    "opacity": 0.35,
+    "blur": 60.0,
+    "overlay": "#40000000",
+    "transparent": false
+  },
+  "radius": {
+    "small": 6.0,
+    "medium": 12.0,
+    "large": 20.0,
+    "pill": 999.0
+  },
+  "density": 1.0,
+  "tokens": {
+    "cardWidth": 168.0,
+    "cardHeight": 240.0,
+    "artistCardWidth": 190.0,
+    "artistCardHeight": 250.0,
+    "gutter": 16.0,
+    "fontFamily": "Inter"
+  },
+  "typography": {
+    "family": "Inter",
+    "monoFamily": "JetBrains Mono",
+    "brandFamily": "Cookie",
+    "styles": {
+      "h1": {
+        "fontSize": 36,
+        "fontWeight": 700,
+        "height": 1.1,
+        "letterSpacing": -0.5
+      },
+      "h2": {
+        "fontSize": 28,
+        "fontWeight": 700,
+        "height": 1.2
+      },
+      "h3": {
+        "fontSize": 22,
+        "fontWeight": 600,
+        "height": 1.25
+      },
+      "h4": {
+        "fontSize": 18,
+        "fontWeight": 600,
+        "height": 1.3
+      },
+      "p": {
+        "fontSize": 14,
+        "fontWeight": 400,
+        "height": 1.5
+      },
+      "lead": {
+        "fontSize": 16,
+        "fontWeight": 400,
+        "height": 1.5
+      },
+      "large": {
+        "fontSize": 20,
+        "fontWeight": 500,
+        "height": 1.4
+      },
+      "small": {
+        "fontSize": 12,
+        "fontWeight": 500,
+        "height": 1.4
+      },
+      "muted": {
+        "fontSize": 13,
+        "fontWeight": 400,
+        "color": "@mutedForeground"
+      },
+      "xSmall": {
+        "fontSize": 11,
+        "fontWeight": 400
+      },
+      "xLarge": {
+        "fontSize": 24,
+        "fontWeight": 500
+      },
+      "x2Large": {
+        "fontSize": 28,
+        "fontWeight": 500
+      },
+      "x3Large": {
+        "fontSize": 32,
+        "fontWeight": 500
+      },
+      "x4Large": {
+        "fontSize": 36,
+        "fontWeight": 500
+      },
+      "x5Large": {
+        "fontSize": 42,
+        "fontWeight": 500
+      },
+      "x6Large": {
+        "fontSize": 48,
+        "fontWeight": 500
+      },
+      "x7Large": {
+        "fontSize": 56,
+        "fontWeight": 500
+      },
+      "x8Large": {
+        "fontSize": 64,
+        "fontWeight": 500
+      },
+      "x9Large": {
+        "fontSize": 72,
+        "fontWeight": 500
+      }
+    }
+  },
+  "spacing": {
+    "xs": 4.0,
+    "sm": 8.0,
+    "md": 12.0,
+    "lg": 16.0,
+    "xl": 24.0,
+    "xxl": 32.0,
+    "page": 24.0,
+    "section": 40.0,
+    "cardGap": 16.0,
+    "pageHorizontal": 20.0,
+    "custom": {
+      "playerHeight": 72.0,
+      "sidebarWidth": 248.0
+    }
+  },
+  "motion": {
+    "fast": 110.0,
+    "normal": 200.0,
+    "slow": 340.0,
+    "pageTransition": 260.0,
+    "sheet": 220.0,
+    "easing": "easeOutCubic",
+    "custom": {
+      "hover": 90.0,
+      "ripple": 400.0
+    }
+  },
+  "scale": {
+    "size": 1.0,
+    "text": 1.0,
+    "radius": 1.0,
+    "icon": 1.0,
+    "spacing": 1.0
+  },
+  "icons": {
+    "sm": 16.0,
+    "md": 20.0,
+    "lg": 24.0,
+    "xl": 32.0,
+    "custom": {
+      "playerButton": 22.0
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": {
+        "radius": 10.0,
+        "padding": 12.0,
+        "fontWeight": 600,
+        "iconSize": 18.0
+      },
+      "secondary": {
+        "radius": 10.0,
+        "padding": 12.0
+      },
+      "outline": {
+        "radius": 10.0,
+        "borderWidth": 1.0,
+        "borderColor": "@border"
+      },
+      "ghost": {
+        "radius": 10.0,
+        "padding": 8.0
+      },
+      "destructive": {
+        "radius": 10.0,
+        "background": "@destructive",
+        "foreground": "@destructiveForeground"
+      },
+      "link": {
+        "fontWeight": 500
+      },
+      "fixed": {
+        "radius": 999.0
+      },
+      "muted": {
+        "radius": 8.0,
+        "background": "@muted"
+      }
+    },
+    "card": {
+      "radius": 16.0,
+      "padding": 16.0,
+      "surfaceOpacity": 0.9,
+      "surfaceBlur": 12.0
+    },
+    "input": {
+      "radius": 8.0,
+      "height": 36.0,
+      "borderColor": "@input"
+    },
+    "tabs": {
+      "indicatorColor": "@primary",
+      "radius": 8.0
+    },
+    "nav": {
+      "radius": 10.0,
+      "padding": 8.0
+    },
+    "tooltip": {
+      "radius": 6.0,
+      "padding": 8.0,
+      "surfaceOpacity": 0.95
+    },
+    "badge": {
+      "radius": 999.0,
+      "padding": 4.0,
+      "fontSize": 11.0
+    },
+    "select": {
+      "radius": 8.0,
+      "height": 36.0
+    },
+    "switch": {
+      "thumbColor": "@primary"
+    },
+    "slider": {
+      "thumbColor": "@primary",
+      "trackColor": "@muted"
+    },
+    "scrollbar": {
+      "radius": 999.0
+    },
+    "avatar": {
+      "radius": 999.0
+    },
+    "skeleton": {
+      "radius": 8.0,
+      "surfaceOpacity": 0.6
+    },
+    "progress": {
+      "radius": 999.0,
+      "background": "@primary"
+    },
+    "divider": {
+      "borderColor": "@border"
+    },
+    "menu": {
+      "radius": 10.0,
+      "padding": 6.0
+    },
+    "dropdown": {
+      "radius": 10.0
+    },
+    "modal": {
+      "radius": 16.0
+    },
+    "dialog": {
+      "radius": 16.0,
+      "padding": 24.0
+    },
+    "sheet": {
+      "radius": 16.0
+    },
+    "table": {
+      "radius": 10.0
+    },
+    "checkbox": {
+      "radius": 4.0
+    },
+    "radio": {
+      "radius": 999.0
+    },
+    "toggle": {
+      "radius": 6.0
+    },
+    "toggleGroup": {
+      "radius": 8.0
+    },
+    "accordion": {
+      "radius": 10.0
+    },
+    "alert": {
+      "radius": 10.0,
+      "padding": 12.0
+    },
+    "breadcrumb": {
+      "gap": 8.0
+    },
+    "carousel": {
+      "radius": 12.0
+    },
+    "collapsible": {
+      "radius": 8.0
+    },
+    "command": {
+      "radius": 12.0,
+      "padding": 8.0
+    },
+    "contextMenu": {
+      "radius": 10.0,
+      "padding": 6.0
+    },
+    "drawer": {
+      "radius": 16.0
+    },
+    "hoverCard": {
+      "radius": 12.0,
+      "padding": 12.0
+    },
+    "pagination": {
+      "gap": 8.0
+    },
+    "popover": {
+      "radius": 10.0,
+      "padding": 12.0
+    },
+    "resizable": {
+      "radius": 8.0
+    },
+    "sidebar": {
+      "radius": 12.0,
+      "padding": 8.0
+    },
+    "stepper": {
+      "gap": 12.0
+    },
+    "toast": {
+      "radius": 10.0,
+      "padding": 12.0
+    },
+    "tree": {
+      "gap": 4.0
+    }
+  },
+  "layout": {
+    "chrome": "inset",
+    "nav": "labels",
+    "progress": "inline",
+    "navItems": [
+      "home",
+      "radio",
+      "stats",
+      "search"
+    ],
+    "navbarItems": [
+      "home",
+      "search",
+      "radio",
+      "library",
+      "stats"
+    ],
+    "libraryItems": [
+      "playlists",
+      "artists",
+      "albums",
+      "local_library"
+    ],
+    "player": {
+      "dock": "full",
+      "showTrackDetails": true,
+      "showActions": true,
+      "showVolume": true,
+      "showLyrics": true,
+      "showProgress": true
+    },
+    "home": {
+      "sections": [
+        "recent",
+        "featured",
+        "new_releases",
+        "browse"
+      ]
+    },
+    "settings": {
+      "sections": [
+        "accounts",
+        "language_region",
+        "appearance",
+        "sidebar",
+        "playback",
+        "downloads",
+        "desktop",
+        "developers",
+        "about"
+      ]
+    },
+    "titlebar": {
+      "height": 40.0,
+      "padding": 12.0,
+      "showBack": true
+    },
+    "splash": {
+      "text": "Kitchen Sink"
+    },
+    "enforce": [
+      "playerDock"
+    ],
+    "responsive": {
+      "compact": {
+        "nav": "rail",
+        "navItems": [
+          "home",
+          "radio",
+          "stats"
+        ],
+        "player": {
+          "showVolume": false,
+          "showActions": false
+        },
+        "home": {
+          "sections": [
+            "recent",
+            "featured"
+          ]
+        },
+        "settings": {
+          "sections": [
+            "accounts",
+            "appearance",
+            "about"
+          ]
+        }
+      },
+      "medium": {
+        "nav": "rail"
+      }
+    }
+  },
+  "branding": {
+    "appName": "Kitchen Sink",
+    "shortName": "Kitchen",
+    "tagline": "Every field, once",
+    "wordmark": {
+      "text": "Kitchen Sink",
+      "fontFamily": "Cookie"
+    },
+    "titlebarTitle": "Kitchen Sink",
+    "windowTitle": "Kitchen Sink",
+    "aboutName": "Kitchen Sink",
+    "notificationName": "Kitchen",
+    "showHostAttribution": true
+  },
+  "assets": {
+    "images": []
+  },
+  "ui": {
+    "specVersion": 1,
+    "slots": {
+      "sidebar.footer": {
+        "children": [
+          {
+            "type": "row",
+            "gap": 8,
+            "children": [
+              {
+                "type": "text",
+                "bind": "player.title",
+                "maxLines": 1
+              },
+              {
+                "type": "button",
+                "label": "Lyrics",
+                "icon": "lyrics",
+                "action": {
+                  "type": "navigate",
+                  "args": {
+                    "target": "lyrics"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "player.trailing": {
+        "children": [
+          {
+            "type": "button",
+            "label": "Now playing",
+            "icon": "play",
+            "action": {
+              "type": "navigate",
+              "args": {
+                "target": "screen:now-playing"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "screens": {
+      "now-playing": {
+        "title": "Now playing",
+        "showBack": true,
+        "children": [
+          {
+            "type": "image",
+            "src": "albumArt",
+            "width": 220,
+            "height": 220,
+            "radius": 12
+          },
+          {
+            "type": "text",
+            "bind": "player.title",
+            "size": "xl"
+          },
+          {
+            "type": "text",
+            "bind": "player.artist",
+            "size": "md"
+          },
+          {
+            "type": "row",
+            "gap": 12,
+            "children": [
+              {
+                "type": "button",
+                "label": "Previous",
+                "action": {
+                  "type": "previous"
+                }
+              },
+              {
+                "type": "button",
+                "label": "Play",
+                "variant": "primary",
+                "action": {
+                  "type": "playPause"
+                }
+              },
+              {
+                "type": "button",
+                "label": "Next",
+                "action": {
+                  "type": "next"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "templates": {
+      "trackRow": {
+        "params": [
+          "title",
+          "artist"
+        ],
+        "children": [
+          {
+            "type": "column",
+            "gap": 2,
+            "children": [
+              {
+                "type": "text",
+                "bind": "player.title"
+              },
+              {
+                "type": "text",
+                "bind": "player.artist",
+                "size": "small"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "ext": {
+    "note": "Free-form data the host ignores. A theme may carry anything here."
+  }
+}

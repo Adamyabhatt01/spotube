@@ -1,0 +1,147 @@
+//#include "sdk/palette.ht"
+
+// A theme that answers with its own UI.
+//
+// `getTheme()` returns the colours and the shell switches; `getUi()` returns
+// the content — the slots the host fills, the screens it can open, and the
+// templates it expands. The two are separate so the host can cache the UI on
+// its own and reload only the colours when the theme changes.
+//
+// `onUiAction()` is how the theme answers a button that asks it something:
+// the host hands over an id and a payload, and the theme may answer with a
+// new UI specification or with nothing.
+class UiDemoThemeApi {
+  fun getTheme() {
+    var schemes = ThemePalette.fromSeed('#0f9d76')
+    return {
+      'specVersion': 3,
+      'light': schemes['light'],
+      'dark': schemes['dark'],
+      'layout': {
+        'chrome': 'inset',
+        'nav': 'labels',
+        'progress': 'inline',
+      },
+    }
+  }
+
+  fun getUi() {
+    return {
+      'specVersion': 1,
+      'slots': {
+        'sidebar.footer': {
+          'children': [
+            {
+              'type': 'row',
+              'gap': 8,
+              'children': [
+                {
+                  'type': 'text',
+                  'bind': 'player.title',
+                  'maxLines': 1,
+                },
+                {
+                  'type': 'button',
+                  'label': 'Lyrics',
+                  'icon': 'lyrics',
+                  'variant': 'ghost',
+                  'action': {'type': 'navigate', 'args': {'target': 'lyrics'}},
+                },
+                {
+                  'type': 'button',
+                  'label': 'Refresh',
+                  'variant': 'ghost',
+                  'action': {
+                    'type': 'plugin',
+                    'args': {'id': 'refresh'},
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        'player.trailing': {
+          'children': [
+            {
+              'type': 'button',
+              'label': 'Now playing',
+              'icon': 'play',
+              'variant': 'ghost',
+              'action': {
+                'type': 'navigate',
+                'args': {'target': 'screen:now-playing'},
+              },
+            },
+          ],
+        },
+      },
+      'screens': {
+        'now-playing': {
+          'title': 'Now playing',
+          'showBack': true,
+          'children': [
+            {
+              'type': 'image',
+              'src': 'albumArt',
+              'width': 220,
+              'height': 220,
+              'radius': 12,
+            },
+            {'type': 'text', 'bind': 'player.title', 'size': 'xl'},
+            {'type': 'text', 'bind': 'player.artist', 'size': 'md'},
+            {
+              'type': 'row',
+              'gap': 12,
+              'children': [
+                {
+                  'type': 'button',
+                  'label': 'Previous',
+                  'action': {'type': 'previous'},
+                },
+                {
+                  'type': 'button',
+                  'label': 'Play',
+                  'variant': 'primary',
+                  'action': {'type': 'playPause'},
+                },
+                {
+                  'type': 'button',
+                  'label': 'Next',
+                  'action': {'type': 'next'},
+                },
+              ],
+            },
+          ],
+        },
+      },
+      'templates': {
+        'trackRow': {
+          'params': ['title', 'artist'],
+          'children': [
+            {
+              'type': 'column',
+              'gap': 2,
+              'children': [
+                {'type': 'text', 'bind': 'player.title'},
+                {'type': 'text', 'bind': 'player.artist', 'size': 'small'},
+              ],
+            },
+          ],
+        },
+      },
+    }
+  }
+
+  // The theme's own actions. The host calls this when a button carries a
+  // `plugin` action; the theme may answer with a new UI specification.
+  fun onUiAction(id, payload) {
+    if (id == 'refresh') {
+      return this.getUi()
+    }
+    return null
+  }
+}
+
+class UiDemoTheme {
+  var theme = UiDemoThemeApi();
+}

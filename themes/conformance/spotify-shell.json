@@ -1,0 +1,63 @@
+{
+  "light": {
+    "background": "#ffffff",
+    "foreground": "#121212",
+    "card": "#f4f4f4",
+    "cardForeground": "#121212",
+    "primary": "#000000",
+    "primaryForeground": "#ffffff",
+    "secondary": "#e9e9e9",
+    "secondaryForeground": "#121212",
+    "muted": "#f4f4f4",
+    "mutedForeground": "#7a7a7a",
+    "accent": "#e9e9e9",
+    "accentForeground": "#121212",
+    "destructive": "#e91429",
+    "destructiveForeground": "#ffffff",
+    "border": "#e5e5e5",
+    "input": "#e5e5e5",
+    "ring": "#000000"
+  },
+  "dark": {
+    "background": "#121212",
+    "foreground": "#ffffff",
+    "card": "#181818",
+    "cardForeground": "#ffffff",
+    "primary": "#1db954",
+    "primaryForeground": "#000000",
+    "secondary": "#242424",
+    "secondaryForeground": "#ffffff",
+    "muted": "#242424",
+    "mutedForeground": "#b3b3b3",
+    "accent": "#2a2a2a",
+    "accentForeground": "#ffffff",
+    "destructive": "#e91429",
+    "destructiveForeground": "#ffffff",
+    "border": "#4d4d4d",
+    "input": "#4d4d4d",
+    "ring": "#1ed760"
+  },
+  "surfaces": {
+    "opacity": 0.75,
+    "blur": 20.0
+  },
+  "radius": {
+    "small": 4.0,
+    "medium": 8.0,
+    "large": 8.0,
+    "pill": 999.0
+  },
+  "density": 1.0,
+  "tokens": {
+    "cardWidth": 180.0,
+    "cardHeight": 240.0,
+    "artistCardWidth": 180.0,
+    "artistCardHeight": 250.0,
+    "gutter": 16.0
+  },
+  "layout": {
+    "chrome": "inset",
+    "nav": "rail",
+    "progress": "below"
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "generatedAt": "2026-10-22T14:20:04.542711Z",
+  "themes": [
+    {
+      "id": "asset-demo",
+      "name": "Asset Demo Theme",
+      "author": "Adamya Bhatt",
+      "version": "1.0.0",
+      "entryPoint": "AssetDemoTheme",
+      "abilities": [
+        "theme"
+      ],
+      "file": "asset-demo-1.0.0.smplug",
+      "bytes": 11354,
+      "sha256": "4057e06ee1578117a74c8f97b49832ede062078147af3e9f7497e504ad928714",
+      "optionalMethods": [],
+      "hasUiSpec": false
+    },
+    {
+      "id": "brand-demo",
+      "name": "Aurora Demo Theme",
+      "author": "Adamya Bhatt",
+      "version": "1.0.0",
+      "entryPoint": "AuroraTheme",
+      "abilities": [
+        "theme"
+      ],
+      "file": "brand-demo-1.0.0.smplug",
+      "bytes": 6986,
+      "sha256": "2c45557daf1a83b1e712184af69f15a7f985ebf2e2218fdbdae9c76f44584c15",
+      "optionalMethods": [],
+      "hasUiSpec": false
+    },
+    {
+      "id": "caelestia",
+      "name": "Caelestia Shell Theme",
+      "author": "Adamya Bhatt",
+      "version": "1.2.0",
+      "entryPoint": "CaelestiaTheme",
+      "abilities": [
+        "theme"
+      ],
+      "file": "caelestia-1.2.0.smplug",
+      "bytes": 1264,
+      "sha256": "ec834ddd85f31edd507cfa1fba2c6d21094b58f048eb26724c5bbb69f52719cf",
+      "optionalMethods": [],
+      "hasUiSpec": false,
+      "published": "caelestia/plugin.smplug"
+    },
+    {
+      "id": "caelestia-glassier",
+      "name": "Caelestia Shell Theme (Glassier)",
+      "author": "Adamya Bhatt",
+      "version": "1.3.0",
+      "entryPoint": "CaelestiaTheme",
+      "abilities": [
+        "theme"
+      ],
+      "file": "caelestia-glassier-1.3.0.smplug",
+      "bytes": 1294,
+      "sha256": "5117bd051ee46fe070a79a7f0970504f77b62abba3ee6725790e8c3f1ef4a29a",
+      "optionalMethods": [],
+      "hasUiSpec": false,
+      "published": "caelestia-glassier/plugin.smplug"
+    },
+    {
+      "id": "caelestia-plain",
+      "name": "Caelestia Plain Theme",
+      "author": "Adamya Bhatt",
+      "version": "1.1.0",
+      "entryPoint": "CaelestiaTheme",
+      "abilities": [
+        "theme"
+      ],
+      "file": "caelestia-plain-1.1.0.smplug",
+      "bytes": 1246,
+      "sha256": "fb272c9c5ced74a5f388453945d929f586b7ffab9a60988141fffa2a56e1cb67",
+      "optionalMethods": [],
+      "hasUiSpec": false,
+      "published": "caelestia-plain/plugin.smplug"
+    },
+    {
+      "id": "caelestia-shell",
+      "name": "Caelestia Shell Theme (Balanced)",
+      "author": "Adamya Bhatt",
+      "version": "1.4.0",
+      "entryPoint": "CaelestiaTheme",
+      "abilities": [
+        "theme"
+      ],
+      "file": "caelestia-shell-1.4.0.smplug",
+      "bytes": 1296,
+      "sha256": "f375dc9ad3c158d8770e7726f8ec6a9afa18cce4135d9f6705ba5839efef6e8c",
+      "optionalMethods": [],
+      "hasUiSpec": false,
+      "published": "caelestia-shell/plugin.smplug"
+    },
+    {
+      "id": "kitchen-sink",
+      "name": "Kitchen Sink Theme",
+      "author": "Adamya Bhatt",
+      "version": "1.0.0",
+      "entryPoint": "KitchenSinkTheme",
+      "abilities": [
+        "theme"
+      ],
+      "file": "kitchen-sink-1.0.0.smplug",
+      "bytes": 8617,
+      "sha256": "13a16951d6f3082d9d73d4095ee349eeb085aa9f32f2853f76780f90bcba5c63",
+      "optionalMethods": [],
+      "hasUiSpec": false
+    },
+    {
+      "id": "minimal",
+      "name": "Minimal Seed Theme",
+      "author": "Adamya Bhatt",
+      "version": "1.0.0",
+      "entryPoint": "MinimalTheme",
+      "abilities": [
+        "theme"
+      ],
+      "file": "minimal-1.0.0.smplug",
+      "bytes": 5455,
+      "sha256": "69d8d3a6e6047ac2c1ab16a7fb177e7f66b4ed7e6e20b496873bb783753684c7",
+      "optionalMethods": [],
+      "hasUiSpec": false
+    },
+    {
+      "id": "spotify-shell",
+      "name": "Spotify Shell Theme",
+      "author": "Adamya Bhatt",
+      "version": "1.0.0",
+      "entryPoint": "SpotifyTheme",
+      "abilities": [
+        "theme"
+      ],
+      "file": "spotify-shell-1.0.0.smplug",
+      "bytes": 1276,
+      "sha256": "1400d2ca7f1039c0d3f058d5f05a1ad7d796d375a6d2d7e897449a91f869b24f",
+      "optionalMethods": [],
+      "hasUiSpec": false,
+      "published": "spotify-shell/plugin.smplug"
+    },
+    {
+      "id": "ui-demo",
+      "name": "UI Demo Theme",
+      "author": "Adamya Bhatt",
+      "version": "1.0.0",
+      "entryPoint": "UiDemoTheme",
+      "abilities": [
+        "theme"
+      ],
+      "file": "ui-demo-1.0.0.smplug",
+      "bytes": 6240,
+      "sha256": "c2c99f0c2f4a04bdde7f6eefe2e75fb577ed051d432fba715537f4c1f2669f69",
+      "optionalMethods": [
+        "getUi",
+        "onUiAction"
+      ],
+      "hasUiSpec": true
+    }
+  ]
+}

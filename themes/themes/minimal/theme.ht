@@ -1,0 +1,25 @@
+//#include "sdk/palette.ht"
+
+// The smallest useful theme: one seed colour, and the two schemes derived
+// from it. Everything else is the app's own default.
+//
+// This is what the authoring SDK is for — a theme should be able to say
+// "make the app look like this colour" in one line, and let the rest follow.
+class MinimalThemeApi {
+  fun getTheme() {
+    var schemes = ThemePalette.fromSeed('#5b4bdb')
+    return {
+      'light': schemes['light'],
+      'dark': schemes['dark'],
+      'layout': {
+        'chrome': 'inset',
+        'nav': 'labels',
+        'progress': 'inline',
+      },
+    }
+  }
+}
+
+class MinimalTheme {
+  var theme = MinimalThemeApi();
+}

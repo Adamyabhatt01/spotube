@@ -1,0 +1,7 @@
+# The theme toolchain is a plain Dart package (Hetu + archive + SQLite), not
+# part of the Flutter app, so it is analysed with the Dart defaults rather
+# than the app's flutter_lints. The nearest analysis_options wins, which
+# keeps `flutter analyze` at the repo root and `dart analyze` inside themes/
+# in agreement.
+#
+# Lint parity with the app can come later; correctness does not wait on it.

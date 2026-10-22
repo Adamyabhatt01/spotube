@@ -1,0 +1,11 @@
+{
+  "name": "Caelestia Shell Theme",
+  "description": "Matches Spotube to the active Caelestia shell scheme: glass surfaces, shell background and dynamic Material colour.",
+  "version": "1.2.0",
+  "author": "Adamya Bhatt",
+  "entryPoint": "CaelestiaTheme",
+  "pluginApiVersion": "2.0.0",
+  "apis": [],
+  "abilities": ["theme"],
+  "repository": "https://github.com/Adamyabhatt01/Caelestia-theme-plugin-spotube"
+}

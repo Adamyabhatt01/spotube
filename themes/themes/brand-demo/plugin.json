@@ -1,0 +1,11 @@
+{
+  "name": "Aurora Demo Theme",
+  "description": "A v3 demo theme: it renames the app, restyles its components and adds a slot and a screen. A host that speaks v2 draws the palette and ignores the rest.",
+  "version": "1.0.0",
+  "author": "Adamya Bhatt",
+  "entryPoint": "AuroraTheme",
+  "pluginApiVersion": "2.0.0",
+  "apis": [],
+  "abilities": ["theme"],
+  "repository": "https://github.com/Adamyabhatt01/Caelestia-theme-plugin-spotube"
+}

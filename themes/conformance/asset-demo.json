@@ -1,0 +1,56 @@
+{
+  "specVersion": 3,
+  "light": {
+    "background": "#fcfbfb",
+    "foreground": "#281b1a",
+    "card": "#ffffff",
+    "cardForeground": "#281b1a",
+    "primary": "#b8291e",
+    "primaryForeground": "#fdfcfc",
+    "secondary": "#f2eeed",
+    "secondaryForeground": "#281b1a",
+    "muted": "#f5f3f2",
+    "mutedForeground": "#7f6462",
+    "accent": "#f1e5e4",
+    "accentForeground": "#422624",
+    "destructive": "#dc2626",
+    "destructiveForeground": "#ffffff",
+    "border": "#e5dfde",
+    "input": "#e5dfde",
+    "ring": "#b8291e"
+  },
+  "dark": {
+    "background": "#161110",
+    "foreground": "#f3f1f1",
+    "card": "#1e1818",
+    "cardForeground": "#f3f1f1",
+    "primary": "#dc857e",
+    "primaryForeground": "#251918",
+    "secondary": "#322827",
+    "secondaryForeground": "#f3f1f1",
+    "muted": "#2b2524",
+    "mutedForeground": "#a59897",
+    "accent": "#462c2a",
+    "accentForeground": "#eee8e8",
+    "destructive": "#f87171",
+    "destructiveForeground": "#1a0a0a",
+    "border": "#382f2e",
+    "input": "#382f2e",
+    "ring": "#dc857e"
+  },
+  "assets": {
+    "images": [
+      {
+        "path": "asset://images/aurora.png",
+        "kind": "image",
+        "role": "branding.logo"
+      }
+    ]
+  },
+  "branding": {
+    "appName": "Asset Demo",
+    "shortName": "Assets",
+    "logo": "asset://images/aurora.png",
+    "showHostAttribution": true
+  }
+}

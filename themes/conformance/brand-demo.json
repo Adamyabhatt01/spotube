@@ -1,0 +1,320 @@
+{
+  "specVersion": 3,
+  "light": {
+    "background": "#fbfbfc",
+    "foreground": "#1a1f28",
+    "card": "#ffffff",
+    "cardForeground": "#1a1f28",
+    "primary": "#1e56b8",
+    "primaryForeground": "#fcfcfd",
+    "secondary": "#edeff2",
+    "secondaryForeground": "#1a1f28",
+    "muted": "#f2f3f5",
+    "mutedForeground": "#626c7f",
+    "accent": "#e4e9f1",
+    "accentForeground": "#242f42",
+    "destructive": "#dc2626",
+    "destructiveForeground": "#ffffff",
+    "border": "#dee1e5",
+    "input": "#dee1e5",
+    "ring": "#1e56b8",
+    "popover": "#ffffff",
+    "popoverForeground": "#1a1f28",
+    "sidebar": "#f2f3f5",
+    "sidebarForeground": "#1a1f28",
+    "sidebarPrimary": "#1e56b8",
+    "sidebarPrimaryForeground": "#fcfcfd",
+    "sidebarAccent": "#e4e9f1",
+    "sidebarAccentForeground": "#242f42",
+    "sidebarBorder": "#dee1e5",
+    "sidebarRing": "#1e56b8",
+    "success": "#16a34a",
+    "successForeground": "#ffffff",
+    "warning": "#b45309",
+    "warningForeground": "#ffffff",
+    "info": "#2563eb",
+    "infoForeground": "#ffffff",
+    "chart1": "#1e56b8",
+    "chart2": "#4c1eb8",
+    "chart3": "#b31eb8",
+    "chart4": "#b84c1e",
+    "chart5": "#b8b31e",
+    "chart6": "#1eb84c"
+  },
+  "dark": {
+    "background": "#101216",
+    "foreground": "#f1f2f3",
+    "card": "#181a1e",
+    "cardForeground": "#f1f2f3",
+    "primary": "#7ea1dd",
+    "primaryForeground": "#181d25",
+    "secondary": "#272b32",
+    "secondaryForeground": "#f1f2f3",
+    "muted": "#24272b",
+    "mutedForeground": "#979ca5",
+    "accent": "#2a3446",
+    "accentForeground": "#e8eaee",
+    "destructive": "#f87171",
+    "destructiveForeground": "#1a0a0a",
+    "border": "#2e3238",
+    "input": "#2e3238",
+    "ring": "#7ea1dd",
+    "popover": "#181a1e",
+    "popoverForeground": "#f1f2f3",
+    "sidebar": "#24272b",
+    "sidebarForeground": "#f1f2f3",
+    "sidebarPrimary": "#7ea1dd",
+    "sidebarPrimaryForeground": "#181d25",
+    "sidebarAccent": "#2a3446",
+    "sidebarAccentForeground": "#e8eaee",
+    "sidebarBorder": "#2e3238",
+    "sidebarRing": "#7ea1dd",
+    "success": "#4ade80",
+    "successForeground": "#052e16",
+    "warning": "#fbbf24",
+    "warningForeground": "#451a03",
+    "info": "#60a5fa",
+    "infoForeground": "#082f49",
+    "chart1": "#729ee8",
+    "chart2": "#9672e8",
+    "chart3": "#e472e8",
+    "chart4": "#e89672",
+    "chart5": "#e8e472",
+    "chart6": "#72e896"
+  },
+  "typography": {
+    "family": "Inter",
+    "brandFamily": "Cookie",
+    "styles": {
+      "h1": {
+        "fontSize": 34,
+        "fontWeight": 700,
+        "height": 1.15
+      },
+      "p": {
+        "fontSize": 14,
+        "fontWeight": 400,
+        "height": 1.5
+      },
+      "muted": {
+        "fontSize": 13,
+        "fontWeight": 400,
+        "color": "#6b7280"
+      }
+    }
+  },
+  "spacing": {
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "xxl": 32,
+    "page": 24,
+    "section": 32
+  },
+  "motion": {
+    "fast": 120,
+    "normal": 220,
+    "slow": 380,
+    "easing": "easeOutCubic"
+  },
+  "scale": {
+    "size": 1.0,
+    "text": 1.0,
+    "radius": 1.0
+  },
+  "icons": {
+    "sm": 16,
+    "md": 20,
+    "lg": 24,
+    "xl": 32
+  },
+  "components": {
+    "buttons": {
+      "primary": {
+        "radius": 8,
+        "padding": 12,
+        "fontWeight": 600
+      },
+      "ghost": {
+        "radius": 8,
+        "padding": 8
+      }
+    },
+    "card": {
+      "radius": 14,
+      "padding": 16
+    },
+    "input": {
+      "radius": 8,
+      "height": 36
+    },
+    "tabs": {
+      "indicatorColor": "@primary"
+    }
+  },
+  "layout": {
+    "chrome": "inset",
+    "nav": "labels",
+    "progress": "inline",
+    "navItems": [
+      "home",
+      "radio",
+      "stats"
+    ],
+    "navbarItems": [
+      "home",
+      "search",
+      "radio",
+      "library",
+      "stats"
+    ],
+    "libraryItems": [
+      "playlists",
+      "artists",
+      "albums",
+      "local_library"
+    ],
+    "player": {
+      "dock": "full",
+      "showTrackDetails": true,
+      "showActions": true,
+      "showVolume": true,
+      "showLyrics": true,
+      "showProgress": true
+    },
+    "home": {
+      "sections": [
+        "recent",
+        "featured",
+        "new_releases",
+        "browse"
+      ]
+    },
+    "settings": {
+      "sections": [
+        "accounts",
+        "language_region",
+        "appearance",
+        "sidebar",
+        "playback",
+        "downloads",
+        "desktop",
+        "developers",
+        "about"
+      ]
+    },
+    "enforce": [
+      "playerDock"
+    ],
+    "responsive": {
+      "compact": {
+        "nav": "rail",
+        "player": {
+          "showVolume": false,
+          "showActions": false
+        }
+      }
+    }
+  },
+  "branding": {
+    "appName": "Aurora",
+    "shortName": "Aurora",
+    "tagline": "Your music, your shell",
+    "wordmark": {
+      "text": "Aurora",
+      "fontFamily": "Cookie"
+    },
+    "titlebarTitle": "Aurora",
+    "windowTitle": "Aurora",
+    "aboutName": "Aurora",
+    "showHostAttribution": true
+  },
+  "ui": {
+    "specVersion": 1,
+    "slots": {
+      "sidebar.footer": {
+        "children": [
+          {
+            "type": "row",
+            "gap": 8,
+            "children": [
+              {
+                "type": "text",
+                "bind": "player.title",
+                "maxLines": 1,
+                "size": "small"
+              },
+              {
+                "type": "button",
+                "label": "Lyrics",
+                "icon": "lyrics",
+                "variant": "ghost",
+                "action": {
+                  "type": "navigate",
+                  "args": {
+                    "target": "lyrics"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "screens": {
+      "now-playing": {
+        "title": "Now Playing",
+        "showBack": true,
+        "children": [
+          {
+            "type": "image",
+            "src": "albumArt",
+            "width": 220,
+            "height": 220,
+            "radius": 12
+          },
+          {
+            "type": "text",
+            "bind": "player.title",
+            "size": "xl"
+          },
+          {
+            "type": "text",
+            "bind": "player.artist",
+            "size": "md"
+          },
+          {
+            "type": "row",
+            "gap": 12,
+            "children": [
+              {
+                "type": "button",
+                "label": "Previous",
+                "action": {
+                  "type": "previous"
+                }
+              },
+              {
+                "type": "button",
+                "label": "Play",
+                "variant": "primary",
+                "action": {
+                  "type": "playPause"
+                }
+              },
+              {
+                "type": "button",
+                "label": "Next",
+                "action": {
+                  "type": "next"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

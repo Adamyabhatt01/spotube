@@ -1,0 +1,11 @@
+{
+  "name": "Caelestia Shell Theme (Glassier)",
+  "description": "Same Caelestia shell sync as the base theme, with thinner surfaces: more transparency, more blur, a lighter veil over the shell background.",
+  "version": "1.3.0",
+  "author": "Adamya Bhatt",
+  "entryPoint": "CaelestiaTheme",
+  "pluginApiVersion": "2.0.0",
+  "apis": [],
+  "abilities": ["theme"],
+  "repository": "https://github.com/Adamyabhatt01/Caelestia-theme-plugin-spotube"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "UI Demo Theme",
+  "description": "A theme that answers with its own UI: getUi() returns the slots, screens and templates, onUiAction() answers the theme's own buttons.",
+  "version": "1.0.0",
+  "author": "Adamya Bhatt",
+  "entryPoint": "UiDemoTheme",
+  "pluginApiVersion": "2.0.0",
+  "apis": [],
+  "abilities": ["theme"],
+  "repository": "https://github.com/Adamyabhatt01/Caelestia-theme-plugin-spotube"
+}

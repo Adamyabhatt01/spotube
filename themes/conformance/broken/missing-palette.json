@@ -1,0 +1,21 @@
+{
+  "light": {
+    "background": "#ffffff",
+    "foreground": "#121212",
+    "card": "#ffffff",
+    "cardForeground": "#121212",
+    "primary": "#121212",
+    "primaryForeground": "#ffffff",
+    "secondary": "#ffffff",
+    "secondaryForeground": "#121212",
+    "muted": "#ffffff",
+    "mutedForeground": "#121212",
+    "accent": "#ffffff",
+    "accentForeground": "#121212",
+    "destructive": "#dc2626",
+    "destructiveForeground": "#ffffff",
+    "border": "#121212",
+    "input": "#121212",
+    "ring": "#121212"
+  }
+}

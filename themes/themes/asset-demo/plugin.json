@@ -1,0 +1,11 @@
+{
+  "name": "Asset Demo Theme",
+  "description": "A theme that ships an image and points at it with an asset:// path. The build checks that the file is there.",
+  "version": "1.0.0",
+  "author": "Adamya Bhatt",
+  "entryPoint": "AssetDemoTheme",
+  "pluginApiVersion": "2.0.0",
+  "apis": [],
+  "abilities": ["theme"],
+  "repository": "https://github.com/Adamyabhatt01/Caelestia-theme-plugin-spotube"
+}

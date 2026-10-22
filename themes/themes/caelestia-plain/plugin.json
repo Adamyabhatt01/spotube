@@ -1,0 +1,11 @@
+{
+  "name": "Caelestia Plain Theme",
+  "description": "The Caelestia palette without the desktop backdrop and without the shell-derived glass: the compositor shows through, nothing is painted over it.",
+  "version": "1.1.0",
+  "author": "Adamya Bhatt",
+  "entryPoint": "CaelestiaTheme",
+  "pluginApiVersion": "2.0.0",
+  "apis": [],
+  "abilities": ["theme"],
+  "repository": "https://github.com/Adamyabhatt01/Caelestia-theme-plugin-spotube"
+}

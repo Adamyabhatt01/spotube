@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Adamyabhatt01/spotube-theme/schemas/theme.v2.schema.json",
+  "title": "Spotube theme payload, v2",
+  "description": "The payload a theme plugin's getTheme() returns, as the app reads it today. Fields that are not listed are ignored by the app, which is what lets a newer theme ship to an older app.",
+  "type": "object",
+  "required": ["light", "dark"],
+  "additionalProperties": true,
+  "$defs": {
+    "color": {
+      "type": "string",
+      "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+      "description": "The app strips one leading '#' and requires 6 or 8 hex digits. Anything else throws, and a throw there discards the whole theme."
+    },
+    "palette": {
+      "type": "object",
+      "required": [
+        "background",
+        "foreground",
+        "card",
+        "cardForeground",
+        "primary",
+        "primaryForeground",
+        "secondary",
+        "secondaryForeground",
+        "muted",
+        "mutedForeground",
+        "accent",
+        "accentForeground",
+        "destructive",
+        "destructiveForeground",
+        "border",
+        "input",
+        "ring"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "background": {"$ref": "#/$defs/color"},
+        "foreground": {"$ref": "#/$defs/color"},
+        "card": {"$ref": "#/$defs/color"},
+        "cardForeground": {"$ref": "#/$defs/color"},
+        "primary": {"$ref": "#/$defs/color"},
+        "primaryForeground": {"$ref": "#/$defs/color"},
+        "secondary": {"$ref": "#/$defs/color"},
+        "secondaryForeground": {"$ref": "#/$defs/color"},
+        "muted": {"$ref": "#/$defs/color"},
+        "mutedForeground": {"$ref": "#/$defs/color"},
+        "accent": {"$ref": "#/$defs/color"},
+        "accentForeground": {"$ref": "#/$defs/color"},
+        "destructive": {"$ref": "#/$defs/color"},
+        "destructiveForeground": {"$ref": "#/$defs/color"},
+        "border": {"$ref": "#/$defs/color"},
+        "input": {"$ref": "#/$defs/color"},
+        "ring": {"$ref": "#/$defs/color"}
+      }
+    },
+    "fraction": {"type": "number", "minimum": 0, "maximum": 1},
+    "pixels": {"type": "number", "minimum": 0}
+  },
+  "properties": {
+    "light": {"$ref": "#/$defs/palette"},
+    "dark": {"$ref": "#/$defs/palette"},
+    "surfaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "opacity": {"$ref": "#/$defs/fraction"},
+        "blur": {"type": "number", "minimum": 0, "maximum": 100},
+        "tint": {"$ref": "#/$defs/color"}
+      }
+    },
+    "background": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {"enum": ["none", "albumArt", "shell"]},
+        "opacity": {"$ref": "#/$defs/fraction"},
+        "blur": {"type": "number", "minimum": 0, "maximum": 100},
+        "overlay": {"$ref": "#/$defs/color"},
+        "transparent": {
+          "type": "boolean",
+          "description": "Tri-state on purpose: true asks for the compositor, false vetoes it, absent leaves it to the host setting. Anything that is not a boolean reads as absent."
+        }
+      }
+    },
+    "radius": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "small": {"type": "number", "minimum": 0, "maximum": 48},
+        "medium": {"type": "number", "minimum": 0, "maximum": 48},
+        "large": {"type": "number", "minimum": 0, "maximum": 64},
+        "pill": {"type": "number", "minimum": 0, "maximum": 9999}
+      }
+    },
+    "density": {
+      "type": "number",
+      "minimum": 0.7,
+      "maximum": 1.5,
+      "description": "Zero or negative reads as 1.0 — an unset field must not shrink the whole UI."
+    },
+    "tokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cardWidth": {"type": "number", "minimum": 80, "maximum": 400},
+        "cardHeight": {"type": "number", "minimum": 120, "maximum": 600},
+        "artistCardWidth": {"type": "number", "minimum": 80, "maximum": 480},
+        "artistCardHeight": {"type": "number", "minimum": 120, "maximum": 640},
+        "gutter": {"type": "number", "minimum": 0, "maximum": 40},
+        "fontFamily": {
+          "type": "string",
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._-]*$",
+          "description": "A family the platform already has. A theme cannot load a font file."
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "chrome": {"enum": ["flat", "inset"]},
+        "nav": {"enum": ["labels", "rail"]},
+        "progress": {"enum": ["inline", "below"]}
+      }
+    },
+    "dynamic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source"],
+      "properties": {
+        "source": {"enum": ["albumArt", "shell"]},
+        "algorithm": {"enum": ["material"]}
+      }
+    }
+  }
+}

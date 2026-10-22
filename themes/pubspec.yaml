@@ -1,0 +1,18 @@
+name: spotube_themes
+description: Theme plugins for Spotube — sources, SDK, schemas and build tooling.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  archive: ^4.0.7
+  crypto: ^3.0.6
+  args: ^2.5.0
+  hetu_script: ^0.4.2+1
+  path: ^1.9.0
+  sqlite3: ^2.9.0
+
+dev_dependencies:
+  test: ^1.25.0

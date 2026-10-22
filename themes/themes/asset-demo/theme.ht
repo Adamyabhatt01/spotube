@@ -1,0 +1,37 @@
+//#include "sdk/palette.ht"
+
+// A theme that ships its own files.
+//
+// The images a theme ships live inside the plugin's own directory, and the
+// theme points at them with `asset://` paths. The host resolves those paths
+// — never the theme — and the build checks that every path a theme names is
+// a file the theme actually ships.
+class AssetDemoThemeApi {
+  fun getTheme() {
+    var schemes = ThemePalette.fromSeed('#e2574c')
+    return {
+      'specVersion': 3,
+      'light': schemes['light'],
+      'dark': schemes['dark'],
+      'assets': {
+        'images': [
+          {
+            'path': 'asset://images/aurora.png',
+            'kind': 'image',
+            'role': 'branding.logo',
+          },
+        ],
+      },
+      'branding': {
+        'appName': 'Asset Demo',
+        'shortName': 'Assets',
+        'logo': 'asset://images/aurora.png',
+        'showHostAttribution': true,
+      },
+    }
+  }
+}
+
+class AssetDemoTheme {
+  var theme = AssetDemoThemeApi();
+}

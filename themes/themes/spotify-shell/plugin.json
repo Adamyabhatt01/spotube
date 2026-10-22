@@ -1,0 +1,11 @@
+{
+  "name": "Spotify Shell Theme",
+  "description": "A Spotify-shaped shell: black and green palette, inset content panel, icon-only rail navigation, seek bar below the player and Spotify-sized cards.",
+  "version": "1.0.0",
+  "author": "Adamya Bhatt",
+  "entryPoint": "SpotifyTheme",
+  "pluginApiVersion": "2.0.0",
+  "apis": [],
+  "abilities": ["theme"],
+  "repository": "https://github.com/Adamyabhatt01/Caelestia-theme-plugin-spotube"
+}

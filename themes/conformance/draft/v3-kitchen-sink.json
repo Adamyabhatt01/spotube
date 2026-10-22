@@ -1,0 +1,174 @@
+{
+  "specVersion": 3,
+  "light": {
+    "background": "#ffffff",
+    "foreground": "#0b0b0f",
+    "card": "#f7f7f8",
+    "cardForeground": "#0b0b0f",
+    "primary": "#5b4bdb",
+    "primaryForeground": "#ffffff",
+    "secondary": "#eeeef2",
+    "secondaryForeground": "#0b0b0f",
+    "muted": "#f2f2f5",
+    "mutedForeground": "#6b6b76",
+    "accent": "#e7e5ff",
+    "accentForeground": "#3a2fb0",
+    "destructive": "#dc2626",
+    "destructiveForeground": "#ffffff",
+    "border": "#e2e2e8",
+    "input": "#e2e2e8",
+    "ring": "#5b4bdb"
+  },
+  "dark": {
+    "background": "#0b0b0f",
+    "foreground": "#f4f4f6",
+    "card": "#15151b",
+    "cardForeground": "#f4f4f6",
+    "primary": "#a394ff",
+    "primaryForeground": "#14121f",
+    "secondary": "#26262f",
+    "secondaryForeground": "#f4f4f6",
+    "muted": "#1c1c23",
+    "mutedForeground": "#a1a1ad",
+    "accent": "#2a2545",
+    "accentForeground": "#cfc6ff",
+    "destructive": "#f87171",
+    "destructiveForeground": "#1a0a0a",
+    "border": "#2c2c36",
+    "input": "#2c2c36",
+    "ring": "#a394ff"
+  },
+  "typography": {
+    "family": "Inter",
+    "monoFamily": "JetBrains Mono",
+    "brandFamily": "Cookie",
+    "styles": {
+      "h1": {"fontSize": 40, "fontWeight": 700, "height": 1.1, "letterSpacing": -0.5},
+      "h2": {"fontSize": 32, "fontWeight": 700, "height": 1.15, "letterSpacing": -0.3},
+      "p": {"fontSize": 14, "fontWeight": 400, "height": 1.5},
+      "small": {"fontSize": 12, "fontWeight": 500},
+      "muted": {"fontSize": 13, "fontWeight": 400, "color": "#6b6b76"}
+    }
+  },
+  "spacing": {
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "xxl": 32,
+    "page": 24,
+    "section": 32
+  },
+  "motion": {
+    "fast": 120,
+    "normal": 220,
+    "slow": 380,
+    "easing": "easeOutCubic"
+  },
+  "scale": {
+    "size": 1.0,
+    "text": 1.0,
+    "radius": 1.0
+  },
+  "icons": {
+    "sm": 16,
+    "md": 20,
+    "lg": 24,
+    "xl": 32
+  },
+  "components": {
+    "buttons": {
+      "primary": {"radius": 8, "padding": 12, "fontWeight": 600},
+      "secondary": {"radius": 8, "padding": 12},
+      "ghost": {"radius": 8, "padding": 8},
+      "outline": {"radius": 8, "borderWidth": 1}
+    },
+    "card": {"radius": 14, "padding": 16, "surfaceOpacity": 0.9},
+    "input": {"radius": 8, "height": 36},
+    "tabs": {"indicatorColor": "#5b4bdb"},
+    "nav": {"railWidth": 64},
+    "tooltip": {"radius": 6}
+  },
+  "layout": {
+    "chrome": "inset",
+    "nav": "labels",
+    "progress": "inline",
+    "navItems": ["home", "radio", "stats"],
+    "navbarItems": ["home", "search", "radio", "library", "stats"],
+    "libraryItems": ["playlists", "artists", "albums", "local_library"],
+    "player": {
+      "dock": "full",
+      "showTrackDetails": true,
+      "showActions": true,
+      "showVolume": true,
+      "showLyrics": false,
+      "showProgress": true
+    },
+    "home": {"sections": ["recent", "featured", "new_releases", "browse"]},
+    "settings": {
+      "sections": [
+        "accounts",
+        "language_region",
+        "appearance",
+        "sidebar",
+        "playback",
+        "downloads",
+        "desktop",
+        "developers",
+        "about"
+      ]
+    },
+    "enforce": ["playerDock"],
+    "responsive": {
+      "compact": {
+        "nav": "rail",
+        "player": {"showVolume": false, "showActions": false}
+      }
+    }
+  },
+  "branding": {
+    "appName": "Aurora",
+    "shortName": "Aurora",
+    "tagline": "Your music, your shell",
+    "wordmark": {"text": "Aurora", "fontFamily": "Cookie"},
+    "logo": "asset://images/logo.png",
+    "titlebarTitle": "Aurora",
+    "windowTitle": "Aurora",
+    "aboutName": "Aurora",
+    "showHostAttribution": true
+  },
+  "ui": {
+    "specVersion": 1,
+    "slots": {
+      "sidebar.footer": {
+        "children": [
+          {
+            "type": "row",
+            "gap": 8,
+            "children": [
+              {"type": "text", "bind": "player.title", "maxLines": 1},
+              {
+                "type": "button",
+                "label": "Lyrics",
+                "icon": "lyrics",
+                "action": {"type": "navigate", "args": {"target": "lyrics"}}
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "screens": {
+      "now-playing": {
+        "title": "Now Playing",
+        "showBack": true,
+        "children": [
+          {"type": "image", "src": "albumArt", "width": 220, "height": 220, "radius": 12},
+          {"type": "text", "bind": "player.title", "size": "xl"},
+          {"type": "text", "bind": "player.artist", "size": "md"}
+        ]
+      }
+    }
+  }
+}

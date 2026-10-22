@@ -1,0 +1,11 @@
+{
+  "name": "Caelestia Shell Theme (Balanced)",
+  "description": "Caelestia glass with more opaque surfaces (75%): the desktop still shows through, but text stays readable over a bright wallpaper.",
+  "version": "1.4.0",
+  "author": "Adamya Bhatt",
+  "entryPoint": "CaelestiaTheme",
+  "pluginApiVersion": "2.0.0",
+  "apis": [],
+  "abilities": ["theme"],
+  "repository": "https://github.com/Adamyabhatt01/Caelestia-theme-plugin-spotube"
+}

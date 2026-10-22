@@ -1,0 +1,205 @@
+//#include "sdk/palette.ht"
+
+// The "this is a different app" demo.
+//
+// Everything in here that a v2 host reads — the two colour schemes — is
+// drawn today. Everything else is the v3 payload: typography, spacing,
+// motion, scale, component styles, the shell's composition, the branding
+// block and a declarative UI tree with a slot and a screen.
+//
+// On a v2 host this theme is a palette and nothing else: the new blocks are
+// ignored, which is the compatibility rule the contract is built on. On a v3
+// host it renames the app, restyles its components, rearranges its shell and
+// puts live player data in the sidebar.
+class AuroraThemeApi {
+  fun getTheme() {
+    var schemes = ThemePalette.fromSeedFull('#3f7ae0')
+
+    return {
+      'specVersion': 3,
+
+      // What a v2 host reads.
+      'light': schemes['light'],
+      'dark': schemes['dark'],
+
+      'typography': {
+        'family': 'Inter',
+        'brandFamily': 'Cookie',
+        'styles': {
+          'h1': {'fontSize': 34, 'fontWeight': 700, 'height': 1.15},
+          'p': {'fontSize': 14, 'fontWeight': 400, 'height': 1.5},
+          'muted': {'fontSize': 13, 'fontWeight': 400, 'color': '#6b7280'},
+        },
+      },
+
+      'spacing': {
+        'xs': 4,
+        'sm': 8,
+        'md': 12,
+        'lg': 16,
+        'xl': 24,
+        'xxl': 32,
+        'page': 24,
+        'section': 32,
+      },
+
+      'motion': {
+        'fast': 120,
+        'normal': 220,
+        'slow': 380,
+        'easing': 'easeOutCubic',
+      },
+
+      'scale': {
+        'size': 1.0,
+        'text': 1.0,
+        'radius': 1.0,
+      },
+
+      'icons': {
+        'sm': 16,
+        'md': 20,
+        'lg': 24,
+        'xl': 32,
+      },
+
+      'components': {
+        'buttons': {
+          'primary': {'radius': 8, 'padding': 12, 'fontWeight': 600},
+          'ghost': {'radius': 8, 'padding': 8},
+        },
+        'card': {'radius': 14, 'padding': 16},
+        'input': {'radius': 8, 'height': 36},
+        'tabs': {'indicatorColor': '@primary'},
+      },
+
+      'layout': {
+        'chrome': 'inset',
+        'nav': 'labels',
+        'progress': 'inline',
+        'navItems': ['home', 'radio', 'stats'],
+        'navbarItems': ['home', 'search', 'radio', 'library', 'stats'],
+        'libraryItems': ['playlists', 'artists', 'albums', 'local_library'],
+        'player': {
+          'dock': 'full',
+          'showTrackDetails': true,
+          'showActions': true,
+          'showVolume': true,
+          'showLyrics': true,
+          'showProgress': true,
+        },
+        'home': {
+          'sections': ['recent', 'featured', 'new_releases', 'browse'],
+        },
+        'settings': {
+          'sections': [
+            'accounts',
+            'language_region',
+            'appearance',
+            'sidebar',
+            'playback',
+            'downloads',
+            'desktop',
+            'developers',
+            'about',
+          ],
+        },
+        // The theme does not take the layout away from the user: only the
+        // player's dock is the theme's own.
+        'enforce': ['playerDock'],
+        'responsive': {
+          'compact': {
+            'nav': 'rail',
+            'player': {'showVolume': false, 'showActions': false},
+          },
+        },
+      },
+
+      'branding': {
+        'appName': 'Aurora',
+        'shortName': 'Aurora',
+        'tagline': 'Your music, your shell',
+        'wordmark': {'text': 'Aurora', 'fontFamily': 'Cookie'},
+        'titlebarTitle': 'Aurora',
+        'windowTitle': 'Aurora',
+        'aboutName': 'Aurora',
+        'showHostAttribution': true,
+      },
+
+      'ui': {
+        'specVersion': 1,
+        'slots': {
+          'sidebar.footer': {
+            'children': [
+              {
+                'type': 'row',
+                'gap': 8,
+                'children': [
+                  {
+                    'type': 'text',
+                    'bind': 'player.title',
+                    'maxLines': 1,
+                    'size': 'small',
+                  },
+                  {
+                    'type': 'button',
+                    'label': 'Lyrics',
+                    'icon': 'lyrics',
+                    'variant': 'ghost',
+                    'action': {
+                      'type': 'navigate',
+                      'args': {'target': 'lyrics'},
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        'screens': {
+          'now-playing': {
+            'title': 'Now Playing',
+            'showBack': true,
+            'children': [
+              {
+                'type': 'image',
+                'src': 'albumArt',
+                'width': 220,
+                'height': 220,
+                'radius': 12,
+              },
+              {'type': 'text', 'bind': 'player.title', 'size': 'xl'},
+              {'type': 'text', 'bind': 'player.artist', 'size': 'md'},
+              {
+                'type': 'row',
+                'gap': 12,
+                'children': [
+                  {
+                    'type': 'button',
+                    'label': 'Previous',
+                    'action': {'type': 'previous'},
+                  },
+                  {
+                    'type': 'button',
+                    'label': 'Play',
+                    'variant': 'primary',
+                    'action': {'type': 'playPause'},
+                  },
+                  {
+                    'type': 'button',
+                    'label': 'Next',
+                    'action': {'type': 'next'},
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    }
+  }
+}
+
+class AuroraTheme {
+  var theme = AuroraThemeApi();
+}

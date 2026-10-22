@@ -1,0 +1,53 @@
+name: themes
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'themes/**'
+      - '.github/workflows/themes.yml'
+  pull_request:
+    paths:
+      - 'themes/**'
+      - '.github/workflows/themes.yml'
+  workflow_dispatch:
+
+# The theme toolchain is a plain Dart package with its own pubspec, so every
+# step runs inside it.
+defaults:
+  run:
+    working-directory: themes
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 3.10.x
+
+      - name: install
+        run: dart pub get
+
+      - name: analyze
+        run: dart analyze
+
+      - name: the contract's tests
+        run: dart test
+
+      - name: build every theme
+        run: dart run tools/build.dart
+
+      # The artifacts carry bytecode, and bytecode carries a compile
+      # timestamp, so the bytes of a rebuild are not the bytes of the last
+      # build. What has to be stable is the payload: that is what the app
+      # draws, and that is what the golden files record.
+      - name: the golden payloads are up to date
+        run: |
+          dart run tools/export.dart
+          git diff --exit-code -- conformance
+
+      - name: the built themes still match their goldens
+        run: dart test

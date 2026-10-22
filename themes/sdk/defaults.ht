@@ -1,0 +1,67 @@
+// A neutral palette to override role by role.
+//
+// A theme that wants one accent colour and nothing else should not have to
+// write seventeen roles twice: it takes the defaults, replaces the roles it
+// cares about, and leaves the rest alone.
+//
+//     var light = ThemeDefaults.merge(ThemeDefaults.light(), {'primary': '#5b4bdb'})
+
+class ThemeDefaults {
+  // The neutral light scheme.
+  static fun light() {
+    return {
+      'background': '#ffffff',
+      'foreground': '#0b0b0f',
+      'card': '#f7f7f8',
+      'cardForeground': '#0b0b0f',
+      'primary': '#17171c',
+      'primaryForeground': '#ffffff',
+      'secondary': '#eeeef2',
+      'secondaryForeground': '#0b0b0f',
+      'muted': '#f2f2f5',
+      'mutedForeground': '#6b6b76',
+      'accent': '#e7e5ff',
+      'accentForeground': '#3a2fb0',
+      'destructive': '#dc2626',
+      'destructiveForeground': '#ffffff',
+      'border': '#e2e2e8',
+      'input': '#e2e2e8',
+      'ring': '#17171c',
+    }
+  }
+
+  // The neutral dark scheme.
+  static fun dark() {
+    return {
+      'background': '#0b0b0f',
+      'foreground': '#f4f4f6',
+      'card': '#15151b',
+      'cardForeground': '#f4f4f6',
+      'primary': '#f4f4f6',
+      'primaryForeground': '#17171c',
+      'secondary': '#26262f',
+      'secondaryForeground': '#f4f4f6',
+      'muted': '#1c1c23',
+      'mutedForeground': '#a1a1ad',
+      'accent': '#2a2545',
+      'accentForeground': '#cfc6ff',
+      'destructive': '#f87171',
+      'destructiveForeground': '#1a0a0a',
+      'border': '#2c2c36',
+      'input': '#2c2c36',
+      'ring': '#f4f4f6',
+    }
+  }
+
+  // A copy of `base` with the entries of `overrides` applied.
+  static fun merge(base, overrides) {
+    var out = {}
+    for (var key in base.keys) {
+      out[key] = base[key]
+    }
+    for (var key in overrides.keys) {
+      out[key] = overrides[key]
+    }
+    return out
+  }
+}
