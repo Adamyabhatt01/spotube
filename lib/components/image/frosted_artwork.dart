@@ -65,19 +65,25 @@ class FrostedArtwork extends StatelessWidget {
       child: Stack(
         children: [
           Positioned.fill(
-            // Mirrored rather than clamped: a filter layer's own edge would
-            // otherwise bleed transparency inwards and leave a soft dark seam
-            // just inside the panel.
-            child: sigma == null || sigma <= 0
-                ? backdrop
-                : ImageFiltered(
-                    imageFilter: ImageFilter.blur(
-                      sigmaX: sigma,
-                      sigmaY: sigma,
-                      tileMode: TileMode.mirror,
+            // Its own repaint boundary: the picture behind the panel never
+            // changes, so the panel scrolling over it must not drag the
+            // (blurred) artwork through a repaint. `ImageFiltered` brings its
+            // own boundary with it, but the unblurred branch below does not.
+            child: RepaintBoundary(
+              child: sigma == null || sigma <= 0
+                  ? backdrop
+                  : ImageFiltered(
+                      // Mirrored rather than clamped: a filter layer's own
+                      // edge would otherwise bleed transparency inwards and
+                      // leave a soft dark seam just inside the panel.
+                      imageFilter: ImageFilter.blur(
+                        sigmaX: sigma,
+                        sigmaY: sigma,
+                        tileMode: TileMode.mirror,
+                      ),
+                      child: backdrop,
                     ),
-                    child: backdrop,
-                  ),
+            ),
           ),
           child,
         ],

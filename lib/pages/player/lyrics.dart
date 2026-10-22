@@ -19,19 +19,26 @@ class PlayerLyricsPage extends HookConsumerWidget {
   Widget build(BuildContext context, ref) {
     final activeTrack =
         ref.watch(audioPlayerProvider.select((s) => s.activeTrack));
-    String albumArt = useMemoized(
-      () => (activeTrack?.album.images).asUrlString(
-        index: (activeTrack?.album.images.length ?? 1) - 1,
-        placeholder: ImagePlaceholder.albumArt,
-      ),
+    // The palette only needs a sample and is quantised on the UI isolate, so
+    // it reads the smallest rendition instead of the full-size cover.
+    String paletteArt = useMemoized(
+      () => (activeTrack?.album.images).smallest(ImagePlaceholder.albumArt),
       [activeTrack?.album.images],
     );
     final selectedIndex = useState(0);
-    final palette = usePaletteColor(albumArt, ref);
+    // The Plain tab is one giant, non-lazy `SelectableText` — see the note in
+    // `lib/pages/lyrics/lyrics.dart`: it only enters the tree once it has
+    // been asked for, so opening this sheet does not lay out a paragraph as
+    // tall as the whole lyric file.
+    final plainRequested = useState(false);
+    final palette = usePaletteColor(paletteArt, ref);
 
     final tabbar = TabList(
       index: selectedIndex.value,
-      onChanged: (index) => selectedIndex.value = index,
+      onChanged: (index) {
+        selectedIndex.value = index;
+        if (index == 1) plainRequested.value = true;
+      },
       children: [
         TabItem(
           child: Text(context.l10n.synced),
@@ -58,7 +65,11 @@ class PlayerLyricsPage extends HookConsumerWidget {
           // over a plain surface risks unreadable contrast, so theme
           // roles apply unconditionally here.
           SyncedLyrics(palette: palette, isModal: false, hasArtwork: false),
-          PlainLyrics(palette: palette, isModal: false, hasArtwork: false),
+          // Built on demand — see [plainRequested].
+          if (plainRequested.value)
+            PlainLyrics(palette: palette, isModal: false, hasArtwork: false)
+          else
+            const SizedBox.shrink(),
         ],
       ),
     );

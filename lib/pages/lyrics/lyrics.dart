@@ -36,14 +36,33 @@ class LyricsPage extends HookConsumerWidget {
       ),
       [activeTrack?.album.images],
     );
-    final palette = usePaletteColor(albumArt, ref);
+    // The backdrop wants the biggest rendition; the palette only needs a
+    // sample, and it is quantised on the UI isolate - so it gets the smallest
+    // one instead of pulling (and decoding) the full-size cover a second time.
+    String paletteArt = useMemoized(
+      () => (activeTrack?.album.images).smallest(ImagePlaceholder.albumArt),
+      [activeTrack?.album.images],
+    );
+    final palette = usePaletteColor(paletteArt, ref);
     final selectedIndex = useState(0);
+
+    // The Plain tab is one giant, non-lazy `SelectableText`: laying it out
+    // costs a paragraph as tall as the whole lyric file, for a tab the user
+    // may never open. `IndexedStack` lays out every child it holds, and
+    // Flutter has no "mounted but never laid out" primitive (`Offstage` lays
+    // its child out with the same constraints), so the Plain tab only enters
+    // the tree once it has been asked for. It stays there afterwards, so
+    // switching back and forth never re-pays that layout.
+    final plainRequested = useState(false);
 
     Widget tabbar = Padding(
       padding: const EdgeInsets.all(10),
       child: Tabs(
         index: selectedIndex.value,
-        onChanged: (index) => selectedIndex.value = index,
+        onChanged: (index) {
+          selectedIndex.value = index;
+          if (index == 1) plainRequested.value = true;
+        },
         children: [
           TabItem(child: Text(context.l10n.synced)),
           TabItem(child: Text(context.l10n.plain)),
@@ -91,8 +110,17 @@ class LyricsPage extends HookConsumerWidget {
     // The backdrop covers the whole page, but the provider's cache key
     // includes the decode size — rounding the window up in steps keeps a
     // resize from re-decoding for every pixel it moves.
-    final backdropSide =
-        (MediaQuery.sizeOf(context).longestSide / 256).ceilToDouble() * 256;
+    //
+    // Where the artwork frosts itself it is only ever seen through that blur
+    // (and behind a translucent panel), so a screen-sized decode buys
+    // nothing: the same picture at a fraction of the size is
+    // indistinguishable under a sigma-10 blur, at a fraction of the decode
+    // time and the texture memory. Where the artwork is shown as it is, it
+    // keeps the full window.
+    final frost = context.theme.surfaceBlur;
+    final backdropSide = artworkIsSelfFrosted && frost != null && frost > 0
+        ? 512.0
+        : (MediaQuery.sizeOf(context).longestSide / 256).ceilToDouble() * 256;
 
     final panel = SurfaceCard(
       // Where the artwork frosts itself there is no backdrop left for this card
@@ -120,11 +148,15 @@ class LyricsPage extends HookConsumerWidget {
                 isModal: false,
                 hasArtwork: hasArtwork,
               ),
-              PlainLyrics(
-                palette: palette,
-                isModal: false,
-                hasArtwork: hasArtwork,
-              ),
+              // Built on demand — see [plainRequested].
+              if (plainRequested.value)
+                PlainLyrics(
+                  palette: palette,
+                  isModal: false,
+                  hasArtwork: hasArtwork,
+                )
+              else
+                const SizedBox.shrink(),
             ],
           ),
         ),
@@ -156,7 +188,7 @@ class LyricsPage extends HookConsumerWidget {
                     height: backdropSide,
                   ),
                   borderRadius: BorderRadius.zero,
-                  sigma: context.theme.surfaceBlur,
+                  sigma: frost,
                   child: panel,
                 )
               : panel,
