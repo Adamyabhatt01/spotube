@@ -18,11 +18,11 @@ contract.
 
 | Theme | Difference | Install URL |
 | --- | --- | --- |
-| `caelestia` | Matches the active Caelestia shell scheme: glass surfaces, shell background, dynamic Material colour | `https://raw.githubusercontent.com/Adamyabhatt01/Caelestia-theme-plugin-spotube/main/caelestia/plugin.smplug` |
-| `caelestia-glassier` | Thinner surfaces than the base theme: more transparency, more blur, a lighter veil over the shell background | `https://raw.githubusercontent.com/Adamyabhatt01/Caelestia-theme-plugin-spotube/main/caelestia-glassier/plugin.smplug` |
-| `caelestia-shell` | The glassier backdrop with more opaque surfaces, so text survives a bright wallpaper | `https://raw.githubusercontent.com/Adamyabhatt01/Caelestia-theme-plugin-spotube/main/caelestia-shell/plugin.smplug` |
-| `caelestia-plain` | The base palette with no desktop backdrop and no shell-derived glass | `https://raw.githubusercontent.com/Adamyabhatt01/Caelestia-theme-plugin-spotube/main/caelestia-plain/plugin.smplug` |
-| `spotify-shell` | A Spotify-shaped shell instead of the Caelestia one: black and green, inset content, rail navigation, seek bar below the player | `https://raw.githubusercontent.com/Adamyabhatt01/Caelestia-theme-plugin-spotube/main/spotify-shell/plugin.smplug` |
+| `caelestia` | Matches the active Caelestia shell scheme: glass surfaces, shell background, dynamic Material colour | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/caelestia/plugin.smplug` |
+| `caelestia-glassier` | Thinner surfaces than the base theme: more transparency, more blur, a lighter veil over the shell background | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/caelestia-glassier/plugin.smplug` |
+| `caelestia-shell` | The glassier backdrop with more opaque surfaces, so text survives a bright wallpaper | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/caelestia-shell/plugin.smplug` |
+| `caelestia-plain` | The base palette with no desktop backdrop and no shell-derived glass | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/caelestia-plain/plugin.smplug` |
+| `spotify-shell` | A Spotify-shaped shell instead of the Caelestia one: black and green, inset content, rail navigation, seek bar below the player | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/spotify-shell/plugin.smplug` |
 
 ### Which one should you install?
 

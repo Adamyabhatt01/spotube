@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Adamyabhatt01/Caelestia-theme-plugin-spotube/schemas/theme.v3.schema.json",
+  "$id": "https://github.com/Adamyabhatt01/spotube/blob/master/themes/schemas/theme.v3.schema.json",
   "title": "Spotube theme payload, v3",
   "description": "The full v3 payload: everything a theme may decide about the app's appearance, its components, its shell and the content it puts in them. A v2 host ignores the v3 blocks and draws the two colour schemes, which is what lets a v3 theme ship to an older app.",
   "type": "object",
