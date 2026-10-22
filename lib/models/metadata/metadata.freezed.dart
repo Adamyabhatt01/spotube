@@ -6779,6 +6779,16 @@ ThemeDefinition _$ThemeDefinitionFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$ThemeDefinition {
+  /// The payload version this theme was written against.
+  ///
+  /// 2 is the contract the app read until the v3 blocks arrived; 3 adds
+  /// the extra colour roles, the tokens, the component styles, the shell's
+  /// composition, branding and the UI tree.
+  ///
+  /// The version describes the *payload*, not what the app can do: a host
+  /// reads the fields it knows and ignores the rest, so a v3 theme still
+  /// works on a v2 host (it draws as its two colour schemes there).
+  int get specVersion => throw _privateConstructorUsedError;
   ThemeColors get light => throw _privateConstructorUsedError;
   ThemeColors get dark => throw _privateConstructorUsedError;
   ThemeSurfaces get surfaces => throw _privateConstructorUsedError;
@@ -6807,7 +6817,8 @@ abstract class $ThemeDefinitionCopyWith<$Res> {
       _$ThemeDefinitionCopyWithImpl<$Res, ThemeDefinition>;
   @useResult
   $Res call(
-      {ThemeColors light,
+      {int specVersion,
+      ThemeColors light,
       ThemeColors dark,
       ThemeSurfaces surfaces,
       ThemeBackground background,
@@ -6842,6 +6853,7 @@ class _$ThemeDefinitionCopyWithImpl<$Res, $Val extends ThemeDefinition>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
+    Object? specVersion = null,
     Object? light = null,
     Object? dark = null,
     Object? surfaces = null,
@@ -6853,6 +6865,10 @@ class _$ThemeDefinitionCopyWithImpl<$Res, $Val extends ThemeDefinition>
     Object? dynamicTheme = freezed,
   }) {
     return _then(_value.copyWith(
+      specVersion: null == specVersion
+          ? _value.specVersion
+          : specVersion // ignore: cast_nullable_to_non_nullable
+              as int,
       light: null == light
           ? _value.light
           : light // ignore: cast_nullable_to_non_nullable
@@ -6986,7 +7002,8 @@ abstract class _$$ThemeDefinitionImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {ThemeColors light,
+      {int specVersion,
+      ThemeColors light,
       ThemeColors dark,
       ThemeSurfaces surfaces,
       ThemeBackground background,
@@ -7027,6 +7044,7 @@ class __$$ThemeDefinitionImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
+    Object? specVersion = null,
     Object? light = null,
     Object? dark = null,
     Object? surfaces = null,
@@ -7038,6 +7056,10 @@ class __$$ThemeDefinitionImplCopyWithImpl<$Res>
     Object? dynamicTheme = freezed,
   }) {
     return _then(_$ThemeDefinitionImpl(
+      specVersion: null == specVersion
+          ? _value.specVersion
+          : specVersion // ignore: cast_nullable_to_non_nullable
+              as int,
       light: null == light
           ? _value.light
           : light // ignore: cast_nullable_to_non_nullable
@@ -7082,7 +7104,8 @@ class __$$ThemeDefinitionImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$ThemeDefinitionImpl implements _ThemeDefinition {
   const _$ThemeDefinitionImpl(
-      {required this.light,
+      {this.specVersion = 2,
+      required this.light,
       required this.dark,
       this.surfaces = const ThemeSurfaces(),
       this.background = const ThemeBackground(),
@@ -7095,6 +7118,18 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
   factory _$ThemeDefinitionImpl.fromJson(Map<String, dynamic> json) =>
       _$$ThemeDefinitionImplFromJson(json);
 
+  /// The payload version this theme was written against.
+  ///
+  /// 2 is the contract the app read until the v3 blocks arrived; 3 adds
+  /// the extra colour roles, the tokens, the component styles, the shell's
+  /// composition, branding and the UI tree.
+  ///
+  /// The version describes the *payload*, not what the app can do: a host
+  /// reads the fields it knows and ignores the rest, so a v3 theme still
+  /// works on a v2 host (it draws as its two colour schemes there).
+  @override
+  @JsonKey()
+  final int specVersion;
   @override
   final ThemeColors light;
   @override
@@ -7123,7 +7158,7 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
 
   @override
   String toString() {
-    return 'ThemeDefinition(light: $light, dark: $dark, surfaces: $surfaces, background: $background, radius: $radius, density: $density, tokens: $tokens, layout: $layout, dynamicTheme: $dynamicTheme)';
+    return 'ThemeDefinition(specVersion: $specVersion, light: $light, dark: $dark, surfaces: $surfaces, background: $background, radius: $radius, density: $density, tokens: $tokens, layout: $layout, dynamicTheme: $dynamicTheme)';
   }
 
   @override
@@ -7131,6 +7166,8 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$ThemeDefinitionImpl &&
+            (identical(other.specVersion, specVersion) ||
+                other.specVersion == specVersion) &&
             (identical(other.light, light) || other.light == light) &&
             (identical(other.dark, dark) || other.dark == dark) &&
             (identical(other.surfaces, surfaces) ||
@@ -7147,8 +7184,8 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, light, dark, surfaces,
-      background, radius, density, tokens, layout, dynamicTheme);
+  int get hashCode => Object.hash(runtimeType, specVersion, light, dark,
+      surfaces, background, radius, density, tokens, layout, dynamicTheme);
 
   /// Create a copy of ThemeDefinition
   /// with the given fields replaced by the non-null parameter values.
@@ -7169,7 +7206,8 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
 
 abstract class _ThemeDefinition implements ThemeDefinition {
   const factory _ThemeDefinition(
-          {required final ThemeColors light,
+          {final int specVersion,
+          required final ThemeColors light,
           required final ThemeColors dark,
           final ThemeSurfaces surfaces,
           final ThemeBackground background,
@@ -7183,6 +7221,17 @@ abstract class _ThemeDefinition implements ThemeDefinition {
   factory _ThemeDefinition.fromJson(Map<String, dynamic> json) =
       _$ThemeDefinitionImpl.fromJson;
 
+  /// The payload version this theme was written against.
+  ///
+  /// 2 is the contract the app read until the v3 blocks arrived; 3 adds
+  /// the extra colour roles, the tokens, the component styles, the shell's
+  /// composition, branding and the UI tree.
+  ///
+  /// The version describes the *payload*, not what the app can do: a host
+  /// reads the fields it knows and ignores the rest, so a v3 theme still
+  /// works on a v2 host (it draws as its two colour schemes there).
+  @override
+  int get specVersion;
   @override
   ThemeColors get light;
   @override
@@ -7765,7 +7814,55 @@ mixin _$ThemeColors {
   String get destructiveForeground => throw _privateConstructorUsedError;
   String get border => throw _privateConstructorUsedError;
   String get input => throw _privateConstructorUsedError;
-  String get ring => throw _privateConstructorUsedError;
+  String get ring =>
+      throw _privateConstructorUsedError; // The roles a v2 payload does not have. Each is optional, and each falls
+// back to the role it aliases, so a theme may set only the ones it cares
+// about and the host keeps its own for the rest.
+  /// The floating surface: menus, popovers, dropdowns.
+  String? get popover => throw _privateConstructorUsedError;
+
+  /// Text on [popover].
+  String? get popoverForeground => throw _privateConstructorUsedError;
+
+  /// The sidebar's own surface.
+  String? get sidebar => throw _privateConstructorUsedError;
+
+  /// Text on [sidebar].
+  String? get sidebarForeground => throw _privateConstructorUsedError;
+
+  /// The sidebar's active accent.
+  String? get sidebarPrimary => throw _privateConstructorUsedError;
+
+  /// Text on [sidebarPrimary].
+  String? get sidebarPrimaryForeground => throw _privateConstructorUsedError;
+
+  /// The sidebar's secondary accent.
+  String? get sidebarAccent => throw _privateConstructorUsedError;
+
+  /// Text on [sidebarAccent].
+  String? get sidebarAccentForeground => throw _privateConstructorUsedError;
+
+  /// The sidebar's outlines.
+  String? get sidebarBorder => throw _privateConstructorUsedError;
+
+  /// The sidebar's focus ring.
+  String? get sidebarRing => throw _privateConstructorUsedError;
+
+  /// The categorical palette, used by charts and summaries.
+  String? get chart1 => throw _privateConstructorUsedError;
+  String? get chart2 => throw _privateConstructorUsedError;
+  String? get chart3 => throw _privateConstructorUsedError;
+  String? get chart4 => throw _privateConstructorUsedError;
+  String? get chart5 => throw _privateConstructorUsedError;
+  String? get chart6 => throw _privateConstructorUsedError;
+
+  /// The status colours: success, warning and information.
+  String? get success => throw _privateConstructorUsedError;
+  String? get successForeground => throw _privateConstructorUsedError;
+  String? get warning => throw _privateConstructorUsedError;
+  String? get warningForeground => throw _privateConstructorUsedError;
+  String? get info => throw _privateConstructorUsedError;
+  String? get infoForeground => throw _privateConstructorUsedError;
 
   /// Serializes this ThemeColors to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -7800,7 +7897,29 @@ abstract class $ThemeColorsCopyWith<$Res> {
       String destructiveForeground,
       String border,
       String input,
-      String ring});
+      String ring,
+      String? popover,
+      String? popoverForeground,
+      String? sidebar,
+      String? sidebarForeground,
+      String? sidebarPrimary,
+      String? sidebarPrimaryForeground,
+      String? sidebarAccent,
+      String? sidebarAccentForeground,
+      String? sidebarBorder,
+      String? sidebarRing,
+      String? chart1,
+      String? chart2,
+      String? chart3,
+      String? chart4,
+      String? chart5,
+      String? chart6,
+      String? success,
+      String? successForeground,
+      String? warning,
+      String? warningForeground,
+      String? info,
+      String? infoForeground});
 }
 
 /// @nodoc
@@ -7835,6 +7954,28 @@ class _$ThemeColorsCopyWithImpl<$Res, $Val extends ThemeColors>
     Object? border = null,
     Object? input = null,
     Object? ring = null,
+    Object? popover = freezed,
+    Object? popoverForeground = freezed,
+    Object? sidebar = freezed,
+    Object? sidebarForeground = freezed,
+    Object? sidebarPrimary = freezed,
+    Object? sidebarPrimaryForeground = freezed,
+    Object? sidebarAccent = freezed,
+    Object? sidebarAccentForeground = freezed,
+    Object? sidebarBorder = freezed,
+    Object? sidebarRing = freezed,
+    Object? chart1 = freezed,
+    Object? chart2 = freezed,
+    Object? chart3 = freezed,
+    Object? chart4 = freezed,
+    Object? chart5 = freezed,
+    Object? chart6 = freezed,
+    Object? success = freezed,
+    Object? successForeground = freezed,
+    Object? warning = freezed,
+    Object? warningForeground = freezed,
+    Object? info = freezed,
+    Object? infoForeground = freezed,
   }) {
     return _then(_value.copyWith(
       background: null == background
@@ -7905,6 +8046,94 @@ class _$ThemeColorsCopyWithImpl<$Res, $Val extends ThemeColors>
           ? _value.ring
           : ring // ignore: cast_nullable_to_non_nullable
               as String,
+      popover: freezed == popover
+          ? _value.popover
+          : popover // ignore: cast_nullable_to_non_nullable
+              as String?,
+      popoverForeground: freezed == popoverForeground
+          ? _value.popoverForeground
+          : popoverForeground // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebar: freezed == sidebar
+          ? _value.sidebar
+          : sidebar // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebarForeground: freezed == sidebarForeground
+          ? _value.sidebarForeground
+          : sidebarForeground // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebarPrimary: freezed == sidebarPrimary
+          ? _value.sidebarPrimary
+          : sidebarPrimary // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebarPrimaryForeground: freezed == sidebarPrimaryForeground
+          ? _value.sidebarPrimaryForeground
+          : sidebarPrimaryForeground // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebarAccent: freezed == sidebarAccent
+          ? _value.sidebarAccent
+          : sidebarAccent // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebarAccentForeground: freezed == sidebarAccentForeground
+          ? _value.sidebarAccentForeground
+          : sidebarAccentForeground // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebarBorder: freezed == sidebarBorder
+          ? _value.sidebarBorder
+          : sidebarBorder // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebarRing: freezed == sidebarRing
+          ? _value.sidebarRing
+          : sidebarRing // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chart1: freezed == chart1
+          ? _value.chart1
+          : chart1 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chart2: freezed == chart2
+          ? _value.chart2
+          : chart2 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chart3: freezed == chart3
+          ? _value.chart3
+          : chart3 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chart4: freezed == chart4
+          ? _value.chart4
+          : chart4 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chart5: freezed == chart5
+          ? _value.chart5
+          : chart5 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chart6: freezed == chart6
+          ? _value.chart6
+          : chart6 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      success: freezed == success
+          ? _value.success
+          : success // ignore: cast_nullable_to_non_nullable
+              as String?,
+      successForeground: freezed == successForeground
+          ? _value.successForeground
+          : successForeground // ignore: cast_nullable_to_non_nullable
+              as String?,
+      warning: freezed == warning
+          ? _value.warning
+          : warning // ignore: cast_nullable_to_non_nullable
+              as String?,
+      warningForeground: freezed == warningForeground
+          ? _value.warningForeground
+          : warningForeground // ignore: cast_nullable_to_non_nullable
+              as String?,
+      info: freezed == info
+          ? _value.info
+          : info // ignore: cast_nullable_to_non_nullable
+              as String?,
+      infoForeground: freezed == infoForeground
+          ? _value.infoForeground
+          : infoForeground // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -7934,7 +8163,29 @@ abstract class _$$ThemeColorsImplCopyWith<$Res>
       String destructiveForeground,
       String border,
       String input,
-      String ring});
+      String ring,
+      String? popover,
+      String? popoverForeground,
+      String? sidebar,
+      String? sidebarForeground,
+      String? sidebarPrimary,
+      String? sidebarPrimaryForeground,
+      String? sidebarAccent,
+      String? sidebarAccentForeground,
+      String? sidebarBorder,
+      String? sidebarRing,
+      String? chart1,
+      String? chart2,
+      String? chart3,
+      String? chart4,
+      String? chart5,
+      String? chart6,
+      String? success,
+      String? successForeground,
+      String? warning,
+      String? warningForeground,
+      String? info,
+      String? infoForeground});
 }
 
 /// @nodoc
@@ -7967,6 +8218,28 @@ class __$$ThemeColorsImplCopyWithImpl<$Res>
     Object? border = null,
     Object? input = null,
     Object? ring = null,
+    Object? popover = freezed,
+    Object? popoverForeground = freezed,
+    Object? sidebar = freezed,
+    Object? sidebarForeground = freezed,
+    Object? sidebarPrimary = freezed,
+    Object? sidebarPrimaryForeground = freezed,
+    Object? sidebarAccent = freezed,
+    Object? sidebarAccentForeground = freezed,
+    Object? sidebarBorder = freezed,
+    Object? sidebarRing = freezed,
+    Object? chart1 = freezed,
+    Object? chart2 = freezed,
+    Object? chart3 = freezed,
+    Object? chart4 = freezed,
+    Object? chart5 = freezed,
+    Object? chart6 = freezed,
+    Object? success = freezed,
+    Object? successForeground = freezed,
+    Object? warning = freezed,
+    Object? warningForeground = freezed,
+    Object? info = freezed,
+    Object? infoForeground = freezed,
   }) {
     return _then(_$ThemeColorsImpl(
       background: null == background
@@ -8037,6 +8310,94 @@ class __$$ThemeColorsImplCopyWithImpl<$Res>
           ? _value.ring
           : ring // ignore: cast_nullable_to_non_nullable
               as String,
+      popover: freezed == popover
+          ? _value.popover
+          : popover // ignore: cast_nullable_to_non_nullable
+              as String?,
+      popoverForeground: freezed == popoverForeground
+          ? _value.popoverForeground
+          : popoverForeground // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebar: freezed == sidebar
+          ? _value.sidebar
+          : sidebar // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebarForeground: freezed == sidebarForeground
+          ? _value.sidebarForeground
+          : sidebarForeground // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebarPrimary: freezed == sidebarPrimary
+          ? _value.sidebarPrimary
+          : sidebarPrimary // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebarPrimaryForeground: freezed == sidebarPrimaryForeground
+          ? _value.sidebarPrimaryForeground
+          : sidebarPrimaryForeground // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebarAccent: freezed == sidebarAccent
+          ? _value.sidebarAccent
+          : sidebarAccent // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebarAccentForeground: freezed == sidebarAccentForeground
+          ? _value.sidebarAccentForeground
+          : sidebarAccentForeground // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebarBorder: freezed == sidebarBorder
+          ? _value.sidebarBorder
+          : sidebarBorder // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sidebarRing: freezed == sidebarRing
+          ? _value.sidebarRing
+          : sidebarRing // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chart1: freezed == chart1
+          ? _value.chart1
+          : chart1 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chart2: freezed == chart2
+          ? _value.chart2
+          : chart2 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chart3: freezed == chart3
+          ? _value.chart3
+          : chart3 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chart4: freezed == chart4
+          ? _value.chart4
+          : chart4 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chart5: freezed == chart5
+          ? _value.chart5
+          : chart5 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      chart6: freezed == chart6
+          ? _value.chart6
+          : chart6 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      success: freezed == success
+          ? _value.success
+          : success // ignore: cast_nullable_to_non_nullable
+              as String?,
+      successForeground: freezed == successForeground
+          ? _value.successForeground
+          : successForeground // ignore: cast_nullable_to_non_nullable
+              as String?,
+      warning: freezed == warning
+          ? _value.warning
+          : warning // ignore: cast_nullable_to_non_nullable
+              as String?,
+      warningForeground: freezed == warningForeground
+          ? _value.warningForeground
+          : warningForeground // ignore: cast_nullable_to_non_nullable
+              as String?,
+      info: freezed == info
+          ? _value.info
+          : info // ignore: cast_nullable_to_non_nullable
+              as String?,
+      infoForeground: freezed == infoForeground
+          ? _value.infoForeground
+          : infoForeground // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -8061,7 +8422,29 @@ class _$ThemeColorsImpl implements _ThemeColors {
       required this.destructiveForeground,
       required this.border,
       required this.input,
-      required this.ring});
+      required this.ring,
+      this.popover,
+      this.popoverForeground,
+      this.sidebar,
+      this.sidebarForeground,
+      this.sidebarPrimary,
+      this.sidebarPrimaryForeground,
+      this.sidebarAccent,
+      this.sidebarAccentForeground,
+      this.sidebarBorder,
+      this.sidebarRing,
+      this.chart1,
+      this.chart2,
+      this.chart3,
+      this.chart4,
+      this.chart5,
+      this.chart6,
+      this.success,
+      this.successForeground,
+      this.warning,
+      this.warningForeground,
+      this.info,
+      this.infoForeground});
 
   factory _$ThemeColorsImpl.fromJson(Map<String, dynamic> json) =>
       _$$ThemeColorsImplFromJson(json);
@@ -8100,10 +8483,80 @@ class _$ThemeColorsImpl implements _ThemeColors {
   final String input;
   @override
   final String ring;
+// The roles a v2 payload does not have. Each is optional, and each falls
+// back to the role it aliases, so a theme may set only the ones it cares
+// about and the host keeps its own for the rest.
+  /// The floating surface: menus, popovers, dropdowns.
+  @override
+  final String? popover;
+
+  /// Text on [popover].
+  @override
+  final String? popoverForeground;
+
+  /// The sidebar's own surface.
+  @override
+  final String? sidebar;
+
+  /// Text on [sidebar].
+  @override
+  final String? sidebarForeground;
+
+  /// The sidebar's active accent.
+  @override
+  final String? sidebarPrimary;
+
+  /// Text on [sidebarPrimary].
+  @override
+  final String? sidebarPrimaryForeground;
+
+  /// The sidebar's secondary accent.
+  @override
+  final String? sidebarAccent;
+
+  /// Text on [sidebarAccent].
+  @override
+  final String? sidebarAccentForeground;
+
+  /// The sidebar's outlines.
+  @override
+  final String? sidebarBorder;
+
+  /// The sidebar's focus ring.
+  @override
+  final String? sidebarRing;
+
+  /// The categorical palette, used by charts and summaries.
+  @override
+  final String? chart1;
+  @override
+  final String? chart2;
+  @override
+  final String? chart3;
+  @override
+  final String? chart4;
+  @override
+  final String? chart5;
+  @override
+  final String? chart6;
+
+  /// The status colours: success, warning and information.
+  @override
+  final String? success;
+  @override
+  final String? successForeground;
+  @override
+  final String? warning;
+  @override
+  final String? warningForeground;
+  @override
+  final String? info;
+  @override
+  final String? infoForeground;
 
   @override
   String toString() {
-    return 'ThemeColors(background: $background, foreground: $foreground, card: $card, cardForeground: $cardForeground, primary: $primary, primaryForeground: $primaryForeground, secondary: $secondary, secondaryForeground: $secondaryForeground, muted: $muted, mutedForeground: $mutedForeground, accent: $accent, accentForeground: $accentForeground, destructive: $destructive, destructiveForeground: $destructiveForeground, border: $border, input: $input, ring: $ring)';
+    return 'ThemeColors(background: $background, foreground: $foreground, card: $card, cardForeground: $cardForeground, primary: $primary, primaryForeground: $primaryForeground, secondary: $secondary, secondaryForeground: $secondaryForeground, muted: $muted, mutedForeground: $mutedForeground, accent: $accent, accentForeground: $accentForeground, destructive: $destructive, destructiveForeground: $destructiveForeground, border: $border, input: $input, ring: $ring, popover: $popover, popoverForeground: $popoverForeground, sidebar: $sidebar, sidebarForeground: $sidebarForeground, sidebarPrimary: $sidebarPrimary, sidebarPrimaryForeground: $sidebarPrimaryForeground, sidebarAccent: $sidebarAccent, sidebarAccentForeground: $sidebarAccentForeground, sidebarBorder: $sidebarBorder, sidebarRing: $sidebarRing, chart1: $chart1, chart2: $chart2, chart3: $chart3, chart4: $chart4, chart5: $chart5, chart6: $chart6, success: $success, successForeground: $successForeground, warning: $warning, warningForeground: $warningForeground, info: $info, infoForeground: $infoForeground)';
   }
 
   @override
@@ -8137,30 +8590,88 @@ class _$ThemeColorsImpl implements _ThemeColors {
                 other.destructiveForeground == destructiveForeground) &&
             (identical(other.border, border) || other.border == border) &&
             (identical(other.input, input) || other.input == input) &&
-            (identical(other.ring, ring) || other.ring == ring));
+            (identical(other.ring, ring) || other.ring == ring) &&
+            (identical(other.popover, popover) || other.popover == popover) &&
+            (identical(other.popoverForeground, popoverForeground) ||
+                other.popoverForeground == popoverForeground) &&
+            (identical(other.sidebar, sidebar) || other.sidebar == sidebar) &&
+            (identical(other.sidebarForeground, sidebarForeground) ||
+                other.sidebarForeground == sidebarForeground) &&
+            (identical(other.sidebarPrimary, sidebarPrimary) ||
+                other.sidebarPrimary == sidebarPrimary) &&
+            (identical(
+                    other.sidebarPrimaryForeground, sidebarPrimaryForeground) ||
+                other.sidebarPrimaryForeground == sidebarPrimaryForeground) &&
+            (identical(other.sidebarAccent, sidebarAccent) ||
+                other.sidebarAccent == sidebarAccent) &&
+            (identical(
+                    other.sidebarAccentForeground, sidebarAccentForeground) ||
+                other.sidebarAccentForeground == sidebarAccentForeground) &&
+            (identical(other.sidebarBorder, sidebarBorder) ||
+                other.sidebarBorder == sidebarBorder) &&
+            (identical(other.sidebarRing, sidebarRing) ||
+                other.sidebarRing == sidebarRing) &&
+            (identical(other.chart1, chart1) || other.chart1 == chart1) &&
+            (identical(other.chart2, chart2) || other.chart2 == chart2) &&
+            (identical(other.chart3, chart3) || other.chart3 == chart3) &&
+            (identical(other.chart4, chart4) || other.chart4 == chart4) &&
+            (identical(other.chart5, chart5) || other.chart5 == chart5) &&
+            (identical(other.chart6, chart6) || other.chart6 == chart6) &&
+            (identical(other.success, success) || other.success == success) &&
+            (identical(other.successForeground, successForeground) ||
+                other.successForeground == successForeground) &&
+            (identical(other.warning, warning) || other.warning == warning) &&
+            (identical(other.warningForeground, warningForeground) ||
+                other.warningForeground == warningForeground) &&
+            (identical(other.info, info) || other.info == info) &&
+            (identical(other.infoForeground, infoForeground) ||
+                other.infoForeground == infoForeground));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      background,
-      foreground,
-      card,
-      cardForeground,
-      primary,
-      primaryForeground,
-      secondary,
-      secondaryForeground,
-      muted,
-      mutedForeground,
-      accent,
-      accentForeground,
-      destructive,
-      destructiveForeground,
-      border,
-      input,
-      ring);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        background,
+        foreground,
+        card,
+        cardForeground,
+        primary,
+        primaryForeground,
+        secondary,
+        secondaryForeground,
+        muted,
+        mutedForeground,
+        accent,
+        accentForeground,
+        destructive,
+        destructiveForeground,
+        border,
+        input,
+        ring,
+        popover,
+        popoverForeground,
+        sidebar,
+        sidebarForeground,
+        sidebarPrimary,
+        sidebarPrimaryForeground,
+        sidebarAccent,
+        sidebarAccentForeground,
+        sidebarBorder,
+        sidebarRing,
+        chart1,
+        chart2,
+        chart3,
+        chart4,
+        chart5,
+        chart6,
+        success,
+        successForeground,
+        warning,
+        warningForeground,
+        info,
+        infoForeground
+      ]);
 
   /// Create a copy of ThemeColors
   /// with the given fields replaced by the non-null parameter values.
@@ -8196,7 +8707,29 @@ abstract class _ThemeColors implements ThemeColors {
       required final String destructiveForeground,
       required final String border,
       required final String input,
-      required final String ring}) = _$ThemeColorsImpl;
+      required final String ring,
+      final String? popover,
+      final String? popoverForeground,
+      final String? sidebar,
+      final String? sidebarForeground,
+      final String? sidebarPrimary,
+      final String? sidebarPrimaryForeground,
+      final String? sidebarAccent,
+      final String? sidebarAccentForeground,
+      final String? sidebarBorder,
+      final String? sidebarRing,
+      final String? chart1,
+      final String? chart2,
+      final String? chart3,
+      final String? chart4,
+      final String? chart5,
+      final String? chart6,
+      final String? success,
+      final String? successForeground,
+      final String? warning,
+      final String? warningForeground,
+      final String? info,
+      final String? infoForeground}) = _$ThemeColorsImpl;
 
   factory _ThemeColors.fromJson(Map<String, dynamic> json) =
       _$ThemeColorsImpl.fromJson;
@@ -8234,13 +8767,368 @@ abstract class _ThemeColors implements ThemeColors {
   @override
   String get input;
   @override
-  String get ring;
+  String
+      get ring; // The roles a v2 payload does not have. Each is optional, and each falls
+// back to the role it aliases, so a theme may set only the ones it cares
+// about and the host keeps its own for the rest.
+  /// The floating surface: menus, popovers, dropdowns.
+  @override
+  String? get popover;
+
+  /// Text on [popover].
+  @override
+  String? get popoverForeground;
+
+  /// The sidebar's own surface.
+  @override
+  String? get sidebar;
+
+  /// Text on [sidebar].
+  @override
+  String? get sidebarForeground;
+
+  /// The sidebar's active accent.
+  @override
+  String? get sidebarPrimary;
+
+  /// Text on [sidebarPrimary].
+  @override
+  String? get sidebarPrimaryForeground;
+
+  /// The sidebar's secondary accent.
+  @override
+  String? get sidebarAccent;
+
+  /// Text on [sidebarAccent].
+  @override
+  String? get sidebarAccentForeground;
+
+  /// The sidebar's outlines.
+  @override
+  String? get sidebarBorder;
+
+  /// The sidebar's focus ring.
+  @override
+  String? get sidebarRing;
+
+  /// The categorical palette, used by charts and summaries.
+  @override
+  String? get chart1;
+  @override
+  String? get chart2;
+  @override
+  String? get chart3;
+  @override
+  String? get chart4;
+  @override
+  String? get chart5;
+  @override
+  String? get chart6;
+
+  /// The status colours: success, warning and information.
+  @override
+  String? get success;
+  @override
+  String? get successForeground;
+  @override
+  String? get warning;
+  @override
+  String? get warningForeground;
+  @override
+  String? get info;
+  @override
+  String? get infoForeground;
 
   /// Create a copy of ThemeColors
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ThemeColorsImplCopyWith<_$ThemeColorsImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ThemeSemanticColors _$ThemeSemanticColorsFromJson(Map<String, dynamic> json) {
+  return _ThemeSemanticColors.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ThemeSemanticColors {
+  String get success => throw _privateConstructorUsedError;
+  String get successForeground => throw _privateConstructorUsedError;
+  String get warning => throw _privateConstructorUsedError;
+  String get warningForeground => throw _privateConstructorUsedError;
+  String get info => throw _privateConstructorUsedError;
+  String get infoForeground => throw _privateConstructorUsedError;
+  String get chart6 => throw _privateConstructorUsedError;
+
+  /// Serializes this ThemeSemanticColors to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ThemeSemanticColors
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ThemeSemanticColorsCopyWith<ThemeSemanticColors> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ThemeSemanticColorsCopyWith<$Res> {
+  factory $ThemeSemanticColorsCopyWith(
+          ThemeSemanticColors value, $Res Function(ThemeSemanticColors) then) =
+      _$ThemeSemanticColorsCopyWithImpl<$Res, ThemeSemanticColors>;
+  @useResult
+  $Res call(
+      {String success,
+      String successForeground,
+      String warning,
+      String warningForeground,
+      String info,
+      String infoForeground,
+      String chart6});
+}
+
+/// @nodoc
+class _$ThemeSemanticColorsCopyWithImpl<$Res, $Val extends ThemeSemanticColors>
+    implements $ThemeSemanticColorsCopyWith<$Res> {
+  _$ThemeSemanticColorsCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ThemeSemanticColors
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? success = null,
+    Object? successForeground = null,
+    Object? warning = null,
+    Object? warningForeground = null,
+    Object? info = null,
+    Object? infoForeground = null,
+    Object? chart6 = null,
+  }) {
+    return _then(_value.copyWith(
+      success: null == success
+          ? _value.success
+          : success // ignore: cast_nullable_to_non_nullable
+              as String,
+      successForeground: null == successForeground
+          ? _value.successForeground
+          : successForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      warning: null == warning
+          ? _value.warning
+          : warning // ignore: cast_nullable_to_non_nullable
+              as String,
+      warningForeground: null == warningForeground
+          ? _value.warningForeground
+          : warningForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      info: null == info
+          ? _value.info
+          : info // ignore: cast_nullable_to_non_nullable
+              as String,
+      infoForeground: null == infoForeground
+          ? _value.infoForeground
+          : infoForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      chart6: null == chart6
+          ? _value.chart6
+          : chart6 // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ThemeSemanticColorsImplCopyWith<$Res>
+    implements $ThemeSemanticColorsCopyWith<$Res> {
+  factory _$$ThemeSemanticColorsImplCopyWith(_$ThemeSemanticColorsImpl value,
+          $Res Function(_$ThemeSemanticColorsImpl) then) =
+      __$$ThemeSemanticColorsImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String success,
+      String successForeground,
+      String warning,
+      String warningForeground,
+      String info,
+      String infoForeground,
+      String chart6});
+}
+
+/// @nodoc
+class __$$ThemeSemanticColorsImplCopyWithImpl<$Res>
+    extends _$ThemeSemanticColorsCopyWithImpl<$Res, _$ThemeSemanticColorsImpl>
+    implements _$$ThemeSemanticColorsImplCopyWith<$Res> {
+  __$$ThemeSemanticColorsImplCopyWithImpl(_$ThemeSemanticColorsImpl _value,
+      $Res Function(_$ThemeSemanticColorsImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ThemeSemanticColors
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? success = null,
+    Object? successForeground = null,
+    Object? warning = null,
+    Object? warningForeground = null,
+    Object? info = null,
+    Object? infoForeground = null,
+    Object? chart6 = null,
+  }) {
+    return _then(_$ThemeSemanticColorsImpl(
+      success: null == success
+          ? _value.success
+          : success // ignore: cast_nullable_to_non_nullable
+              as String,
+      successForeground: null == successForeground
+          ? _value.successForeground
+          : successForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      warning: null == warning
+          ? _value.warning
+          : warning // ignore: cast_nullable_to_non_nullable
+              as String,
+      warningForeground: null == warningForeground
+          ? _value.warningForeground
+          : warningForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      info: null == info
+          ? _value.info
+          : info // ignore: cast_nullable_to_non_nullable
+              as String,
+      infoForeground: null == infoForeground
+          ? _value.infoForeground
+          : infoForeground // ignore: cast_nullable_to_non_nullable
+              as String,
+      chart6: null == chart6
+          ? _value.chart6
+          : chart6 // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ThemeSemanticColorsImpl implements _ThemeSemanticColors {
+  const _$ThemeSemanticColorsImpl(
+      {this.success = '#16a34a',
+      this.successForeground = '#ffffff',
+      this.warning = '#b45309',
+      this.warningForeground = '#ffffff',
+      this.info = '#2563eb',
+      this.infoForeground = '#ffffff',
+      this.chart6 = '#8b5cf6'});
+
+  factory _$ThemeSemanticColorsImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ThemeSemanticColorsImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final String success;
+  @override
+  @JsonKey()
+  final String successForeground;
+  @override
+  @JsonKey()
+  final String warning;
+  @override
+  @JsonKey()
+  final String warningForeground;
+  @override
+  @JsonKey()
+  final String info;
+  @override
+  @JsonKey()
+  final String infoForeground;
+  @override
+  @JsonKey()
+  final String chart6;
+
+  @override
+  String toString() {
+    return 'ThemeSemanticColors(success: $success, successForeground: $successForeground, warning: $warning, warningForeground: $warningForeground, info: $info, infoForeground: $infoForeground, chart6: $chart6)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ThemeSemanticColorsImpl &&
+            (identical(other.success, success) || other.success == success) &&
+            (identical(other.successForeground, successForeground) ||
+                other.successForeground == successForeground) &&
+            (identical(other.warning, warning) || other.warning == warning) &&
+            (identical(other.warningForeground, warningForeground) ||
+                other.warningForeground == warningForeground) &&
+            (identical(other.info, info) || other.info == info) &&
+            (identical(other.infoForeground, infoForeground) ||
+                other.infoForeground == infoForeground) &&
+            (identical(other.chart6, chart6) || other.chart6 == chart6));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, success, successForeground,
+      warning, warningForeground, info, infoForeground, chart6);
+
+  /// Create a copy of ThemeSemanticColors
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ThemeSemanticColorsImplCopyWith<_$ThemeSemanticColorsImpl> get copyWith =>
+      __$$ThemeSemanticColorsImplCopyWithImpl<_$ThemeSemanticColorsImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ThemeSemanticColorsImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ThemeSemanticColors implements ThemeSemanticColors {
+  const factory _ThemeSemanticColors(
+      {final String success,
+      final String successForeground,
+      final String warning,
+      final String warningForeground,
+      final String info,
+      final String infoForeground,
+      final String chart6}) = _$ThemeSemanticColorsImpl;
+
+  factory _ThemeSemanticColors.fromJson(Map<String, dynamic> json) =
+      _$ThemeSemanticColorsImpl.fromJson;
+
+  @override
+  String get success;
+  @override
+  String get successForeground;
+  @override
+  String get warning;
+  @override
+  String get warningForeground;
+  @override
+  String get info;
+  @override
+  String get infoForeground;
+  @override
+  String get chart6;
+
+  /// Create a copy of ThemeSemanticColors
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ThemeSemanticColorsImplCopyWith<_$ThemeSemanticColorsImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 

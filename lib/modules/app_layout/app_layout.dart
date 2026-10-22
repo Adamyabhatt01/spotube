@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/utils/theme_converter.dart';
 
 /// Publishes the theme plugin's layout decisions to the widget tree.
 ///
@@ -20,19 +21,24 @@ class AppLayout extends InheritedWidget {
   final ThemeRadius radii;
   final ThemeLayout layout;
 
+  /// The status colours, which shadcn's `ColorScheme` has no slot for.
+  final ThemeSemanticColors semanticColors;
+
   const AppLayout({
     super.key,
     required super.child,
     this.tokens = const ThemeTokens(),
     this.radii = const ThemeRadius(),
     this.layout = const ThemeLayout(),
+    this.semanticColors = const ThemeSemanticColors(),
   });
 
   @override
   bool updateShouldNotify(AppLayout oldWidget) {
     return oldWidget.tokens != tokens ||
         oldWidget.radii != radii ||
-        oldWidget.layout != layout;
+        oldWidget.layout != layout ||
+        oldWidget.semanticColors != semanticColors;
   }
 }
 
@@ -50,6 +56,35 @@ extension AppLayoutX on BuildContext {
   ThemeRadius get _radii => _appLayout?.radii ?? const ThemeRadius();
 
   ThemeLayout get _layout => _appLayout?.layout ?? const ThemeLayout();
+
+  ThemeSemanticColors get _semanticColors =>
+      _appLayout?.semanticColors ?? const ThemeSemanticColors();
+
+  /// The success colour: a checkmark, a healthy state.
+  Color get successColor =>
+      ThemeConverter.parseColor(_semanticColors.success);
+
+  /// Text on [successColor].
+  Color get successForegroundColor =>
+      ThemeConverter.parseColor(_semanticColors.successForeground);
+
+  /// The warning colour: something the user should look at.
+  Color get warningColor =>
+      ThemeConverter.parseColor(_semanticColors.warning);
+
+  /// Text on [warningColor].
+  Color get warningForegroundColor =>
+      ThemeConverter.parseColor(_semanticColors.warningForeground);
+
+  /// The information colour.
+  Color get infoColor => ThemeConverter.parseColor(_semanticColors.info);
+
+  /// Text on [infoColor].
+  Color get infoForegroundColor =>
+      ThemeConverter.parseColor(_semanticColors.infoForeground);
+
+  /// The sixth categorical colour, for the charts that need one more.
+  Color get chart6Color => ThemeConverter.parseColor(_semanticColors.chart6);
 
   double get _scale => theme.scaling;
 

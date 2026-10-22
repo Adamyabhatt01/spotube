@@ -3,6 +3,18 @@ part of 'metadata.dart';
 @freezed
 class ThemeDefinition with _$ThemeDefinition {
   const factory ThemeDefinition({
+    /// The payload version this theme was written against.
+    ///
+    /// 2 is the contract the app read until the v3 blocks arrived; 3 adds
+    /// the extra colour roles, the tokens, the component styles, the shell's
+    /// composition, branding and the UI tree.
+    ///
+    /// The version describes the *payload*, not what the app can do: a host
+    /// reads the fields it knows and ignores the rest, so a v3 theme still
+    /// works on a v2 host (it draws as its two colour schemes there).
+    @Default(2)
+    int specVersion,
+
     required ThemeColors light,
     required ThemeColors dark,
     @Default(ThemeSurfaces()) ThemeSurfaces surfaces,
@@ -128,10 +140,81 @@ class ThemeColors with _$ThemeColors {
     required String border,
     required String input,
     required String ring,
+
+    // The roles a v2 payload does not have. Each is optional, and each falls
+    // back to the role it aliases, so a theme may set only the ones it cares
+    // about and the host keeps its own for the rest.
+
+    /// The floating surface: menus, popovers, dropdowns.
+    String? popover,
+
+    /// Text on [popover].
+    String? popoverForeground,
+
+    /// The sidebar's own surface.
+    String? sidebar,
+
+    /// Text on [sidebar].
+    String? sidebarForeground,
+
+    /// The sidebar's active accent.
+    String? sidebarPrimary,
+
+    /// Text on [sidebarPrimary].
+    String? sidebarPrimaryForeground,
+
+    /// The sidebar's secondary accent.
+    String? sidebarAccent,
+
+    /// Text on [sidebarAccent].
+    String? sidebarAccentForeground,
+
+    /// The sidebar's outlines.
+    String? sidebarBorder,
+
+    /// The sidebar's focus ring.
+    String? sidebarRing,
+
+    /// The categorical palette, used by charts and summaries.
+    String? chart1,
+    String? chart2,
+    String? chart3,
+    String? chart4,
+    String? chart5,
+    String? chart6,
+
+    /// The status colours: success, warning and information.
+    String? success,
+    String? successForeground,
+    String? warning,
+    String? warningForeground,
+    String? info,
+    String? infoForeground,
   }) = _ThemeColors;
 
   factory ThemeColors.fromJson(Map<String, dynamic> json) =>
       _$ThemeColorsFromJson(json);
+}
+
+/// The status colours and the sixth chart colour, resolved from a palette.
+///
+/// shadcn's `ColorScheme` has no slot for these — it carries five chart
+/// colours and no status colours at all — so they travel beside it, published
+/// through `AppLayout` and read as `context.successColor` and friends.
+@freezed
+class ThemeSemanticColors with _$ThemeSemanticColors {
+  const factory ThemeSemanticColors({
+    @Default('#16a34a') String success,
+    @Default('#ffffff') String successForeground,
+    @Default('#b45309') String warning,
+    @Default('#ffffff') String warningForeground,
+    @Default('#2563eb') String info,
+    @Default('#ffffff') String infoForeground,
+    @Default('#8b5cf6') String chart6,
+  }) = _ThemeSemanticColors;
+
+  factory ThemeSemanticColors.fromJson(Map<String, dynamic> json) =>
+      _$ThemeSemanticColorsFromJson(json);
 }
 
 @freezed

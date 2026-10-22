@@ -621,6 +621,7 @@ Map<String, dynamic> _$$MetadataPluginRepositoryImplToJson(
 
 _$ThemeDefinitionImpl _$$ThemeDefinitionImplFromJson(Map json) =>
     _$ThemeDefinitionImpl(
+      specVersion: (json['specVersion'] as num?)?.toInt() ?? 2,
       light:
           ThemeColors.fromJson(Map<String, dynamic>.from(json['light'] as Map)),
       dark:
@@ -655,6 +656,7 @@ _$ThemeDefinitionImpl _$$ThemeDefinitionImplFromJson(Map json) =>
 Map<String, dynamic> _$$ThemeDefinitionImplToJson(
         _$ThemeDefinitionImpl instance) =>
     <String, dynamic>{
+      'specVersion': instance.specVersion,
       'light': instance.light.toJson(),
       'dark': instance.dark.toJson(),
       'surfaces': instance.surfaces.toJson(),
@@ -737,6 +739,28 @@ _$ThemeColorsImpl _$$ThemeColorsImplFromJson(Map json) => _$ThemeColorsImpl(
       border: json['border'] as String,
       input: json['input'] as String,
       ring: json['ring'] as String,
+      popover: json['popover'] as String?,
+      popoverForeground: json['popoverForeground'] as String?,
+      sidebar: json['sidebar'] as String?,
+      sidebarForeground: json['sidebarForeground'] as String?,
+      sidebarPrimary: json['sidebarPrimary'] as String?,
+      sidebarPrimaryForeground: json['sidebarPrimaryForeground'] as String?,
+      sidebarAccent: json['sidebarAccent'] as String?,
+      sidebarAccentForeground: json['sidebarAccentForeground'] as String?,
+      sidebarBorder: json['sidebarBorder'] as String?,
+      sidebarRing: json['sidebarRing'] as String?,
+      chart1: json['chart1'] as String?,
+      chart2: json['chart2'] as String?,
+      chart3: json['chart3'] as String?,
+      chart4: json['chart4'] as String?,
+      chart5: json['chart5'] as String?,
+      chart6: json['chart6'] as String?,
+      success: json['success'] as String?,
+      successForeground: json['successForeground'] as String?,
+      warning: json['warning'] as String?,
+      warningForeground: json['warningForeground'] as String?,
+      info: json['info'] as String?,
+      infoForeground: json['infoForeground'] as String?,
     );
 
 Map<String, dynamic> _$$ThemeColorsImplToJson(_$ThemeColorsImpl instance) =>
@@ -758,6 +782,51 @@ Map<String, dynamic> _$$ThemeColorsImplToJson(_$ThemeColorsImpl instance) =>
       'border': instance.border,
       'input': instance.input,
       'ring': instance.ring,
+      'popover': instance.popover,
+      'popoverForeground': instance.popoverForeground,
+      'sidebar': instance.sidebar,
+      'sidebarForeground': instance.sidebarForeground,
+      'sidebarPrimary': instance.sidebarPrimary,
+      'sidebarPrimaryForeground': instance.sidebarPrimaryForeground,
+      'sidebarAccent': instance.sidebarAccent,
+      'sidebarAccentForeground': instance.sidebarAccentForeground,
+      'sidebarBorder': instance.sidebarBorder,
+      'sidebarRing': instance.sidebarRing,
+      'chart1': instance.chart1,
+      'chart2': instance.chart2,
+      'chart3': instance.chart3,
+      'chart4': instance.chart4,
+      'chart5': instance.chart5,
+      'chart6': instance.chart6,
+      'success': instance.success,
+      'successForeground': instance.successForeground,
+      'warning': instance.warning,
+      'warningForeground': instance.warningForeground,
+      'info': instance.info,
+      'infoForeground': instance.infoForeground,
+    };
+
+_$ThemeSemanticColorsImpl _$$ThemeSemanticColorsImplFromJson(Map json) =>
+    _$ThemeSemanticColorsImpl(
+      success: json['success'] as String? ?? '#16a34a',
+      successForeground: json['successForeground'] as String? ?? '#ffffff',
+      warning: json['warning'] as String? ?? '#b45309',
+      warningForeground: json['warningForeground'] as String? ?? '#ffffff',
+      info: json['info'] as String? ?? '#2563eb',
+      infoForeground: json['infoForeground'] as String? ?? '#ffffff',
+      chart6: json['chart6'] as String? ?? '#8b5cf6',
+    );
+
+Map<String, dynamic> _$$ThemeSemanticColorsImplToJson(
+        _$ThemeSemanticColorsImpl instance) =>
+    <String, dynamic>{
+      'success': instance.success,
+      'successForeground': instance.successForeground,
+      'warning': instance.warning,
+      'warningForeground': instance.warningForeground,
+      'info': instance.info,
+      'infoForeground': instance.infoForeground,
+      'chart6': instance.chart6,
     };
 
 _$ThemeSurfacesImpl _$$ThemeSurfacesImplFromJson(Map json) =>

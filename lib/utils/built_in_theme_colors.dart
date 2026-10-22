@@ -40,3 +40,28 @@ ThemeColors builtInLightThemeColors() =>
 
 ThemeColors builtInDarkThemeColors() =>
     _fromScheme(LegacyColorSchemes.darkSlate());
+
+/// The built-in status colours, light mode.
+///
+/// shadcn's `ColorScheme` has no slot for these, so they are the host's
+/// own until a theme says otherwise.
+const builtInLightSemanticColors = ThemeSemanticColors(
+  success: '#16a34a',
+  successForeground: '#ffffff',
+  warning: '#b45309',
+  warningForeground: '#ffffff',
+  info: '#2563eb',
+  infoForeground: '#ffffff',
+  chart6: '#8b5cf6',
+);
+
+/// The built-in status colours, dark mode.
+const builtInDarkSemanticColors = ThemeSemanticColors(
+  success: '#4ade80',
+  successForeground: '#052e16',
+  warning: '#fbbf24',
+  warningForeground: '#451a03',
+  info: '#60a5fa',
+  infoForeground: '#082f49',
+  chart6: '#a78bfa',
+);

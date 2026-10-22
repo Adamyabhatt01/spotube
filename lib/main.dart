@@ -67,6 +67,7 @@ import 'package:spotube/services/wm_tools/wm_tools.dart';
 import 'package:spotube/utils/migrations/sandbox.dart';
 import 'package:spotube/utils/platform.dart';
 import 'package:spotube/utils/perf_counters.dart';
+import 'package:spotube/utils/built_in_theme_colors.dart';
 import 'package:spotube/utils/theme_converter.dart';
 import 'package:spotube/services/youtube_engine/yt_dlp_engine.dart';
 import 'package:spotube/services/youtube_engine/yt_dlp_process.dart';
@@ -462,14 +463,14 @@ ColorScheme _resolveColorScheme(
   required Brightness brightness,
   required ColorScheme fallback,
 }) {
-  try {
-    return ThemeConverter.toColorScheme(
-      colors,
-      brightness: brightness,
-    );
-  } catch (_) {
-    return fallback;
-  }
+  // Every role is resolved on its own now, so this cannot fail: a role the
+  // theme did not send, or sent unreadably, falls back to the built-in
+  // palette instead of taking the whole theme down with it.
+  return ThemeConverter.toColorScheme(
+    colors,
+    brightness: brightness,
+    fallback: fallback,
+  );
 }
 
 class Spotube extends HookConsumerWidget {
@@ -706,6 +707,29 @@ class Spotube extends HookConsumerWidget {
       [pluginTheme, builtInDarkScheme],
     );
 
+    // The status colours and the sixth chart colour: shadcn's ColorScheme
+    // has no slot for them, so they are resolved here and published beside
+    // it through AppLayout.
+    final lightSemanticColors = useMemoized(
+      () => pluginTheme == null
+          ? builtInLightSemanticColors
+          : ThemeConverter.toSemanticColors(
+              pluginTheme.light,
+              fallback: builtInLightSemanticColors,
+            ),
+      [pluginTheme],
+    );
+
+    final darkSemanticColors = useMemoized(
+      () => pluginTheme == null
+          ? builtInDarkSemanticColors
+          : ThemeConverter.toSemanticColors(
+              pluginTheme.dark,
+              fallback: builtInDarkSemanticColors,
+            ),
+      [pluginTheme],
+    );
+
     // v2 contract wiring: surfaces carry translucency into ThemeData,
     // ThemeBackgroundScope/ThemeSurfacesScope render background/tint, and
     // AppLayout below renders the geometry tokens (card sizes, gutters).
@@ -851,6 +875,9 @@ class Spotube extends HookConsumerWidget {
             tokens: pluginTheme?.tokens ?? const ThemeTokens(),
             radii: pluginTheme?.radius ?? const ThemeRadius(),
             layout: pluginTheme?.layout ?? const ThemeLayout(),
+            semanticColors: materialBrightness == Brightness.dark
+                ? darkSemanticColors
+                : lightSemanticColors,
             child: ScrollMotionScope(
               child: ThemeBackgroundScope(
                 child: ThemeSurfacesScope(child: child),
