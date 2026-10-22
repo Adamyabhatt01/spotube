@@ -6,7 +6,7 @@ publish_to: "none"
 # Upstream ships 5.1.2+45; 4501 reads as "upstream build 45, fork build 01" so
 # fork artifacts are attributable without claiming a version upstream never
 # released. Numeric: PackageInfo.buildNumber is int-parsed by the updater.
-version: 5.1.2+4506
+version: 5.1.2+4507
 
 homepage: https://spotube.krtirtho.dev
 repository: https://github.com/KRTirtho/spotube

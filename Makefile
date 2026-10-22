@@ -42,6 +42,8 @@ choco:
 			powershell choco pack .\choco-struct\spotube.nuspec  --outputdirectory dist
 
 apk:
+		$(MAKE) clean-android-registrant
+		$(FLUTTER) build apk --release
 		mkdir -p build
 		for f in build/app/outputs/flutter-apk/app-*-release.apk; do \
 			n=$$(basename $$f .apk | sed 's/^app-//;s/-release$$//'); \
@@ -60,7 +62,20 @@ apk:
 # foreign-ABI libraries. The plugin also applies the per-ABI versionCode
 # override (arm64 = 2 * 1000 + versionCode) so Play Store versioning stays
 # correct.
+# The Android plugin registrant is generated per build mode: a *debug* build's
+# version registers the `integration_test` dev dependency, and the release
+# build's classpath does not contain that package. A stale debug registrant
+# therefore fails the release compile with "package
+# dev.flutter.plugins.integration_test does not exist" — and the Flutter tool
+# only rewrites the file when it regenerates the platform tooling, which it
+# does not always do. Deleting it makes a release build regenerate it in
+# release mode, every time.
+.PHONY: clean-android-registrant
+clean-android-registrant:
+		rm -f android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+
 apk-arm64:
+		$(MAKE) clean-android-registrant
 		$(FLUTTER) build apk --release --target-platform android-arm64 --split-per-abi --flavor stable
 		mkdir -p build
 		cp build/app/outputs/flutter-apk/app-arm64-v8a-stable-release.apk build/Spotube-android-arm64-v8a.apk
