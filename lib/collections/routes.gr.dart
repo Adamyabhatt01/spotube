@@ -22,39 +22,40 @@ import 'package:spotube/pages/home/home.dart' as _i9;
 import 'package:spotube/pages/home/sections/section_items.dart' as _i8;
 import 'package:spotube/pages/lastfm_login/lastfm_login.dart' as _i10;
 import 'package:spotube/pages/library/library.dart' as _i11;
-import 'package:spotube/pages/library/user_albums.dart' as _i37;
-import 'package:spotube/pages/library/user_artists.dart' as _i38;
-import 'package:spotube/pages/library/user_downloads.dart' as _i39;
+import 'package:spotube/pages/library/user_albums.dart' as _i36;
+import 'package:spotube/pages/library/user_artists.dart' as _i37;
+import 'package:spotube/pages/library/user_downloads.dart' as _i38;
 import 'package:spotube/pages/library/user_local_tracks/local_folder.dart'
     as _i13;
 import 'package:spotube/pages/library/user_local_tracks/user_local_tracks.dart'
-    as _i40;
-import 'package:spotube/pages/library/user_playlists.dart' as _i41;
+    as _i39;
+import 'package:spotube/pages/library/user_playlists.dart' as _i40;
+import 'package:spotube/pages/library/user_radio_stations.dart' as _i41;
 import 'package:spotube/pages/lyrics/lyrics.dart' as _i15;
-import 'package:spotube/pages/player/lyrics.dart' as _i17;
-import 'package:spotube/pages/player/queue.dart' as _i18;
-import 'package:spotube/pages/player/sources.dart' as _i19;
+import 'package:spotube/pages/player/lyrics.dart' as _i16;
+import 'package:spotube/pages/player/queue.dart' as _i17;
+import 'package:spotube/pages/player/sources.dart' as _i18;
 import 'package:spotube/pages/playlist/liked_playlist.dart' as _i12;
-import 'package:spotube/pages/playlist/playlist.dart' as _i20;
-import 'package:spotube/pages/profile/profile.dart' as _i21;
-import 'package:spotube/pages/radio/radio.dart' as _i22;
-import 'package:spotube/pages/root/root_app.dart' as _i23;
-import 'package:spotube/pages/search/search.dart' as _i24;
+import 'package:spotube/pages/playlist/playlist.dart' as _i19;
+import 'package:spotube/pages/profile/profile.dart' as _i20;
+import 'package:spotube/pages/radio/radio.dart' as _i21;
+import 'package:spotube/pages/root/root_app.dart' as _i22;
+import 'package:spotube/pages/search/search.dart' as _i23;
 import 'package:spotube/pages/settings/about.dart' as _i1;
 import 'package:spotube/pages/settings/blacklist.dart' as _i4;
 import 'package:spotube/pages/settings/logs.dart' as _i14;
-import 'package:spotube/pages/settings/metadata/metadata_form.dart' as _i25;
-import 'package:spotube/pages/settings/metadata_plugins.dart' as _i26;
-import 'package:spotube/pages/settings/scrobbling/scrobbling.dart' as _i28;
-import 'package:spotube/pages/settings/settings.dart' as _i27;
-import 'package:spotube/pages/stats/albums/albums.dart' as _i29;
-import 'package:spotube/pages/stats/artists/artists.dart' as _i30;
-import 'package:spotube/pages/stats/fees/fees.dart' as _i34;
-import 'package:spotube/pages/stats/minutes/minutes.dart' as _i31;
-import 'package:spotube/pages/stats/playlists/playlists.dart' as _i33;
-import 'package:spotube/pages/stats/stats.dart' as _i32;
-import 'package:spotube/pages/stats/streams/streams.dart' as _i35;
-import 'package:spotube/pages/track/track.dart' as _i36;
+import 'package:spotube/pages/settings/metadata/metadata_form.dart' as _i24;
+import 'package:spotube/pages/settings/metadata_plugins.dart' as _i25;
+import 'package:spotube/pages/settings/scrobbling/scrobbling.dart' as _i27;
+import 'package:spotube/pages/settings/settings.dart' as _i26;
+import 'package:spotube/pages/stats/albums/albums.dart' as _i28;
+import 'package:spotube/pages/stats/artists/artists.dart' as _i29;
+import 'package:spotube/pages/stats/fees/fees.dart' as _i33;
+import 'package:spotube/pages/stats/minutes/minutes.dart' as _i30;
+import 'package:spotube/pages/stats/playlists/playlists.dart' as _i32;
+import 'package:spotube/pages/stats/stats.dart' as _i31;
+import 'package:spotube/pages/stats/streams/streams.dart' as _i34;
+import 'package:spotube/pages/track/track.dart' as _i35;
 
 /// generated route for
 /// [_i1.AboutSpotubePage]
@@ -448,7 +449,7 @@ class LyricsRoute extends _i42.PageRouteInfo<void> {
 }
 
 /// generated route for
-/// [_i17.PlayerLyricsPage]
+/// [_i16.PlayerLyricsPage]
 class PlayerLyricsRoute extends _i42.PageRouteInfo<void> {
   const PlayerLyricsRoute({List<_i42.PageRouteInfo>? children})
     : super(PlayerLyricsRoute.name, initialChildren: children);
@@ -458,13 +459,13 @@ class PlayerLyricsRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i17.PlayerLyricsPage();
+      return const _i16.PlayerLyricsPage();
     },
   );
 }
 
 /// generated route for
-/// [_i18.PlayerQueuePage]
+/// [_i17.PlayerQueuePage]
 class PlayerQueueRoute extends _i42.PageRouteInfo<void> {
   const PlayerQueueRoute({List<_i42.PageRouteInfo>? children})
     : super(PlayerQueueRoute.name, initialChildren: children);
@@ -474,13 +475,13 @@ class PlayerQueueRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i18.PlayerQueuePage();
+      return const _i17.PlayerQueuePage();
     },
   );
 }
 
 /// generated route for
-/// [_i19.PlayerTrackSourcesPage]
+/// [_i18.PlayerTrackSourcesPage]
 class PlayerTrackSourcesRoute extends _i42.PageRouteInfo<void> {
   const PlayerTrackSourcesRoute({List<_i42.PageRouteInfo>? children})
     : super(PlayerTrackSourcesRoute.name, initialChildren: children);
@@ -490,13 +491,13 @@ class PlayerTrackSourcesRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i19.PlayerTrackSourcesPage();
+      return const _i18.PlayerTrackSourcesPage();
     },
   );
 }
 
 /// generated route for
-/// [_i20.PlaylistPage]
+/// [_i19.PlaylistPage]
 class PlaylistRoute extends _i42.PageRouteInfo<PlaylistRouteArgs> {
   PlaylistRoute({
     _i43.Key? key,
@@ -516,7 +517,7 @@ class PlaylistRoute extends _i42.PageRouteInfo<PlaylistRouteArgs> {
     name,
     builder: (data) {
       final args = data.argsAs<PlaylistRouteArgs>();
-      return _i20.PlaylistPage(
+      return _i19.PlaylistPage(
         key: args.key,
         id: args.id,
         playlist: args.playlist,
@@ -541,7 +542,7 @@ class PlaylistRouteArgs {
 }
 
 /// generated route for
-/// [_i21.ProfilePage]
+/// [_i20.ProfilePage]
 class ProfileRoute extends _i42.PageRouteInfo<void> {
   const ProfileRoute({List<_i42.PageRouteInfo>? children})
     : super(ProfileRoute.name, initialChildren: children);
@@ -551,13 +552,13 @@ class ProfileRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i21.ProfilePage();
+      return const _i20.ProfilePage();
     },
   );
 }
 
 /// generated route for
-/// [_i22.RadioScreen]
+/// [_i21.RadioScreen]
 class RadioRoute extends _i42.PageRouteInfo<void> {
   const RadioRoute({List<_i42.PageRouteInfo>? children})
     : super(RadioRoute.name, initialChildren: children);
@@ -567,13 +568,13 @@ class RadioRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i22.RadioScreen();
+      return const _i21.RadioScreen();
     },
   );
 }
 
 /// generated route for
-/// [_i23.RootAppPage]
+/// [_i22.RootAppPage]
 class RootAppRoute extends _i42.PageRouteInfo<void> {
   const RootAppRoute({List<_i42.PageRouteInfo>? children})
     : super(RootAppRoute.name, initialChildren: children);
@@ -583,13 +584,13 @@ class RootAppRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i23.RootAppPage();
+      return const _i22.RootAppPage();
     },
   );
 }
 
 /// generated route for
-/// [_i24.SearchPage]
+/// [_i23.SearchPage]
 class SearchRoute extends _i42.PageRouteInfo<void> {
   const SearchRoute({List<_i42.PageRouteInfo>? children})
     : super(SearchRoute.name, initialChildren: children);
@@ -599,13 +600,13 @@ class SearchRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i24.SearchPage();
+      return const _i23.SearchPage();
     },
   );
 }
 
 /// generated route for
-/// [_i25.SettingsMetadataProviderFormPage]
+/// [_i24.SettingsMetadataProviderFormPage]
 class SettingsMetadataProviderFormRoute
     extends _i42.PageRouteInfo<SettingsMetadataProviderFormRouteArgs> {
   SettingsMetadataProviderFormRoute({
@@ -629,7 +630,7 @@ class SettingsMetadataProviderFormRoute
     name,
     builder: (data) {
       final args = data.argsAs<SettingsMetadataProviderFormRouteArgs>();
-      return _i25.SettingsMetadataProviderFormPage(
+      return _i24.SettingsMetadataProviderFormPage(
         key: args.key,
         title: args.title,
         fields: args.fields,
@@ -658,7 +659,7 @@ class SettingsMetadataProviderFormRouteArgs {
 }
 
 /// generated route for
-/// [_i26.SettingsMetadataProviderPage]
+/// [_i25.SettingsMetadataProviderPage]
 class SettingsMetadataProviderRoute extends _i42.PageRouteInfo<void> {
   const SettingsMetadataProviderRoute({List<_i42.PageRouteInfo>? children})
     : super(SettingsMetadataProviderRoute.name, initialChildren: children);
@@ -668,13 +669,13 @@ class SettingsMetadataProviderRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i26.SettingsMetadataProviderPage();
+      return const _i25.SettingsMetadataProviderPage();
     },
   );
 }
 
 /// generated route for
-/// [_i27.SettingsPage]
+/// [_i26.SettingsPage]
 class SettingsRoute extends _i42.PageRouteInfo<void> {
   const SettingsRoute({List<_i42.PageRouteInfo>? children})
     : super(SettingsRoute.name, initialChildren: children);
@@ -684,13 +685,13 @@ class SettingsRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i27.SettingsPage();
+      return const _i26.SettingsPage();
     },
   );
 }
 
 /// generated route for
-/// [_i28.SettingsScrobblingPage]
+/// [_i27.SettingsScrobblingPage]
 class SettingsScrobblingRoute extends _i42.PageRouteInfo<void> {
   const SettingsScrobblingRoute({List<_i42.PageRouteInfo>? children})
     : super(SettingsScrobblingRoute.name, initialChildren: children);
@@ -700,13 +701,13 @@ class SettingsScrobblingRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i28.SettingsScrobblingPage();
+      return const _i27.SettingsScrobblingPage();
     },
   );
 }
 
 /// generated route for
-/// [_i29.StatsAlbumsPage]
+/// [_i28.StatsAlbumsPage]
 class StatsAlbumsRoute extends _i42.PageRouteInfo<void> {
   const StatsAlbumsRoute({List<_i42.PageRouteInfo>? children})
     : super(StatsAlbumsRoute.name, initialChildren: children);
@@ -716,13 +717,13 @@ class StatsAlbumsRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i29.StatsAlbumsPage();
+      return const _i28.StatsAlbumsPage();
     },
   );
 }
 
 /// generated route for
-/// [_i30.StatsArtistsPage]
+/// [_i29.StatsArtistsPage]
 class StatsArtistsRoute extends _i42.PageRouteInfo<void> {
   const StatsArtistsRoute({List<_i42.PageRouteInfo>? children})
     : super(StatsArtistsRoute.name, initialChildren: children);
@@ -732,13 +733,13 @@ class StatsArtistsRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i30.StatsArtistsPage();
+      return const _i29.StatsArtistsPage();
     },
   );
 }
 
 /// generated route for
-/// [_i31.StatsMinutesPage]
+/// [_i30.StatsMinutesPage]
 class StatsMinutesRoute extends _i42.PageRouteInfo<void> {
   const StatsMinutesRoute({List<_i42.PageRouteInfo>? children})
     : super(StatsMinutesRoute.name, initialChildren: children);
@@ -748,13 +749,13 @@ class StatsMinutesRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i31.StatsMinutesPage();
+      return const _i30.StatsMinutesPage();
     },
   );
 }
 
 /// generated route for
-/// [_i32.StatsPage]
+/// [_i31.StatsPage]
 class StatsRoute extends _i42.PageRouteInfo<void> {
   const StatsRoute({List<_i42.PageRouteInfo>? children})
     : super(StatsRoute.name, initialChildren: children);
@@ -764,13 +765,13 @@ class StatsRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i32.StatsPage();
+      return const _i31.StatsPage();
     },
   );
 }
 
 /// generated route for
-/// [_i33.StatsPlaylistsPage]
+/// [_i32.StatsPlaylistsPage]
 class StatsPlaylistsRoute extends _i42.PageRouteInfo<void> {
   const StatsPlaylistsRoute({List<_i42.PageRouteInfo>? children})
     : super(StatsPlaylistsRoute.name, initialChildren: children);
@@ -780,13 +781,13 @@ class StatsPlaylistsRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i33.StatsPlaylistsPage();
+      return const _i32.StatsPlaylistsPage();
     },
   );
 }
 
 /// generated route for
-/// [_i34.StatsStreamFeesPage]
+/// [_i33.StatsStreamFeesPage]
 class StatsStreamFeesRoute extends _i42.PageRouteInfo<void> {
   const StatsStreamFeesRoute({List<_i42.PageRouteInfo>? children})
     : super(StatsStreamFeesRoute.name, initialChildren: children);
@@ -796,13 +797,13 @@ class StatsStreamFeesRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i34.StatsStreamFeesPage();
+      return const _i33.StatsStreamFeesPage();
     },
   );
 }
 
 /// generated route for
-/// [_i35.StatsStreamsPage]
+/// [_i34.StatsStreamsPage]
 class StatsStreamsRoute extends _i42.PageRouteInfo<void> {
   const StatsStreamsRoute({List<_i42.PageRouteInfo>? children})
     : super(StatsStreamsRoute.name, initialChildren: children);
@@ -812,13 +813,13 @@ class StatsStreamsRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i35.StatsStreamsPage();
+      return const _i34.StatsStreamsPage();
     },
   );
 }
 
 /// generated route for
-/// [_i36.TrackPage]
+/// [_i35.TrackPage]
 class TrackRoute extends _i42.PageRouteInfo<TrackRouteArgs> {
   TrackRoute({
     _i45.Key? key,
@@ -840,7 +841,7 @@ class TrackRoute extends _i42.PageRouteInfo<TrackRouteArgs> {
       final args = data.argsAs<TrackRouteArgs>(
         orElse: () => TrackRouteArgs(trackId: pathParams.getString('id')),
       );
-      return _i36.TrackPage(key: args.key, trackId: args.trackId);
+      return _i35.TrackPage(key: args.key, trackId: args.trackId);
     },
   );
 }
@@ -859,7 +860,7 @@ class TrackRouteArgs {
 }
 
 /// generated route for
-/// [_i37.UserAlbumsPage]
+/// [_i36.UserAlbumsPage]
 class UserAlbumsRoute extends _i42.PageRouteInfo<void> {
   const UserAlbumsRoute({List<_i42.PageRouteInfo>? children})
     : super(UserAlbumsRoute.name, initialChildren: children);
@@ -869,13 +870,13 @@ class UserAlbumsRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i37.UserAlbumsPage();
+      return const _i36.UserAlbumsPage();
     },
   );
 }
 
 /// generated route for
-/// [_i38.UserArtistsPage]
+/// [_i37.UserArtistsPage]
 class UserArtistsRoute extends _i42.PageRouteInfo<void> {
   const UserArtistsRoute({List<_i42.PageRouteInfo>? children})
     : super(UserArtistsRoute.name, initialChildren: children);
@@ -885,13 +886,13 @@ class UserArtistsRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i38.UserArtistsPage();
+      return const _i37.UserArtistsPage();
     },
   );
 }
 
 /// generated route for
-/// [_i39.UserDownloadsPage]
+/// [_i38.UserDownloadsPage]
 class UserDownloadsRoute extends _i42.PageRouteInfo<void> {
   const UserDownloadsRoute({List<_i42.PageRouteInfo>? children})
     : super(UserDownloadsRoute.name, initialChildren: children);
@@ -901,13 +902,13 @@ class UserDownloadsRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i39.UserDownloadsPage();
+      return const _i38.UserDownloadsPage();
     },
   );
 }
 
 /// generated route for
-/// [_i40.UserLocalLibraryPage]
+/// [_i39.UserLocalLibraryPage]
 class UserLocalLibraryRoute extends _i42.PageRouteInfo<void> {
   const UserLocalLibraryRoute({List<_i42.PageRouteInfo>? children})
     : super(UserLocalLibraryRoute.name, initialChildren: children);
@@ -917,13 +918,13 @@ class UserLocalLibraryRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i40.UserLocalLibraryPage();
+      return const _i39.UserLocalLibraryPage();
     },
   );
 }
 
 /// generated route for
-/// [_i41.UserPlaylistsPage]
+/// [_i40.UserPlaylistsPage]
 class UserPlaylistsRoute extends _i42.PageRouteInfo<void> {
   const UserPlaylistsRoute({List<_i42.PageRouteInfo>? children})
     : super(UserPlaylistsRoute.name, initialChildren: children);
@@ -933,7 +934,23 @@ class UserPlaylistsRoute extends _i42.PageRouteInfo<void> {
   static _i42.PageInfo page = _i42.PageInfo(
     name,
     builder: (data) {
-      return const _i41.UserPlaylistsPage();
+      return const _i40.UserPlaylistsPage();
+    },
+  );
+}
+
+/// generated route for
+/// [_i41.UserRadioStationsPage]
+class UserRadioStationsRoute extends _i42.PageRouteInfo<void> {
+  const UserRadioStationsRoute({List<_i42.PageRouteInfo>? children})
+    : super(UserRadioStationsRoute.name, initialChildren: children);
+
+  static const String name = 'UserRadioStationsRoute';
+
+  static _i42.PageInfo page = _i42.PageInfo(
+    name,
+    builder: (data) {
+      return const _i41.UserRadioStationsPage();
     },
   );
 }

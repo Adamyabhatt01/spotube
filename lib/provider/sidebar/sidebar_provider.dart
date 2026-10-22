@@ -9,6 +9,7 @@ const defaultSidebarLibraryOrder = [
   'playlists',
   'artists',
   'albums',
+  'stations',
   'local_library',
 ];
 

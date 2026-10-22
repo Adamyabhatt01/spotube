@@ -91,6 +91,10 @@ class AppRouter extends RootStackRouter {
                   page: UserAlbumsRoute.page,
                 ),
                 AutoRoute(
+                  path: "stations",
+                  page: UserRadioStationsRoute.page,
+                ),
+                AutoRoute(
                   path: "local",
                   page: UserLocalLibraryRoute.page,
                 ),

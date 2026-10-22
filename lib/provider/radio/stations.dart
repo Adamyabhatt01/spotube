@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/models/radio/radio_station.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+import 'package:spotube/provider/metadata_plugin/utils/common.dart';
 import 'package:spotube/provider/radio/plugin_directory_adapter.dart';
 import 'package:spotube/provider/youtube_engine/youtube_engine.dart';
 import 'package:spotube/services/logger/logger.dart';
@@ -58,6 +59,23 @@ List<RadioDirectoryProvider> radioProvidersFor(
   ];
 }
 
+/// Identifies the installed radio directories.
+///
+/// The plugin state also carries auth and progress updates, and every one of
+/// those emissions used to invalidate the browse caches - so a perfectly good
+/// station page was thrown away (and refetched) whenever the plugin reported
+/// something unrelated. This is the part of the state that actually decides
+/// what the browse can ask: the default radio plugin and the set of
+/// radio-capable plugins.
+String _radioDirectorySignature(MetadataPluginState state) {
+  return [
+    state.defaultRadioPluginConfig?.slug ?? '',
+    for (final plugin in state.plugins)
+      if (plugin.abilities.contains(PluginAbilities.radio))
+        '${plugin.slug}@${plugin.version}',
+  ].join('|');
+}
+
 /// Keeps the process-wide [radioProviders] registry pointed at the installed
 /// radio plugins, so the whole Radio feature runs on the real Hetu plugin
 /// system (the old hard-coded in-app directory is gone).
@@ -74,6 +92,10 @@ List<RadioDirectoryProvider> radioProvidersFor(
 /// first answer, since a plain list is not observable. Only the plugin-managed
 /// adapters are swapped out, so manually registered providers survive a sync.
 ///
+/// The invalidation is scoped to a change in the *set of radio directories*:
+/// the plugin state also reports auth and progress, and dropping the browse
+/// caches on those meant every visit to the Radio page refetched everything.
+///
 /// Yields a generation counter rather than `void` on purpose.
 /// [radioProviders] is a plain mutable list, so a consumer cannot `watch` it;
 /// this provider is the announcement channel, and a `Provider<void>` would be
@@ -81,15 +103,33 @@ List<RadioDirectoryProvider> radioProvidersFor(
 /// a dependent that it changed, and the registry would never be re-read.
 final radioPluginDirectorySyncProvider = Provider<int>((ref) {
   var generation = 0;
+  String? signature;
   ref.listen<AsyncValue<MetadataPluginState>>(
     metadataPluginsProvider,
     (_, next) {
+      final state = next.valueOrNull;
+      if (state == null) {
+        // The plugin state is not known (yet), so the plugin-managed adapters
+        // cannot be resolved and come out of the registry. The browse caches
+        // are left alone: they were filled by directories that are still
+        // installed, and dropping them would mean a refetch for nothing.
+        radioProviders.removeWhere(
+          (p) => p is MetadataPluginRadioDirectoryProvider,
+        );
+        return;
+      }
+
+      final nextSignature = _radioDirectorySignature(state);
+      final directoriesChanged = nextSignature != signature;
+      signature = nextSignature;
+
       radioProviders.removeWhere(
         (p) => p is MetadataPluginRadioDirectoryProvider,
       );
-      final state = next.valueOrNull;
-      if (state == null) return;
       radioProviders.addAll(radioProvidersFor(ref, state));
+
+      if (!directoriesChanged) return;
+
       ref.invalidate(radioStationsProvider);
       ref.invalidate(radioTagsProvider);
       ref.invalidate(radioCountriesProvider);
@@ -127,6 +167,15 @@ typedef RadioStationsQuery = ({String? tag, String? country, String? search});
 
 const _pageLimit = 20;
 
+/// How long a fetched browse answer survives the page that asked for it.
+///
+/// The Radio page is torn down every time the user leaves the tab, and an
+/// auto-disposed provider takes its answer with it - so every visit refetched
+/// the directory (five requests: three station pages plus the tag and country
+/// lists). Holding the answer for a few minutes makes a tab switch instant
+/// while still letting a long-idle app see fresh data.
+const _radioCacheFor = Duration(minutes: 5);
+
 /// One page of [RadioStation]s for a [RadioStationsQuery], with [fetchMore]
 /// appending subsequent pages.
 ///
@@ -145,6 +194,7 @@ class RadioStationsNotifier
   Future<SpotubePaginationResponseObject<RadioStation>> build(
     RadioStationsQuery arg,
   ) async {
+    ref.cacheFor(_radioCacheFor);
     return fetchStationsAcrossProviders(
       (provider) => provider.stations(
         tag: arg.tag,
@@ -207,6 +257,9 @@ final radioStationsProvider = AsyncNotifierProvider.autoDispose
 /// Distinct tags for the browse-by-tag rail, most-used first.
 final radioTagsProvider =
     FutureProvider.autoDispose<List<RadioTag>>((ref) async {
+  // Same reasoning as the station pages: the list is fetched from the
+  // directory, and the rail is rebuilt every time the Radio page is opened.
+  ref.cacheFor(_radioCacheFor);
   // Snapshotted: radioProviders is a mutable process-global that the plugin
   // sync rewrites in place, and this loop awaits inside its body.
   for (final provider in List.of(radioProviders)) {
@@ -225,6 +278,7 @@ final radioTagsProvider =
 /// Distinct countries for the browse-by-country rail.
 final radioCountriesProvider =
     FutureProvider.autoDispose<List<RadioCountry>>((ref) async {
+  ref.cacheFor(_radioCacheFor);
   for (final provider in List.of(radioProviders)) {
     try {
       final countries = await provider.countries();

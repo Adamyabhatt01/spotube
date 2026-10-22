@@ -54,12 +54,14 @@ List<Widget> useStationSearchSlivers(
   final searchController = useShadcnTextEditingController();
   final searchFocusNode = useFocusNode();
 
-  // A typed search outranks a browse selection: the query is what the user
+  // A typed search outranks a *tag* selection: the query is what the user
   // most recently asked for, and a lingering tag chip must not silently
-  // filter the results they are looking at.
+  // filter the results they are looking for. The country is different - it is
+  // a scope the user picked in a control of its own, always on screen, so it
+  // rides along with the search term instead of being dropped by it.
   final query = useMemoized(
     () => search.query.isNotEmpty
-        ? (tag: null, country: null, search: search.query)
+        ? (tag: null, country: selectedCountry, search: search.query)
         : (
             tag: selectedTag,
             country: selectedCountry,
@@ -224,6 +226,17 @@ List<Widget> useStationSearchSlivers(
           ],
         ),
       ),
+    // The country control has a row of its own, always on screen. It used to
+    // be the last item of the horizontally scrolling tag rail - which put it
+    // off-screen on a phone (the rail holds up to thirty tag chips first) and
+    // took it away with the rail while a search was typed.
+    SliverToBoxAdapter(
+      child: _CountryFilter(
+        countries: countries,
+        selectedCountry: selectedCountry,
+        onCountry: onCountry,
+      ),
+    ),
     if (stationsQuery.hasError && stations == null)
       // A cold failure with no data to show: replace the results area
       // only, so the header, tabs and library stay reachable — a flaky
@@ -242,6 +255,9 @@ List<Widget> useStationSearchSlivers(
             child: RadioStationRail(
               title: 'Your favorites',
               stations: favorites.asData?.value ?? const [],
+              // The rail is a peek; the library page is where the list can be
+              // reviewed and pruned.
+              onSeeAll: () => context.navigateTo(const UserRadioStationsRoute()),
             ),
           ),
         if (showRecentRail && (recent.asData?.value ?? const []).isNotEmpty)
@@ -293,7 +309,6 @@ List<Widget> useStationSearchSlivers(
               const RadioSectionHeader(title: 'Browse stations'),
               _BrowseRail(
                 tags: tags,
-                countries: countries,
                 selectedTag: selectedTag,
                 selectedCountry: selectedCountry,
                 onTag: onTag,
@@ -362,17 +377,115 @@ class RadioAttributionSliver extends StatelessWidget {
   }
 }
 
-/// Horizontal tag chips plus a country dropdown for the browse axes, plus a
-/// "Popular" reset that clears both selections.
+/// The browse-by-country control.
 ///
-/// Tags stay as chips (the list is short); countries go through a dropdown
-/// because the directory can return up to 100 of them while the rail used to
-/// truncate both axes to 30 chips. The dropdown writes the same country code
-/// the chips used to, so the query/provider contract is unchanged.
+/// It used to sit at the end of the horizontally scrolling tag rail, which put
+/// it off-screen on a phone (the rail holds up to thirty tag chips first) and
+/// took it away with the rail while a search was typed. It is now a row of its
+/// own, always on screen, and the directory can return a hundred countries -
+/// so the popup is searchable.
+class _CountryFilter extends StatelessWidget {
+  const _CountryFilter({
+    required this.countries,
+    required this.selectedCountry,
+    required this.onCountry,
+  });
+
+  final AsyncValue<List<RadioCountry>> countries;
+  final String? selectedCountry;
+  final void Function(String? country) onCountry;
+
+  /// Sentinel for "no country selected": `Select` needs a value matching one
+  /// of its options, and null is not a valid option value.
+  static const noCountry = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final countryList = countries.asData?.value ?? const <RadioCountry>[];
+    if (countryList.isEmpty) return const SizedBox.shrink();
+
+    final names = {
+      for (final country in countryList) country.code: country.name,
+    };
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: Row(
+        children: [
+          Icon(
+            SpotubeIcons.filter,
+            size: 16 * context.theme.scaling,
+            color: context.theme.colorScheme.mutedForeground,
+          ),
+          const Gap(8),
+          Flexible(
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Select<String>(
+                value: selectedCountry ?? noCountry,
+                onChanged: (value) {
+                  if (value == null) return;
+                  onCountry(value.isEmpty ? null : value);
+                },
+                itemBuilder: (context, value) => Text(
+                  value.isEmpty ? context.l10n.country : names[value] ?? value,
+                ),
+                popupConstraints:
+                    const BoxConstraints(maxWidth: 320, maxHeight: 420),
+                popupWidthConstraint: PopoverConstraint.flexible,
+                popup: (context) => SelectPopup.builder(
+                  searchPlaceholder: Text(context.l10n.country),
+                  builder: (context, searchQuery) {
+                    final needle = searchQuery?.trim().toLowerCase();
+                    final filtered = needle == null || needle.isEmpty
+                        ? countryList
+                        : countryList
+                            .where(
+                              (country) =>
+                                  country.name.toLowerCase().contains(needle) ||
+                                  country.code.toLowerCase() == needle,
+                            )
+                            .toList();
+
+                    return SelectItemBuilder(
+                      childCount: filtered.length + 1,
+                      builder: (context, index) {
+                        if (index == 0) {
+                          return SelectItemButton(
+                            value: noCountry,
+                            child: Text(context.l10n.none),
+                          );
+                        }
+                        final country = filtered[index - 1];
+                        return SelectItemButton(
+                          value: country.code,
+                          child: Text(
+                            country.stationCount > 0
+                                ? '${country.name} (${country.stationCount})'
+                                : country.name,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Horizontal tag chips plus a "Popular" reset that clears both selections.
+///
+/// The country axis used to live here too, at the end of the scroller, which
+/// is where it became unreachable; it is now [_CountryFilter], in a row of its
+/// own.
 class _BrowseRail extends StatelessWidget {
   const _BrowseRail({
     required this.tags,
-    required this.countries,
     required this.selectedTag,
     required this.selectedCountry,
     required this.onTag,
@@ -380,7 +493,6 @@ class _BrowseRail extends StatelessWidget {
   });
 
   final AsyncValue<List<RadioTag>> tags;
-  final AsyncValue<List<RadioCountry>> countries;
   final String? selectedTag;
   final String? selectedCountry;
   final void Function(String? tag) onTag;
@@ -389,20 +501,11 @@ class _BrowseRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tagList = tags.asData?.value ?? const [];
-    final countryList = countries.asData?.value ?? const [];
     final isDefault = selectedTag == null && selectedCountry == null;
-    // Show the rail's skeleton only while both axes are still resolving and
-    // neither has produced a chip yet — once either lands, real chips are
-    // better than placeholders.
-    final loading = (tags.isLoading || countries.isLoading) &&
-        tagList.isEmpty &&
-        countryList.isEmpty;
-    // Sentinel for "no country selected": Select needs a value matching one
-    // of its options, and null is not a valid option value.
-    const noCountry = '';
-    final countryNames = {
-      for (final country in countryList) country.code: country.name
-    };
+    // Show the rail's skeleton only while the tags are still resolving and
+    // none has produced a chip yet — once one lands, real chips are better
+    // than placeholders.
+    final loading = tags.isLoading && tagList.isEmpty;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -426,7 +529,7 @@ class _BrowseRail extends StatelessWidget {
                 children: List.generate(8, (_) => const _ChipPlaceholder()),
               ),
             )
-          else ...[
+          else
             for (final tag in tagList.take(30))
               _Chip(
                 label: tag.name,
@@ -434,46 +537,6 @@ class _BrowseRail extends StatelessWidget {
                 onPressed: () =>
                     onTag(selectedTag == tag.name ? null : tag.name),
               ),
-            if (countryList.isNotEmpty)
-              Select<String>(
-                value: selectedCountry ?? noCountry,
-                onChanged: (value) {
-                  if (value == null) return;
-                  onCountry(value.isEmpty ? null : value);
-                },
-                itemBuilder: (context, value) => Text(
-                  value.isEmpty
-                      ? context.l10n.country
-                      : countryNames[value] ?? value,
-                ),
-                popupConstraints: const BoxConstraints(maxWidth: 240),
-                popupWidthConstraint: PopoverConstraint.flexible,
-                popup: (context) {
-                  return SelectPopup(
-                    items: SelectItemBuilder(
-                      childCount: countryList.length + 1,
-                      builder: (context, index) {
-                        if (index == 0) {
-                          return SelectItemButton(
-                            value: noCountry,
-                            child: Text(context.l10n.none),
-                          );
-                        }
-                        final country = countryList[index - 1];
-                        return SelectItemButton(
-                          value: country.code,
-                          child: Text(
-                            country.stationCount > 0
-                                ? '${country.name} (${country.stationCount})'
-                                : country.name,
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-          ],
         ],
       ),
     );

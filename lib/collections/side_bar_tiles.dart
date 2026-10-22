@@ -80,6 +80,16 @@ List<SideBarTiles> getSidebarLibraryTileList(AppLocalizations l10n) => [
         route: const UserAlbumsRoute(),
         icon: SpotubeIcons.album,
       ),
+      // The stations the user bookmarked with the heart on a station card.
+      // They were only reachable from the Radio page's own rail, so there was
+      // nowhere to review the list or drop one.
+      SideBarTiles(
+        id: "stations",
+        pathPrefix: "/library/stations",
+        title: l10n.stations,
+        route: const UserRadioStationsRoute(),
+        icon: SpotubeIcons.radio,
+      ),
       SideBarTiles(
         id: "local_library",
         pathPrefix: "/library/local",
