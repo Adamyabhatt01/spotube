@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/Adamyabhatt01/spotube/blob/master/themes/schemas/theme.v3.schema.json",
   "title": "Spotube theme payload, v3",
   "description": "The full v3 payload: everything a theme may decide about the app's appearance, its components, its shell and the content it puts in them. A v2 host ignores the v3 blocks and draws the two colour schemes, which is what lets a v3 theme ship to an older app.",
@@ -9,7 +9,7 @@
     "dark"
   ],
   "additionalProperties": true,
-  "$defs": {
+  "definitions": {
     "color": {
       "type": "string",
       "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
@@ -26,7 +26,7 @@
         },
         {
           "type": "string",
-          "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
+          "pattern": "^@(primary|primaryForeground|secondary|secondaryForeground|accent|accentForeground|muted|mutedForeground|destructive|destructiveForeground|background|foreground|card|cardForeground|border|input|ring|success|successForeground|warning|warningForeground|info|infoForeground|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
         }
       ]
     },
@@ -212,80 +212,1135 @@
       }
     },
     "uiNode": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "type": {
-          "enum": [
-            "row",
-            "column",
-            "stack",
-            "wrap",
-            "padding",
-            "align",
-            "expanded",
-            "scroll",
-            "text",
-            "icon",
-            "image",
-            "button",
-            "card",
-            "divider",
-            "spacer",
-            "gap",
-            "conditional",
-            "template"
-          ]
-        },
-        "props": {
-          "type": "object"
-        },
-        "children": {
-          "type": "array",
-          "maxItems": 200,
-          "items": {
-            "$ref": "#/$defs/uiNode"
-          }
-        },
-        "actions": {
-          "type": "array",
-          "maxItems": 4,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "type": {
-                "enum": [
-                  "navigate",
-                  "playPause",
-                  "next",
-                  "previous",
-                  "seek",
-                  "setVolume",
-                  "setShuffle",
-                  "setLoopMode",
-                  "like",
-                  "download",
-                  "openSettings",
-                  "openLyrics",
-                  "openQueue",
-                  "openDownloads",
-                  "toast",
-                  "plugin"
-                ]
-              },
-              "args": {
-                "type": "object"
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "row"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
               }
             },
-            "required": [
-              "type"
-            ]
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "gap": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "align": {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ]
+            },
+            "justify": {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "spaceBetween",
+                "spaceAround",
+                "spaceEvenly"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "column"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "gap": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "align": {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ]
+            },
+            "justify": {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "spaceBetween",
+                "spaceAround",
+                "spaceEvenly"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "stack"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "align": {
+              "enum": [
+                "topLeft",
+                "topCenter",
+                "topRight",
+                "centerLeft",
+                "center",
+                "centerRight",
+                "bottomLeft",
+                "bottomCenter",
+                "bottomRight"
+              ]
+            },
+            "fit": {
+              "enum": [
+                "loose",
+                "expand"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "wrap"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "gap": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "runGap": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "align": {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ]
+            },
+            "justify": {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "spaceBetween",
+                "spaceAround",
+                "spaceEvenly"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "padding"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "all": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "horizontal": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "vertical": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "top": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "right": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "bottom": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "left": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "align"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "align": {
+              "enum": [
+                "topLeft",
+                "topCenter",
+                "topRight",
+                "centerLeft",
+                "center",
+                "centerRight",
+                "bottomLeft",
+                "bottomCenter",
+                "bottomRight"
+              ]
+            },
+            "widthFactor": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 4
+            },
+            "heightFactor": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 4
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "expanded"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "flex": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "scroll"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "direction": {
+              "enum": [
+                "horizontal",
+                "vertical"
+              ]
+            },
+            "padding": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "text"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "bind": {
+              "enum": [
+                "player.title",
+                "player.artist",
+                "player.album",
+                "player.artwork",
+                "player.playing",
+                "player.loop",
+                "player.shuffled",
+                "player.position",
+                "player.duration",
+                "player.volume",
+                "user.name",
+                "user.avatar",
+                "app.version",
+                "app.brightness",
+                "app.themeMode",
+                "clock.now"
+              ]
+            },
+            "size": {
+              "enum": [
+                "xs",
+                "small",
+                "sm",
+                "md",
+                "lg",
+                "xl",
+                "2xl",
+                "3xl"
+              ]
+            },
+            "weight": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 900
+                },
+                {
+                  "enum": [
+                    "thin",
+                    "light",
+                    "normal",
+                    "medium",
+                    "semibold",
+                    "bold",
+                    "black"
+                  ]
+                }
+              ]
+            },
+            "color": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "maxLines": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            },
+            "align": {
+              "enum": [
+                "left",
+                "center",
+                "right"
+              ]
+            },
+            "overflow": {
+              "enum": [
+                "clip",
+                "ellipsis",
+                "fade"
+              ]
+            },
+            "family": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "letterSpacing": {
+              "type": "number",
+              "minimum": -2,
+              "maximum": 8
+            },
+            "uppercase": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "icon"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "icon": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "size": {
+              "type": "number",
+              "minimum": 8,
+              "maximum": 96
+            },
+            "color": {
+              "$ref": "#/definitions/colorOrRole"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "image"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "src": {
+              "oneOf": [
+                {
+                  "enum": [
+                    "albumArt",
+                    "player.artwork",
+                    "user.avatar"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "pattern": "^asset://"
+                }
+              ]
+            },
+            "bind": {
+              "enum": [
+                "player.artwork",
+                "user.avatar"
+              ]
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "radius": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 999
+            },
+            "shape": {
+              "enum": [
+                "square",
+                "circle"
+              ]
+            },
+            "fit": {
+              "enum": [
+                "cover",
+                "contain",
+                "fill",
+                "none"
+              ]
+            },
+            "filter": {
+              "enum": [
+                "linear",
+                "nearest"
+              ]
+            },
+            "tile": {
+              "type": "boolean"
+            },
+            "opacity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "button"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "icon": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "variant": {
+              "enum": [
+                "primary",
+                "secondary",
+                "outline",
+                "ghost",
+                "destructive",
+                "link",
+                "fixed",
+                "muted"
+              ]
+            },
+            "size": {
+              "enum": [
+                "small",
+                "md",
+                "lg"
+              ]
+            },
+            "disabledWhen": {
+              "enum": [
+                "player.title",
+                "player.artist",
+                "player.album",
+                "player.artwork",
+                "player.playing",
+                "player.loop",
+                "player.shuffled",
+                "player.position",
+                "player.duration",
+                "player.volume",
+                "user.name",
+                "user.avatar",
+                "app.version",
+                "app.brightness",
+                "app.themeMode",
+                "clock.now"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "card"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "padding": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "radius": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 999
+            },
+            "background": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "borderColor": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "borderWidth": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "opacity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "divider"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "orientation": {
+              "enum": [
+                "horizontal",
+                "vertical"
+              ]
+            },
+            "thickness": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 8
+            },
+            "color": {
+              "$ref": "#/definitions/colorOrRole"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "spacer"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "flex": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "gap"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "size": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "conditional"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "bind": {
+              "enum": [
+                "player.title",
+                "player.artist",
+                "player.album",
+                "player.artwork",
+                "player.playing",
+                "player.loop",
+                "player.shuffled",
+                "player.position",
+                "player.duration",
+                "player.volume",
+                "user.name",
+                "user.avatar",
+                "app.version",
+                "app.brightness",
+                "app.themeMode",
+                "clock.now"
+              ]
+            },
+            "equals": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "invert": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "template"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "args": {
+              "type": "object"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "animate"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "kind": {
+              "enum": [
+                "rotate",
+                "pulse",
+                "float",
+                "fade"
+              ]
+            },
+            "duration": {
+              "type": "number",
+              "minimum": 100,
+              "maximum": 120000
+            },
+            "curve": {
+              "enum": [
+                "linear",
+                "ease",
+                "easeIn",
+                "easeOut",
+                "easeInOut",
+                "easeOutCubic",
+                "easeInOutCubic"
+              ]
+            },
+            "bind": {
+              "enum": [
+                "player.title",
+                "player.artist",
+                "player.album",
+                "player.artwork",
+                "player.playing",
+                "player.loop",
+                "player.shuffled",
+                "player.position",
+                "player.duration",
+                "player.volume",
+                "user.name",
+                "user.avatar",
+                "app.version",
+                "app.brightness",
+                "app.themeMode",
+                "clock.now"
+              ]
+            },
+            "reverse": {
+              "type": "boolean"
+            }
           }
         }
-      },
-      "required": [
-        "type"
       ]
     },
     "componentStyle": {
@@ -328,40 +1383,13 @@
           "maximum": 400
         },
         "background": {
-          "oneOf": [
-            {
-              "type": "string",
-              "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
-            },
-            {
-              "type": "string",
-              "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
-            }
-          ]
+          "$ref": "#/definitions/colorOrRole"
         },
         "foreground": {
-          "oneOf": [
-            {
-              "type": "string",
-              "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
-            },
-            {
-              "type": "string",
-              "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
-            }
-          ]
+          "$ref": "#/definitions/colorOrRole"
         },
         "borderColor": {
-          "oneOf": [
-            {
-              "type": "string",
-              "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
-            },
-            {
-              "type": "string",
-              "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
-            }
-          ]
+          "$ref": "#/definitions/colorOrRole"
         },
         "surfaceOpacity": {
           "type": "number",
@@ -404,40 +1432,51 @@
           "maximum": 64
         },
         "indicatorColor": {
-          "oneOf": [
-            {
-              "type": "string",
-              "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
-            },
-            {
-              "type": "string",
-              "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
-            }
-          ]
+          "$ref": "#/definitions/colorOrRole"
         },
         "thumbColor": {
-          "oneOf": [
-            {
-              "type": "string",
-              "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
-            },
-            {
-              "type": "string",
-              "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
-            }
-          ]
+          "$ref": "#/definitions/colorOrRole"
         },
         "trackColor": {
-          "oneOf": [
-            {
-              "type": "string",
-              "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
-            },
-            {
-              "type": "string",
-              "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
-            }
+          "$ref": "#/definitions/colorOrRole"
+        },
+        "borderStyle": {
+          "enum": [
+            "solid",
+            "pixel"
           ]
+        }
+      }
+    },
+    "uiAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "navigate",
+            "playPause",
+            "next",
+            "previous",
+            "seek",
+            "setVolume",
+            "setShuffle",
+            "setLoopMode",
+            "like",
+            "download",
+            "openSettings",
+            "openLyrics",
+            "openQueue",
+            "openDownloads",
+            "toast",
+            "plugin"
+          ]
+        },
+        "args": {
+          "type": "object"
         }
       }
     }
@@ -447,10 +1486,10 @@
       "const": 3
     },
     "light": {
-      "$ref": "#/$defs/palette"
+      "$ref": "#/definitions/palette"
     },
     "dark": {
-      "$ref": "#/$defs/palette"
+      "$ref": "#/definitions/palette"
     },
     "surfaces": {
       "type": "object",
@@ -504,6 +1543,14 @@
         },
         "transparent": {
           "type": "boolean"
+        },
+        "tile": {
+          "type": "boolean"
+        },
+        "scale": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
         }
       }
     },
@@ -617,16 +1664,7 @@
                 "maximum": 8
               },
               "color": {
-                "oneOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
-                  }
-                ]
+                "$ref": "#/definitions/colorOrRole"
               },
               "fontFamily": {
                 "type": "string",
@@ -885,150 +1923,150 @@
           "additionalProperties": false,
           "properties": {
             "primary": {
-              "$ref": "#/$defs/componentStyle"
+              "$ref": "#/definitions/componentStyle"
             },
             "secondary": {
-              "$ref": "#/$defs/componentStyle"
+              "$ref": "#/definitions/componentStyle"
             },
             "outline": {
-              "$ref": "#/$defs/componentStyle"
+              "$ref": "#/definitions/componentStyle"
             },
             "ghost": {
-              "$ref": "#/$defs/componentStyle"
+              "$ref": "#/definitions/componentStyle"
             },
             "destructive": {
-              "$ref": "#/$defs/componentStyle"
+              "$ref": "#/definitions/componentStyle"
             },
             "link": {
-              "$ref": "#/$defs/componentStyle"
+              "$ref": "#/definitions/componentStyle"
             },
             "fixed": {
-              "$ref": "#/$defs/componentStyle"
+              "$ref": "#/definitions/componentStyle"
             },
             "muted": {
-              "$ref": "#/$defs/componentStyle"
+              "$ref": "#/definitions/componentStyle"
             }
           }
         },
         "card": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "input": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "tabs": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "nav": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "tooltip": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "badge": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "select": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "switch": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "slider": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "scrollbar": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "avatar": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "skeleton": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "progress": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "divider": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "menu": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "dropdown": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "modal": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "dialog": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "sheet": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "table": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "checkbox": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "radio": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "toggle": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "toggleGroup": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "accordion": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "alert": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "breadcrumb": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "carousel": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "collapsible": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "command": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "contextMenu": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "drawer": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "hoverCard": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "pagination": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "popover": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "resizable": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "sidebar": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "stepper": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "toast": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         },
         "tree": {
-          "$ref": "#/$defs/componentStyle"
+          "$ref": "#/definitions/componentStyle"
         }
       }
     },
@@ -1099,7 +2137,8 @@
               "enum": [
                 "full",
                 "compact",
-                "floating"
+                "floating",
+                "stage"
               ]
             },
             "showTrackDetails": {
@@ -1436,11 +2475,41 @@
       "additionalProperties": false,
       "properties": {
         "specVersion": {
-          "const": 1
+          "enum": [
+            1,
+            2
+          ]
         },
         "slots": {
           "type": "object",
           "maxProperties": 32,
+          "propertyNames": {
+            "enum": [
+              "sidebar.header",
+              "sidebar.footer",
+              "sidebar.nav.before",
+              "sidebar.nav.after",
+              "sidebar.library.before",
+              "sidebar.library.after",
+              "sidebar.pins.before",
+              "sidebar.pins.after",
+              "player.leading",
+              "player.controls",
+              "player.trailing",
+              "player.progress",
+              "stage.center",
+              "stage.below",
+              "app.overlay",
+              "shell.before",
+              "shell.after",
+              "home.before_sections",
+              "home.after_sections",
+              "lyrics.header",
+              "lyrics.after_tabs",
+              "settings.before",
+              "settings.after"
+            ]
+          },
           "additionalProperties": {
             "type": "object",
             "additionalProperties": false,
@@ -1449,7 +2518,7 @@
                 "type": "array",
                 "maxItems": 200,
                 "items": {
-                  "$ref": "#/$defs/uiNode"
+                  "$ref": "#/definitions/uiNode"
                 }
               },
               "refreshSeconds": {
@@ -1478,7 +2547,7 @@
                 "type": "array",
                 "maxItems": 500,
                 "items": {
-                  "$ref": "#/$defs/uiNode"
+                  "$ref": "#/definitions/uiNode"
                 }
               }
             }
@@ -1502,7 +2571,7 @@
                 "type": "array",
                 "maxItems": 200,
                 "items": {
-                  "$ref": "#/$defs/uiNode"
+                  "$ref": "#/definitions/uiNode"
                 }
               }
             }

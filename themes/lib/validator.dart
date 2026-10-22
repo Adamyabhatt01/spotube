@@ -126,7 +126,8 @@ ValidationReport validateThemePayload(Map<String, dynamic> payload) {
   final layout = _map(payload, 'layout', issues);
 
   final resolvedSurfaces = _resolveSurfaces(surfaces, issues);
-  final resolvedBackground = _resolveBackground(background, issues);
+  final resolvedBackground =
+      _resolveBackground(background, issues, allowAsset: isV3);
   final resolvedRadius = _resolveRadius(radius, issues);
   final resolvedTokens = _resolveTokens(tokens, issues);
   final resolvedLayout = _resolveLayout(layout, issues);
@@ -237,9 +238,12 @@ Map<String, dynamic> _resolveSurfaces(
 /// The `background` block.
 Map<String, dynamic> _resolveBackground(
   Map<String, dynamic> background,
-  List<Issue> issues,
-) {
-  const sources = {'none', 'albumArt', 'shell'};
+  List<Issue> issues, {
+  bool allowAsset = false,
+}) {
+  // `asset` is a v3 source: a v2 host would reject it, which is why a v2
+  // payload is not allowed to name it.
+  final sources = {'none', 'albumArt', 'shell', if (allowAsset) 'asset'};
   final source = background['source'];
   var resolvedSource = 'none';
   if (source == null) {
@@ -255,6 +259,18 @@ Map<String, dynamic> _resolveBackground(
     ));
   }
 
+  // A source with no asset is a background the host cannot draw.
+  if (resolvedSource == 'asset') {
+    final asset = background['asset'];
+    if (asset is! String || !asset.startsWith('asset://')) {
+      issues.add(const Issue(
+        Severity.error,
+        'background.asset',
+        'source is asset but no asset:// path is given',
+      ));
+    }
+  }
+
   final transparent = background['transparent'];
   Object? resolvedTransparent;
   if (transparent is bool) {
@@ -267,6 +283,38 @@ Map<String, dynamic> _resolveBackground(
     ));
   }
 
+  // A tiled background is drawn at integer magnification so a pixel texture
+  // stays a pixel texture: nearest-neighbour, never a smooth stretch.
+  var scale = background['scale'];
+  if (scale != null) {
+    if (scale is! num || scale < 1 || scale > 8) {
+      issues.add(Issue(
+        Severity.warning,
+        'background.scale',
+        'must be a number 1..8 — the host uses 1',
+        resolved: 1,
+      ));
+      scale = 1;
+    } else if (scale != scale.roundToDouble()) {
+      issues.add(Issue(
+        Severity.warning,
+        'background.scale',
+        'must be a whole number — the host rounds it',
+        resolved: scale.roundToDouble(),
+      ));
+      scale = scale.roundToDouble();
+    }
+  }
+
+  final tile = background['tile'];
+  if (tile != null && tile is! bool) {
+    issues.add(const Issue(
+      Severity.warning,
+      'background.tile',
+      'must be a boolean — the host reads anything else as "no"',
+    ));
+  }
+
   return {
     'source': resolvedSource,
     'opacity': _fraction(background, 'background.opacity', 0.0, issues),
@@ -274,6 +322,10 @@ Map<String, dynamic> _resolveBackground(
     if (background['overlay'] != null)
       'overlay': _color(background, 'background.overlay', issues),
     if (resolvedTransparent != null) 'transparent': resolvedTransparent,
+    if (tile is bool) 'tile': tile,
+    if (scale is num) 'scale': scale.toInt(),
+    if (resolvedSource == 'asset' && background['asset'] is String)
+      'asset': background['asset'],
   };
 }
 

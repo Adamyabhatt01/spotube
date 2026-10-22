@@ -279,4 +279,162 @@ void main() {
       }
     });
   });
+
+  group('the ui contract', () {
+    Map<String, dynamic> withUi(Map<String, dynamic> ui,
+        {Map<String, dynamic> extra = const {}}) {
+      final payload = validPayload();
+      payload['specVersion'] = 3;
+      payload['ui'] = ui;
+      payload.addAll(extra);
+      return payload;
+    }
+
+    Map<String, dynamic> slot(String name, List<Map<String, dynamic>> children) =>
+        {
+          'specVersion': 2,
+          'slots': {
+            name: {'children': children},
+          },
+        };
+
+    test('a flat prop is what the themes write, and it is read', () {
+      final report = validateThemePayload(withUi(slot('player.leading', [
+        {'type': 'image', 'src': 'player.artwork', 'width': 64, 'height': 64},
+      ])));
+      expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
+    });
+
+    test('an unknown prop is an error, not a silent no-op', () {
+      final report = validateThemePayload(withUi(slot('player.leading', [
+        {'type': 'image', 'widht': 64},
+      ])));
+      expect(pathsOf(report, Severity.error),
+          contains('ui.slots.player.leading[0].widht'));
+    });
+
+    test('the legacy props object still reads, with a warning', () {
+      final report = validateThemePayload(withUi(slot('player.leading', [
+        {
+          'type': 'image',
+          'props': {'src': 'player.artwork', 'width': 64},
+        },
+      ])));
+      expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
+      expect(pathsOf(report, Severity.warning),
+          contains('ui.slots.player.leading[0].props'));
+    });
+
+    test('an unknown binding is an error', () {
+      final report = validateThemePayload(withUi(slot('player.leading', [
+        {'type': 'text', 'bind': 'player.titel'},
+      ])));
+      expect(pathsOf(report, Severity.error),
+          contains('ui.slots.player.leading[0].bind'));
+    });
+
+    test('an unknown action is an error, and a known one is not', () {
+      final bad = validateThemePayload(withUi(slot('player.leading', [
+        {'type': 'button', 'action': {'type': 'skip'}},
+      ])));
+      expect(pathsOf(bad, Severity.error),
+          contains('ui.slots.player.leading[0].action.type'));
+
+      final good = validateThemePayload(withUi(slot('player.leading', [
+        {
+          'type': 'button',
+          'action': {'type': 'navigate', 'args': {'target': 'lyrics'}},
+        },
+      ])));
+      expect(good.hasErrors, isFalse, reason: good.issues.join('\n'));
+    });
+
+    test('a navigate without a target warns', () {
+      final report = validateThemePayload(withUi(slot('player.leading', [
+        {
+          'type': 'button',
+          'action': {'type': 'navigate'},
+        },
+      ])));
+      expect(pathsOf(report, Severity.warning),
+          contains('ui.slots.player.leading[0].action.args.target'));
+    });
+
+    test('the stage is a dock and has slots', () {
+      final payload = validPayload();
+      payload['specVersion'] = 3;
+      payload['layout'] = {
+        'player': {'dock': 'stage'},
+      };
+      payload['ui'] = slot('stage.center', [
+        {'type': 'text', 'bind': 'player.title'},
+      ]);
+      final report = validateThemePayload(payload);
+      expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
+    });
+
+    test('an animate node is v2 ui, and a v1 document says so', () {
+      final ui = slot('stage.center', [
+        {
+          'type': 'animate',
+          'kind': 'rotate',
+          'duration': 24000,
+          'bind': 'player.playing',
+          'children': [
+            {'type': 'image', 'src': 'player.artwork', 'shape': 'circle'},
+          ],
+        },
+      ]);
+      ui['specVersion'] = 1;
+      final report = validateThemePayload(withUi(ui));
+      expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
+      expect(pathsOf(report, Severity.warning),
+          contains('ui.slots.stage.center[0]'));
+    });
+
+    test('the image props a pixel theme needs are validated', () {
+      final report = validateThemePayload(withUi(slot('stage.center', [
+        {
+          'type': 'image',
+          'src': 'player.artwork',
+          'shape': 'circle',
+          'fit': 'cover',
+          'filter': 'nearest',
+          'tile': false,
+          'radius': 999,
+        },
+      ])));
+      expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
+
+      final bad = validateThemePayload(withUi(slot('stage.center', [
+        {'type': 'image', 'shape': 'round', 'filter': 'cubic'},
+      ])));
+      expect(pathsOf(bad, Severity.error),
+          containsAll([
+            'ui.slots.stage.center[0].shape',
+            'ui.slots.stage.center[0].filter',
+          ]));
+    });
+
+    test('a tiled background keeps whole-number magnification', () {
+      final payload = validPayload();
+      payload['specVersion'] = 3;
+      payload['background'] = {
+        'source': 'asset',
+        'asset': 'asset://textures/obsidian.png',
+        'tile': true,
+        'scale': 4,
+      };
+      final report = validateThemePayload(payload);
+      expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
+      final background = report.resolved!['background'] as Map;
+      expect(background['tile'], isTrue);
+      expect(background['scale'], 4);
+
+      payload['background']['scale'] = 2.5;
+      final rounded = validateThemePayload(payload);
+      expect(pathsOf(rounded, Severity.warning), contains('background.scale'));
+      expect((rounded.resolved!['background'] as Map)['scale'], 3);
+    });
+  });
 }

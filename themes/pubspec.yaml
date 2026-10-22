@@ -16,3 +16,4 @@ dependencies:
 
 dev_dependencies:
   test: ^1.25.0
+  json_schema: ^5.2.2

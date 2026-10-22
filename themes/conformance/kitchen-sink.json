@@ -92,7 +92,9 @@
     "opacity": 0.35,
     "blur": 60.0,
     "overlay": "#40000000",
-    "transparent": false
+    "transparent": false,
+    "tile": true,
+    "scale": 4
   },
   "radius": {
     "small": 6.0,
@@ -287,7 +289,8 @@
       "radius": 16.0,
       "padding": 16.0,
       "surfaceOpacity": 0.9,
-      "surfaceBlur": 12.0
+      "surfaceBlur": 12.0,
+      "borderStyle": "pixel"
     },
     "input": {
       "radius": 8.0,
@@ -452,7 +455,7 @@
       "local_library"
     ],
     "player": {
-      "dock": "full",
+      "dock": "stage",
       "showTrackDetails": true,
       "showActions": true,
       "showVolume": true,
@@ -537,32 +540,162 @@
     "showHostAttribution": true
   },
   "assets": {
-    "images": []
+    "images": [
+      {
+        "path": "asset://images/icon.png",
+        "kind": "icon",
+        "role": "kitchen.icon"
+      }
+    ]
   },
   "ui": {
-    "specVersion": 1,
+    "specVersion": 2,
     "slots": {
       "sidebar.footer": {
         "children": [
           {
             "type": "row",
             "gap": 8,
+            "align": "center",
+            "justify": "start",
             "children": [
               {
                 "type": "text",
                 "bind": "player.title",
-                "maxLines": 1
+                "size": "small",
+                "weight": 600,
+                "color": "@mutedForeground",
+                "maxLines": 1,
+                "align": "left",
+                "overflow": "ellipsis",
+                "letterSpacing": 0.2,
+                "family": "Inter",
+                "uppercase": false
               },
               {
                 "type": "button",
                 "label": "Lyrics",
                 "icon": "lyrics",
+                "variant": "ghost",
+                "size": "small",
                 "action": {
                   "type": "navigate",
                   "args": {
                     "target": "lyrics"
                   }
                 }
+              }
+            ]
+          }
+        ]
+      },
+      "stage.center": {
+        "refreshSeconds": 0,
+        "children": [
+          {
+            "type": "animate",
+            "kind": "rotate",
+            "duration": 24000,
+            "curve": "linear",
+            "bind": "player.playing",
+            "reverse": false,
+            "children": [
+              {
+                "type": "stack",
+                "align": "center",
+                "fit": "expand",
+                "children": [
+                  {
+                    "type": "image",
+                    "src": "player.artwork",
+                    "width": 360,
+                    "height": 360,
+                    "radius": 999,
+                    "shape": "circle",
+                    "fit": "cover",
+                    "filter": "nearest",
+                    "tile": false,
+                    "opacity": 1
+                  },
+                  {
+                    "type": "text",
+                    "bind": "player.title",
+                    "size": "xl",
+                    "align": "center",
+                    "maxLines": 2,
+                    "overflow": "ellipsis"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "stage.below": {
+        "children": [
+          {
+            "type": "row",
+            "gap": 12,
+            "justify": "center",
+            "children": [
+              {
+                "type": "button",
+                "icon": "previous",
+                "size": "md",
+                "action": {
+                  "type": "previous"
+                }
+              },
+              {
+                "type": "button",
+                "label": "Play",
+                "icon": "play",
+                "variant": "primary",
+                "size": "md",
+                "disabledWhen": "app.brightness",
+                "actions": [
+                  {
+                    "type": "playPause"
+                  },
+                  {
+                    "type": "toast",
+                    "args": {
+                      "message": "Toggled"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "button",
+                "icon": "next",
+                "size": "md",
+                "action": {
+                  "type": "next"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "player.progress": {
+        "children": [
+          {
+            "type": "card",
+            "padding": 8,
+            "radius": 0,
+            "background": "@card",
+            "borderColor": "@border",
+            "borderWidth": 2,
+            "opacity": 1,
+            "action": {
+              "type": "openLyrics"
+            },
+            "children": [
+              {
+                "type": "divider",
+                "orientation": "horizontal",
+                "thickness": 2,
+                "color": "@border"
               }
             ]
           }
@@ -591,20 +724,25 @@
         "children": [
           {
             "type": "image",
-            "src": "albumArt",
+            "bind": "player.artwork",
             "width": 220,
             "height": 220,
-            "radius": 12
+            "radius": 12,
+            "shape": "circle",
+            "fit": "cover",
+            "filter": "nearest"
           },
           {
             "type": "text",
             "bind": "player.title",
-            "size": "xl"
+            "size": "xl",
+            "weight": "bold"
           },
           {
             "type": "text",
             "bind": "player.artist",
-            "size": "md"
+            "size": "md",
+            "color": "@mutedForeground"
           },
           {
             "type": "row",
@@ -631,6 +769,128 @@
                 "action": {
                   "type": "next"
                 }
+              }
+            ]
+          }
+        ]
+      },
+      "kitchen": {
+        "title": "Kitchen",
+        "children": [
+          {
+            "type": "padding",
+            "all": 4,
+            "horizontal": 8,
+            "vertical": 4,
+            "top": 2,
+            "right": 2,
+            "bottom": 2,
+            "left": 2,
+            "children": [
+              {
+                "type": "column",
+                "gap": 8,
+                "align": "stretch",
+                "justify": "start",
+                "children": [
+                  {
+                    "type": "wrap",
+                    "gap": 8,
+                    "runGap": 4,
+                    "align": "start",
+                    "justify": "start",
+                    "children": [
+                      {
+                        "type": "text",
+                        "text": "Static text",
+                        "size": "2xl",
+                        "uppercase": true
+                      },
+                      {
+                        "type": "icon",
+                        "icon": "play",
+                        "size": 20,
+                        "color": "@primary"
+                      },
+                      {
+                        "type": "icon",
+                        "icon": "asset://images/icon.png",
+                        "size": 20
+                      },
+                      {
+                        "type": "gap",
+                        "size": 8
+                      },
+                      {
+                        "type": "spacer",
+                        "flex": 1
+                      }
+                    ]
+                  },
+                  {
+                    "type": "align",
+                    "align": "bottomRight",
+                    "widthFactor": 1,
+                    "heightFactor": 1,
+                    "children": [
+                      {
+                        "type": "stack",
+                        "align": "center",
+                        "fit": "loose",
+                        "children": [
+                          {
+                            "type": "card",
+                            "padding": 12,
+                            "radius": 8,
+                            "background": "@card",
+                            "borderColor": "@border",
+                            "borderWidth": 1,
+                            "opacity": 0.9,
+                            "children": [
+                              {
+                                "type": "conditional",
+                                "bind": "player.playing",
+                                "equals": true,
+                                "invert": false,
+                                "children": [
+                                  {
+                                    "type": "text",
+                                    "text": "Playing"
+                                  },
+                                  {
+                                    "type": "text",
+                                    "text": "Paused"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "expanded",
+                    "flex": 1,
+                    "children": [
+                      {
+                        "type": "scroll",
+                        "direction": "vertical",
+                        "padding": 4,
+                        "children": [
+                          {
+                            "type": "template",
+                            "name": "trackRow",
+                            "args": {
+                              "title": "Static",
+                              "artist": "Static"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }

@@ -212,7 +212,7 @@ Each style may set `padding`, `margin`, `gap`, `radius`, `borderWidth`,
   "navbarItems": ["home", "search", "radio", "library", "stats"],
   "libraryItems": ["playlists", "artists", "albums", "local_library"],
   "player": {
-    "dock": "full",
+    "dock": "stage",
     "showTrackDetails": true, "showActions": true,
     "showVolume": true, "showLyrics": true, "showProgress": true
   },
@@ -224,6 +224,11 @@ Each style may set `padding`, `margin`, `gap`, `radius`, `borderWidth`,
   "responsive": {"compact": {"nav": "rail", "player": {"showVolume": false}}}
 }
 ```
+
+`dock` is `full`, `compact`, `floating` or `stage`. `stage` turns the player
+into the centre of the app: the record, its title and the transport, with the
+theme filling `stage.center` and `stage.below` itself (see §6). Navigation
+stays around it, so a stage theme is still a player, not a splash screen.
 
 **The user's own settings win by default.** A theme takes the layout over
 only where it says so in `enforce`: `nav`, `navItems`, `libraryItems`,
@@ -256,50 +261,77 @@ whatever a theme says.
 
 ### 6. Content
 
-A theme may put content in the app's surfaces. The UI is a tree of nodes:
+A theme may put content in the app's surfaces. The UI is a tree of nodes,
+written **flat** — the props sit on the node:
 
 ```json
-"ui": {
-  "specVersion": 1,
-  "slots": {
-    "sidebar.footer": {
-      "children": [
-        {
-          "type": "row",
-          "gap": 8,
-          "children": [
-            {"type": "text", "bind": "player.title", "maxLines": 1},
-            {
-              "type": "button",
-              "label": "Lyrics",
-              "icon": "lyrics",
-              "action": {"type": "navigate", "args": {"target": "lyrics"}}
-            }
-          ]
-        }
-      ]
-    }
-  },
-  "screens": {
-    "now-playing": {
-      "title": "Now playing",
-      "showBack": true,
-      "children": [
-        {"type": "image", "src": "albumArt", "width": 220, "height": 220},
-        {"type": "text", "bind": "player.title", "size": "xl"}
-      ]
-    }
-  },
-  "templates": {
-    "trackRow": {"params": ["title"], "children": [{"type": "text", "bind": "player.title"}]}
-  }
+{
+  "type": "animate",
+  "kind": "rotate",
+  "duration": 24000,
+  "curve": "linear",
+  "bind": "player.playing",
+  "children": [
+    {
+      "type": "image",
+      "src": "player.artwork",
+      "width": 360,
+      "height": 360,
+      "shape": "circle",
+      "filter": "nearest"
+    },
+    {"type": "text", "bind": "player.title", "size": "xl", "align": "center"}
+  ]
 }
 ```
 
-**Nodes:** `row`, `column`, `stack`, `wrap`, `padding`, `align`, `expanded`,
-`scroll`, `text`, `icon`, `image`, `button`, `card`, `divider`, `spacer`,
-`gap`, `conditional`, `template`. There is no text input: a theme renders and
-reacts, it does not collect.
+That is a record that turns while the track plays and stops where it is when
+it does not. (`props: {…}` is still read as the original shape, and is merged
+into the flat one, but every theme in this repository writes the flat form.)
+
+| Node | Props |
+|---|---|
+| `row`, `column` | `gap`, `align`, `justify` |
+| `stack` | `align`, `fit` (`loose`, `expand`) |
+| `wrap` | `gap`, `runGap`, `align`, `justify` |
+| `padding` | `all`, `horizontal`, `vertical`, `top`, `right`, `bottom`, `left` |
+| `align` | `align`, `widthFactor`, `heightFactor` |
+| `expanded` | `flex` |
+| `scroll` | `direction`, `padding` |
+| `text` | `text`, `bind`, `size`, `weight`, `color`, `maxLines`, `align`, `overflow`, `family`, `letterSpacing`, `uppercase` |
+| `icon` | `icon`, `size`, `color` |
+| `image` | `src`, `bind`, `width`, `height`, `radius`, `shape`, `fit`, `filter`, `tile`, `opacity` |
+| `button` | `label`, `icon`, `variant`, `size`, `disabledWhen`, plus `action`/`actions` |
+| `card` | `padding`, `radius`, `background`, `borderColor`, `borderWidth`, `opacity` |
+| `divider` | `orientation`, `thickness`, `color` |
+| `spacer` | `flex` |
+| `gap` | `size` |
+| `conditional` | `bind`, `equals`, `invert` |
+| `template` | `name`, `args` |
+| `animate` | `kind`, `duration`, `curve`, `bind`, `reverse` |
+
+An unknown prop is an error, not a silent no-op: the build fails rather than
+shipping a theme that does not do what you wrote.
+
+**Sizes and colours.** `text.size` is `xs`, `small`, `sm`, `md`, `lg`, `xl`,
+`2xl` or `3xl`; `text.weight` is `100`–`900` or `thin` … `black`. A colour is
+`#RRGGBB`, `#AARRGGBB` or an `@role` reference. `icon.size` is in logical
+pixels.
+
+**Pixel work.** `image.filter: "nearest"` samples without smoothing — the
+one prop that keeps pixel art crisp. `image.shape: "circle"` clips to the
+short side, so a square cover becomes a record. `image.tile: true` repeats
+instead of stretching. `background.tile` and `background.scale` (1–8, whole
+numbers) do the same for the app's own backdrop, and
+`components.*.borderStyle: "pixel"` draws a two-tone bevel derived from
+`borderColor`.
+
+**Animation.** `animate` wraps one subtree. `kind` is `rotate`, `pulse`,
+`float` or `fade`; `duration` is milliseconds for one cycle; `curve` uses the
+motion easings; `bind` makes the loop conditional — it runs while that
+binding is truthy and holds its position when it is not; `reverse` turns the
+other way. `animate` needs `ui.specVersion: 2`; a v1 host draws the child
+still, which is a graceful fallback rather than an error.
 
 **Bindings:** `player.title`, `player.artist`, `player.album`,
 `player.artwork`, `player.playing`, `player.loop`, `player.shuffled`,
@@ -307,17 +339,22 @@ reacts, it does not collect.
 `user.avatar`, `app.version`, `app.brightness`, `app.themeMode`,
 `clock.now`.
 
+**Image sources:** `player.artwork`, `user.avatar`, `albumArt` (the original
+spelling, kept as an alias) or an `asset://` path.
+
 **Actions:** `navigate`, `playPause`, `next`, `previous`, `seek`,
 `setVolume`, `setShuffle`, `setLoopMode`, `like`, `download`, `openSettings`,
-`openLyrics`, `openQueue`, `openDownloads`, `toast`, `plugin`.
+`openLyrics`, `openQueue`, `openDownloads`, `toast`, `plugin`. A node may
+carry one `action` or a list under `actions` (up to four, in order).
 
 **Slots** (the only names a theme may use): `sidebar.header`,
 `sidebar.footer`, `sidebar.nav.before`, `sidebar.nav.after`,
 `sidebar.library.before`, `sidebar.library.after`, `sidebar.pins.before`,
 `sidebar.pins.after`, `player.leading`, `player.controls`, `player.trailing`,
-`player.progress`, `app.overlay`, `shell.before`, `shell.after`,
-`home.before_sections`, `home.after_sections`, `lyrics.header`,
-`lyrics.after_tabs`, `settings.before`, `settings.after`.
+`player.progress`, `stage.center`, `stage.below`, `app.overlay`,
+`shell.before`, `shell.after`, `home.before_sections`, `home.after_sections`,
+`lyrics.header`, `lyrics.after_tabs`, `settings.before`, `settings.after`.
+The two `stage.*` slots are where a `dock: "stage"` player puts its content.
 
 ### 7. A theme's own UI
 
@@ -328,7 +365,7 @@ class MyThemeApi {
   fun getTheme() { /* the colours */ }
 
   fun getUi() {
-    return {'specVersion': 1, 'slots': { /* … */ }}
+    return {'specVersion': 2, 'slots': { /* … */ }}
   }
 
   fun onUiAction(id, payload) {
@@ -353,6 +390,20 @@ with `asset://` paths:
   "images": [{"path": "asset://images/aurora.png", "kind": "image", "role": "branding.logo"}]
 }
 ```
+
+Fonts are assets too, and a theme may ship up to eight of them:
+
+```json
+"typography": {
+  "fonts": [
+    {"family": "Silkscreen", "asset": "asset://fonts/Silkscreen-Regular.ttf", "weight": 400}
+  ],
+  "family": "Silkscreen"
+}
+```
+
+The host loads them under the family name the theme uses, so `fontFamily` in
+a typography style or a component style resolves to the shipped file.
 
 The build checks that every path a theme names is a file it ships, and warns
 about files it ships but never uses. The host resolves the paths — never the

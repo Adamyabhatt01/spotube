@@ -28,7 +28,7 @@ void main() {
     });
 
     test('carries every colour role the schema has', () {
-      final defs = schema[r'$defs'] as Map<String, dynamic>;
+      final defs = schema['definitions'] as Map<String, dynamic>;
       final palette = defs['palette'] as Map<String, dynamic>;
       final properties = (palette['properties'] as Map).keys.toSet();
       for (final scheme in ['light', 'dark']) {
@@ -65,6 +65,105 @@ void main() {
         (layout['settings'] as Map)['sections'],
         containsAll(settingsSectionIds),
       );
+    });
+
+    test('carries the stage and its own UI version', () {
+      expect((payload['layout'] as Map)['player']['dock'], 'stage');
+      expect((payload['ui'] as Map)['specVersion'], 2);
+    });
+
+    test('carries a tiled background at whole-number magnification', () {
+      final background = payload['background'] as Map<String, dynamic>;
+      expect(background['tile'], isTrue);
+      expect(background['scale'], isA<int>());
+    });
+
+    test('carries a pixel bevel', () {
+      // Component groups are either a style (card) or a map of variants
+      // (buttons), so the walk has to be recursive rather than one level.
+      final styles = <String>[];
+      void walk(Object? value) {
+        if (value is Map) {
+          final style = value['borderStyle'];
+          if (style is String) styles.add(style);
+          for (final child in value.values) {
+            if (child is Map) walk(child);
+          }
+        }
+      }
+
+      walk(payload['components']);
+      expect(styles, contains('pixel'));
+    });
+
+    test('exercises every node type', () {
+      final found = <String>{};
+      void walk(Object? node) {
+        if (node is Map) {
+          final type = node['type'];
+          if (type is String) found.add(type);
+          for (final child in (node['children'] as List?) ?? const []) {
+            walk(child);
+          }
+        }
+      }
+
+      final ui = payload['ui'] as Map<String, dynamic>;
+      for (final slot in (ui['slots'] as Map).values) {
+        for (final child in (slot['children'] as List?) ?? const []) {
+          walk(child);
+        }
+      }
+      for (final screen in (ui['screens'] as Map).values) {
+        for (final child in (screen['children'] as List?) ?? const []) {
+          walk(child);
+        }
+      }
+      expect(found, containsAll(uiNodeTypes));
+    });
+
+    test('exercises every prop a node type declares', () {
+      final used = <String, Set<String>>{};
+      void walk(Object? node) {
+        if (node is! Map) return;
+        final type = node['type'];
+        if (type is String) {
+          used.putIfAbsent(type, () => <String>{});
+          for (final key in node.keys) {
+            if (key != 'type' && key != 'children' && key != 'action' &&
+                key != 'actions' && key != 'props') {
+              used[type]!.add(key);
+            }
+          }
+        }
+        for (final child in (node['children'] as List?) ?? const []) {
+          walk(child);
+        }
+      }
+
+      final ui = payload['ui'] as Map<String, dynamic>;
+      for (final slot in (ui['slots'] as Map).values) {
+        for (final child in (slot['children'] as List?) ?? const []) {
+          walk(child);
+        }
+      }
+      for (final screen in (ui['screens'] as Map).values) {
+        for (final child in (screen['children'] as List?) ?? const []) {
+          walk(child);
+        }
+      }
+
+      for (final entry in uiNodeProps.entries) {
+        expect(used[entry.key], isNotNull,
+            reason: 'no ${entry.key} node in the kitchen sink');
+        for (final prop in entry.value) {
+          expect(
+            used[entry.key],
+            contains(prop),
+            reason: 'the kitchen sink does not exercise ${entry.key}.$prop',
+          );
+        }
+      }
     });
 
     test('fills slots the host publishes', () {

@@ -44,11 +44,54 @@ Uint8List compileThemeSource(String source, {required String sourceName}) {
   // build's own output, not the compiler's.
   final hetu = Hetu(config: HetuConfig(printPerformanceStatistics: false));
   hetu.init();
-  final bytes = hetu.compile(source, sourceName: sourceName);
-  if (bytes.isEmpty) {
+  final compiled = Uint8List.fromList(hetu.compile(source, sourceName: sourceName));
+  if (compiled.isEmpty) {
     throw StateError('Hetu produced no bytecode for $sourceName');
   }
-  return Uint8List.fromList(bytes);
+  _normaliseCompiledAt(compiled);
+  return compiled;
+}
+
+/// The width of the `yyyy-MM-dd HH:mm:ss` stamp Hetu writes.
+const _compiledAtLength = 19;
+
+/// The stamp every reproducible build writes instead of the wall clock.
+const _reproducibleCompiledAt = '1970-01-01 00:00:00';
+
+/// Rewrites the compile time in the module header to a fixed value.
+///
+/// Hetu embeds `DateTime.now()` in the bytecode. Without this, recompiling
+/// unchanged source produces different bytes every time, so every build
+/// churned every committed artifact and a diff could not tell a real change
+/// from a rebuild. The header is the first thing in the module, and the stamp
+/// is the first string in it, so the first match is the one to rewrite.
+void _normaliseCompiledAt(Uint8List bytes) {
+  final at = _compiledAtOffset(bytes);
+  if (at == null) return;
+  bytes.setRange(at, at + _compiledAtLength, _reproducibleCompiledAt.codeUnits);
+}
+
+int? _compiledAtOffset(Uint8List bytes) {
+  for (var i = 0; i + _compiledAtLength <= bytes.length; i++) {
+    if (bytes[i + 4] != 0x2d ||
+        bytes[i + 7] != 0x2d ||
+        bytes[i + 10] != 0x20 ||
+        bytes[i + 13] != 0x3a ||
+        bytes[i + 16] != 0x3a) {
+      continue;
+    }
+    var digits = true;
+    for (var j = 0; j < _compiledAtLength; j++) {
+      if (j == 4 || j == 7 || j == 10 || j == 13 || j == 16) continue;
+      final byte = bytes[i + j];
+      if (byte < 0x30 || byte > 0x39) {
+        digits = false;
+        break;
+      }
+    }
+    if (digits) return i;
+  }
+  return null;
 }
 
 /// Boots the bytecode the way the app does and calls `getTheme()`.

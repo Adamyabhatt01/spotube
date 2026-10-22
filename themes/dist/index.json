@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-22T15:34:59.916260Z",
+  "generatedAt": "2026-10-22T16:28:35.339132Z",
   "themes": [
     {
       "id": "asset-demo",
@@ -11,8 +11,8 @@
         "theme"
       ],
       "file": "asset-demo-1.0.0.smplug",
-      "bytes": 11356,
-      "sha256": "fecf8ba60ef001c2a0da498091d8b8ca176933743e8779bb997cdd8af6cc5ef0",
+      "bytes": 11354,
+      "sha256": "1ffeedf60f6b00fc7d1736af21cfc1fe6eb9a053ff16c9bda6688c4b99dd42bb",
       "optionalMethods": [],
       "hasUiSpec": false
     },
@@ -26,8 +26,8 @@
         "theme"
       ],
       "file": "brand-demo-1.0.0.smplug",
-      "bytes": 6987,
-      "sha256": "772a85d5789bd7d75ecbe2fa63dd4fa6d48d26b96c5430f6b2b2c029f446d7aa",
+      "bytes": 6984,
+      "sha256": "7a7502cfadd96aa7e70e11b21b4d6dbbb413aaa99ca87d8a75ce502db76a38ef",
       "optionalMethods": [],
       "hasUiSpec": false
     },
@@ -41,8 +41,8 @@
         "theme"
       ],
       "file": "caelestia-1.2.0.smplug",
-      "bytes": 1263,
-      "sha256": "87e0ece1b6e21fa40d98fee221d74c33df3d2277445cc1a53074fc8c2395a079",
+      "bytes": 1258,
+      "sha256": "cdb6db728895ebd7df761a944a6b64b89a6c0a7f85c5da22f3c4a9db40344556",
       "optionalMethods": [],
       "hasUiSpec": false,
       "published": "caelestia/plugin.smplug"
@@ -57,8 +57,8 @@
         "theme"
       ],
       "file": "caelestia-glassier-1.3.0.smplug",
-      "bytes": 1293,
-      "sha256": "1b8852d0d8338695c15da1fa9c9b62601f654a3ac22a5c14363b56279ceb670d",
+      "bytes": 1290,
+      "sha256": "c177eb18c397e7b456b2bd37c04d959891e4932419b7ac6d44bb8feee00c4b9b",
       "optionalMethods": [],
       "hasUiSpec": false,
       "published": "caelestia-glassier/plugin.smplug"
@@ -73,8 +73,8 @@
         "theme"
       ],
       "file": "caelestia-plain-1.1.0.smplug",
-      "bytes": 1252,
-      "sha256": "e11e4fccc68b79635333c0f55eafd0bfe6198e167a52a33cc66557340490a5fc",
+      "bytes": 1243,
+      "sha256": "1b10af4d57539c395445b20c08e5a2e8478e17d2ab5a9edf76b5000a0b23b12f",
       "optionalMethods": [],
       "hasUiSpec": false,
       "published": "caelestia-plain/plugin.smplug"
@@ -89,8 +89,8 @@
         "theme"
       ],
       "file": "caelestia-shell-1.4.0.smplug",
-      "bytes": 1294,
-      "sha256": "cffd2cfa75ff9b31b6ce2d0e215d51e303d6e6bfc1de942839582bd878f8973f",
+      "bytes": 1292,
+      "sha256": "17963c91ea63f5f65ae99edba922e7e74949235148e888a1a3a2c3b903d3d3e2",
       "optionalMethods": [],
       "hasUiSpec": false,
       "published": "caelestia-shell/plugin.smplug"
@@ -105,8 +105,8 @@
         "theme"
       ],
       "file": "kitchen-sink-1.0.0.smplug",
-      "bytes": 8615,
-      "sha256": "e15c75e6b6a5907521afaebef823ec1e223eb55a9b28d4a1e7ee606b20feb449",
+      "bytes": 9939,
+      "sha256": "f7ba48521693372625a0e139662de204a858ab856e771e7ffcaff653dfd8cd05",
       "optionalMethods": [],
       "hasUiSpec": false
     },
@@ -120,8 +120,8 @@
         "theme"
       ],
       "file": "minimal-1.0.0.smplug",
-      "bytes": 5453,
-      "sha256": "e3398f867dafe13fee72dfa772af844555220ecbe4ab350d8b4ea4cc27bd5174",
+      "bytes": 5448,
+      "sha256": "5c32a1188a055db5c39460f759189d6fcfb0c968f2f6bcd74613d92ea56d8176",
       "optionalMethods": [],
       "hasUiSpec": false
     },
@@ -135,8 +135,8 @@
         "theme"
       ],
       "file": "spotify-shell-1.0.0.smplug",
-      "bytes": 1276,
-      "sha256": "0e9cb73cc987066c66e91fc3eb6589cbabce5057f2d6579d67fc01924749792c",
+      "bytes": 1274,
+      "sha256": "285e252ed531a77ab09397be78270cc29c8d8ade00f53c079fa7ff6f30a2f837",
       "optionalMethods": [],
       "hasUiSpec": false,
       "published": "spotify-shell/plugin.smplug"
@@ -151,8 +151,8 @@
         "theme"
       ],
       "file": "ui-demo-1.0.0.smplug",
-      "bytes": 6238,
-      "sha256": "7c3bed22ebb5b23772098490508126879988918e8215d9e232e0a758be69370e",
+      "bytes": 6235,
+      "sha256": "075255dc01b9ff6f6a3210fc81f0bbd0abf0e5710b50f0b45f00d2843d3efa3c",
       "optionalMethods": [
         "getUi",
         "onUiAction"

@@ -85,6 +85,8 @@ const slotNames = <String>[
   'player.controls',
   'player.trailing',
   'player.progress',
+  'stage.center',
+  'stage.below',
   'app.overlay',
   'shell.before',
   'shell.after',
@@ -188,6 +190,7 @@ const uiNodeTypes = <String>[
   'gap',
   'conditional',
   'template',
+  'animate',
 ];
 
 /// The actions the host dispatches on a theme's behalf.
@@ -229,6 +232,147 @@ const uiBindings = <String>[
   'app.themeMode',
   'clock.now',
 ];
+
+/// The type sizes a text node may name.
+const uiTextSizes = <String>[
+  'xs',
+  'small',
+  'sm',
+  'md',
+  'lg',
+  'xl',
+  '2xl',
+  '3xl',
+];
+
+/// The weights a text node may name, when it does not use a number.
+const uiFontWeights = <String>[
+  'thin',
+  'light',
+  'normal',
+  'medium',
+  'semibold',
+  'bold',
+  'black',
+];
+
+/// Where a row or column places its children across the axis.
+const uiAlignments = <String>['start', 'center', 'end', 'stretch'];
+
+/// How a row or column distributes its children along the axis.
+const uiJustifications = <String>[
+  'start',
+  'center',
+  'end',
+  'spaceBetween',
+  'spaceAround',
+  'spaceEvenly',
+];
+
+/// Where a stack pins a child, and where an align node places it.
+const uiStackAlignments = <String>[
+  'topLeft',
+  'topCenter',
+  'topRight',
+  'centerLeft',
+  'center',
+  'centerRight',
+  'bottomLeft',
+  'bottomCenter',
+  'bottomRight',
+];
+
+/// How a text node flows past its width.
+const uiOverflows = <String>['clip', 'ellipsis', 'fade'];
+
+/// How an image fits its box.
+const uiImageFits = <String>['cover', 'contain', 'fill', 'none'];
+
+/// How an image is sampled. `nearest` keeps pixel art crisp.
+const uiImageFilters = <String>['linear', 'nearest'];
+
+/// What an image node may draw, besides an `asset://` path.
+const uiImageSources = <String>['albumArt', 'player.artwork', 'user.avatar'];
+
+/// The loops an animate node may run.
+const uiAnimationKinds = <String>['rotate', 'pulse', 'float', 'fade'];
+
+/// The curves an animation may use.
+const uiAnimationCurves = <String>[
+  'linear',
+  'ease',
+  'easeIn',
+  'easeOut',
+  'easeInOut',
+  'easeOutCubic',
+  'easeInOutCubic',
+];
+
+/// The keys of a node that are structure, not props.
+const uiStructuralKeys = <String>{
+  'type',
+  'children',
+  'props',
+  'action',
+  'actions',
+};
+
+/// The props each node type reads.
+///
+/// Closed on purpose: an unknown prop is a typo, and a typo the host ignores
+/// is a theme that silently does not do what its author wrote. `props` is
+/// accepted as the original shape and merged into the flat one.
+const uiNodeProps = <String, List<String>>{
+  'row': ['gap', 'align', 'justify'],
+  'column': ['gap', 'align', 'justify'],
+  'stack': ['align', 'fit'],
+  'wrap': ['gap', 'runGap', 'align', 'justify'],
+  'padding': ['all', 'horizontal', 'vertical', 'top', 'right', 'bottom', 'left'],
+  'align': ['align', 'widthFactor', 'heightFactor'],
+  'expanded': ['flex'],
+  'scroll': ['direction', 'padding'],
+  'text': [
+    'text',
+    'bind',
+    'size',
+    'weight',
+    'color',
+    'maxLines',
+    'align',
+    'overflow',
+    'family',
+    'letterSpacing',
+    'uppercase',
+  ],
+  'icon': ['icon', 'size', 'color'],
+  'image': [
+    'src',
+    'bind',
+    'width',
+    'height',
+    'radius',
+    'shape',
+    'fit',
+    'filter',
+    'tile',
+    'opacity',
+  ],
+  'button': ['label', 'icon', 'variant', 'size', 'disabledWhen'],
+  'card': [
+    'padding',
+    'radius',
+    'background',
+    'borderColor',
+    'borderWidth',
+    'opacity',
+  ],
+  'divider': ['orientation', 'thickness', 'color'],
+  'spacer': ['flex'],
+  'gap': ['size'],
+  'conditional': ['bind', 'equals', 'invert'],
+  'template': ['name', 'args'],
+  'animate': ['kind', 'duration', 'curve', 'bind', 'reverse'],
+};
 
 /// The colour roles a `@role` reference may name.
 const roleNames = <String>[
@@ -446,6 +590,17 @@ void _textStyle(String path, Object? raw, List<Issue> issues) {
       'must be normal or italic — dropped',
     ));
   }
+
+  final borderStyle = style['borderStyle'];
+  if (borderStyle != null &&
+      borderStyle != 'solid' &&
+      borderStyle != 'pixel') {
+    issues.add(Issue(
+      Severity.warning,
+      '$path.borderStyle',
+      'must be solid or pixel — the host draws solid',
+    ));
+  }
 }
 
 /// The `spacing` block.
@@ -647,6 +802,17 @@ void _componentStyle(String path, Object? raw, List<Issue> issues) {
       'must be normal or italic — dropped',
     ));
   }
+
+  final borderStyle = style['borderStyle'];
+  if (borderStyle != null &&
+      borderStyle != 'solid' &&
+      borderStyle != 'pixel') {
+    issues.add(Issue(
+      Severity.warning,
+      '$path.borderStyle',
+      'must be solid or pixel — the host draws solid',
+    ));
+  }
 }
 
 /// The v3 parts of the `layout` block.
@@ -682,7 +848,7 @@ void _shellLayout(Object? raw, List<Issue> issues) {
   final player = block['player'];
   if (player is Map) {
     final flags = player.cast<String, dynamic>();
-    const docks = ['full', 'compact', 'floating'];
+    const docks = ['full', 'compact', 'floating', 'stage'];
     final dock = flags['dock'];
     if (dock != null && (dock is! String || !docks.contains(dock))) {
       issues.add(Issue(
@@ -926,13 +1092,15 @@ void _ui(Object? raw, List<Issue> issues) {
   final block = raw.cast<String, dynamic>();
 
   final specVersion = block['specVersion'];
-  if (specVersion != 1) {
+  final version = specVersion is num ? specVersion.toInt() : null;
+  if (version != 1 && version != 2) {
     issues.add(const Issue(
       Severity.error,
       'ui.specVersion',
-      'must be 1 — the host reads no other version',
+      'must be 1 or 2 — the host reads no other version',
     ));
   }
+  final reads = version ?? 2;
 
   var total = 0;
 
@@ -962,9 +1130,19 @@ void _ui(Object? raw, List<Issue> issues) {
             Severity.error, 'ui.slots.${entry.key}', 'must be an object'));
         continue;
       }
-      final children = slot.cast<String, dynamic>()['children'];
-      total += _uiNodes('ui.slots.${entry.key}', children, maxUiNodesPerSlot,
-          issues);
+      final body = slot.cast<String, dynamic>();
+      final refresh = body['refreshSeconds'];
+      if (refresh != null) {
+        if (refresh is! num || refresh < 0 || refresh > 3600) {
+          issues.add(Issue(
+            Severity.warning,
+            'ui.slots.${entry.key}.refreshSeconds',
+            'must be a number of seconds between 0 and 3600',
+          ));
+        }
+      }
+      total += _uiNodes('ui.slots.${entry.key}', body['children'],
+          maxUiNodesPerSlot, issues, reads);
     }
   }
 
@@ -986,7 +1164,8 @@ void _ui(Object? raw, List<Issue> issues) {
             Severity.error, 'ui.screens.${entry.key}', 'must be an object'));
         continue;
       }
-      final title = screen.cast<String, dynamic>()['title'];
+      final body = screen.cast<String, dynamic>();
+      final title = body['title'];
       if (title != null && (title is! String || title.length > 80)) {
         issues.add(Issue(
           Severity.warning,
@@ -994,12 +1173,16 @@ void _ui(Object? raw, List<Issue> issues) {
           'must be a string of at most 80 characters',
         ));
       }
-      total += _uiNodes(
-        'ui.screens.${entry.key}',
-        screen.cast<String, dynamic>()['children'],
-        500,
-        issues,
-      );
+      final showBack = body['showBack'];
+      if (showBack != null && showBack is! bool) {
+        issues.add(Issue(
+          Severity.warning,
+          'ui.screens.${entry.key}.showBack',
+          'must be a boolean',
+        ));
+      }
+      total += _uiNodes('ui.screens.${entry.key}', body['children'], 500,
+          issues, reads);
     }
   }
 
@@ -1021,9 +1204,29 @@ void _ui(Object? raw, List<Issue> issues) {
             Severity.error, 'ui.templates.${entry.key}', 'must be an object'));
         continue;
       }
-      final children = template.cast<String, dynamic>()['children'];
-      total += _uiNodes('ui.templates.${entry.key}', children, maxUiNodesPerSlot,
-          issues);
+      final body = template.cast<String, dynamic>();
+      final params = body['params'];
+      if (params != null) {
+        if (params is! List || params.length > 16) {
+          issues.add(Issue(
+            Severity.warning,
+            'ui.templates.${entry.key}.params',
+            'must be a list of at most 16 names',
+          ));
+        } else {
+          for (final param in params) {
+            if (param is! String || param.length > 64) {
+              issues.add(Issue(
+                Severity.warning,
+                'ui.templates.${entry.key}.params',
+                'a parameter name must be a short string',
+              ));
+            }
+          }
+        }
+      }
+      total += _uiNodes('ui.templates.${entry.key}', body['children'],
+          maxUiNodesPerSlot, issues, reads);
     }
   }
 
@@ -1038,7 +1241,7 @@ void _ui(Object? raw, List<Issue> issues) {
 }
 
 /// A list of nodes, checked for type, depth, size and bindings.
-int _uiNodes(String path, Object? raw, int limit, List<Issue> issues) {
+int _uiNodes(String path, Object? raw, int limit, List<Issue> issues, int version) {
   if (raw == null) return 0;
   if (raw is! List) {
     issues.add(Issue(Severity.error, path, 'must be a list of nodes'));
@@ -1055,13 +1258,14 @@ int _uiNodes(String path, Object? raw, int limit, List<Issue> issues) {
 
   var count = 0;
   for (var i = 0; i < raw.length; i++) {
-    count += _uiNode('$path[$i]', raw[i], 0, issues);
+    count += _uiNode('$path[$i]', raw[i], 0, issues, version);
   }
   return count;
 }
 
 /// One node.
-int _uiNode(String path, Object? raw, int depth, List<Issue> issues) {
+int _uiNode(String path, Object? raw, int depth, List<Issue> issues,
+    int version) {
   if (raw is! Map) {
     issues.add(Issue(Severity.error, path, 'must be an object'));
     return 0;
@@ -1087,67 +1291,77 @@ int _uiNode(String path, Object? raw, int depth, List<Issue> issues) {
     return 0;
   }
 
-  var count = 1;
-
-  final props = node['props'];
-  if (props is Map) {
-    final map = props.cast<String, dynamic>();
-    for (final entry in map.entries) {
-      if (entry.key == 'bind') {
-        final bind = entry.value;
-        if (bind is! String || !uiBindings.contains(bind)) {
-          issues.add(Issue(
-            Severity.warning,
-            '$path.props.bind',
-            'unknown binding — the node renders empty',
-          ));
-        }
-        continue;
-      }
-      if (entry.key == 'text' && entry.value is String) {
-        final text = entry.value as String;
-        if (text.length > maxUiTextLength) {
-          issues.add(Issue(
-            Severity.warning,
-            '$path.props.text',
-            'longer than $maxUiTextLength characters — truncated',
-          ));
-        }
-        continue;
-      }
-      if (entry.key == 'src' || entry.key == 'icon') {
-        final value = entry.value;
-        if (value is String && value.startsWith('asset://')) {
-          _assetPath('$path.props.${entry.key}', value, issues);
-        }
-      }
-    }
+  if (type == 'animate' && version < 2) {
+    issues.add(Issue(
+      Severity.warning,
+      path,
+      'animate needs ui.specVersion 2 — a v1 host draws its child still',
+    ));
   }
 
-  final actions = node['actions'];
-  if (actions is List) {
-    if (actions.length > maxUiActionsPerNode) {
+  var count = 1;
+
+  // The flat shape is what every theme is written in. `props` is the
+  // original shape and is merged in, so a payload written either way reads
+  // the same.
+  final props = <String, dynamic>{};
+  final nested = node['props'];
+  if (nested != null) {
+    if (nested is! Map) {
+      issues.add(Issue(Severity.error, '$path.props', 'must be an object'));
+    } else {
+      props.addAll(nested.cast<String, dynamic>());
       issues.add(Issue(
         Severity.warning,
-        '$path.actions',
-        'more than $maxUiActionsPerNode actions — the extras are dropped',
-        resolved: maxUiActionsPerNode,
+        '$path.props',
+        'the legacy shape — write the props flat on the node',
       ));
     }
-    for (var i = 0; i < actions.length; i++) {
-      final action = actions[i];
-      if (action is! Map) {
-        issues.add(
-            Issue(Severity.error, '$path.actions[$i]', 'must be an object'));
-        continue;
-      }
-      final actionType = action.cast<String, dynamic>()['type'];
-      if (actionType is! String || !uiActionTypes.contains(actionType)) {
+  }
+  for (final entry in node.entries) {
+    if (uiStructuralKeys.contains(entry.key)) continue;
+    props[entry.key] = entry.value;
+  }
+
+  final allowed = uiNodeProps[type] ?? const <String>[];
+  for (final key in props.keys) {
+    if (!allowed.contains(key)) {
+      issues.add(Issue(
+        Severity.error,
+        '$path.$key',
+        'not a prop of a "$type" node — the host ignores it',
+      ));
+    }
+  }
+  for (final entry in props.entries) {
+    _uiProp('$path.${entry.key}', type, entry.key, entry.value, issues);
+  }
+
+  if (node.containsKey('action') && node.containsKey('actions')) {
+    issues.add(Issue(
+      Severity.warning,
+      path,
+      'both action and actions — the host reads actions',
+    ));
+  }
+  if (node['action'] != null) {
+    _uiAction('$path.action', node['action'], issues);
+  }
+  if (node['actions'] != null) {
+    final actions = node['actions'];
+    if (actions is! List) {
+      issues.add(Issue(Severity.error, '$path.actions', 'must be a list'));
+    } else {
+      if (actions.length > maxUiActionsPerNode) {
         issues.add(Issue(
-          Severity.error,
-          '$path.actions[$i].type',
-          'unknown action — the host ignores it',
+          Severity.warning,
+          '$path.actions',
+          'more than $maxUiActionsPerNode actions — the extras are dropped',
+          resolved: maxUiActionsPerNode,
         ));
+      }
+      for (var i = 0; i < actions.length; i++) {
+        _uiAction('$path.actions[$i]', actions[i], issues);
       }
     }
   }
@@ -1155,11 +1369,461 @@ int _uiNode(String path, Object? raw, int depth, List<Issue> issues) {
   final children = node['children'];
   if (children is List) {
     for (var i = 0; i < children.length; i++) {
-      count += _uiNode('$path.children[$i]', children[i], depth + 1, issues);
+      count += _uiNode('$path.children[$i]', children[i], depth + 1, issues,
+          version);
     }
+  } else if (children != null) {
+    issues.add(Issue(Severity.error, '$path.children', 'must be a list'));
   }
 
   return count;
+}
+
+/// One prop, checked against what its node type says it means.
+void _uiProp(
+    String path, String type, String key, Object? value, List<Issue> issues) {
+  if (key == 'bind' || key == 'disabledWhen') {
+    if (value is! String || !uiBindings.contains(value)) {
+      issues.add(Issue(
+        Severity.error,
+        path,
+        'not a binding the host knows — the node renders empty',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'text') {
+    if (value is! String) {
+      issues.add(Issue(Severity.error, path, 'must be a string'));
+    } else if (value.length > maxUiTextLength) {
+      issues.add(Issue(
+        Severity.warning,
+        path,
+        'longer than $maxUiTextLength characters — truncated',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'label') {
+    if (value is! String) {
+      issues.add(Issue(Severity.error, path, 'must be a string'));
+    } else if (value.length > 200) {
+      issues.add(Issue(
+        Severity.warning,
+        path,
+        'longer than 200 characters — truncated',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'src') {
+    if (value is! String) {
+      issues.add(Issue(Severity.error, path, 'must be a string'));
+    } else if (value.startsWith('asset://')) {
+      _assetPath(path, value, issues);
+    } else if (!uiImageSources.contains(value)) {
+      issues.add(Issue(
+        Severity.error,
+        path,
+        'must be one of ${uiImageSources.join(', ')} or an asset:// path',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'icon') {
+    if (value is! String) {
+      issues.add(Issue(Severity.error, path, 'must be an icon name'));
+    } else if (value.startsWith('asset://')) {
+      _assetPath(path, value, issues);
+    } else if (value.length > 64) {
+      issues.add(Issue(
+        Severity.warning,
+        path,
+        'longer than 64 characters — dropped',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'color') {
+    _colorOrRole(path, value, issues);
+    return;
+  }
+
+  if (key == 'size') {
+    // `size` means three different things: a type scale on text, a pixel
+    // size on an icon, a gap on a gap node. The node type says which.
+    if (type == 'icon' || type == 'gap') {
+      _uiNumber(path, value, min: type == 'icon' ? 8 : 0, max: 96,
+          issues: issues);
+      return;
+    }
+    final allowed = type == 'button'
+        ? const ['small', 'md', 'lg']
+        : uiTextSizes;
+    if (value is! String || !allowed.contains(value)) {
+      issues.add(Issue(
+        Severity.error,
+        path,
+        'must be one of ${allowed.join(', ')}',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'weight') {
+    if (value is num) {
+      _uiNumber(path, value, min: 100, max: 900, issues: issues);
+    } else if (value is! String || !uiFontWeights.contains(value)) {
+      issues.add(Issue(
+        Severity.error,
+        path,
+        'must be 100..900 or one of ${uiFontWeights.join(', ')}',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'align') {
+    final allowed = switch (type) {
+      'text' => const ['left', 'center', 'right'],
+      'stack' || 'align' => uiStackAlignments,
+      _ => uiAlignments,
+    };
+    if (value is! String || !allowed.contains(value)) {
+      issues.add(Issue(
+        Severity.error,
+        path,
+        'must be one of ${allowed.join(', ')}',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'justify') {
+    if (value is! String || !uiJustifications.contains(value)) {
+      issues.add(Issue(
+        Severity.error,
+        path,
+        'must be one of ${uiJustifications.join(', ')}',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'overflow') {
+    if (value is! String || !uiOverflows.contains(value)) {
+      issues.add(Issue(
+        Severity.error,
+        path,
+        'must be one of ${uiOverflows.join(', ')}',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'fit') {
+    // A stack fits its children to itself; an image fits itself to its box.
+    final allowed = type == 'stack'
+        ? const ['loose', 'expand']
+        : uiImageFits;
+    if (value is! String || !allowed.contains(value)) {
+      issues.add(Issue(
+        Severity.error,
+        path,
+        'must be one of ${allowed.join(', ')}',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'filter') {
+    if (value is! String || !uiImageFilters.contains(value)) {
+      issues.add(Issue(
+        Severity.error,
+        path,
+        'must be one of ${uiImageFilters.join(', ')}',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'shape') {
+    if (value != 'square' && value != 'circle') {
+      issues.add(Issue(Severity.error, path, 'must be square or circle'));
+    }
+    return;
+  }
+
+  if (key == 'variant') {
+    if (value is! String || !buttonVariants.contains(value)) {
+      issues.add(Issue(
+        Severity.error,
+        path,
+        'must be one of ${buttonVariants.join(', ')}',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'kind') {
+    if (value is! String || !uiAnimationKinds.contains(value)) {
+      issues.add(Issue(
+        Severity.error,
+        path,
+        'must be one of ${uiAnimationKinds.join(', ')}',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'curve') {
+    if (value is! String || !uiAnimationCurves.contains(value)) {
+      issues.add(Issue(
+        Severity.error,
+        path,
+        'must be one of ${uiAnimationCurves.join(', ')}',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'duration') {
+    _uiNumber(path, value, min: 100, max: 120000, issues: issues);
+    return;
+  }
+
+  if (key == 'reverse' ||
+      key == 'invert' ||
+      key == 'uppercase' ||
+      key == 'tile') {
+    if (value is! bool) {
+      issues.add(Issue(Severity.error, path, 'must be a boolean'));
+    }
+    return;
+  }
+
+  if (key == 'equals') {
+    if (value is! String && value is! num && value is! bool) {
+      issues.add(Issue(
+        Severity.error,
+        path,
+        'must be a string, a number or a boolean',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'name') {
+    if (value is! String || value.isEmpty || value.length > 64) {
+      issues.add(Issue(
+        Severity.error,
+        path,
+        'must be a template name of at most 64 characters',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'args') {
+    if (value is! Map) {
+      issues.add(Issue(Severity.error, path, 'must be an object'));
+    }
+    return;
+  }
+
+  if (key == 'orientation') {
+    if (value != 'horizontal' && value != 'vertical') {
+      issues.add(Issue(Severity.error, path, 'must be horizontal or vertical'));
+    }
+    return;
+  }
+
+  if (key == 'direction') {
+    if (value != 'horizontal' && value != 'vertical') {
+      issues.add(Issue(Severity.error, path, 'must be horizontal or vertical'));
+    }
+    return;
+  }
+
+  if (key == 'family') {
+    if (value is! String || value.length > 64) {
+      issues.add(Issue(
+        Severity.error,
+        path,
+        'must be a family name of at most 64 characters',
+      ));
+    }
+    return;
+  }
+
+  if (key == 'maxLines') {
+    if (value is! int || value < 1 || value > 8) {
+      issues.add(Issue(Severity.error, path, 'must be an integer 1..8'));
+    }
+    return;
+  }
+
+  if (key == 'flex') {
+    if (value is! int || value < 1 || value > 12) {
+      issues.add(Issue(Severity.error, path, 'must be an integer 1..12'));
+    }
+    return;
+  }
+
+  if (key == 'thickness') {
+    _uiNumber(path, value, min: 0, max: 8, issues: issues);
+    return;
+  }
+
+  if (key == 'letterSpacing') {
+    _uiNumber(path, value, min: -2, max: 8, issues: issues);
+    return;
+  }
+
+  if (key == 'widthFactor' || key == 'heightFactor') {
+    _uiNumber(path, value, min: 0.1, max: 4, issues: issues);
+    return;
+  }
+
+  if (key == 'opacity') {
+    _uiNumber(path, value, min: 0, max: 1, issues: issues);
+    return;
+  }
+
+  if (key == 'radius') {
+    _uiNumber(path, value, min: 0, max: 999, issues: issues);
+    return;
+  }
+
+  if (key == 'width' || key == 'height') {
+    _uiNumber(path, value, min: 0, max: 2000, issues: issues);
+    return;
+  }
+
+  if (key == 'gap' ||
+      key == 'runGap' ||
+      key == 'size' ||
+      key == 'padding' ||
+      key == 'all' ||
+      key == 'horizontal' ||
+      key == 'vertical' ||
+      key == 'top' ||
+      key == 'right' ||
+      key == 'bottom' ||
+      key == 'left' ||
+      key == 'borderWidth') {
+    _uiNumber(path, value, min: 0, max: 96, issues: issues);
+    return;
+  }
+
+  if (key == 'background' || key == 'borderColor') {
+    _colorOrRole(path, value, issues);
+    return;
+  }
+
+  // The registry above covers every prop a node type declares, so an
+  // unhandled key is a registry bug rather than a theme bug.
+}
+
+/// One action: the verb the host dispatches, and the arguments it needs.
+void _uiAction(String path, Object? raw, List<Issue> issues) {
+  if (raw is! Map) {
+    issues.add(Issue(Severity.error, path, 'must be an object'));
+    return;
+  }
+  final action = raw.cast<String, dynamic>();
+  final type = action['type'];
+  if (type is! String || !uiActionTypes.contains(type)) {
+    issues.add(Issue(
+      Severity.error,
+      '$path.type',
+      'unknown action — the host ignores it',
+    ));
+    return;
+  }
+  final args = action['args'];
+  if (args != null && args is! Map) {
+    issues.add(Issue(Severity.error, '$path.args', 'must be an object'));
+    return;
+  }
+  final map = args is Map ? args.cast<String, dynamic>() : const <String, dynamic>{};
+
+  if (type == 'navigate') {
+    final target = map['target'];
+    if (target is! String || target.isEmpty) {
+      issues.add(Issue(
+        Severity.warning,
+        '$path.args.target',
+        'navigate needs a target — the host ignores the action',
+      ));
+    }
+  } else if (type == 'plugin') {
+    final id = map['id'];
+    if (id is! String || id.isEmpty) {
+      issues.add(Issue(
+        Severity.warning,
+        '$path.args.id',
+        'plugin needs an id — the host ignores the action',
+      ));
+    }
+  } else if (type == 'toast') {
+    final message = map['message'];
+    if (message is! String || message.isEmpty) {
+      issues.add(Issue(
+        Severity.warning,
+        '$path.args.message',
+        'toast needs a message',
+      ));
+    }
+  } else if (type == 'seek') {
+    final position = map['position'];
+    if (position is! num) {
+      issues.add(Issue(
+        Severity.warning,
+        '$path.args.position',
+        'seek needs a position in seconds',
+      ));
+    }
+  } else if (type == 'setVolume') {
+    final volume = map['volume'];
+    if (volume is! num || volume < 0 || volume > 1) {
+      issues.add(Issue(
+        Severity.warning,
+        '$path.args.volume',
+        'setVolume needs a volume between 0 and 1',
+      ));
+    }
+  }
+}
+
+
+/// A number given directly, rather than looked up in a map.
+void _uiNumber(
+  String path,
+  Object? value, {
+  required double min,
+  required double max,
+  required List<Issue> issues,
+}) {
+  if (value == null) return;
+  if (value is! num) {
+    issues.add(Issue(Severity.error, path, 'must be a number'));
+    return;
+  }
+  final number = value.toDouble();
+  if (!number.isFinite || number < min || number > max) {
+    issues.add(Issue(
+      Severity.warning,
+      path,
+      'outside $min..$max — the host clamps it',
+      resolved: number.clamp(min, max).toDouble(),
+    ));
+  }
 }
 
 /// A list of ids from a closed set.
