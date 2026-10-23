@@ -40,10 +40,15 @@ jobs:
       - name: build every theme
         run: dart run tools/build.dart
 
-      # The artifacts carry bytecode, and bytecode carries a compile
-      # timestamp, so the bytes of a rebuild are not the bytes of the last
-      # build. What has to be stable is the payload: that is what the app
-      # draws, and that is what the golden files record.
+      # The compiler timestamp is pinned, so a rebuild has to produce the same
+      # archive bytes. The golden payloads below are the contract check; this
+      # is the reproducibility check.
+      - name: builds are reproducible
+        run: |
+          find dist -name '*.smplug' -print0 | sort -z | xargs -0 sha256sum > /tmp/themes.sha256
+          dart run tools/build.dart
+          sha256sum -c /tmp/themes.sha256
+
       - name: the golden payloads are up to date
         run: |
           dart run tools/export.dart

@@ -1,0 +1,11 @@
+{
+  "name": "Obsidian",
+  "description": "A pixel Minecraft obsidian theme: black amethyst in the dark, lavender end stone in the light. The player is a stage, and the record that turns there carries the song's name on its label.",
+  "version": "1.0.0",
+  "author": "Adamya Bhatt",
+  "entryPoint": "ObsidianTheme",
+  "pluginApiVersion": "2.0.0",
+  "apis": [],
+  "abilities": ["theme"],
+  "repository": "https://github.com/Adamyabhatt01/spotube/tree/master/themes"
+}

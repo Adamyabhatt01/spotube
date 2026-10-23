@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-22T16:28:35.339132Z",
+  "generatedAt": "2026-10-23T14:14:12.844782Z",
   "themes": [
     {
       "id": "asset-demo",
@@ -124,6 +124,22 @@
       "sha256": "5c32a1188a055db5c39460f759189d6fcfb0c968f2f6bcd74613d92ea56d8176",
       "optionalMethods": [],
       "hasUiSpec": false
+    },
+    {
+      "id": "obsidian",
+      "name": "Obsidian",
+      "author": "Adamya Bhatt",
+      "version": "1.0.0",
+      "entryPoint": "ObsidianTheme",
+      "abilities": [
+        "theme"
+      ],
+      "file": "obsidian-1.0.0.smplug",
+      "bytes": 95225,
+      "sha256": "164c7a2200f7fe45b3995bd02181bcc2b6bfc8feedf18f969bdee5b31e3935ca",
+      "optionalMethods": [],
+      "hasUiSpec": false,
+      "published": "obsidian/plugin.smplug"
     },
     {
       "id": "spotify-shell",

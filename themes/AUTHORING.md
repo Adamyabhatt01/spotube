@@ -107,6 +107,20 @@ fvm dart run tools/inspect.dart -f dist/my-theme-1.0.0.smplug --json
 The build runs the theme before it packages it, so a theme that returns
 nothing, or a colour the app cannot parse, fails the build.
 
+## Preview it
+
+```bash
+fvm dart run tools/export.dart
+fvm dart run tools/preview.dart my-theme
+```
+
+`preview.dart` reads the exported payload and writes
+`dist/preview/my-theme.html`: one file with both schemes, the palette, the
+component samples and the theme's screens, plus the stage if it has one. Fonts
+and images are inlined, so it opens offline. The top bar switches scheme and
+play/pause; the URL carries the state (`#mode=light`, `#screen=palette`). Use it
+to review the design before the host can draw the whole v3 tree.
+
 ## Ship it
 
 Add a `build.json` next to the theme:

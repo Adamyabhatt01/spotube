@@ -1,7 +1,36 @@
 # Changelog
 
-The themes and the tool that builds them. The app's side of the contract is
-versioned separately — the payload is `v2` there, and `v3` is drafted here.
+The themes and the tool that builds them. The payload contract is versioned
+here; the app's reader is versioned with the app.
+
+## 1.6.0 — obsidian, and a contract you can check
+
+The v3 contract stopped being a draft and became something the build enforces
+end to end. `obsidian` is the first theme written against it.
+
+- **The v3 contract is enforced.** Flat node props are canonical; a legacy
+  `props: {}` block is merged in with a warning. Unknown props, bindings,
+  actions, asset paths and icon names fail the build. `ui.specVersion: 2`
+  adds the `animate` node and the `stage` dock; pixel borders and tiled or
+  scaled backgrounds are validated too.
+- **A real schema.** `schemas/theme.v3.schema.json` is draft-07 with all 19
+  node variants. `test/schema_test.dart` validates every golden and the
+  kitchen sink against it (the `json_schema` package is draft-07-only).
+- **Reproducible builds.** The Hetu compiler's timestamp is normalised to
+  `1970-01-01 00:00:00`, so two builds of the same source are byte-identical.
+- **`obsidian`**: a pixel-Minecraft theme in black amethyst and lavender end
+  stone. 39 roles per scheme, OFL Silkscreen and VT323 fonts, 20 pixel icons,
+  a transparent obsidian tile, a stage dock, a record that turns with the track
+  and carries its title and artist, plus now-playing and colophon screens.
+  Published at `obsidian/plugin.smplug` (~95 kB).
+- **`tools/preview.dart`**: turns a built payload and its assets into one
+  standalone HTML file with both schemes, the palette, every component
+  sample, the screens and the stage. Nothing is fetched at runtime; fonts and
+  images are inlined. `#mode=light`, `#screen=palette`, `#screen=now-playing`
+  and `#screen=colophon` share a state.
+- **Tests**: 20 for the theme (contract, record, contrast, assets, icons) and
+  6 for the preview (standalone document, fonts, schemes, stage, tile,
+  network-free).
 
 ## 1.5.0 — the whole v3 contract
 

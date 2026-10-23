@@ -3,7 +3,9 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
+import 'package:path/path.dart' as p;
 import 'package:spotube_themes/compile.dart';
+import 'package:spotube_themes/packager.dart';
 import 'package:spotube_themes/theme_source.dart';
 import 'package:spotube_themes/validator.dart';
 import 'package:test/test.dart';
@@ -118,6 +120,69 @@ void main() {
         expect(manifest['version'], theme.version, reason: theme.id);
         expect(manifest['abilities'], contains('theme'), reason: theme.id);
       }
+    });
+  });
+
+  group('the built index', () {
+    test('lists every theme and matches its artifact', () {
+      final index = jsonDecode(
+        File('$repoRoot/dist/index.json').readAsStringSync(),
+      ) as Map<String, dynamic>;
+      final entries = (index['themes'] as List).cast<Map<String, dynamic>>();
+
+      expect(
+        entries.map((entry) => entry['id']).toSet(),
+        loadThemes(repoRoot).map((theme) => theme.id).toSet(),
+        reason: 'the index is what the app lists; every theme has to be in it',
+      );
+
+      for (final entry in entries) {
+        final artifact = File('$repoRoot/dist/${entry['file']}');
+        expect(artifact.existsSync(), isTrue, reason: '${entry['id']}');
+        expect(artifact.lengthSync(), entry['bytes'], reason: '${entry['id']}');
+        expect(
+          sha256OfFile(artifact),
+          entry['sha256'],
+          reason: '${entry['id']} changed — rebuild the index',
+        );
+      }
+    });
+
+    test('a subset build keeps the rest of the catalog', () async {
+      final temp = Directory.systemTemp.createTempSync('spotube-index-');
+      addTearDown(() => temp.deleteSync(recursive: true));
+      File('${temp.path}/index.json').writeAsStringSync(jsonEncode({
+        'generatedAt': '1970-01-01T00:00:00.000Z',
+        'themes': [
+          {'id': 'keep-me', 'name': 'Keep Me', 'version': '0.0.1'},
+        ],
+      }));
+
+      final result = await Process.run(
+        Platform.resolvedExecutable,
+        [
+          'run',
+          'tools/build.dart',
+          '-t',
+          'minimal',
+          '--out',
+          p.relative(temp.path, from: repoRoot),
+        ],
+        workingDirectory: repoRoot,
+      );
+      expect(
+        result.exitCode,
+        0,
+        reason: '${result.stdout}\n${result.stderr}',
+      );
+
+      final index = jsonDecode(
+        File('${temp.path}/index.json').readAsStringSync(),
+      ) as Map<String, dynamic>;
+      final ids = (index['themes'] as List)
+          .map((entry) => (entry as Map)['id'])
+          .toList();
+      expect(ids, containsAll(<String>['keep-me', 'minimal']));
     });
   });
 }

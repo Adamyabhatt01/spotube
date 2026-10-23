@@ -127,6 +127,30 @@ Future<void> main(List<String> arguments) async {
     }
 
     if (!check) {
+      // A subset build (--theme) must not erase the rest of the catalog:
+      // index.json is what the app's theme browser lists.
+      if (selected.isNotEmpty) {
+        final indexFile = File(p.join(outDir.path, 'index.json'));
+        if (indexFile.existsSync()) {
+          try {
+            final existing = jsonDecode(indexFile.readAsStringSync())
+                as Map<String, dynamic>;
+            final merged = <String, Map<String, dynamic>>{
+              for (final entry in (existing['themes'] as List? ?? const []))
+                (entry as Map<String, dynamic>)['id'] as String: entry,
+            };
+            for (final entry in entries) {
+              merged[entry['id'] as String] = entry;
+            }
+            entries
+              ..clear()
+              ..addAll(merged.values);
+          } catch (_) {
+            // A corrupt index is replaced by the themes just built.
+          }
+        }
+      }
+
       entries.sort((a, b) =>
           (a['id'] as String).compareTo(b['id'] as String));
       index = {

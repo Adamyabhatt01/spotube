@@ -23,6 +23,7 @@ contract.
 | `caelestia-shell` | The glassier backdrop with more opaque surfaces, so text survives a bright wallpaper | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/caelestia-shell/plugin.smplug` |
 | `caelestia-plain` | The base palette with no desktop backdrop and no shell-derived glass | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/caelestia-plain/plugin.smplug` |
 | `spotify-shell` | A Spotify-shaped shell instead of the Caelestia one: black and green, inset content, rail navigation, seek bar below the player | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/spotify-shell/plugin.smplug` |
+| `obsidian` | A pixel-Minecraft theme: black amethyst and lavender end stone, a stage player and a record that turns with the track | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/obsidian/plugin.smplug` |
 
 ### Which one should you install?
 
@@ -33,6 +34,7 @@ contract.
 | `caelestia-shell` | You want the glass look but readable text. The glassier backdrop with surfaces at 75%. **Best with real transparency on.** |
 | `caelestia-plain` | You want no wallpaper and no veil at all — a flat, quiet surface. With real transparency on it is completely clear. |
 | `spotify-shell` | You want Spotube to look like Spotify rather than like your desktop shell. Works on every platform. |
+| `obsidian` | You want a pixel-art player with a stage layout and a record for a player, in two schemes. Ships its own OFL fonts, so it looks the same everywhere. |
 
 Under real window transparency (Linux, with the host setting on) the wallpaper
 and its blur are not painted at all: the veil decides how much of the desktop
@@ -42,7 +44,8 @@ not ask for transparency and stays opaque.
 
 The Caelestia themes need the [Caelestia shell](https://github.com/caelestia-dots/shell)
 for the live wallpaper and palette; without it you still get the static
-palette, the glass and the layout. `spotify-shell` needs nothing but the app.
+palette, the glass and the layout. `spotify-shell` and `obsidian` need nothing
+but the app.
 
 
 ## Requirements
@@ -79,6 +82,7 @@ tools/validate.dart  validate a payload file
 tools/inspect.dart   print a built theme's payload, compare two builds
 tools/install.dart   install a built theme into a Spotube profile
 tools/export.dart    write each theme's payload to conformance/
+tools/preview.dart   render a payload and its assets to one standalone HTML file
 dist/                built artifacts (committed)
 dist/legacy/         artifacts that predate the toolchain, kept as-is
 conformance/         golden payloads used by the tests
@@ -100,6 +104,7 @@ fvm dart run tools/inspect.dart -f dist/caelestia-1.2.0.smplug --json
 fvm dart run tools/inspect.dart -f old.smplug -f new.smplug   # same payload?
 
 fvm dart run tools/export.dart           # regenerate the golden payloads
+fvm dart run tools/preview.dart obsidian   # write dist/preview/obsidian.html
 fvm dart run tools/install.dart -t caelestia --select
 
 fvm dart test                            # the contract's tests
@@ -107,7 +112,25 @@ fvm dart test                            # the contract's tests
 
 `build.dart` runs the theme before it packages it. A theme that compiles but
 returns nothing — or returns a color the app cannot parse — is a build
-failure here, not a user's blank app.
+failure here, not a user's blank app. Builds are byte-reproducible: the Hetu
+compiler's timestamp is pinned, so two builds of the same source produce
+identical archives.
+
+## Preview a theme
+
+```bash
+fvm dart run tools/export.dart
+fvm dart run tools/preview.dart obsidian
+```
+
+The second command writes `dist/preview/obsidian.html`: one file, no network,
+with the fonts, icons, album tile and both schemes inlined. It shows the
+palette, every component sample, the theme's screens, and the stage if the
+theme has one. Open it in a browser; the top bar switches scheme and
+play/pause, and the URL carries the state (`#mode=light`,
+`#screen=palette`, `#screen=now-playing`, `#screen=colophon`). The preview
+reads the same payload as the host, so it is how a theme is reviewed before
+the host can draw the whole v3 tree.
 
 ## The themes
 
@@ -118,6 +141,7 @@ failure here, not a user's blank app.
 | `caelestia-plain` | The base palette with no backdrop and no glass — published |
 | `caelestia-shell` | The balanced variant: readable text over a bright wallpaper — published |
 | `spotify-shell` | A Spotify-shaped shell: black and green, inset panel, rail navigation — published |
+| `obsidian` | A pixel-Minecraft theme: black amethyst / lavender end stone, OFL fonts, pixel icons, a stage player and a turning record — published |
 | `minimal` | The SDK in nine lines: one seed colour |
 | `brand-demo` | The whole v3 payload, including a slot and a screen |
 | `ui-demo` | A theme that answers with its own UI (`getUi()`, `onUiAction()`) |
@@ -191,7 +215,9 @@ Shared source goes in `sdk/` and is pulled in with an include directive:
   either; `asset://` paths are resolved by the app, not by the plugin.
 - It cannot change the app's package id, launcher name or icon. That is
   build-time branding, not a theme.
-- It cannot load a font file; a font family has to exist on the machine.
+- It cannot read a font from an arbitrary path or the network. It can ship one
+  as a v3 asset (`kind: font`); the app validates and loads it from the plugin
+  archive. A v2 payload still names a family that has to exist on the machine.
 
 ## v3
 
@@ -200,10 +226,16 @@ Shared source goes in `sdk/` and is pulled in with an include directive:
 scale, icons), component styles, and the shell's composition — plus branding,
 assets and a declarative UI tree with slots, screens, bindings and actions.
 
-The contract is written down in `schemas/theme.v3.schema.json`, enforced by
-`lib/v3_validator.dart`, and demonstrated by `themes/kitchen-sink` — the theme
-that has to carry every field, so a new field without an example fails the
-test suite.
+The contract is written down in `schemas/theme.v3.schema.json` (draft-07,
+every node variant), enforced by `lib/v3_validator.dart`, and demonstrated by
+`themes/kitchen-sink` — the theme that has to carry every field, so a new field
+without an example fails the test suite. v3 payloads are stricter than v2:
+unknown node props, bindings, actions, asset paths and icon names fail the
+build instead of being ignored.
+
+`themes/obsidian` is the first theme built on the whole contract: two 39-role
+schemes, shipped OFL fonts and pixel icons, a tiled background, a stage dock
+and a record that turns with the track.
 
 A v2 host ignores all of it, which is what lets a v3 theme ship to an older
 app. `AUTHORING.md` is the full reference.

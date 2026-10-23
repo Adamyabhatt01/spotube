@@ -1,0 +1,1969 @@
+{
+  "specVersion": 3,
+  "light": {
+    "background": "#f3eefb",
+    "foreground": "#1b1229",
+    "card": "#fbf8ff",
+    "cardForeground": "#1b1229",
+    "primary": "#6d28d9",
+    "primaryForeground": "#fbf8ff",
+    "secondary": "#e9e0f6",
+    "secondaryForeground": "#2c2040",
+    "muted": "#ece4f7",
+    "mutedForeground": "#66577e",
+    "accent": "#7c3aed",
+    "accentForeground": "#fbf8ff",
+    "destructive": "#c02626",
+    "destructiveForeground": "#fff5f5",
+    "border": "#d7cbe9",
+    "input": "#e9e0f6",
+    "ring": "#7c3aed",
+    "popover": "#fbf8ff",
+    "popoverForeground": "#1b1229",
+    "sidebar": "#e9e1f5",
+    "sidebarForeground": "#1b1229",
+    "sidebarPrimary": "#6d28d9",
+    "sidebarPrimaryForeground": "#fbf8ff",
+    "sidebarAccent": "#ded0f0",
+    "sidebarAccentForeground": "#1b1229",
+    "sidebarBorder": "#d7cbe9",
+    "sidebarRing": "#7c3aed",
+    "success": "#15803d",
+    "successForeground": "#f0fff4",
+    "warning": "#a16207",
+    "warningForeground": "#fffbea",
+    "info": "#1d4ed8",
+    "infoForeground": "#eff6ff",
+    "chart1": "#7c3aed",
+    "chart2": "#0891b2",
+    "chart3": "#db2777",
+    "chart4": "#15803d",
+    "chart5": "#b45309",
+    "chart6": "#4f46e5"
+  },
+  "dark": {
+    "background": "#07060b",
+    "foreground": "#ece8f5",
+    "card": "#100c18",
+    "cardForeground": "#ece8f5",
+    "primary": "#a855f7",
+    "primaryForeground": "#0b0712",
+    "secondary": "#1b1426",
+    "secondaryForeground": "#d8ccec",
+    "muted": "#151020",
+    "mutedForeground": "#9a8bb3",
+    "accent": "#c084fc",
+    "accentForeground": "#0b0712",
+    "destructive": "#ef4444",
+    "destructiveForeground": "#160404",
+    "border": "#2a1f3d",
+    "input": "#1b1426",
+    "ring": "#a855f7",
+    "popover": "#120d1c",
+    "popoverForeground": "#ece8f5",
+    "sidebar": "#0a0710",
+    "sidebarForeground": "#ece8f5",
+    "sidebarPrimary": "#a855f7",
+    "sidebarPrimaryForeground": "#0b0712",
+    "sidebarAccent": "#241a33",
+    "sidebarAccentForeground": "#ece8f5",
+    "sidebarBorder": "#2a1f3d",
+    "sidebarRing": "#a855f7",
+    "success": "#4ade80",
+    "successForeground": "#04120a",
+    "warning": "#fbbf24",
+    "warningForeground": "#150e00",
+    "info": "#60a5fa",
+    "infoForeground": "#04101f",
+    "chart1": "#a855f7",
+    "chart2": "#22d3ee",
+    "chart3": "#f472b6",
+    "chart4": "#4ade80",
+    "chart5": "#fbbf24",
+    "chart6": "#818cf8"
+  },
+  "surfaces": {
+    "opacity": 1.0,
+    "blur": 0.0
+  },
+  "background": {
+    "source": "asset",
+    "asset": "asset://textures/obsidian.png",
+    "opacity": 1.0,
+    "blur": 0.0,
+    "tile": true,
+    "scale": 4,
+    "transparent": false
+  },
+  "radius": {
+    "small": 0.0,
+    "medium": 0.0,
+    "large": 0.0,
+    "pill": 0.0
+  },
+  "density": 1.0,
+  "tokens": {
+    "cardWidth": 180.0,
+    "cardHeight": 236.0,
+    "artistCardWidth": 200.0,
+    "artistCardHeight": 250.0,
+    "gutter": 14.0,
+    "fontFamily": "VT323"
+  },
+  "typography": {
+    "family": "VT323",
+    "monoFamily": "VT323",
+    "brandFamily": "Silkscreen",
+    "styles": {
+      "h1": {
+        "fontSize": 40.0,
+        "fontWeight": 700.0,
+        "height": 1.05,
+        "letterSpacing": 1.0,
+        "fontFamily": "Silkscreen"
+      },
+      "h2": {
+        "fontSize": 30.0,
+        "fontWeight": 700.0,
+        "height": 1.1,
+        "letterSpacing": 1.0,
+        "fontFamily": "Silkscreen"
+      },
+      "h3": {
+        "fontSize": 24.0,
+        "fontWeight": 700.0,
+        "height": 1.15,
+        "letterSpacing": 0.5,
+        "fontFamily": "Silkscreen"
+      },
+      "h4": {
+        "fontSize": 20.0,
+        "fontWeight": 400.0,
+        "height": 1.2,
+        "letterSpacing": 0.5,
+        "fontFamily": "Silkscreen"
+      },
+      "p": {
+        "fontSize": 18.0,
+        "fontWeight": 400.0,
+        "height": 1.3,
+        "fontFamily": "VT323"
+      },
+      "lead": {
+        "fontSize": 22.0,
+        "fontWeight": 400.0,
+        "height": 1.3,
+        "fontFamily": "VT323"
+      },
+      "large": {
+        "fontSize": 20.0,
+        "fontWeight": 400.0,
+        "height": 1.3,
+        "fontFamily": "VT323"
+      },
+      "small": {
+        "fontSize": 16.0,
+        "fontWeight": 400.0,
+        "height": 1.25,
+        "fontFamily": "VT323"
+      },
+      "muted": {
+        "fontSize": 16.0,
+        "fontWeight": 400.0,
+        "height": 1.25,
+        "color": "@mutedForeground",
+        "fontFamily": "VT323"
+      },
+      "xSmall": {
+        "fontSize": 14.0,
+        "fontWeight": 400.0,
+        "height": 1.2,
+        "fontFamily": "VT323"
+      },
+      "xLarge": {
+        "fontSize": 24.0,
+        "fontWeight": 400.0,
+        "height": 1.25,
+        "fontFamily": "VT323"
+      },
+      "x2Large": {
+        "fontSize": 30.0,
+        "fontWeight": 400.0,
+        "height": 1.2,
+        "fontFamily": "VT323"
+      },
+      "x3Large": {
+        "fontSize": 36.0,
+        "fontWeight": 400.0,
+        "height": 1.15,
+        "fontFamily": "VT323"
+      },
+      "brand": {
+        "fontSize": 42.0,
+        "fontWeight": 700.0,
+        "height": 1.0,
+        "letterSpacing": 2.0,
+        "color": "@primary",
+        "fontFamily": "Silkscreen"
+      },
+      "label": {
+        "fontSize": 13.0,
+        "fontWeight": 400.0,
+        "height": 1.2,
+        "letterSpacing": 1.5,
+        "color": "@mutedForeground",
+        "fontFamily": "Silkscreen"
+      }
+    },
+    "fonts": [
+      {
+        "family": "Silkscreen",
+        "asset": "asset://fonts/Silkscreen-Regular.ttf",
+        "weight": 400.0,
+        "style": "normal"
+      },
+      {
+        "family": "Silkscreen",
+        "asset": "asset://fonts/Silkscreen-Bold.ttf",
+        "weight": 700.0,
+        "style": "normal"
+      },
+      {
+        "family": "VT323",
+        "asset": "asset://fonts/VT323-Regular.ttf",
+        "weight": 400.0,
+        "style": "normal"
+      }
+    ]
+  },
+  "spacing": {
+    "xs": 4.0,
+    "sm": 8.0,
+    "md": 12.0,
+    "lg": 16.0,
+    "xl": 24.0,
+    "xxl": 32.0,
+    "page": 20.0,
+    "section": 28.0,
+    "cardGap": 14.0,
+    "pageHorizontal": 24.0
+  },
+  "motion": {
+    "fast": 90.0,
+    "normal": 140.0,
+    "slow": 220.0,
+    "pageTransition": 160.0,
+    "sheet": 220.0,
+    "easing": "easeOutCubic"
+  },
+  "scale": {
+    "size": 1.0,
+    "text": 1.0,
+    "radius": 1.0,
+    "icon": 1.0,
+    "spacing": 1.0
+  },
+  "icons": {
+    "sm": 16.0,
+    "md": 20.0,
+    "lg": 24.0,
+    "xl": 32.0,
+    "overrides": {
+      "play": {
+        "asset": "asset://images/icons/play.png",
+        "size": 20.0
+      },
+      "pause": {
+        "asset": "asset://images/icons/pause.png",
+        "size": 20.0
+      },
+      "previous": {
+        "asset": "asset://images/icons/previous.png",
+        "size": 20.0
+      },
+      "next": {
+        "asset": "asset://images/icons/next.png",
+        "size": 20.0
+      },
+      "shuffle": {
+        "asset": "asset://images/icons/shuffle.png",
+        "size": 18.0
+      },
+      "repeat": {
+        "asset": "asset://images/icons/repeat.png",
+        "size": 18.0
+      },
+      "like": {
+        "asset": "asset://images/icons/like.png",
+        "size": 18.0
+      },
+      "lyrics": {
+        "asset": "asset://images/icons/lyrics.png",
+        "size": 18.0
+      },
+      "queue": {
+        "asset": "asset://images/icons/queue.png",
+        "size": 18.0
+      },
+      "volume": {
+        "asset": "asset://images/icons/volume.png",
+        "size": 18.0
+      },
+      "settings": {
+        "asset": "asset://images/icons/settings.png",
+        "size": 18.0
+      },
+      "search": {
+        "asset": "asset://images/icons/search.png",
+        "size": 18.0
+      },
+      "library": {
+        "asset": "asset://images/icons/library.png",
+        "size": 18.0
+      },
+      "download": {
+        "asset": "asset://images/icons/download.png",
+        "size": 18.0
+      },
+      "back": {
+        "asset": "asset://images/icons/back.png",
+        "size": 18.0
+      },
+      "close": {
+        "asset": "asset://images/icons/close.png",
+        "size": 18.0
+      },
+      "plus": {
+        "asset": "asset://images/icons/plus.png",
+        "size": 18.0
+      },
+      "home": {
+        "asset": "asset://images/icons/home.png",
+        "size": 18.0
+      },
+      "radio": {
+        "asset": "asset://images/icons/radio.png",
+        "size": 18.0
+      },
+      "stats": {
+        "asset": "asset://images/icons/stats.png",
+        "size": 18.0
+      }
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": {
+        "background": "@primary",
+        "foreground": "@primaryForeground",
+        "borderColor": "@primary",
+        "borderWidth": 2.0,
+        "radius": 0.0,
+        "padding": 12.0,
+        "gap": 8.0,
+        "fontFamily": "VT323",
+        "fontSize": 18.0,
+        "fontWeight": 400.0,
+        "letterSpacing": 0.5,
+        "iconSize": 20.0,
+        "borderStyle": "pixel"
+      },
+      "secondary": {
+        "background": "@secondary",
+        "foreground": "@secondaryForeground",
+        "borderColor": "@border",
+        "borderWidth": 2.0,
+        "radius": 0.0,
+        "padding": 12.0,
+        "gap": 8.0,
+        "fontFamily": "VT323",
+        "fontSize": 18.0,
+        "iconSize": 20.0,
+        "borderStyle": "pixel"
+      },
+      "outline": {
+        "background": "#00000000",
+        "foreground": "@foreground",
+        "borderColor": "@primary",
+        "borderWidth": 2.0,
+        "radius": 0.0,
+        "padding": 12.0,
+        "gap": 8.0,
+        "fontFamily": "VT323",
+        "fontSize": 18.0,
+        "iconSize": 20.0,
+        "borderStyle": "pixel"
+      },
+      "ghost": {
+        "background": "#00000000",
+        "foreground": "@mutedForeground",
+        "borderWidth": 0.0,
+        "radius": 0.0,
+        "padding": 8.0,
+        "gap": 8.0,
+        "fontFamily": "VT323",
+        "fontSize": 18.0,
+        "iconSize": 20.0
+      },
+      "destructive": {
+        "background": "@destructive",
+        "foreground": "@destructiveForeground",
+        "borderColor": "@destructive",
+        "borderWidth": 2.0,
+        "radius": 0.0,
+        "padding": 12.0,
+        "gap": 8.0,
+        "fontFamily": "VT323",
+        "fontSize": 18.0,
+        "iconSize": 20.0,
+        "borderStyle": "pixel"
+      },
+      "link": {
+        "background": "#00000000",
+        "foreground": "@primary",
+        "borderWidth": 0.0,
+        "radius": 0.0,
+        "padding": 4.0,
+        "fontFamily": "VT323",
+        "fontSize": 18.0
+      },
+      "fixed": {
+        "background": "@card",
+        "foreground": "@foreground",
+        "borderColor": "@border",
+        "borderWidth": 2.0,
+        "radius": 0.0,
+        "padding": 12.0,
+        "fontFamily": "VT323",
+        "fontSize": 18.0,
+        "iconSize": 20.0,
+        "borderStyle": "pixel"
+      },
+      "muted": {
+        "background": "@muted",
+        "foreground": "@mutedForeground",
+        "borderColor": "@border",
+        "borderWidth": 1.0,
+        "radius": 0.0,
+        "padding": 10.0,
+        "fontFamily": "VT323",
+        "fontSize": 18.0,
+        "iconSize": 18.0
+      }
+    },
+    "card": {
+      "background": "@card",
+      "foreground": "@cardForeground",
+      "borderColor": "@border",
+      "borderWidth": 2.0,
+      "radius": 0.0,
+      "padding": 16.0,
+      "gap": 12.0,
+      "surfaceOpacity": 1.0,
+      "surfaceBlur": 0.0,
+      "borderStyle": "pixel"
+    },
+    "input": {
+      "background": "@input",
+      "foreground": "@foreground",
+      "borderColor": "@border",
+      "borderWidth": 2.0,
+      "radius": 0.0,
+      "padding": 10.0,
+      "fontFamily": "VT323",
+      "fontSize": 18.0,
+      "borderStyle": "pixel"
+    },
+    "tabs": {
+      "background": "@muted",
+      "foreground": "@mutedForeground",
+      "indicatorColor": "@primary",
+      "borderColor": "@border",
+      "borderWidth": 0.0,
+      "radius": 0.0,
+      "padding": 8.0,
+      "fontFamily": "VT323",
+      "fontSize": 16.0
+    },
+    "nav": {
+      "background": "@sidebar",
+      "foreground": "@sidebarForeground",
+      "borderColor": "@sidebarBorder",
+      "borderWidth": 0.0,
+      "radius": 0.0,
+      "padding": 8.0,
+      "fontFamily": "VT323",
+      "fontSize": 18.0,
+      "iconSize": 20.0
+    },
+    "tooltip": {
+      "background": "@popover",
+      "foreground": "@popoverForeground",
+      "borderColor": "@border",
+      "borderWidth": 2.0,
+      "radius": 0.0,
+      "padding": 8.0,
+      "fontFamily": "VT323",
+      "fontSize": 16.0,
+      "borderStyle": "pixel"
+    },
+    "badge": {
+      "background": "@secondary",
+      "foreground": "@secondaryForeground",
+      "borderColor": "@border",
+      "borderWidth": 1.0,
+      "radius": 0.0,
+      "padding": 4.0,
+      "fontFamily": "Silkscreen",
+      "fontSize": 10.0,
+      "letterSpacing": 0.5,
+      "borderStyle": "pixel"
+    },
+    "progress": {
+      "trackColor": "@muted",
+      "indicatorColor": "@primary",
+      "height": 6.0,
+      "radius": 0.0
+    },
+    "divider": {
+      "borderColor": "@border",
+      "borderWidth": 1.0,
+      "radius": 0.0
+    },
+    "menu": {
+      "background": "@popover",
+      "foreground": "@popoverForeground",
+      "borderColor": "@border",
+      "borderWidth": 2.0,
+      "radius": 0.0,
+      "padding": 6.0,
+      "gap": 2.0,
+      "fontFamily": "VT323",
+      "fontSize": 16.0,
+      "borderStyle": "pixel"
+    },
+    "dialog": {
+      "background": "@popover",
+      "foreground": "@popoverForeground",
+      "borderColor": "@primary",
+      "borderWidth": 2.0,
+      "radius": 0.0,
+      "padding": 20.0,
+      "borderStyle": "pixel"
+    },
+    "slider": {
+      "trackColor": "@muted",
+      "thumbColor": "@primary",
+      "indicatorColor": "@primary",
+      "height": 8.0,
+      "radius": 0.0
+    },
+    "scrollbar": {
+      "trackColor": "#00000000",
+      "thumbColor": "@border",
+      "radius": 0.0
+    },
+    "avatar": {
+      "radius": 0.0,
+      "borderColor": "@border",
+      "borderWidth": 2.0,
+      "borderStyle": "pixel"
+    },
+    "skeleton": {
+      "background": "@muted",
+      "radius": 0.0,
+      "surfaceOpacity": 1.0
+    },
+    "checkbox": {
+      "background": "@input",
+      "foreground": "@foreground",
+      "borderColor": "@border",
+      "borderWidth": 2.0,
+      "radius": 0.0,
+      "indicatorColor": "@primary",
+      "borderStyle": "pixel"
+    },
+    "radio": {
+      "background": "@input",
+      "borderColor": "@border",
+      "borderWidth": 2.0,
+      "radius": 0.0,
+      "indicatorColor": "@primary"
+    },
+    "switch": {
+      "background": "@muted",
+      "thumbColor": "@primary",
+      "trackColor": "@border",
+      "borderColor": "@border",
+      "borderWidth": 2.0,
+      "radius": 0.0
+    },
+    "select": {
+      "background": "@input",
+      "foreground": "@foreground",
+      "borderColor": "@border",
+      "borderWidth": 2.0,
+      "radius": 0.0,
+      "padding": 10.0,
+      "fontFamily": "VT323",
+      "fontSize": 18.0,
+      "borderStyle": "pixel"
+    },
+    "table": {
+      "background": "@card",
+      "foreground": "@cardForeground",
+      "borderColor": "@border",
+      "borderWidth": 1.0,
+      "radius": 0.0,
+      "fontFamily": "VT323",
+      "fontSize": 16.0
+    },
+    "alert": {
+      "background": "@secondary",
+      "foreground": "@secondaryForeground",
+      "borderColor": "@warning",
+      "borderWidth": 2.0,
+      "radius": 0.0,
+      "padding": 14.0,
+      "borderStyle": "pixel"
+    },
+    "popover": {
+      "background": "@popover",
+      "foreground": "@popoverForeground",
+      "borderColor": "@border",
+      "borderWidth": 2.0,
+      "radius": 0.0,
+      "padding": 12.0,
+      "borderStyle": "pixel"
+    },
+    "sidebar": {
+      "background": "@sidebar",
+      "foreground": "@sidebarForeground",
+      "borderColor": "@sidebarBorder",
+      "borderWidth": 1.0,
+      "radius": 0.0
+    }
+  },
+  "layout": {
+    "chrome": "flat",
+    "nav": "labels",
+    "progress": "below",
+    "navItems": [
+      "home",
+      "search",
+      "radio",
+      "stats"
+    ],
+    "libraryItems": [
+      "playlists",
+      "artists",
+      "albums",
+      "local_library"
+    ],
+    "player": {
+      "dock": "stage",
+      "showTrackDetails": false,
+      "showActions": false,
+      "showVolume": true,
+      "showLyrics": true,
+      "showProgress": true
+    },
+    "home": {
+      "sections": [
+        "recent",
+        "featured",
+        "new_releases",
+        "browse"
+      ]
+    },
+    "settings": {
+      "sections": [
+        "accounts",
+        "language_region",
+        "appearance",
+        "sidebar",
+        "playback",
+        "downloads",
+        "desktop",
+        "developers",
+        "about"
+      ]
+    },
+    "titlebar": {
+      "height": 40.0,
+      "padding": 12.0,
+      "showBack": true
+    },
+    "splash": {
+      "logo": "asset://images/logo.png",
+      "text": "OBSIDIAN"
+    },
+    "enforce": [
+      "playerDock"
+    ],
+    "responsive": {
+      "compact": {
+        "nav": "rail",
+        "player": {
+          "showVolume": false
+        }
+      }
+    }
+  },
+  "branding": {
+    "appName": "Obsidian",
+    "shortName": "Obsidian",
+    "tagline": "Your music, carved in the dark.",
+    "wordmark": {
+      "text": "OBSIDIAN",
+      "fontFamily": "Silkscreen"
+    },
+    "logo": "asset://images/logo.png",
+    "titlebarTitle": "OBSIDIAN",
+    "windowTitle": "Obsidian",
+    "aboutName": "Obsidian",
+    "notificationName": "Obsidian",
+    "showHostAttribution": true
+  },
+  "assets": {
+    "images": [
+      {
+        "path": "asset://images/logo.png",
+        "kind": "icon",
+        "role": "brand.logo"
+      },
+      {
+        "path": "asset://textures/obsidian.png",
+        "kind": "image",
+        "role": "background.obsidian"
+      },
+      {
+        "path": "asset://images/icons/play.png",
+        "kind": "icon",
+        "role": "icon.play"
+      },
+      {
+        "path": "asset://images/icons/pause.png",
+        "kind": "icon",
+        "role": "icon.pause"
+      },
+      {
+        "path": "asset://images/icons/previous.png",
+        "kind": "icon",
+        "role": "icon.previous"
+      },
+      {
+        "path": "asset://images/icons/next.png",
+        "kind": "icon",
+        "role": "icon.next"
+      },
+      {
+        "path": "asset://images/icons/shuffle.png",
+        "kind": "icon",
+        "role": "icon.shuffle"
+      },
+      {
+        "path": "asset://images/icons/repeat.png",
+        "kind": "icon",
+        "role": "icon.repeat"
+      },
+      {
+        "path": "asset://images/icons/like.png",
+        "kind": "icon",
+        "role": "icon.like"
+      },
+      {
+        "path": "asset://images/icons/lyrics.png",
+        "kind": "icon",
+        "role": "icon.lyrics"
+      },
+      {
+        "path": "asset://images/icons/queue.png",
+        "kind": "icon",
+        "role": "icon.queue"
+      },
+      {
+        "path": "asset://images/icons/volume.png",
+        "kind": "icon",
+        "role": "icon.volume"
+      },
+      {
+        "path": "asset://images/icons/settings.png",
+        "kind": "icon",
+        "role": "icon.settings"
+      },
+      {
+        "path": "asset://images/icons/search.png",
+        "kind": "icon",
+        "role": "icon.search"
+      },
+      {
+        "path": "asset://images/icons/library.png",
+        "kind": "icon",
+        "role": "icon.library"
+      },
+      {
+        "path": "asset://images/icons/download.png",
+        "kind": "icon",
+        "role": "icon.download"
+      },
+      {
+        "path": "asset://images/icons/back.png",
+        "kind": "icon",
+        "role": "icon.back"
+      },
+      {
+        "path": "asset://images/icons/close.png",
+        "kind": "icon",
+        "role": "icon.close"
+      },
+      {
+        "path": "asset://images/icons/plus.png",
+        "kind": "icon",
+        "role": "icon.plus"
+      },
+      {
+        "path": "asset://images/icons/home.png",
+        "kind": "icon",
+        "role": "icon.home"
+      },
+      {
+        "path": "asset://images/icons/radio.png",
+        "kind": "icon",
+        "role": "icon.radio"
+      },
+      {
+        "path": "asset://images/icons/stats.png",
+        "kind": "icon",
+        "role": "icon.stats"
+      }
+    ],
+    "fonts": [
+      {
+        "path": "asset://fonts/Silkscreen-Regular.ttf",
+        "kind": "font",
+        "role": "text.brand.regular"
+      },
+      {
+        "path": "asset://fonts/Silkscreen-Bold.ttf",
+        "kind": "font",
+        "role": "text.brand.bold"
+      },
+      {
+        "path": "asset://fonts/VT323-Regular.ttf",
+        "kind": "font",
+        "role": "text.body"
+      }
+    ],
+    "other": [
+      {
+        "path": "asset://fonts/OFL-Silkscreen.txt",
+        "kind": "other",
+        "role": "license"
+      },
+      {
+        "path": "asset://fonts/OFL-VT323.txt",
+        "kind": "other",
+        "role": "license"
+      }
+    ]
+  },
+  "ui": {
+    "specVersion": 2,
+    "slots": {
+      "sidebar.header": {
+        "children": [
+          {
+            "type": "row",
+            "gap": 10,
+            "align": "center",
+            "justify": "start",
+            "children": [
+              {
+                "type": "image",
+                "src": "asset://images/logo.png",
+                "width": 30,
+                "height": 30,
+                "shape": "square",
+                "fit": "contain",
+                "filter": "nearest"
+              },
+              {
+                "type": "column",
+                "gap": 0,
+                "align": "start",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "OBSIDIAN",
+                    "size": "lg",
+                    "weight": "bold",
+                    "color": "@primary",
+                    "family": "Silkscreen",
+                    "letterSpacing": 1.5,
+                    "uppercase": true,
+                    "maxLines": 1
+                  },
+                  {
+                    "type": "text",
+                    "text": "BYOMM PLAYER",
+                    "size": "xs",
+                    "color": "@mutedForeground",
+                    "family": "Silkscreen",
+                    "letterSpacing": 1.0,
+                    "uppercase": true,
+                    "maxLines": 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "sidebar.nav.before": {
+        "children": [
+          {
+            "type": "text",
+            "text": "NAVIGATE",
+            "size": "xs",
+            "color": "@mutedForeground",
+            "family": "Silkscreen",
+            "letterSpacing": 1.5,
+            "uppercase": true
+          }
+        ]
+      },
+      "sidebar.library.before": {
+        "children": [
+          {
+            "type": "column",
+            "gap": 6,
+            "children": [
+              {
+                "type": "text",
+                "text": "COLLECTION",
+                "size": "xs",
+                "color": "@mutedForeground",
+                "family": "Silkscreen",
+                "letterSpacing": 1.5,
+                "uppercase": true
+              },
+              {
+                "type": "divider",
+                "orientation": "horizontal",
+                "thickness": 1,
+                "color": "@border"
+              }
+            ]
+          }
+        ]
+      },
+      "sidebar.footer": {
+        "children": [
+          {
+            "type": "column",
+            "gap": 8,
+            "children": [
+              {
+                "type": "divider",
+                "orientation": "horizontal",
+                "thickness": 1,
+                "color": "@border"
+              },
+              {
+                "type": "button",
+                "label": "Settings",
+                "icon": "settings",
+                "variant": "ghost",
+                "size": "small",
+                "action": {
+                  "type": "openSettings"
+                }
+              },
+              {
+                "type": "button",
+                "label": "Credits",
+                "icon": "library",
+                "variant": "ghost",
+                "size": "small",
+                "action": {
+                  "type": "navigate",
+                  "args": {
+                    "target": "screen:colophon"
+                  }
+                }
+              },
+              {
+                "type": "text",
+                "bind": "app.version",
+                "size": "xs",
+                "color": "@mutedForeground",
+                "family": "Silkscreen"
+              }
+            ]
+          }
+        ]
+      },
+      "player.leading": {
+        "children": [
+          {
+            "type": "row",
+            "gap": 10,
+            "align": "center",
+            "children": [
+              {
+                "type": "image",
+                "src": "player.artwork",
+                "width": 40,
+                "height": 40,
+                "shape": "square",
+                "fit": "cover",
+                "filter": "nearest"
+              },
+              {
+                "type": "column",
+                "gap": 2,
+                "align": "start",
+                "children": [
+                  {
+                    "type": "text",
+                    "bind": "player.title",
+                    "size": "small",
+                    "color": "@foreground",
+                    "family": "VT323",
+                    "maxLines": 1,
+                    "overflow": "ellipsis"
+                  },
+                  {
+                    "type": "text",
+                    "bind": "player.artist",
+                    "size": "xs",
+                    "color": "@mutedForeground",
+                    "family": "VT323",
+                    "maxLines": 1,
+                    "overflow": "ellipsis"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "player.controls": {
+        "children": [
+          {
+            "type": "row",
+            "gap": 4,
+            "align": "center",
+            "justify": "center",
+            "children": [
+              {
+                "type": "button",
+                "icon": "shuffle",
+                "variant": "ghost",
+                "size": "small",
+                "action": {
+                  "type": "setShuffle"
+                }
+              },
+              {
+                "type": "button",
+                "icon": "previous",
+                "variant": "ghost",
+                "size": "small",
+                "action": {
+                  "type": "previous"
+                }
+              },
+              {
+                "type": "button",
+                "icon": "play",
+                "variant": "primary",
+                "size": "md",
+                "action": {
+                  "type": "playPause"
+                }
+              },
+              {
+                "type": "button",
+                "icon": "next",
+                "variant": "ghost",
+                "size": "small",
+                "action": {
+                  "type": "next"
+                }
+              },
+              {
+                "type": "button",
+                "icon": "repeat",
+                "variant": "ghost",
+                "size": "small",
+                "action": {
+                  "type": "setLoopMode"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "player.trailing": {
+        "children": [
+          {
+            "type": "row",
+            "gap": 2,
+            "align": "center",
+            "children": [
+              {
+                "type": "button",
+                "icon": "like",
+                "variant": "ghost",
+                "size": "small",
+                "action": {
+                  "type": "like"
+                }
+              },
+              {
+                "type": "button",
+                "icon": "queue",
+                "variant": "ghost",
+                "size": "small",
+                "action": {
+                  "type": "openQueue"
+                }
+              },
+              {
+                "type": "button",
+                "icon": "lyrics",
+                "variant": "ghost",
+                "size": "small",
+                "action": {
+                  "type": "openLyrics"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "stage.center": {
+        "refreshSeconds": 0,
+        "children": [
+          {
+            "type": "animate",
+            "kind": "rotate",
+            "duration": 24000,
+            "curve": "linear",
+            "bind": "player.playing",
+            "reverse": false,
+            "children": [
+              {
+                "type": "card",
+                "padding": 8,
+                "radius": 999,
+                "background": "@card",
+                "borderColor": "@primary",
+                "borderWidth": 3,
+                "opacity": 1,
+                "children": [
+                  {
+                    "type": "stack",
+                    "align": "center",
+                    "fit": "loose",
+                    "children": [
+                      {
+                        "type": "image",
+                        "src": "player.artwork",
+                        "width": 320,
+                        "height": 320,
+                        "radius": 999,
+                        "shape": "circle",
+                        "fit": "cover",
+                        "filter": "nearest"
+                      },
+                      {
+                        "type": "card",
+                        "padding": 12,
+                        "radius": 4,
+                        "background": "#E60B0712",
+                        "borderColor": "@primary",
+                        "borderWidth": 2,
+                        "opacity": 1,
+                        "children": [
+                          {
+                            "type": "column",
+                            "gap": 2,
+                            "align": "center",
+                            "children": [
+                              {
+                                "type": "text",
+                                "bind": "player.title",
+                                "size": "lg",
+                                "weight": "bold",
+                                "color": "#F5F0FF",
+                                "family": "Silkscreen",
+                                "align": "center",
+                                "maxLines": 2,
+                                "overflow": "ellipsis",
+                                "uppercase": true,
+                                "letterSpacing": 0.5
+                              },
+                              {
+                                "type": "text",
+                                "bind": "player.artist",
+                                "size": "md",
+                                "color": "#C4B5FD",
+                                "family": "VT323",
+                                "align": "center",
+                                "maxLines": 1,
+                                "overflow": "ellipsis"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "stage.below": {
+        "children": [
+          {
+            "type": "column",
+            "gap": 10,
+            "align": "center",
+            "children": [
+              {
+                "type": "text",
+                "text": "NOW SPINNING",
+                "size": "xs",
+                "color": "@primary",
+                "family": "Silkscreen",
+                "letterSpacing": 2.0,
+                "uppercase": true,
+                "align": "center"
+              },
+              {
+                "type": "text",
+                "bind": "player.title",
+                "size": "2xl",
+                "weight": "bold",
+                "color": "@foreground",
+                "family": "Silkscreen",
+                "align": "center",
+                "maxLines": 2,
+                "overflow": "ellipsis",
+                "uppercase": true,
+                "letterSpacing": 1.0
+              },
+              {
+                "type": "text",
+                "bind": "player.artist",
+                "size": "md",
+                "color": "@mutedForeground",
+                "family": "VT323",
+                "align": "center",
+                "maxLines": 1,
+                "overflow": "ellipsis"
+              },
+              {
+                "type": "row",
+                "gap": 8,
+                "align": "center",
+                "justify": "center",
+                "children": [
+                  {
+                    "type": "button",
+                    "icon": "shuffle",
+                    "variant": "ghost",
+                    "size": "small",
+                    "action": {
+                      "type": "setShuffle"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "icon": "previous",
+                    "variant": "ghost",
+                    "size": "md",
+                    "action": {
+                      "type": "previous"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "icon": "play",
+                    "variant": "primary",
+                    "size": "lg",
+                    "action": {
+                      "type": "playPause"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "icon": "next",
+                    "variant": "ghost",
+                    "size": "md",
+                    "action": {
+                      "type": "next"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "icon": "repeat",
+                    "variant": "ghost",
+                    "size": "small",
+                    "action": {
+                      "type": "setLoopMode"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "row",
+                "gap": 8,
+                "align": "center",
+                "justify": "center",
+                "children": [
+                  {
+                    "type": "button",
+                    "icon": "like",
+                    "variant": "ghost",
+                    "size": "small",
+                    "action": {
+                      "type": "like"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "icon": "download",
+                    "variant": "ghost",
+                    "size": "small",
+                    "action": {
+                      "type": "download"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "icon": "queue",
+                    "variant": "ghost",
+                    "size": "small",
+                    "action": {
+                      "type": "openQueue"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "icon": "lyrics",
+                    "variant": "ghost",
+                    "size": "small",
+                    "action": {
+                      "type": "openLyrics"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "home.before_sections": {
+        "children": [
+          {
+            "type": "card",
+            "padding": 24,
+            "radius": 0,
+            "background": "@card",
+            "borderColor": "@primary",
+            "borderWidth": 2,
+            "opacity": 1,
+            "children": [
+              {
+                "type": "column",
+                "gap": 14,
+                "align": "start",
+                "children": [
+                  {
+                    "type": "row",
+                    "gap": 14,
+                    "align": "center",
+                    "children": [
+                      {
+                        "type": "image",
+                        "src": "asset://images/logo.png",
+                        "width": 52,
+                        "height": 52,
+                        "shape": "square",
+                        "fit": "contain",
+                        "filter": "nearest"
+                      },
+                      {
+                        "type": "column",
+                        "gap": 2,
+                        "align": "start",
+                        "children": [
+                          {
+                            "type": "text",
+                            "text": "WELCOME TO THE END",
+                            "size": "3xl",
+                            "weight": "bold",
+                            "color": "@primary",
+                            "family": "Silkscreen",
+                            "uppercase": true,
+                            "letterSpacing": 1.0,
+                            "maxLines": 2
+                          },
+                          {
+                            "type": "text",
+                            "text": "A pixel player for the music you own.",
+                            "size": "lg",
+                            "color": "@mutedForeground",
+                            "family": "VT323"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "text": "No telemetry. No ads. Metadata resolved locally, streams from your plugins, and a record that turns while the track plays.",
+                    "size": "md",
+                    "color": "@mutedForeground",
+                    "family": "VT323",
+                    "maxLines": 3
+                  },
+                  {
+                    "type": "row",
+                    "gap": 10,
+                    "align": "center",
+                    "children": [
+                      {
+                        "type": "button",
+                        "label": "Browse library",
+                        "icon": "library",
+                        "variant": "primary",
+                        "size": "md",
+                        "action": {
+                          "type": "navigate",
+                          "args": {
+                            "target": "library"
+                          }
+                        }
+                      },
+                      {
+                        "type": "button",
+                        "label": "Search",
+                        "icon": "search",
+                        "variant": "outline",
+                        "size": "md",
+                        "action": {
+                          "type": "navigate",
+                          "args": {
+                            "target": "search"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "home.after_sections": {
+        "children": [
+          {
+            "type": "row",
+            "justify": "center",
+            "children": [
+              {
+                "type": "text",
+                "text": "OBSIDIAN · BUILT ON SPOTUBE · YOUR LIBRARY, YOUR RULES",
+                "size": "xs",
+                "color": "@mutedForeground",
+                "family": "Silkscreen",
+                "letterSpacing": 1.0,
+                "uppercase": true,
+                "align": "center"
+              }
+            ]
+          }
+        ]
+      },
+      "lyrics.header": {
+        "children": [
+          {
+            "type": "row",
+            "gap": 10,
+            "align": "center",
+            "children": [
+              {
+                "type": "icon",
+                "icon": "lyrics",
+                "size": 22,
+                "color": "@primary"
+              },
+              {
+                "type": "text",
+                "text": "LYRICS",
+                "size": "xl",
+                "weight": "bold",
+                "color": "@foreground",
+                "family": "Silkscreen",
+                "uppercase": true,
+                "letterSpacing": 1.5
+              }
+            ]
+          }
+        ]
+      },
+      "settings.before": {
+        "children": [
+          {
+            "type": "text",
+            "text": "SETTINGS",
+            "size": "2xl",
+            "weight": "bold",
+            "color": "@foreground",
+            "family": "Silkscreen",
+            "uppercase": true,
+            "letterSpacing": 1.5
+          }
+        ]
+      },
+      "settings.after": {
+        "children": [
+          {
+            "type": "text",
+            "text": "Built with the Spotube theme SDK. Everything here is a contract field.",
+            "size": "small",
+            "color": "@mutedForeground",
+            "family": "VT323"
+          }
+        ]
+      }
+    },
+    "screens": {
+      "now-playing": {
+        "title": "Now playing",
+        "showBack": true,
+        "children": [
+          {
+            "type": "column",
+            "gap": 18,
+            "align": "center",
+            "children": [
+              {
+                "type": "animate",
+                "kind": "rotate",
+                "duration": 24000,
+                "curve": "linear",
+                "bind": "player.playing",
+                "reverse": false,
+                "children": [
+                  {
+                    "type": "card",
+                    "padding": 10,
+                    "radius": 999,
+                    "background": "@card",
+                    "borderColor": "@primary",
+                    "borderWidth": 4,
+                    "opacity": 1,
+                    "children": [
+                      {
+                        "type": "stack",
+                        "align": "center",
+                        "fit": "loose",
+                        "children": [
+                          {
+                            "type": "image",
+                            "src": "player.artwork",
+                            "width": 400,
+                            "height": 400,
+                            "radius": 999,
+                            "shape": "circle",
+                            "fit": "cover",
+                            "filter": "nearest"
+                          },
+                          {
+                            "type": "card",
+                            "padding": 14,
+                            "radius": 4,
+                            "background": "#E60B0712",
+                            "borderColor": "@primary",
+                            "borderWidth": 2,
+                            "opacity": 1,
+                            "children": [
+                              {
+                                "type": "column",
+                                "gap": 2,
+                                "align": "center",
+                                "children": [
+                                  {
+                                    "type": "text",
+                                    "bind": "player.title",
+                                    "size": "lg",
+                                    "weight": "bold",
+                                    "color": "#F5F0FF",
+                                    "family": "Silkscreen",
+                                    "align": "center",
+                                    "maxLines": 2,
+                                    "overflow": "ellipsis",
+                                    "uppercase": true
+                                  },
+                                  {
+                                    "type": "text",
+                                    "bind": "player.artist",
+                                    "size": "md",
+                                    "color": "#C4B5FD",
+                                    "family": "VT323",
+                                    "align": "center",
+                                    "maxLines": 1,
+                                    "overflow": "ellipsis"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "bind": "player.title",
+                "size": "2xl",
+                "weight": "bold",
+                "color": "@foreground",
+                "family": "Silkscreen",
+                "align": "center",
+                "maxLines": 2,
+                "overflow": "ellipsis",
+                "uppercase": true,
+                "letterSpacing": 1.0
+              },
+              {
+                "type": "text",
+                "bind": "player.artist",
+                "size": "md",
+                "color": "@mutedForeground",
+                "family": "VT323",
+                "align": "center"
+              },
+              {
+                "type": "row",
+                "gap": 8,
+                "align": "center",
+                "justify": "center",
+                "children": [
+                  {
+                    "type": "button",
+                    "icon": "shuffle",
+                    "variant": "ghost",
+                    "size": "small",
+                    "action": {
+                      "type": "setShuffle"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "icon": "previous",
+                    "variant": "ghost",
+                    "size": "md",
+                    "action": {
+                      "type": "previous"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "icon": "play",
+                    "variant": "primary",
+                    "size": "lg",
+                    "action": {
+                      "type": "playPause"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "icon": "next",
+                    "variant": "ghost",
+                    "size": "md",
+                    "action": {
+                      "type": "next"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "icon": "repeat",
+                    "variant": "ghost",
+                    "size": "small",
+                    "action": {
+                      "type": "setLoopMode"
+                    }
+                  }
+                ]
+              },
+              {
+                "type": "row",
+                "gap": 10,
+                "align": "stretch",
+                "justify": "center",
+                "children": [
+                  {
+                    "type": "card",
+                    "padding": 12,
+                    "radius": 0,
+                    "background": "@card",
+                    "borderColor": "@border",
+                    "borderWidth": 2,
+                    "opacity": 1,
+                    "children": [
+                      {
+                        "type": "column",
+                        "gap": 4,
+                        "align": "start",
+                        "children": [
+                          {
+                            "type": "text",
+                            "text": "ALBUM",
+                            "size": "xs",
+                            "color": "@primary",
+                            "family": "Silkscreen",
+                            "letterSpacing": 1.5,
+                            "uppercase": true
+                          },
+                          {
+                            "type": "text",
+                            "bind": "player.album",
+                            "size": "md",
+                            "color": "@foreground",
+                            "family": "VT323",
+                            "maxLines": 1,
+                            "overflow": "ellipsis"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "card",
+                    "padding": 12,
+                    "radius": 0,
+                    "background": "@card",
+                    "borderColor": "@border",
+                    "borderWidth": 2,
+                    "opacity": 1,
+                    "children": [
+                      {
+                        "type": "column",
+                        "gap": 4,
+                        "align": "start",
+                        "children": [
+                          {
+                            "type": "text",
+                            "text": "LOOP",
+                            "size": "xs",
+                            "color": "@primary",
+                            "family": "Silkscreen",
+                            "letterSpacing": 1.5,
+                            "uppercase": true
+                          },
+                          {
+                            "type": "text",
+                            "bind": "player.loop",
+                            "size": "md",
+                            "color": "@foreground",
+                            "family": "VT323",
+                            "maxLines": 1,
+                            "overflow": "ellipsis"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "card",
+                    "padding": 12,
+                    "radius": 0,
+                    "background": "@card",
+                    "borderColor": "@border",
+                    "borderWidth": 2,
+                    "opacity": 1,
+                    "children": [
+                      {
+                        "type": "column",
+                        "gap": 4,
+                        "align": "start",
+                        "children": [
+                          {
+                            "type": "text",
+                            "text": "VOLUME",
+                            "size": "xs",
+                            "color": "@primary",
+                            "family": "Silkscreen",
+                            "letterSpacing": 1.5,
+                            "uppercase": true
+                          },
+                          {
+                            "type": "text",
+                            "bind": "player.volume",
+                            "size": "md",
+                            "color": "@foreground",
+                            "family": "VT323",
+                            "maxLines": 1,
+                            "overflow": "ellipsis"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "colophon": {
+        "title": "Colophon",
+        "showBack": true,
+        "children": [
+          {
+            "type": "column",
+            "gap": 14,
+            "align": "start",
+            "children": [
+              {
+                "type": "row",
+                "gap": 14,
+                "align": "center",
+                "children": [
+                  {
+                    "type": "image",
+                    "src": "asset://images/logo.png",
+                    "width": 56,
+                    "height": 56,
+                    "shape": "square",
+                    "fit": "contain",
+                    "filter": "nearest"
+                  },
+                  {
+                    "type": "column",
+                    "gap": 2,
+                    "align": "start",
+                    "children": [
+                      {
+                        "type": "text",
+                        "text": "OBSIDIAN",
+                        "size": "2xl",
+                        "weight": "bold",
+                        "color": "@primary",
+                        "family": "Silkscreen",
+                        "uppercase": true,
+                        "letterSpacing": 2.0
+                      },
+                      {
+                        "type": "text",
+                        "text": "theme 1.0.0 · contract v3 · ui 2",
+                        "size": "xs",
+                        "color": "@mutedForeground",
+                        "family": "Silkscreen",
+                        "letterSpacing": 0.5
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "divider",
+                "orientation": "horizontal",
+                "thickness": 2,
+                "color": "@border"
+              },
+              {
+                "type": "text",
+                "text": "TYPE",
+                "size": "xs",
+                "color": "@primary",
+                "family": "Silkscreen",
+                "letterSpacing": 2.0,
+                "uppercase": true
+              },
+              {
+                "type": "text",
+                "text": "Silkscreen by Jason Kottke, SIL Open Font License 1.1.",
+                "size": "md",
+                "color": "@foreground",
+                "family": "VT323"
+              },
+              {
+                "type": "text",
+                "text": "VT323 by Peter Hull, SIL Open Font License 1.1.",
+                "size": "md",
+                "color": "@foreground",
+                "family": "VT323"
+              },
+              {
+                "type": "text",
+                "text": "ART",
+                "size": "xs",
+                "color": "@primary",
+                "family": "Silkscreen",
+                "letterSpacing": 2.0,
+                "uppercase": true
+              },
+              {
+                "type": "text",
+                "text": "Obsidian shards, the block logo and the icon set were drawn in-house, pixel by pixel.",
+                "size": "md",
+                "color": "@foreground",
+                "family": "VT323",
+                "maxLines": 3
+              },
+              {
+                "type": "text",
+                "text": "ENGINE",
+                "size": "xs",
+                "color": "@primary",
+                "family": "Silkscreen",
+                "letterSpacing": 2.0,
+                "uppercase": true
+              },
+              {
+                "type": "text",
+                "text": "Spotube, BYOMM, metadata resolved locally. The record turns while the track plays and holds its angle when it stops.",
+                "size": "md",
+                "color": "@foreground",
+                "family": "VT323",
+                "maxLines": 3
+              },
+              {
+                "type": "divider",
+                "orientation": "horizontal",
+                "thickness": 1,
+                "color": "@border"
+              },
+              {
+                "type": "button",
+                "label": "Back to the stage",
+                "icon": "back",
+                "variant": "primary",
+                "size": "md",
+                "action": {
+                  "type": "navigate",
+                  "args": {
+                    "target": "screen:now-playing"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
