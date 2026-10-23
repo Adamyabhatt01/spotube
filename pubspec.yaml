@@ -164,15 +164,20 @@ dependencies:
   # Have to use the git version due to unresponsive .move() after .add()
   # DEP.2: pinned to the tested commit. The default branch has moved on;
   # floating here would resolve different playback code on clean machines.
+  # Includes 8ce5e0a4 (the next commit, +5 lines): libmpv's wakeup callback is
+  # cleared before the FFI NativeCallable closes. Without it, disposing a
+  # Player (e.g. the radio player on the radio -> music handoff) lets libmpv
+  # invoke the already-closed callback and aborts the process in
+  # DLRT_GetFfiCallbackMetadata on Flutter 3.38.
   media_kit:
     git:
       url: https://github.com/media-kit/media-kit
-      ref: d310049f24196250d876efb02b9ff56fa9ef5068
+      ref: 8ce5e0a497d61181c9f46b53372528e195b3b5ae
       path: media_kit
   media_kit_libs_audio:
     git:
       url: https://github.com/media-kit/media-kit
-      ref: d310049f24196250d876efb02b9ff56fa9ef5068
+      ref: 8ce5e0a497d61181c9f46b53372528e195b3b5ae
       path: libs/universal/media_kit_libs_audio
 
 dev_dependencies:
@@ -248,27 +253,27 @@ dependency_overrides:
   media_kit_libs_android_audio:
     git:
       url: https://github.com/media-kit/media-kit
-      ref: d310049f24196250d876efb02b9ff56fa9ef5068
+      ref: 8ce5e0a497d61181c9f46b53372528e195b3b5ae
       path: libs/android/media_kit_libs_android_audio
   media_kit_libs_ios_audio:
     git:
       url: https://github.com/media-kit/media-kit
-      ref: d310049f24196250d876efb02b9ff56fa9ef5068
+      ref: 8ce5e0a497d61181c9f46b53372528e195b3b5ae
       path: libs/ios/media_kit_libs_ios_audio
   media_kit_libs_macos_audio:
     git:
       url: https://github.com/media-kit/media-kit
-      ref: d310049f24196250d876efb02b9ff56fa9ef5068
+      ref: 8ce5e0a497d61181c9f46b53372528e195b3b5ae
       path: libs/macos/media_kit_libs_macos_audio
   media_kit_libs_windows_audio:
     git:
       url: https://github.com/media-kit/media-kit
-      ref: d310049f24196250d876efb02b9ff56fa9ef5068
+      ref: 8ce5e0a497d61181c9f46b53372528e195b3b5ae
       path: libs/windows/media_kit_libs_windows_audio
   media_kit_libs_linux:
     git:
       url: https://github.com/media-kit/media-kit
-      ref: d310049f24196250d876efb02b9ff56fa9ef5068
+      ref: 8ce5e0a497d61181c9f46b53372528e195b3b5ae
       path: libs/linux/media_kit_libs_linux
 
 flutter:
