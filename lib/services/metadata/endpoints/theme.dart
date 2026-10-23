@@ -52,6 +52,31 @@ class MetadataPluginThemeEndpoint {
     }
   }
 
+  /// The theme's optional answer to a UI action.
+  ///
+  /// A `plugin` action hands an id and a payload to the theme; the theme may
+  /// answer with a replacement UI document. A missing method or a throw is
+  /// an ordinary "nothing to change" and never takes the current UI down.
+  Future<ThemeUiDocument?> onUiAction(
+    String id,
+    Map<String, dynamic> payload,
+  ) async {
+    final theme = _theme;
+    if (theme == null) return null;
+
+    try {
+      final result = await theme.invoke(
+        "onUiAction",
+        positionalArgs: [id, payload],
+      );
+      final json = _jsonMap(result);
+      if (json == null) return null;
+      return parseThemeUiDocument(json);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Hetu struct literals cross the boundary as HTStruct, while values
   /// produced by bindings arrive as plain Dart maps. Accept both so
   /// hand-written static themes work the same as computed ones.

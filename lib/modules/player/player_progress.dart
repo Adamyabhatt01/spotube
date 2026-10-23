@@ -11,6 +11,31 @@ import 'package:spotube/modules/player/use_progress.dart';
 import 'package:spotube/provider/audio_player/querying_track_info.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 
+/// The content width a docked player can use, when it is not full-window.
+///
+/// The seek row has to compute its slider width instead of claiming it with
+/// `Expanded` (shadcn asks a scaffold footer for its intrinsic dimensions, and
+/// the Slider's `LayoutBuilder` cannot answer). `MediaQuery.sizeOf` is the
+/// whole window though, while a docked player sits under the content column
+/// and is narrower by the sidebar. The sidebar supplies its real width here;
+/// the full-width footer keeps using the window.
+class PlayerSeekWidth extends InheritedWidget {
+  final double width;
+
+  const PlayerSeekWidth({
+    required this.width,
+    required super.child,
+    super.key,
+  });
+
+  static double? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<PlayerSeekWidth>()?.width;
+
+  @override
+  bool updateShouldNotify(PlayerSeekWidth oldWidget) =>
+      oldWidget.width != width;
+}
+
 /// Everything a seek row gives up before the bar starts, so the row cannot
 /// overflow: its two labels, its gutters, and the inset the player's card puts
 /// around it.
@@ -93,7 +118,8 @@ class PlayerSeekLine extends StatelessWidget {
         );
 
     if (!inline) {
-      final width = MediaQuery.sizeOf(context).width;
+      final width =
+          PlayerSeekWidth.maybeOf(context) ?? MediaQuery.sizeOf(context).width;
       return Padding(
         padding: EdgeInsets.symmetric(
           horizontal: kProgressRowGutter * scaling,
@@ -159,8 +185,7 @@ class PlayerProgress extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isResolvingActiveTrack =
-        ref.watch(isResolvingActiveTrackProvider);
+    final isResolvingActiveTrack = ref.watch(isResolvingActiveTrackProvider);
 
     final (:bufferProgress, :duration, :position, :progressStatic) =
         useProgress(ref);

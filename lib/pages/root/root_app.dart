@@ -13,6 +13,7 @@ import 'package:spotube/modules/root/spotube_navigation_bar.dart';
 import 'package:spotube/hooks/configurators/use_endless_playback.dart';
 import 'package:spotube/modules/root/use_global_subscriptions.dart';
 import 'package:spotube/modules/theme_background/real_transparency.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 import 'package:spotube/provider/glance/glance.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 
@@ -22,7 +23,6 @@ import 'package:spotube/provider/user_preferences/user_preferences_provider.dart
 /// Without a key that is a teardown, not a move, and `AutoRouter` re-pushes
 /// the level's `initial: true` route: an open page jumps to Home.
 final appRouterSlotKey = GlobalKey(debugLabel: 'app-router-slot');
-
 
 @RoutePage()
 class RootAppPage extends HookConsumerWidget {
@@ -111,8 +111,9 @@ class RootAppPage extends HookConsumerWidget {
           const SpotubeNavigationBar(),
         ],
         floatingFooter: true,
-        backgroundColor:
-            realTransparent ? Colors.transparent : (insetChrome ? context.chromeInkColor : null),
+        backgroundColor: realTransparent
+            ? Colors.transparent
+            : (insetChrome ? context.chromeInkColor : null),
         child: !insetChrome
             ? content
             : Padding(
@@ -130,6 +131,6 @@ class RootAppPage extends HookConsumerWidget {
       ),
     );
 
-    return scaffold;
+    return ThemeUiScreenHost(child: scaffold);
   }
 }

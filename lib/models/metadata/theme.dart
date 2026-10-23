@@ -12,9 +12,7 @@ class ThemeDefinition with _$ThemeDefinition {
     /// The version describes the *payload*, not what the app can do: a host
     /// reads the fields it knows and ignores the rest, so a v3 theme still
     /// works on a v2 host (it draws as its two colour schemes there).
-    @Default(2)
-    int specVersion,
-
+    @Default(2) int specVersion,
     required ThemeColors light,
     required ThemeColors dark,
     @Default(ThemeSurfaces()) ThemeSurfaces surfaces,
@@ -24,6 +22,19 @@ class ThemeDefinition with _$ThemeDefinition {
     @Default(ThemeTokens()) ThemeTokens tokens,
     @Default(ThemeLayout()) ThemeLayout layout,
     @JsonKey(name: 'dynamic') DynamicTheme? dynamicTheme,
+
+    /// The v3 presentation blocks. They stay as contract-owned maps at this
+    /// layer, like UI nodes: the renderer reads the keys it knows and clamps
+    /// every number it uses, so a newer theme can add a key without a host
+    /// model change, and a malformed key cannot take the palette down.
+    @Default({}) Map<String, dynamic> typography,
+    @Default({}) Map<String, dynamic> spacing,
+    @Default({}) Map<String, dynamic> motion,
+    @Default({}) Map<String, dynamic> scale,
+    @Default({}) Map<String, dynamic> icons,
+    @Default({}) Map<String, dynamic> components,
+    @Default({}) Map<String, dynamic> branding,
+    @Default({}) Map<String, dynamic> assets,
 
     /// The declarative UI tree a theme may carry inline in `getTheme()`.
     ///
@@ -70,10 +81,62 @@ class ThemeLayout with _$ThemeLayout {
     @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
     @Default(ThemeProgress.inlinePlacement)
     ThemeProgress progress,
+
+    /// The player's own shape. `stage` makes the player the centre of the
+    /// app (the theme fills `stage.center`/`stage.below`); the other values
+    /// keep the host's footer player.
+    @Default(ThemePlayerLayout()) ThemePlayerLayout player,
+
+    /// Layout fields the theme takes over even when the user chose otherwise.
+    /// The host only acts on fields it understands.
+    @Default([]) List<String> enforce,
+
+    /// The navigation entries and library entries the theme wants the host
+    /// to show, in order. Kept raw so a theme can add a future entry without
+    /// a model release; the host filters to the ids it implements.
+    @Default([]) List<String> navItems,
+    @Default([]) List<String> libraryItems,
+
+    /// Home/settings section order and composition, as contract-owned maps.
+    @Default({}) Map<String, dynamic> home,
+    @Default({}) Map<String, dynamic> settings,
+
+    /// Window title-bar geometry and back-control preference.
+    @Default({}) Map<String, dynamic> titlebar,
+
+    /// Launch splash logo/text, resolved through the theme's own assets.
+    @Default({}) Map<String, dynamic> splash,
+
+    /// Breakpoint-specific overrides (`compact`, `medium`, ...).
+    @Default({}) Map<String, dynamic> responsive,
   }) = _ThemeLayout;
 
   factory ThemeLayout.fromJson(Map<String, dynamic> json) =>
       _$ThemeLayoutFromJson(json);
+}
+
+@freezed
+class ThemePlayerLayout with _$ThemePlayerLayout {
+  const factory ThemePlayerLayout({
+    @JsonKey(unknownEnumValue: ThemePlayerDock.full)
+    @Default(ThemePlayerDock.full)
+    ThemePlayerDock dock,
+    @Default(true) bool showTrackDetails,
+    @Default(true) bool showActions,
+    @Default(true) bool showVolume,
+    @Default(true) bool showLyrics,
+    @Default(true) bool showProgress,
+  }) = _ThemePlayerLayout;
+
+  factory ThemePlayerLayout.fromJson(Map<String, dynamic> json) =>
+      _$ThemePlayerLayoutFromJson(json);
+}
+
+enum ThemePlayerDock {
+  full,
+  compact,
+  floating,
+  stage,
 }
 
 enum ThemeChrome {
@@ -280,8 +343,7 @@ class ThemeBackground with _$ThemeBackground {
 /// Lenient tri-state decode for [ThemeBackground.transparent]: only a real
 /// JSON bool carries an opinion; everything else (absent, null, strings,
 /// numbers) defers to the host setting.
-bool? _transparentFromJson(dynamic value) =>
-    value is bool ? value : null;
+bool? _transparentFromJson(dynamic value) => value is bool ? value : null;
 
 enum ThemeBackgroundSource {
   none,
@@ -334,8 +396,8 @@ enum DynamicThemeAlgorithm {
 class ThemeUiDocument with _$ThemeUiDocument {
   const factory ThemeUiDocument({
     @Default(1) int specVersion,
-    @Default(<String, ThemeUiSlot>{}) Map<String, ThemeUiSlot> slots,
-    @Default(<String, ThemeUiScreen>{}) Map<String, ThemeUiScreen> screens,
+    @Default({}) Map<String, ThemeUiSlot> slots,
+    @Default({}) Map<String, ThemeUiScreen> screens,
     @Default(<String, ThemeUiTemplate>{})
     Map<String, ThemeUiTemplate> templates,
   }) = _ThemeUiDocument;
@@ -348,8 +410,7 @@ class ThemeUiDocument with _$ThemeUiDocument {
 @freezed
 class ThemeUiSlot with _$ThemeUiSlot {
   const factory ThemeUiSlot({
-    @Default(<Map<String, dynamic>>[])
-    List<Map<String, dynamic>> children,
+    @Default([]) List<Map<String, dynamic>> children,
 
     /// How often the host may refresh data-bound children in this slot.
     /// Zero means "on state changes only".
@@ -366,8 +427,7 @@ class ThemeUiScreen with _$ThemeUiScreen {
   const factory ThemeUiScreen({
     String? title,
     @Default(false) bool showBack,
-    @Default(<Map<String, dynamic>>[])
-    List<Map<String, dynamic>> children,
+    @Default([]) List<Map<String, dynamic>> children,
   }) = _ThemeUiScreen;
 
   factory ThemeUiScreen.fromJson(Map<String, dynamic> json) =>
@@ -378,9 +438,8 @@ class ThemeUiScreen with _$ThemeUiScreen {
 @freezed
 class ThemeUiTemplate with _$ThemeUiTemplate {
   const factory ThemeUiTemplate({
-    @Default(<String>[]) List<String> params,
-    @Default(<Map<String, dynamic>>[])
-    List<Map<String, dynamic>> children,
+    @Default([]) List<String> params,
+    @Default([]) List<Map<String, dynamic>> children,
   }) = _ThemeUiTemplate;
 
   factory ThemeUiTemplate.fromJson(Map<String, dynamic> json) =>
@@ -403,4 +462,3 @@ ThemeUiDocument? _themeUiFromJson(dynamic value) {
   if (value is! Map) return null;
   return parseThemeUiDocument(value.cast<String, dynamic>());
 }
-

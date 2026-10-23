@@ -36,6 +36,7 @@ import 'package:spotube/modules/theme_background/theme_background_scope.dart';
 import 'package:spotube/services/theme_definition_cache.dart';
 import 'package:spotube/modules/settings/color_scheme_picker_dialog.dart';
 import 'package:spotube/modules/splash/splash_screen.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_assets.dart';
 import 'package:spotube/modules/splash/splash_prefs.dart';
 import 'package:spotube/modules/theme_surfaces/theme_surfaces_scope.dart';
 import 'package:spotube/provider/audio_player/audio_player_streams.dart';
@@ -174,10 +175,9 @@ Future<void> _initDeferredServices(WidgetRef ref) async {
       final storedPath = KVStoreService.getYoutubeEnginePath(
         YoutubeClientEngine.ytDlp,
       );
-      final customPath =
-          storedPath != null && await File(storedPath).exists()
-              ? storedPath
-              : null;
+      final customPath = storedPath != null && await File(storedPath).exists()
+          ? storedPath
+          : null;
       final binaryPath = customPath ??
           await YtDlpEngine.resolveBinaryPath() ??
           "yt-dlp${kIsWindows ? '.exe' : ''}";
@@ -672,15 +672,15 @@ class Spotube extends HookConsumerWidget {
     // every `Theme.of` consumer in the app. These derivations are memoized on the
     // plugin theme (a freezed value) so a theme only changes when it changed.
     final builtInLightScheme = useMemoized(
-      () => colorSchemeMap[accentMaterialColor.name]
-              ?.call(ThemeMode.light) ??
+      () =>
+          colorSchemeMap[accentMaterialColor.name]?.call(ThemeMode.light) ??
           LegacyColorSchemes.lightSlate(),
       [accentMaterialColor.name],
     );
 
     final builtInDarkScheme = useMemoized(
-      () => colorSchemeMap[accentMaterialColor.name]
-              ?.call(ThemeMode.dark) ??
+      () =>
+          colorSchemeMap[accentMaterialColor.name]?.call(ThemeMode.dark) ??
           LegacyColorSchemes.darkSlate(),
       [accentMaterialColor.name],
     );
@@ -807,6 +807,39 @@ class Spotube extends HookConsumerWidget {
       [materialBrightness],
     );
 
+    final themeAssets = ref.watch(themeUiAssetsProvider).asData?.value;
+    final splashSpec = pluginTheme?.layout.splash;
+    final rawSplashLogo = splashSpec?['logo'];
+    final themeSplashLogo =
+        rawSplashLogo is String ? themeAssets?.resolve(rawSplashLogo) : null;
+    final rawSplashText = splashSpec?['text'];
+    final splashText = rawSplashText is String &&
+            rawSplashText.trim().isNotEmpty &&
+            rawSplashText.trim().length <= 40
+        ? rawSplashText.trim()
+        : null;
+    final branding = pluginTheme?.branding;
+    final rawTitle = branding?['windowTitle'] ?? branding?['appName'];
+    final appTitle = rawTitle is String &&
+            rawTitle.trim().isNotEmpty &&
+            rawTitle.trim().length <= 80
+        ? rawTitle.trim()
+        : 'Spotube';
+
+    // The GTK shell starts with its own "spotube" title; MaterialApp's title
+    // only reaches the task switcher. Set the actual window title too so a
+    // theme's `branding.windowTitle` is visible in the compositor.
+    useEffect(() {
+      if (kIsDesktop) {
+        // MaterialApp's own Title updates the platform title during build;
+        // call after that frame so the theme's title wins the race.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          unawaited(windowManager.setTitle(appTitle));
+        });
+      }
+      return null;
+    }, [appTitle]);
+
     // `ShadcnLayer` resolves light/dark with the same predicate
     // (`themeMode == dark || (system && platformBrightness == dark)`), which is
     // what `materialBrightness` above already computed, so handing it to the
@@ -824,8 +857,9 @@ class Spotube extends HookConsumerWidget {
         animation: prefs?.animation ?? SplashAnimation.fade,
         duration: prefs?.duration ?? const Duration(milliseconds: 900),
         useThemedBackground: prefs?.useThemedBackground ?? true,
-        logoPath: prefs?.logoPath,
+        logoPath: prefs?.logoPath ?? themeSplashLogo?.path,
         backgroundPath: prefs?.backgroundPath,
+        brandText: splashText,
       );
     }
 
@@ -840,7 +874,7 @@ class Spotube extends HookConsumerWidget {
       ],
       routerConfig: router.config(),
       debugShowCheckedModeBanner: false,
-      title: 'Spotube',
+      title: appTitle,
       builder: (context, child) {
         child = ScrollConfiguration(
           behavior: ScrollConfiguration.of(context).copyWith(

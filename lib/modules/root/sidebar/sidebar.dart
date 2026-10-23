@@ -12,6 +12,7 @@ import 'package:spotube/models/radio/radio_station.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
+import 'package:spotube/modules/player/player_progress.dart';
 import 'package:spotube/modules/root/bottom_player.dart';
 import 'package:spotube/modules/theme_background/theme_background_image_provider.dart';
 import 'package:spotube/modules/theme_background/real_transparency.dart';
@@ -21,6 +22,7 @@ import 'package:spotube/modules/root/sidebar/sidebar_pin_tile.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_reorderable_item.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_station_pin_tile.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_visibility.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
@@ -166,6 +168,16 @@ class Sidebar extends HookConsumerWidget {
     if (!sidebarVisibleOf(context, layoutMode)) return child;
 
     final showLabels = mediaQuery.lgAndUp && !context.iconOnlyNav;
+    // A labelled sidebar is a fixed-width rail. Without this bound the
+    // enclosing Row hands the column unbounded width; shadcn's
+    // NavigationSidebar caps itself at 200, but a theme header that fills
+    // the available width would then try to lay out at infinity.
+    final labelSidebarWidth = 200.0 * Theme.of(context).scaling;
+    final hasThemeHeader = themeUiSlotExists(ref, 'sidebar.header');
+    final hasThemeNavBefore = themeUiSlotExists(ref, 'sidebar.nav.before');
+    final hasThemeLibraryBefore =
+        themeUiSlotExists(ref, 'sidebar.library.before');
+    final hasThemeFooter = themeUiSlotExists(ref, 'sidebar.footer');
 
     final visiblePins =
         showLabels ? pinnedTiles : pinnedTiles.take(_maxRailPins).toList();
@@ -197,19 +209,20 @@ class Sidebar extends HookConsumerWidget {
     );
 
     final List<NavigationBarItem> navigationButtons = [
-      NavigationLabel(
-        child: showLabels
-            ? DefaultTextStyle(
-                style: TextStyle(
-                  fontFamily: "Cookie",
-                  fontSize: 30,
-                  letterSpacing: 1.8,
-                  color: colorScheme.foreground,
-                ),
-                child: const Text("Spotube"),
-              )
-            : const Text(""),
-      ),
+      if (!(hasThemeHeader && showLabels))
+        NavigationLabel(
+          child: showLabels
+              ? DefaultTextStyle(
+                  style: TextStyle(
+                    fontFamily: "Cookie",
+                    fontSize: 30,
+                    letterSpacing: 1.8,
+                    color: colorScheme.foreground,
+                  ),
+                  child: const Text("Spotube"),
+                )
+              : const Text(""),
+        ),
       for (final tile in sidebarTileList)
         NavigationButton(
           style: router.currentPath.startsWith(tile.pathPrefix)
@@ -225,7 +238,10 @@ class Sidebar extends HookConsumerWidget {
           },
         ),
       const NavigationDivider(),
-      if (showLabels) NavigationLabel(child: Text(context.l10n.library)),
+      if (showLabels && hasThemeLibraryBefore)
+        const _ThemeSlotNavigationItem('sidebar.library.before')
+      else if (showLabels)
+        NavigationLabel(child: Text(context.l10n.library)),
       for (final tile in orderedLibraryTiles)
         SidebarReorderableItem(
           key: ValueKey('lib:${tile.id}'),
@@ -435,53 +451,81 @@ class Sidebar extends HookConsumerWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          children: [
-            Expanded(
-              child: showLabels
-                  // shadcn's pinned sidebar labels (NavigationLabel's
-                  // SliverPersistentHeader delegate) paint
-                  // `colorScheme.background` behind themselves, which is opaque
-                  // and punches a solid band across the backdrop at every group
-                  // heading. Transparent in this subtree only, and only while
-                  // a backdrop is actually being painted: with no shell glass
-                  // underneath, that band is the heading's real background.
-                  // The header still hides rows scrolled under it because it is
-                  // pinned over the backdrop layer, not over app content.
-                  ? transparentGround
-                      ? Theme(
-                          data: Theme.of(context).copyWith(
-                            colorScheme: () => colorScheme.copyWith(
-                              background: () => Colors.transparent,
+        SizedBox(
+          width: showLabels ? labelSidebarWidth : null,
+          child: Column(
+            children: [
+              if (showLabels && hasThemeHeader)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 14, 16, 2),
+                  child: ThemeSlot(
+                    'sidebar.header',
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  ),
+                ),
+              if (showLabels && hasThemeNavBefore)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  child: ThemeSlot(
+                    'sidebar.nav.before',
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  ),
+                ),
+              Expanded(
+                child: showLabels
+                    // shadcn's pinned sidebar labels (NavigationLabel's
+                    // SliverPersistentHeader delegate) paint
+                    // `colorScheme.background` behind themselves, which is opaque
+                    // and punches a solid band across the backdrop at every group
+                    // heading. Transparent in this subtree only, and only while
+                    // a backdrop is actually being painted: with no shell glass
+                    // underneath, that band is the heading's real background.
+                    // The header still hides rows scrolled under it because it is
+                    // pinned over the backdrop layer, not over app content.
+                    ? transparentGround
+                        ? Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: () => colorScheme.copyWith(
+                                background: () => Colors.transparent,
+                              ),
                             ),
-                          ),
-                          child: navigationSidebar,
-                        )
-                      : navigationSidebar
-                  : NavigationRail(
-                      // Opaque `background` by default (shadcn fills
-                      // `colorScheme.background`); transparent with the
-                      // ground, same as the label band above.
-                      backgroundColor:
-                          transparentGround ? Colors.transparent : null,
-                      alignment: NavigationRailAlignment.start,
-                      index: selectedIndex,
-                      onSelected: (index) {
-                        final tile = tileList[index];
-                        context.navigateTo(tile.route);
-                      },
-                      children: navigationButtons,
-                    ),
-            ),
-            SidebarFooter(compact: !showLabels),
-            Gap(
-              sidebarBottomClearanceOf(
-                context,
-                playerVisible: bottomPlayerVisibleOf(context, layoutMode),
-                dock: playerDock,
+                            child: navigationSidebar,
+                          )
+                        : navigationSidebar
+                    : NavigationRail(
+                        // Opaque `background` by default (shadcn fills
+                        // `colorScheme.background`); transparent with the
+                        // ground, same as the label band above.
+                        backgroundColor:
+                            transparentGround ? Colors.transparent : null,
+                        alignment: NavigationRailAlignment.start,
+                        index: selectedIndex,
+                        onSelected: (index) {
+                          final tile = tileList[index];
+                          context.navigateTo(tile.route);
+                        },
+                        children: navigationButtons,
+                      ),
               ),
-            ),
-          ],
+              if (showLabels && hasThemeFooter)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(12, 0, 12, 4),
+                  child: ThemeSlot(
+                    'sidebar.footer',
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  ),
+                )
+              else
+                SidebarFooter(compact: !showLabels),
+              Gap(
+                sidebarBottomClearanceOf(
+                  context,
+                  playerVisible: bottomPlayerVisibleOf(context, layoutMode),
+                  dock: playerDock,
+                ),
+              ),
+            ],
+          ),
         ),
         const VerticalDivider(),
         Expanded(
@@ -490,11 +534,41 @@ class Sidebar extends HookConsumerWidget {
               : Column(
                   children: [
                     Expanded(child: child),
-                    contentFooter!,
+                    LayoutBuilder(
+                      builder: (context, constraints) => PlayerSeekWidth(
+                        width: constraints.maxWidth,
+                        child: contentFooter!,
+                      ),
+                    ),
                   ],
                 ),
         ),
       ],
+    );
+  }
+}
+
+/// A theme slot in the sidebar's sliver list. Only used in the labelled
+/// sidebar, where [NavigationSidebar] lays every child out as a sliver.
+class _ThemeSlotNavigationItem extends StatelessWidget
+    implements NavigationBarItem {
+  final String name;
+
+  const _ThemeSlotNavigationItem(this.name);
+
+  @override
+  bool get selectable => false;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: ThemeSlot(
+          name,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+        ),
+      ),
     );
   }
 }

@@ -26,6 +26,8 @@ import 'package:spotube/provider/radio/radio_playback.dart';
 import 'package:spotube/modules/player/radio/radio_player_bar.dart';
 import 'package:spotube/modules/player/radio/radio_player_overlay.dart';
 import 'package:spotube/modules/theme_background/real_transparency.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
+import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 
 class BottomPlayer extends HookConsumerWidget {
   const BottomPlayer({super.key});
@@ -40,6 +42,21 @@ class BottomPlayer extends HookConsumerWidget {
     // swaps to radio content. Everything below stays the untouched music tree.
     final isRadio =
         ref.watch(radioPlaybackControllerProvider.select((s) => s.isRadio));
+    final playerLayout =
+        ref.watch(themeDefinitionProvider).asData?.value?.layout.player ??
+            const ThemePlayerLayout();
+    final hasThemeLeading = themeUiSlotExists(ref, 'player.leading');
+    final hasThemeControls = themeUiSlotExists(ref, 'player.controls');
+    final hasThemeTrailing = themeUiSlotExists(ref, 'player.trailing');
+    final hasThemeProgress = themeUiSlotExists(ref, 'player.progress');
+
+    // The window breakpoint is not the player's breakpoint: a docked player
+    // can be only ~700px wide at a 900px window. Volume is the widest optional
+    // control, so drop it before the row has to overflow. The full-width
+    // footer has no width scope and falls back to the window width.
+    final playerWidth =
+        PlayerSeekWidth.maybeOf(context) ?? MediaQuery.sizeOf(context).width;
+    final showVolume = playerLayout.showVolume && playerWidth >= 800;
 
     String albumArt = useMemoized(
       () => activeTrack?.album.images.isNotEmpty == true
@@ -73,38 +90,59 @@ class BottomPlayer extends HookConsumerWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
-          child: PlayerTrackDetails(track: activeTrack),
+          child: hasThemeLeading
+              ? const ThemeSlot('player.leading')
+              : playerLayout.showTrackDetails
+                  ? PlayerTrackDetails(track: activeTrack)
+                  : const SizedBox.shrink(),
         ),
         // controls
         Flexible(
           flex: 3,
           child: Padding(
             padding: const EdgeInsets.only(top: 5),
-            child: PlayerControls(progressInline: !progressBelow),
+            child: hasThemeControls
+                ? const ThemeSlot(
+                    'player.controls',
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                  )
+                : PlayerControls(progressInline: !progressBelow),
           ),
         ),
         // add to saved tracks
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            PlayerActions(
-              extraActions: [
-                Tooltip(
-                  tooltip:
-                      TooltipContainer(child: Text(context.l10n.lyrics)).call,
-                  child: IconButton(
-                    variance: ButtonVariance.ghost,
-                    icon: const Icon(SpotubeIcons.lyrics),
-                    onPressed: activeTrack != null
-                        ? () => context.navigateTo(const LyricsRoute())
-                        : null,
-                  ),
+        if (hasThemeTrailing)
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const ThemeSlot('player.trailing'),
+              if (showVolume) const BottomPlayerVolume(),
+            ],
+          )
+        else if (playerLayout.showActions || showVolume)
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (playerLayout.showActions)
+                PlayerActions(
+                  extraActions: [
+                    if (playerLayout.showLyrics)
+                      Tooltip(
+                        tooltip: TooltipContainer(
+                          child: Text(context.l10n.lyrics),
+                        ).call,
+                        child: IconButton(
+                          variance: ButtonVariance.ghost,
+                          icon: const Icon(SpotubeIcons.lyrics),
+                          onPressed: activeTrack != null
+                              ? () => context.navigateTo(const LyricsRoute())
+                              : null,
+                        ),
+                      ),
+                  ],
                 ),
-              ],
-            ),
-            const BottomPlayerVolume()
-          ],
-        ),
+              if (showVolume) const BottomPlayerVolume(),
+            ],
+          ),
       ],
     );
 
@@ -120,15 +158,25 @@ class BottomPlayer extends HookConsumerWidget {
       // `filled`, so both flip together).
       filled: realTransparent ? true : null,
       fillColor: realTransparent ? Colors.transparent : null,
-      child: !progressBelow
+      child: !playerLayout.showProgress
           ? bar
-          : Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                bar,
-                const PlayerProgress(inline: false),
-              ],
-            ),
+          : hasThemeProgress
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    bar,
+                    const ThemeSlot('player.progress'),
+                  ],
+                )
+              : !progressBelow
+                  ? bar
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        bar,
+                        const PlayerProgress(inline: false),
+                      ],
+                    ),
     );
   }
 }

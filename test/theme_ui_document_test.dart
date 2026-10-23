@@ -54,7 +54,7 @@ void main() {
       final ui = definition!.ui;
       expect(ui, isNotNull);
       expect(ui!.specVersion, 2);
-      expect(ui.slots, hasLength(14));
+      expect(ui.slots, hasLength(15));
       expect(ui.screens.keys, containsAll(<String>['now-playing', 'colophon']));
       expect(ui.templates, isEmpty);
 
@@ -124,7 +124,7 @@ void main() {
           ThemeDefinition.fromJson(definition.toJson());
 
       expect(roundTripped.ui, isNotNull);
-      expect(roundTripped.ui!.slots, hasLength(14));
+      expect(roundTripped.ui!.slots, hasLength(15));
       expect(
         roundTripped.ui!.slots['stage.center']!.children.first['type'],
         'animate',

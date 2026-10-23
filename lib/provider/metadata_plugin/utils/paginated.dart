@@ -409,6 +409,10 @@ mixin SavedListCacheMixin<K>
   /// says this is not there" from "we could not ask" — two very different
   /// answers.
   Future<List<K>?> refresh({bool forceFullWalk = false}) async {
+    // Reuse the plugin future captured by build; only a notifier that never
+    // built (a test fake) has to read it here. This call can run against an
+    // already-invalidated notifier, where a fresh read is an assertion.
+    primeMetadataPlugin();
     _lastRefreshWasDiscarded = false;
 
     if (_refreshing) {
@@ -440,8 +444,7 @@ mixin SavedListCacheMixin<K>
         networkItems = probe.items.cast<K>();
         complete = true;
       } else if (refreshAllPages &&
-          (forceFullWalk ||
-              _libraryChanged(probe, before, previousTotal))) {
+          (forceFullWalk || _libraryChanged(probe, before, previousTotal))) {
         // The library changed, and the row that changed may sit past the
         // first page: Spotify appends a new playlist to the *end* of the
         // library, so the rest has to be read too.
@@ -569,6 +572,11 @@ mixin SavedListCacheMixin<K>
   Future<SpotubePaginationResponseObject<K>> buildSavedList({
     Duration cooldown = rateLimitRetryCooldown,
   }) async {
+    // A warm build awaits the snapshot before its network probe. Prime the
+    // plugin first so that probe still has a valid dependency if the list is
+    // rebuilt while it is in flight.
+    primeMetadataPlugin(force: true);
+
     // A build that is replaced fires its own `onDispose` callbacks, so the
     // flag has to be cleared for the build that replaces it.
     //

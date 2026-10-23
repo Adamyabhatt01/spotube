@@ -43,6 +43,7 @@ class ThemeBackgroundLayer extends ConsumerWidget {
     // 256px window band instead of a re-decode per pixel of resizing.
     final side = quantizeBackdropSide(MediaQuery.sizeOf(context).longestSide);
     final image = ref.watch(themeBackgroundImageProvider(side));
+    final assetFile = ref.watch(themeBackgroundAssetFileProvider);
     // A BackdropFilter re-blurs everything behind it on every frame the
     // content moves; while scrolling the frost is skipped and restored when
     // the content settles. Sigma, overlay and opacity at rest are unchanged.
@@ -75,50 +76,102 @@ class ThemeBackgroundLayer extends ConsumerWidget {
       return ColoredBox(color: overlay);
     }
 
-    if (background == null ||
-        background.source == ThemeBackgroundSource.none ||
+    if (background == null) return const SizedBox.shrink();
+    final isAsset = background.source == ThemeBackgroundSource.asset;
+
+    if (isAsset) {
+      if (assetFile == null) return const SizedBox.shrink();
+    } else if (background.source == ThemeBackgroundSource.none ||
         image == null) {
       return const SizedBox.shrink();
     }
 
-    return Opacity(
-      opacity: background.opacity,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Image(
-              image: image,
-              fit: BoxFit.cover,
-              // Keep the previous wallpaper until the new one decodes: a
-              // wallpaper switch would otherwise blank the ground for the
-              // decode duration (raw desktop flashing through unveiled).
-              gaplessPlayback: true,
-              // The file can vanish between the source stat and the
-              // async decode (wallpaper rotation). Degrade to empty.
-              errorBuilder: (context, error, stackTrace) =>
-                  const SizedBox.shrink(),
+    final Widget ground;
+    if (isAsset) {
+      final provider = FileImage(assetFile!);
+      final scale = background.scale.clamp(1, 8);
+      if (background.tile) {
+        // Pixel-art tiles are magnified by whole integers and repeated, not
+        // stretched: a 32px shard stays a 32px shard at 4x instead of
+        // becoming a blurry crop. `DecorationImage.scale` is a divisor, so
+        // 1/4 turns each source pixel into four logical pixels.
+        ground = DecoratedBox(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: provider,
+              repeat: ImageRepeat.repeat,
+              fit: BoxFit.none,
+              scale: 1 / scale,
+              filterQuality: FilterQuality.none,
             ),
           ),
-          if (background.blur > 0)
-            Positioned.fill(
-              child: BackdropFilter(
-                // Frozen while scrolling: sigma 0 draws plain until the
-                // content settles, instead of re-blurring every frame.
-                // Same convention as the nav-bar/chrome frost.
-                filter: ImageFilter.blur(
-                  sigmaX: blurFrozen ? 0 : background.blur,
-                  sigmaY: blurFrozen ? 0 : background.blur,
-                ),
-                // Sized-expand only sizes the filter region; using a
-                // Container(color:) here would add a ColoredBox that the
-                // overlay check below could mistake for an overlay.
-                child: const SizedBox.expand(),
-              ),
+        );
+      } else {
+        ground = Image(
+          image: provider,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.none,
+          gaplessPlayback: true,
+          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+        );
+      }
+    } else {
+      ground = Image(
+        image: image!,
+        fit: BoxFit.cover,
+        // Keep the previous wallpaper until the new one decodes: a
+        // wallpaper switch would otherwise blank the ground for the
+        // decode duration (raw desktop flashing through unveiled).
+        gaplessPlayback: true,
+        // The file can vanish between the source stat and the async decode
+        // (wallpaper rotation). Degrade to empty.
+        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+      );
+    }
+
+    return Stack(
+      children: [
+        // A theme asset can be a transparent pixel overlay (the obsidian
+        // shard is mostly alpha). Paint the theme's ground beneath it: the
+        // Linux window itself has an alpha channel, so leaving this empty
+        // would show the desktop wallpaper rather than the theme's black.
+        // Real transparency already returned above, where the compositor is
+        // the intended ground.
+        if (isAsset)
+          Positioned.fill(
+            child: ColoredBox(
+              color: Theme.of(context).colorScheme.surface,
             ),
-          if (overlay != null)
-            Positioned.fill(child: ColoredBox(color: overlay)),
-        ],
-      ),
+          ),
+        Positioned.fill(
+          child: Opacity(
+            opacity: background.opacity,
+            child: Stack(
+              children: [
+                Positioned.fill(child: ground),
+                if (background.blur > 0)
+                  Positioned.fill(
+                    child: BackdropFilter(
+                      // Frozen while scrolling: sigma 0 draws plain until the
+                      // content settles, instead of re-blurring every frame.
+                      // Same convention as the nav-bar/chrome frost.
+                      filter: ImageFilter.blur(
+                        sigmaX: blurFrozen ? 0 : background.blur,
+                        sigmaY: blurFrozen ? 0 : background.blur,
+                      ),
+                      // Sized-expand only sizes the filter region; using a
+                      // Container(color:) here would add a ColoredBox that the
+                      // overlay check below could mistake for an overlay.
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+                if (overlay != null)
+                  Positioned.fill(child: ColoredBox(color: overlay)),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

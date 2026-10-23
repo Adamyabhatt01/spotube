@@ -33,8 +33,7 @@ class SidebarStationPinTile extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final station =
-        ref.watch(pinnedStationProvider(favoriteKey)).asData?.value;
+    final station = ref.watch(pinnedStationProvider(favoriteKey)).asData?.value;
     final hovered = useState(false);
 
     if (station == null) return const SizedBox.shrink();
@@ -67,7 +66,9 @@ class SidebarStationPinTile extends HookConsumerWidget {
           ? const ButtonStyle.secondary()
           : (showLabels ? const ButtonStyle.ghost() : null),
       alignment: showLabels ? AlignmentDirectional.centerStart : null,
-      label: showLabels ? Text(station.name) : null,
+      label: showLabels
+          ? Text(station.name, maxLines: 1, overflow: TextOverflow.ellipsis)
+          : null,
       onPressed: onTap,
       child: Tooltip(
         tooltip: TooltipContainer(child: Text(station.name)).call,
@@ -94,8 +95,7 @@ class SidebarStationPinTile extends HookConsumerWidget {
                         child: DecoratedBox(
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.55),
-                            borderRadius:
-                                BorderRadius.circular(6 * scaling),
+                            borderRadius: BorderRadius.circular(6 * scaling),
                           ),
                           child: Center(
                             child: isLoading

@@ -6800,6 +6800,19 @@ mixin _$ThemeDefinition {
   @JsonKey(name: 'dynamic')
   DynamicTheme? get dynamicTheme => throw _privateConstructorUsedError;
 
+  /// The v3 presentation blocks. They stay as contract-owned maps at this
+  /// layer, like UI nodes: the renderer reads the keys it knows and clamps
+  /// every number it uses, so a newer theme can add a key without a host
+  /// model change, and a malformed key cannot take the palette down.
+  Map<String, dynamic> get typography => throw _privateConstructorUsedError;
+  Map<String, dynamic> get spacing => throw _privateConstructorUsedError;
+  Map<String, dynamic> get motion => throw _privateConstructorUsedError;
+  Map<String, dynamic> get scale => throw _privateConstructorUsedError;
+  Map<String, dynamic> get icons => throw _privateConstructorUsedError;
+  Map<String, dynamic> get components => throw _privateConstructorUsedError;
+  Map<String, dynamic> get branding => throw _privateConstructorUsedError;
+  Map<String, dynamic> get assets => throw _privateConstructorUsedError;
+
   /// The declarative UI tree a theme may carry inline in `getTheme()`.
   ///
   /// A theme that answers from its optional `getUi()` method leaves this
@@ -6836,6 +6849,14 @@ abstract class $ThemeDefinitionCopyWith<$Res> {
       ThemeTokens tokens,
       ThemeLayout layout,
       @JsonKey(name: 'dynamic') DynamicTheme? dynamicTheme,
+      Map<String, dynamic> typography,
+      Map<String, dynamic> spacing,
+      Map<String, dynamic> motion,
+      Map<String, dynamic> scale,
+      Map<String, dynamic> icons,
+      Map<String, dynamic> components,
+      Map<String, dynamic> branding,
+      Map<String, dynamic> assets,
       @JsonKey(fromJson: _themeUiFromJson) ThemeUiDocument? ui});
 
   $ThemeColorsCopyWith<$Res> get light;
@@ -6874,6 +6895,14 @@ class _$ThemeDefinitionCopyWithImpl<$Res, $Val extends ThemeDefinition>
     Object? tokens = null,
     Object? layout = null,
     Object? dynamicTheme = freezed,
+    Object? typography = null,
+    Object? spacing = null,
+    Object? motion = null,
+    Object? scale = null,
+    Object? icons = null,
+    Object? components = null,
+    Object? branding = null,
+    Object? assets = null,
     Object? ui = freezed,
   }) {
     return _then(_value.copyWith(
@@ -6917,6 +6946,38 @@ class _$ThemeDefinitionCopyWithImpl<$Res, $Val extends ThemeDefinition>
           ? _value.dynamicTheme
           : dynamicTheme // ignore: cast_nullable_to_non_nullable
               as DynamicTheme?,
+      typography: null == typography
+          ? _value.typography
+          : typography // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      spacing: null == spacing
+          ? _value.spacing
+          : spacing // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      motion: null == motion
+          ? _value.motion
+          : motion // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      scale: null == scale
+          ? _value.scale
+          : scale // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      icons: null == icons
+          ? _value.icons
+          : icons // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      components: null == components
+          ? _value.components
+          : components // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      branding: null == branding
+          ? _value.branding
+          : branding // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      assets: null == assets
+          ? _value.assets
+          : assets // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
       ui: freezed == ui
           ? _value.ui
           : ui // ignore: cast_nullable_to_non_nullable
@@ -7042,6 +7103,14 @@ abstract class _$$ThemeDefinitionImplCopyWith<$Res>
       ThemeTokens tokens,
       ThemeLayout layout,
       @JsonKey(name: 'dynamic') DynamicTheme? dynamicTheme,
+      Map<String, dynamic> typography,
+      Map<String, dynamic> spacing,
+      Map<String, dynamic> motion,
+      Map<String, dynamic> scale,
+      Map<String, dynamic> icons,
+      Map<String, dynamic> components,
+      Map<String, dynamic> branding,
+      Map<String, dynamic> assets,
       @JsonKey(fromJson: _themeUiFromJson) ThemeUiDocument? ui});
 
   @override
@@ -7087,6 +7156,14 @@ class __$$ThemeDefinitionImplCopyWithImpl<$Res>
     Object? tokens = null,
     Object? layout = null,
     Object? dynamicTheme = freezed,
+    Object? typography = null,
+    Object? spacing = null,
+    Object? motion = null,
+    Object? scale = null,
+    Object? icons = null,
+    Object? components = null,
+    Object? branding = null,
+    Object? assets = null,
     Object? ui = freezed,
   }) {
     return _then(_$ThemeDefinitionImpl(
@@ -7130,6 +7207,38 @@ class __$$ThemeDefinitionImplCopyWithImpl<$Res>
           ? _value.dynamicTheme
           : dynamicTheme // ignore: cast_nullable_to_non_nullable
               as DynamicTheme?,
+      typography: null == typography
+          ? _value._typography
+          : typography // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      spacing: null == spacing
+          ? _value._spacing
+          : spacing // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      motion: null == motion
+          ? _value._motion
+          : motion // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      scale: null == scale
+          ? _value._scale
+          : scale // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      icons: null == icons
+          ? _value._icons
+          : icons // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      components: null == components
+          ? _value._components
+          : components // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      branding: null == branding
+          ? _value._branding
+          : branding // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      assets: null == assets
+          ? _value._assets
+          : assets // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
       ui: freezed == ui
           ? _value.ui
           : ui // ignore: cast_nullable_to_non_nullable
@@ -7152,7 +7261,23 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
       this.tokens = const ThemeTokens(),
       this.layout = const ThemeLayout(),
       @JsonKey(name: 'dynamic') this.dynamicTheme,
-      @JsonKey(fromJson: _themeUiFromJson) this.ui});
+      final Map<String, dynamic> typography = const {},
+      final Map<String, dynamic> spacing = const {},
+      final Map<String, dynamic> motion = const {},
+      final Map<String, dynamic> scale = const {},
+      final Map<String, dynamic> icons = const {},
+      final Map<String, dynamic> components = const {},
+      final Map<String, dynamic> branding = const {},
+      final Map<String, dynamic> assets = const {},
+      @JsonKey(fromJson: _themeUiFromJson) this.ui})
+      : _typography = typography,
+        _spacing = spacing,
+        _motion = motion,
+        _scale = scale,
+        _icons = icons,
+        _components = components,
+        _branding = branding,
+        _assets = assets;
 
   factory _$ThemeDefinitionImpl.fromJson(Map<String, dynamic> json) =>
       _$$ThemeDefinitionImplFromJson(json);
@@ -7195,6 +7320,87 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
   @JsonKey(name: 'dynamic')
   final DynamicTheme? dynamicTheme;
 
+  /// The v3 presentation blocks. They stay as contract-owned maps at this
+  /// layer, like UI nodes: the renderer reads the keys it knows and clamps
+  /// every number it uses, so a newer theme can add a key without a host
+  /// model change, and a malformed key cannot take the palette down.
+  final Map<String, dynamic> _typography;
+
+  /// The v3 presentation blocks. They stay as contract-owned maps at this
+  /// layer, like UI nodes: the renderer reads the keys it knows and clamps
+  /// every number it uses, so a newer theme can add a key without a host
+  /// model change, and a malformed key cannot take the palette down.
+  @override
+  @JsonKey()
+  Map<String, dynamic> get typography {
+    if (_typography is EqualUnmodifiableMapView) return _typography;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_typography);
+  }
+
+  final Map<String, dynamic> _spacing;
+  @override
+  @JsonKey()
+  Map<String, dynamic> get spacing {
+    if (_spacing is EqualUnmodifiableMapView) return _spacing;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_spacing);
+  }
+
+  final Map<String, dynamic> _motion;
+  @override
+  @JsonKey()
+  Map<String, dynamic> get motion {
+    if (_motion is EqualUnmodifiableMapView) return _motion;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_motion);
+  }
+
+  final Map<String, dynamic> _scale;
+  @override
+  @JsonKey()
+  Map<String, dynamic> get scale {
+    if (_scale is EqualUnmodifiableMapView) return _scale;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_scale);
+  }
+
+  final Map<String, dynamic> _icons;
+  @override
+  @JsonKey()
+  Map<String, dynamic> get icons {
+    if (_icons is EqualUnmodifiableMapView) return _icons;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_icons);
+  }
+
+  final Map<String, dynamic> _components;
+  @override
+  @JsonKey()
+  Map<String, dynamic> get components {
+    if (_components is EqualUnmodifiableMapView) return _components;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_components);
+  }
+
+  final Map<String, dynamic> _branding;
+  @override
+  @JsonKey()
+  Map<String, dynamic> get branding {
+    if (_branding is EqualUnmodifiableMapView) return _branding;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_branding);
+  }
+
+  final Map<String, dynamic> _assets;
+  @override
+  @JsonKey()
+  Map<String, dynamic> get assets {
+    if (_assets is EqualUnmodifiableMapView) return _assets;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_assets);
+  }
+
   /// The declarative UI tree a theme may carry inline in `getTheme()`.
   ///
   /// A theme that answers from its optional `getUi()` method leaves this
@@ -7207,7 +7413,7 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
 
   @override
   String toString() {
-    return 'ThemeDefinition(specVersion: $specVersion, light: $light, dark: $dark, surfaces: $surfaces, background: $background, radius: $radius, density: $density, tokens: $tokens, layout: $layout, dynamicTheme: $dynamicTheme, ui: $ui)';
+    return 'ThemeDefinition(specVersion: $specVersion, light: $light, dark: $dark, surfaces: $surfaces, background: $background, radius: $radius, density: $density, tokens: $tokens, layout: $layout, dynamicTheme: $dynamicTheme, typography: $typography, spacing: $spacing, motion: $motion, scale: $scale, icons: $icons, components: $components, branding: $branding, assets: $assets, ui: $ui)';
   }
 
   @override
@@ -7229,13 +7435,43 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
             (identical(other.layout, layout) || other.layout == layout) &&
             (identical(other.dynamicTheme, dynamicTheme) ||
                 other.dynamicTheme == dynamicTheme) &&
+            const DeepCollectionEquality()
+                .equals(other._typography, _typography) &&
+            const DeepCollectionEquality().equals(other._spacing, _spacing) &&
+            const DeepCollectionEquality().equals(other._motion, _motion) &&
+            const DeepCollectionEquality().equals(other._scale, _scale) &&
+            const DeepCollectionEquality().equals(other._icons, _icons) &&
+            const DeepCollectionEquality()
+                .equals(other._components, _components) &&
+            const DeepCollectionEquality().equals(other._branding, _branding) &&
+            const DeepCollectionEquality().equals(other._assets, _assets) &&
             (identical(other.ui, ui) || other.ui == ui));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, specVersion, light, dark,
-      surfaces, background, radius, density, tokens, layout, dynamicTheme, ui);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        specVersion,
+        light,
+        dark,
+        surfaces,
+        background,
+        radius,
+        density,
+        tokens,
+        layout,
+        dynamicTheme,
+        const DeepCollectionEquality().hash(_typography),
+        const DeepCollectionEquality().hash(_spacing),
+        const DeepCollectionEquality().hash(_motion),
+        const DeepCollectionEquality().hash(_scale),
+        const DeepCollectionEquality().hash(_icons),
+        const DeepCollectionEquality().hash(_components),
+        const DeepCollectionEquality().hash(_branding),
+        const DeepCollectionEquality().hash(_assets),
+        ui
+      ]);
 
   /// Create a copy of ThemeDefinition
   /// with the given fields replaced by the non-null parameter values.
@@ -7266,6 +7502,14 @@ abstract class _ThemeDefinition implements ThemeDefinition {
           final ThemeTokens tokens,
           final ThemeLayout layout,
           @JsonKey(name: 'dynamic') final DynamicTheme? dynamicTheme,
+          final Map<String, dynamic> typography,
+          final Map<String, dynamic> spacing,
+          final Map<String, dynamic> motion,
+          final Map<String, dynamic> scale,
+          final Map<String, dynamic> icons,
+          final Map<String, dynamic> components,
+          final Map<String, dynamic> branding,
+          final Map<String, dynamic> assets,
           @JsonKey(fromJson: _themeUiFromJson) final ThemeUiDocument? ui}) =
       _$ThemeDefinitionImpl;
 
@@ -7302,6 +7546,27 @@ abstract class _ThemeDefinition implements ThemeDefinition {
   @override
   @JsonKey(name: 'dynamic')
   DynamicTheme? get dynamicTheme;
+
+  /// The v3 presentation blocks. They stay as contract-owned maps at this
+  /// layer, like UI nodes: the renderer reads the keys it knows and clamps
+  /// every number it uses, so a newer theme can add a key without a host
+  /// model change, and a malformed key cannot take the palette down.
+  @override
+  Map<String, dynamic> get typography;
+  @override
+  Map<String, dynamic> get spacing;
+  @override
+  Map<String, dynamic> get motion;
+  @override
+  Map<String, dynamic> get scale;
+  @override
+  Map<String, dynamic> get icons;
+  @override
+  Map<String, dynamic> get components;
+  @override
+  Map<String, dynamic> get branding;
+  @override
+  Map<String, dynamic> get assets;
 
   /// The declarative UI tree a theme may carry inline in `getTheme()`.
   ///
@@ -7342,6 +7607,34 @@ mixin _$ThemeLayout {
   @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
   ThemeProgress get progress => throw _privateConstructorUsedError;
 
+  /// The player's own shape. `stage` makes the player the centre of the
+  /// app (the theme fills `stage.center`/`stage.below`); the other values
+  /// keep the host's footer player.
+  ThemePlayerLayout get player => throw _privateConstructorUsedError;
+
+  /// Layout fields the theme takes over even when the user chose otherwise.
+  /// The host only acts on fields it understands.
+  List<String> get enforce => throw _privateConstructorUsedError;
+
+  /// The navigation entries and library entries the theme wants the host
+  /// to show, in order. Kept raw so a theme can add a future entry without
+  /// a model release; the host filters to the ids it implements.
+  List<String> get navItems => throw _privateConstructorUsedError;
+  List<String> get libraryItems => throw _privateConstructorUsedError;
+
+  /// Home/settings section order and composition, as contract-owned maps.
+  Map<String, dynamic> get home => throw _privateConstructorUsedError;
+  Map<String, dynamic> get settings => throw _privateConstructorUsedError;
+
+  /// Window title-bar geometry and back-control preference.
+  Map<String, dynamic> get titlebar => throw _privateConstructorUsedError;
+
+  /// Launch splash logo/text, resolved through the theme's own assets.
+  Map<String, dynamic> get splash => throw _privateConstructorUsedError;
+
+  /// Breakpoint-specific overrides (`compact`, `medium`, ...).
+  Map<String, dynamic> get responsive => throw _privateConstructorUsedError;
+
   /// Serializes this ThemeLayout to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -7362,7 +7655,18 @@ abstract class $ThemeLayoutCopyWith<$Res> {
       {@JsonKey(unknownEnumValue: ThemeChrome.flat) ThemeChrome chrome,
       @JsonKey(unknownEnumValue: ThemeNav.labels) ThemeNav nav,
       @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
-      ThemeProgress progress});
+      ThemeProgress progress,
+      ThemePlayerLayout player,
+      List<String> enforce,
+      List<String> navItems,
+      List<String> libraryItems,
+      Map<String, dynamic> home,
+      Map<String, dynamic> settings,
+      Map<String, dynamic> titlebar,
+      Map<String, dynamic> splash,
+      Map<String, dynamic> responsive});
+
+  $ThemePlayerLayoutCopyWith<$Res> get player;
 }
 
 /// @nodoc
@@ -7383,6 +7687,15 @@ class _$ThemeLayoutCopyWithImpl<$Res, $Val extends ThemeLayout>
     Object? chrome = null,
     Object? nav = null,
     Object? progress = null,
+    Object? player = null,
+    Object? enforce = null,
+    Object? navItems = null,
+    Object? libraryItems = null,
+    Object? home = null,
+    Object? settings = null,
+    Object? titlebar = null,
+    Object? splash = null,
+    Object? responsive = null,
   }) {
     return _then(_value.copyWith(
       chrome: null == chrome
@@ -7397,7 +7710,53 @@ class _$ThemeLayoutCopyWithImpl<$Res, $Val extends ThemeLayout>
           ? _value.progress
           : progress // ignore: cast_nullable_to_non_nullable
               as ThemeProgress,
+      player: null == player
+          ? _value.player
+          : player // ignore: cast_nullable_to_non_nullable
+              as ThemePlayerLayout,
+      enforce: null == enforce
+          ? _value.enforce
+          : enforce // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      navItems: null == navItems
+          ? _value.navItems
+          : navItems // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      libraryItems: null == libraryItems
+          ? _value.libraryItems
+          : libraryItems // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      home: null == home
+          ? _value.home
+          : home // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      settings: null == settings
+          ? _value.settings
+          : settings // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      titlebar: null == titlebar
+          ? _value.titlebar
+          : titlebar // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      splash: null == splash
+          ? _value.splash
+          : splash // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      responsive: null == responsive
+          ? _value.responsive
+          : responsive // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
     ) as $Val);
+  }
+
+  /// Create a copy of ThemeLayout
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ThemePlayerLayoutCopyWith<$Res> get player {
+    return $ThemePlayerLayoutCopyWith<$Res>(_value.player, (value) {
+      return _then(_value.copyWith(player: value) as $Val);
+    });
   }
 }
 
@@ -7413,7 +7772,19 @@ abstract class _$$ThemeLayoutImplCopyWith<$Res>
       {@JsonKey(unknownEnumValue: ThemeChrome.flat) ThemeChrome chrome,
       @JsonKey(unknownEnumValue: ThemeNav.labels) ThemeNav nav,
       @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
-      ThemeProgress progress});
+      ThemeProgress progress,
+      ThemePlayerLayout player,
+      List<String> enforce,
+      List<String> navItems,
+      List<String> libraryItems,
+      Map<String, dynamic> home,
+      Map<String, dynamic> settings,
+      Map<String, dynamic> titlebar,
+      Map<String, dynamic> splash,
+      Map<String, dynamic> responsive});
+
+  @override
+  $ThemePlayerLayoutCopyWith<$Res> get player;
 }
 
 /// @nodoc
@@ -7432,6 +7803,15 @@ class __$$ThemeLayoutImplCopyWithImpl<$Res>
     Object? chrome = null,
     Object? nav = null,
     Object? progress = null,
+    Object? player = null,
+    Object? enforce = null,
+    Object? navItems = null,
+    Object? libraryItems = null,
+    Object? home = null,
+    Object? settings = null,
+    Object? titlebar = null,
+    Object? splash = null,
+    Object? responsive = null,
   }) {
     return _then(_$ThemeLayoutImpl(
       chrome: null == chrome
@@ -7446,6 +7826,42 @@ class __$$ThemeLayoutImplCopyWithImpl<$Res>
           ? _value.progress
           : progress // ignore: cast_nullable_to_non_nullable
               as ThemeProgress,
+      player: null == player
+          ? _value.player
+          : player // ignore: cast_nullable_to_non_nullable
+              as ThemePlayerLayout,
+      enforce: null == enforce
+          ? _value._enforce
+          : enforce // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      navItems: null == navItems
+          ? _value._navItems
+          : navItems // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      libraryItems: null == libraryItems
+          ? _value._libraryItems
+          : libraryItems // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      home: null == home
+          ? _value._home
+          : home // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      settings: null == settings
+          ? _value._settings
+          : settings // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      titlebar: null == titlebar
+          ? _value._titlebar
+          : titlebar // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      splash: null == splash
+          ? _value._splash
+          : splash // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
+      responsive: null == responsive
+          ? _value._responsive
+          : responsive // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>,
     ));
   }
 }
@@ -7458,7 +7874,24 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
       this.chrome = ThemeChrome.flat,
       @JsonKey(unknownEnumValue: ThemeNav.labels) this.nav = ThemeNav.labels,
       @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
-      this.progress = ThemeProgress.inlinePlacement});
+      this.progress = ThemeProgress.inlinePlacement,
+      this.player = const ThemePlayerLayout(),
+      final List<String> enforce = const [],
+      final List<String> navItems = const [],
+      final List<String> libraryItems = const [],
+      final Map<String, dynamic> home = const {},
+      final Map<String, dynamic> settings = const {},
+      final Map<String, dynamic> titlebar = const {},
+      final Map<String, dynamic> splash = const {},
+      final Map<String, dynamic> responsive = const {}})
+      : _enforce = enforce,
+        _navItems = navItems,
+        _libraryItems = libraryItems,
+        _home = home,
+        _settings = settings,
+        _titlebar = titlebar,
+        _splash = splash,
+        _responsive = responsive;
 
   factory _$ThemeLayoutImpl.fromJson(Map<String, dynamic> json) =>
       _$$ThemeLayoutImplFromJson(json);
@@ -7481,9 +7914,112 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
   @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
   final ThemeProgress progress;
 
+  /// The player's own shape. `stage` makes the player the centre of the
+  /// app (the theme fills `stage.center`/`stage.below`); the other values
+  /// keep the host's footer player.
+  @override
+  @JsonKey()
+  final ThemePlayerLayout player;
+
+  /// Layout fields the theme takes over even when the user chose otherwise.
+  /// The host only acts on fields it understands.
+  final List<String> _enforce;
+
+  /// Layout fields the theme takes over even when the user chose otherwise.
+  /// The host only acts on fields it understands.
+  @override
+  @JsonKey()
+  List<String> get enforce {
+    if (_enforce is EqualUnmodifiableListView) return _enforce;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_enforce);
+  }
+
+  /// The navigation entries and library entries the theme wants the host
+  /// to show, in order. Kept raw so a theme can add a future entry without
+  /// a model release; the host filters to the ids it implements.
+  final List<String> _navItems;
+
+  /// The navigation entries and library entries the theme wants the host
+  /// to show, in order. Kept raw so a theme can add a future entry without
+  /// a model release; the host filters to the ids it implements.
+  @override
+  @JsonKey()
+  List<String> get navItems {
+    if (_navItems is EqualUnmodifiableListView) return _navItems;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_navItems);
+  }
+
+  final List<String> _libraryItems;
+  @override
+  @JsonKey()
+  List<String> get libraryItems {
+    if (_libraryItems is EqualUnmodifiableListView) return _libraryItems;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_libraryItems);
+  }
+
+  /// Home/settings section order and composition, as contract-owned maps.
+  final Map<String, dynamic> _home;
+
+  /// Home/settings section order and composition, as contract-owned maps.
+  @override
+  @JsonKey()
+  Map<String, dynamic> get home {
+    if (_home is EqualUnmodifiableMapView) return _home;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_home);
+  }
+
+  final Map<String, dynamic> _settings;
+  @override
+  @JsonKey()
+  Map<String, dynamic> get settings {
+    if (_settings is EqualUnmodifiableMapView) return _settings;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_settings);
+  }
+
+  /// Window title-bar geometry and back-control preference.
+  final Map<String, dynamic> _titlebar;
+
+  /// Window title-bar geometry and back-control preference.
+  @override
+  @JsonKey()
+  Map<String, dynamic> get titlebar {
+    if (_titlebar is EqualUnmodifiableMapView) return _titlebar;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_titlebar);
+  }
+
+  /// Launch splash logo/text, resolved through the theme's own assets.
+  final Map<String, dynamic> _splash;
+
+  /// Launch splash logo/text, resolved through the theme's own assets.
+  @override
+  @JsonKey()
+  Map<String, dynamic> get splash {
+    if (_splash is EqualUnmodifiableMapView) return _splash;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_splash);
+  }
+
+  /// Breakpoint-specific overrides (`compact`, `medium`, ...).
+  final Map<String, dynamic> _responsive;
+
+  /// Breakpoint-specific overrides (`compact`, `medium`, ...).
+  @override
+  @JsonKey()
+  Map<String, dynamic> get responsive {
+    if (_responsive is EqualUnmodifiableMapView) return _responsive;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_responsive);
+  }
+
   @override
   String toString() {
-    return 'ThemeLayout(chrome: $chrome, nav: $nav, progress: $progress)';
+    return 'ThemeLayout(chrome: $chrome, nav: $nav, progress: $progress, player: $player, enforce: $enforce, navItems: $navItems, libraryItems: $libraryItems, home: $home, settings: $settings, titlebar: $titlebar, splash: $splash, responsive: $responsive)';
   }
 
   @override
@@ -7494,12 +8030,36 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
             (identical(other.chrome, chrome) || other.chrome == chrome) &&
             (identical(other.nav, nav) || other.nav == nav) &&
             (identical(other.progress, progress) ||
-                other.progress == progress));
+                other.progress == progress) &&
+            (identical(other.player, player) || other.player == player) &&
+            const DeepCollectionEquality().equals(other._enforce, _enforce) &&
+            const DeepCollectionEquality().equals(other._navItems, _navItems) &&
+            const DeepCollectionEquality()
+                .equals(other._libraryItems, _libraryItems) &&
+            const DeepCollectionEquality().equals(other._home, _home) &&
+            const DeepCollectionEquality().equals(other._settings, _settings) &&
+            const DeepCollectionEquality().equals(other._titlebar, _titlebar) &&
+            const DeepCollectionEquality().equals(other._splash, _splash) &&
+            const DeepCollectionEquality()
+                .equals(other._responsive, _responsive));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, chrome, nav, progress);
+  int get hashCode => Object.hash(
+      runtimeType,
+      chrome,
+      nav,
+      progress,
+      player,
+      const DeepCollectionEquality().hash(_enforce),
+      const DeepCollectionEquality().hash(_navItems),
+      const DeepCollectionEquality().hash(_libraryItems),
+      const DeepCollectionEquality().hash(_home),
+      const DeepCollectionEquality().hash(_settings),
+      const DeepCollectionEquality().hash(_titlebar),
+      const DeepCollectionEquality().hash(_splash),
+      const DeepCollectionEquality().hash(_responsive));
 
   /// Create a copy of ThemeLayout
   /// with the given fields replaced by the non-null parameter values.
@@ -7522,7 +8082,16 @@ abstract class _ThemeLayout implements ThemeLayout {
       {@JsonKey(unknownEnumValue: ThemeChrome.flat) final ThemeChrome chrome,
       @JsonKey(unknownEnumValue: ThemeNav.labels) final ThemeNav nav,
       @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
-      final ThemeProgress progress}) = _$ThemeLayoutImpl;
+      final ThemeProgress progress,
+      final ThemePlayerLayout player,
+      final List<String> enforce,
+      final List<String> navItems,
+      final List<String> libraryItems,
+      final Map<String, dynamic> home,
+      final Map<String, dynamic> settings,
+      final Map<String, dynamic> titlebar,
+      final Map<String, dynamic> splash,
+      final Map<String, dynamic> responsive}) = _$ThemeLayoutImpl;
 
   factory _ThemeLayout.fromJson(Map<String, dynamic> json) =
       _$ThemeLayoutImpl.fromJson;
@@ -7545,11 +8114,318 @@ abstract class _ThemeLayout implements ThemeLayout {
   @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
   ThemeProgress get progress;
 
+  /// The player's own shape. `stage` makes the player the centre of the
+  /// app (the theme fills `stage.center`/`stage.below`); the other values
+  /// keep the host's footer player.
+  @override
+  ThemePlayerLayout get player;
+
+  /// Layout fields the theme takes over even when the user chose otherwise.
+  /// The host only acts on fields it understands.
+  @override
+  List<String> get enforce;
+
+  /// The navigation entries and library entries the theme wants the host
+  /// to show, in order. Kept raw so a theme can add a future entry without
+  /// a model release; the host filters to the ids it implements.
+  @override
+  List<String> get navItems;
+  @override
+  List<String> get libraryItems;
+
+  /// Home/settings section order and composition, as contract-owned maps.
+  @override
+  Map<String, dynamic> get home;
+  @override
+  Map<String, dynamic> get settings;
+
+  /// Window title-bar geometry and back-control preference.
+  @override
+  Map<String, dynamic> get titlebar;
+
+  /// Launch splash logo/text, resolved through the theme's own assets.
+  @override
+  Map<String, dynamic> get splash;
+
+  /// Breakpoint-specific overrides (`compact`, `medium`, ...).
+  @override
+  Map<String, dynamic> get responsive;
+
   /// Create a copy of ThemeLayout
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ThemeLayoutImplCopyWith<_$ThemeLayoutImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ThemePlayerLayout _$ThemePlayerLayoutFromJson(Map<String, dynamic> json) {
+  return _ThemePlayerLayout.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ThemePlayerLayout {
+  @JsonKey(unknownEnumValue: ThemePlayerDock.full)
+  ThemePlayerDock get dock => throw _privateConstructorUsedError;
+  bool get showTrackDetails => throw _privateConstructorUsedError;
+  bool get showActions => throw _privateConstructorUsedError;
+  bool get showVolume => throw _privateConstructorUsedError;
+  bool get showLyrics => throw _privateConstructorUsedError;
+  bool get showProgress => throw _privateConstructorUsedError;
+
+  /// Serializes this ThemePlayerLayout to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ThemePlayerLayout
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ThemePlayerLayoutCopyWith<ThemePlayerLayout> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ThemePlayerLayoutCopyWith<$Res> {
+  factory $ThemePlayerLayoutCopyWith(
+          ThemePlayerLayout value, $Res Function(ThemePlayerLayout) then) =
+      _$ThemePlayerLayoutCopyWithImpl<$Res, ThemePlayerLayout>;
+  @useResult
+  $Res call(
+      {@JsonKey(unknownEnumValue: ThemePlayerDock.full) ThemePlayerDock dock,
+      bool showTrackDetails,
+      bool showActions,
+      bool showVolume,
+      bool showLyrics,
+      bool showProgress});
+}
+
+/// @nodoc
+class _$ThemePlayerLayoutCopyWithImpl<$Res, $Val extends ThemePlayerLayout>
+    implements $ThemePlayerLayoutCopyWith<$Res> {
+  _$ThemePlayerLayoutCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ThemePlayerLayout
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? dock = null,
+    Object? showTrackDetails = null,
+    Object? showActions = null,
+    Object? showVolume = null,
+    Object? showLyrics = null,
+    Object? showProgress = null,
+  }) {
+    return _then(_value.copyWith(
+      dock: null == dock
+          ? _value.dock
+          : dock // ignore: cast_nullable_to_non_nullable
+              as ThemePlayerDock,
+      showTrackDetails: null == showTrackDetails
+          ? _value.showTrackDetails
+          : showTrackDetails // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showActions: null == showActions
+          ? _value.showActions
+          : showActions // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showVolume: null == showVolume
+          ? _value.showVolume
+          : showVolume // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showLyrics: null == showLyrics
+          ? _value.showLyrics
+          : showLyrics // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showProgress: null == showProgress
+          ? _value.showProgress
+          : showProgress // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ThemePlayerLayoutImplCopyWith<$Res>
+    implements $ThemePlayerLayoutCopyWith<$Res> {
+  factory _$$ThemePlayerLayoutImplCopyWith(_$ThemePlayerLayoutImpl value,
+          $Res Function(_$ThemePlayerLayoutImpl) then) =
+      __$$ThemePlayerLayoutImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {@JsonKey(unknownEnumValue: ThemePlayerDock.full) ThemePlayerDock dock,
+      bool showTrackDetails,
+      bool showActions,
+      bool showVolume,
+      bool showLyrics,
+      bool showProgress});
+}
+
+/// @nodoc
+class __$$ThemePlayerLayoutImplCopyWithImpl<$Res>
+    extends _$ThemePlayerLayoutCopyWithImpl<$Res, _$ThemePlayerLayoutImpl>
+    implements _$$ThemePlayerLayoutImplCopyWith<$Res> {
+  __$$ThemePlayerLayoutImplCopyWithImpl(_$ThemePlayerLayoutImpl _value,
+      $Res Function(_$ThemePlayerLayoutImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ThemePlayerLayout
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? dock = null,
+    Object? showTrackDetails = null,
+    Object? showActions = null,
+    Object? showVolume = null,
+    Object? showLyrics = null,
+    Object? showProgress = null,
+  }) {
+    return _then(_$ThemePlayerLayoutImpl(
+      dock: null == dock
+          ? _value.dock
+          : dock // ignore: cast_nullable_to_non_nullable
+              as ThemePlayerDock,
+      showTrackDetails: null == showTrackDetails
+          ? _value.showTrackDetails
+          : showTrackDetails // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showActions: null == showActions
+          ? _value.showActions
+          : showActions // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showVolume: null == showVolume
+          ? _value.showVolume
+          : showVolume // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showLyrics: null == showLyrics
+          ? _value.showLyrics
+          : showLyrics // ignore: cast_nullable_to_non_nullable
+              as bool,
+      showProgress: null == showProgress
+          ? _value.showProgress
+          : showProgress // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ThemePlayerLayoutImpl implements _ThemePlayerLayout {
+  const _$ThemePlayerLayoutImpl(
+      {@JsonKey(unknownEnumValue: ThemePlayerDock.full)
+      this.dock = ThemePlayerDock.full,
+      this.showTrackDetails = true,
+      this.showActions = true,
+      this.showVolume = true,
+      this.showLyrics = true,
+      this.showProgress = true});
+
+  factory _$ThemePlayerLayoutImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ThemePlayerLayoutImplFromJson(json);
+
+  @override
+  @JsonKey(unknownEnumValue: ThemePlayerDock.full)
+  final ThemePlayerDock dock;
+  @override
+  @JsonKey()
+  final bool showTrackDetails;
+  @override
+  @JsonKey()
+  final bool showActions;
+  @override
+  @JsonKey()
+  final bool showVolume;
+  @override
+  @JsonKey()
+  final bool showLyrics;
+  @override
+  @JsonKey()
+  final bool showProgress;
+
+  @override
+  String toString() {
+    return 'ThemePlayerLayout(dock: $dock, showTrackDetails: $showTrackDetails, showActions: $showActions, showVolume: $showVolume, showLyrics: $showLyrics, showProgress: $showProgress)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ThemePlayerLayoutImpl &&
+            (identical(other.dock, dock) || other.dock == dock) &&
+            (identical(other.showTrackDetails, showTrackDetails) ||
+                other.showTrackDetails == showTrackDetails) &&
+            (identical(other.showActions, showActions) ||
+                other.showActions == showActions) &&
+            (identical(other.showVolume, showVolume) ||
+                other.showVolume == showVolume) &&
+            (identical(other.showLyrics, showLyrics) ||
+                other.showLyrics == showLyrics) &&
+            (identical(other.showProgress, showProgress) ||
+                other.showProgress == showProgress));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, dock, showTrackDetails,
+      showActions, showVolume, showLyrics, showProgress);
+
+  /// Create a copy of ThemePlayerLayout
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ThemePlayerLayoutImplCopyWith<_$ThemePlayerLayoutImpl> get copyWith =>
+      __$$ThemePlayerLayoutImplCopyWithImpl<_$ThemePlayerLayoutImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ThemePlayerLayoutImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ThemePlayerLayout implements ThemePlayerLayout {
+  const factory _ThemePlayerLayout(
+      {@JsonKey(unknownEnumValue: ThemePlayerDock.full)
+      final ThemePlayerDock dock,
+      final bool showTrackDetails,
+      final bool showActions,
+      final bool showVolume,
+      final bool showLyrics,
+      final bool showProgress}) = _$ThemePlayerLayoutImpl;
+
+  factory _ThemePlayerLayout.fromJson(Map<String, dynamic> json) =
+      _$ThemePlayerLayoutImpl.fromJson;
+
+  @override
+  @JsonKey(unknownEnumValue: ThemePlayerDock.full)
+  ThemePlayerDock get dock;
+  @override
+  bool get showTrackDetails;
+  @override
+  bool get showActions;
+  @override
+  bool get showVolume;
+  @override
+  bool get showLyrics;
+  @override
+  bool get showProgress;
+
+  /// Create a copy of ThemePlayerLayout
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ThemePlayerLayoutImplCopyWith<_$ThemePlayerLayoutImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
@@ -10267,9 +11143,8 @@ class __$$ThemeUiDocumentImplCopyWithImpl<$Res>
 class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
   const _$ThemeUiDocumentImpl(
       {this.specVersion = 1,
-      final Map<String, ThemeUiSlot> slots = const <String, ThemeUiSlot>{},
-      final Map<String, ThemeUiScreen> screens =
-          const <String, ThemeUiScreen>{},
+      final Map<String, ThemeUiSlot> slots = const {},
+      final Map<String, ThemeUiScreen> screens = const {},
       final Map<String, ThemeUiTemplate> templates =
           const <String, ThemeUiTemplate>{}})
       : _slots = slots,
@@ -10486,8 +11361,7 @@ class __$$ThemeUiSlotImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$ThemeUiSlotImpl implements _ThemeUiSlot {
   const _$ThemeUiSlotImpl(
-      {final List<Map<String, dynamic>> children =
-          const <Map<String, dynamic>>[],
+      {final List<Map<String, dynamic>> children = const [],
       this.refreshSeconds})
       : _children = children;
 
@@ -10686,8 +11560,7 @@ class _$ThemeUiScreenImpl implements _ThemeUiScreen {
   const _$ThemeUiScreenImpl(
       {this.title,
       this.showBack = false,
-      final List<Map<String, dynamic>> children =
-          const <Map<String, dynamic>>[]})
+      final List<Map<String, dynamic>> children = const []})
       : _children = children;
 
   factory _$ThemeUiScreenImpl.fromJson(Map<String, dynamic> json) =>
@@ -10871,9 +11744,8 @@ class __$$ThemeUiTemplateImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$ThemeUiTemplateImpl implements _ThemeUiTemplate {
   const _$ThemeUiTemplateImpl(
-      {final List<String> params = const <String>[],
-      final List<Map<String, dynamic>> children =
-          const <Map<String, dynamic>>[]})
+      {final List<String> params = const [],
+      final List<Map<String, dynamic>> children = const []})
       : _params = params,
         _children = children;
 

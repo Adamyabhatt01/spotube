@@ -37,6 +37,9 @@ class SplashScreen extends StatefulWidget {
   /// GIF/WebP, decoded natively). Drawn cover-fit behind the logo.
   final String? backgroundPath;
 
+  /// A wordmark the theme wants under the logo (obsidian's `OBSIDIAN`).
+  final String? brandText;
+
   const SplashScreen({
     super.key,
     this.theme,
@@ -45,6 +48,7 @@ class SplashScreen extends StatefulWidget {
     this.useThemedBackground = true,
     this.logoPath,
     this.backgroundPath,
+    this.brandText,
   });
 
   static const fallbackBackground = Color(0xFF131316);
@@ -93,6 +97,29 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
+  String? _brandFamily() {
+    final raw = widget.theme?.typography['brandFamily'];
+    if (raw is! String) return null;
+    final family = raw.trim();
+    if (family.isEmpty || family.length > 64) return null;
+    if (!RegExp(r'^[A-Za-z0-9][A-Za-z0-9 ._-]*$').hasMatch(family)) {
+      return null;
+    }
+    return family;
+  }
+
+  Color _primary(Brightness brightness) {
+    final colors = brightness == Brightness.dark
+        ? widget.theme?.dark
+        : widget.theme?.light;
+    if (colors == null) return Colors.white;
+    try {
+      return ThemeConverter.parseColor(colors.primary);
+    } catch (_) {
+      return Colors.white;
+    }
+  }
+
   Color _background(Brightness brightness) {
     if (!widget.useThemedBackground) return SplashScreen.fallbackBackground;
     final colors = brightness == Brightness.dark
@@ -125,24 +152,47 @@ class _SplashScreenState extends State<SplashScreen>
             height: 128,
           );
 
+    final mark = widget.brandText == null
+        ? logo
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              logo,
+              const SizedBox(height: 18),
+              DefaultTextStyle(
+                style: TextStyle(
+                  color: _primary(
+                    WidgetsBinding
+                        .instance.platformDispatcher.platformBrightness,
+                  ),
+                  fontFamily: _brandFamily(),
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 3,
+                ),
+                child: Text(widget.brandText!),
+              ),
+            ],
+          );
+
     final Widget animated;
     switch (widget.animation) {
       case SplashAnimation.none:
-        animated = logo;
+        animated = mark;
       case SplashAnimation.fade:
         animated = FadeTransition(
           opacity: _fade,
           child: ScaleTransition(
             scale: Tween<double>(begin: 0.92, end: 1.0).animate(_fade),
-            child: logo,
+            child: mark,
           ),
         );
       case SplashAnimation.scale:
-        animated = ScaleTransition(scale: _scale, child: logo);
+        animated = ScaleTransition(scale: _scale, child: mark);
       case SplashAnimation.slide:
         animated = SlideTransition(
           position: _slide,
-          child: FadeTransition(opacity: _fade, child: logo),
+          child: FadeTransition(opacity: _fade, child: mark),
         );
     }
 

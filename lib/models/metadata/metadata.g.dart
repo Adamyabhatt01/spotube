@@ -651,6 +651,38 @@ _$ThemeDefinitionImpl _$$ThemeDefinitionImplFromJson(Map json) =>
           ? null
           : DynamicTheme.fromJson(
               Map<String, dynamic>.from(json['dynamic'] as Map)),
+      typography: (json['typography'] as Map?)?.map(
+            (k, e) => MapEntry(k as String, e),
+          ) ??
+          const {},
+      spacing: (json['spacing'] as Map?)?.map(
+            (k, e) => MapEntry(k as String, e),
+          ) ??
+          const {},
+      motion: (json['motion'] as Map?)?.map(
+            (k, e) => MapEntry(k as String, e),
+          ) ??
+          const {},
+      scale: (json['scale'] as Map?)?.map(
+            (k, e) => MapEntry(k as String, e),
+          ) ??
+          const {},
+      icons: (json['icons'] as Map?)?.map(
+            (k, e) => MapEntry(k as String, e),
+          ) ??
+          const {},
+      components: (json['components'] as Map?)?.map(
+            (k, e) => MapEntry(k as String, e),
+          ) ??
+          const {},
+      branding: (json['branding'] as Map?)?.map(
+            (k, e) => MapEntry(k as String, e),
+          ) ??
+          const {},
+      assets: (json['assets'] as Map?)?.map(
+            (k, e) => MapEntry(k as String, e),
+          ) ??
+          const {},
       ui: _themeUiFromJson(json['ui']),
     );
 
@@ -667,6 +699,14 @@ Map<String, dynamic> _$$ThemeDefinitionImplToJson(
       'tokens': instance.tokens.toJson(),
       'layout': instance.layout.toJson(),
       'dynamic': instance.dynamicTheme?.toJson(),
+      'typography': instance.typography,
+      'spacing': instance.spacing,
+      'motion': instance.motion,
+      'scale': instance.scale,
+      'icons': instance.icons,
+      'components': instance.components,
+      'branding': instance.branding,
+      'assets': instance.assets,
       'ui': instance.ui?.toJson(),
     };
 
@@ -680,6 +720,42 @@ _$ThemeLayoutImpl _$$ThemeLayoutImplFromJson(Map json) => _$ThemeLayoutImpl(
       progress: $enumDecodeNullable(_$ThemeProgressEnumMap, json['progress'],
               unknownValue: ThemeProgress.inlinePlacement) ??
           ThemeProgress.inlinePlacement,
+      player: json['player'] == null
+          ? const ThemePlayerLayout()
+          : ThemePlayerLayout.fromJson(
+              Map<String, dynamic>.from(json['player'] as Map)),
+      enforce: (json['enforce'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      navItems: (json['navItems'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      libraryItems: (json['libraryItems'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      home: (json['home'] as Map?)?.map(
+            (k, e) => MapEntry(k as String, e),
+          ) ??
+          const {},
+      settings: (json['settings'] as Map?)?.map(
+            (k, e) => MapEntry(k as String, e),
+          ) ??
+          const {},
+      titlebar: (json['titlebar'] as Map?)?.map(
+            (k, e) => MapEntry(k as String, e),
+          ) ??
+          const {},
+      splash: (json['splash'] as Map?)?.map(
+            (k, e) => MapEntry(k as String, e),
+          ) ??
+          const {},
+      responsive: (json['responsive'] as Map?)?.map(
+            (k, e) => MapEntry(k as String, e),
+          ) ??
+          const {},
     );
 
 Map<String, dynamic> _$$ThemeLayoutImplToJson(_$ThemeLayoutImpl instance) =>
@@ -687,6 +763,15 @@ Map<String, dynamic> _$$ThemeLayoutImplToJson(_$ThemeLayoutImpl instance) =>
       'chrome': _$ThemeChromeEnumMap[instance.chrome]!,
       'nav': _$ThemeNavEnumMap[instance.nav]!,
       'progress': _$ThemeProgressEnumMap[instance.progress]!,
+      'player': instance.player.toJson(),
+      'enforce': instance.enforce,
+      'navItems': instance.navItems,
+      'libraryItems': instance.libraryItems,
+      'home': instance.home,
+      'settings': instance.settings,
+      'titlebar': instance.titlebar,
+      'splash': instance.splash,
+      'responsive': instance.responsive,
     };
 
 const _$ThemeChromeEnumMap = {
@@ -702,6 +787,36 @@ const _$ThemeNavEnumMap = {
 const _$ThemeProgressEnumMap = {
   ThemeProgress.inlinePlacement: 'inline',
   ThemeProgress.below: 'below',
+};
+
+_$ThemePlayerLayoutImpl _$$ThemePlayerLayoutImplFromJson(Map json) =>
+    _$ThemePlayerLayoutImpl(
+      dock: $enumDecodeNullable(_$ThemePlayerDockEnumMap, json['dock'],
+              unknownValue: ThemePlayerDock.full) ??
+          ThemePlayerDock.full,
+      showTrackDetails: json['showTrackDetails'] as bool? ?? true,
+      showActions: json['showActions'] as bool? ?? true,
+      showVolume: json['showVolume'] as bool? ?? true,
+      showLyrics: json['showLyrics'] as bool? ?? true,
+      showProgress: json['showProgress'] as bool? ?? true,
+    );
+
+Map<String, dynamic> _$$ThemePlayerLayoutImplToJson(
+        _$ThemePlayerLayoutImpl instance) =>
+    <String, dynamic>{
+      'dock': _$ThemePlayerDockEnumMap[instance.dock]!,
+      'showTrackDetails': instance.showTrackDetails,
+      'showActions': instance.showActions,
+      'showVolume': instance.showVolume,
+      'showLyrics': instance.showLyrics,
+      'showProgress': instance.showProgress,
+    };
+
+const _$ThemePlayerDockEnumMap = {
+  ThemePlayerDock.full: 'full',
+  ThemePlayerDock.compact: 'compact',
+  ThemePlayerDock.floating: 'floating',
+  ThemePlayerDock.stage: 'stage',
 };
 
 _$ThemeTokensImpl _$$ThemeTokensImplFromJson(Map json) => _$ThemeTokensImpl(
@@ -924,12 +1039,12 @@ _$ThemeUiDocumentImpl _$$ThemeUiDocumentImplFromJson(Map json) =>
             (k, e) => MapEntry(k as String,
                 ThemeUiSlot.fromJson(Map<String, dynamic>.from(e as Map))),
           ) ??
-          const <String, ThemeUiSlot>{},
+          const {},
       screens: (json['screens'] as Map?)?.map(
             (k, e) => MapEntry(k as String,
                 ThemeUiScreen.fromJson(Map<String, dynamic>.from(e as Map))),
           ) ??
-          const <String, ThemeUiScreen>{},
+          const {},
       templates: (json['templates'] as Map?)?.map(
             (k, e) => MapEntry(k as String,
                 ThemeUiTemplate.fromJson(Map<String, dynamic>.from(e as Map))),
@@ -950,7 +1065,7 @@ _$ThemeUiSlotImpl _$$ThemeUiSlotImplFromJson(Map json) => _$ThemeUiSlotImpl(
       children: (json['children'] as List<dynamic>?)
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
-          const <Map<String, dynamic>>[],
+          const [],
       refreshSeconds: (json['refreshSeconds'] as num?)?.toDouble(),
     );
 
@@ -967,7 +1082,7 @@ _$ThemeUiScreenImpl _$$ThemeUiScreenImplFromJson(Map json) =>
       children: (json['children'] as List<dynamic>?)
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
-          const <Map<String, dynamic>>[],
+          const [],
     );
 
 Map<String, dynamic> _$$ThemeUiScreenImplToJson(_$ThemeUiScreenImpl instance) =>
@@ -982,11 +1097,11 @@ _$ThemeUiTemplateImpl _$$ThemeUiTemplateImplFromJson(Map json) =>
       params: (json['params'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
-          const <String>[],
+          const [],
       children: (json['children'] as List<dynamic>?)
               ?.map((e) => Map<String, dynamic>.from(e as Map))
               .toList() ??
-          const <Map<String, dynamic>>[],
+          const [],
     );
 
 Map<String, dynamic> _$$ThemeUiTemplateImplToJson(

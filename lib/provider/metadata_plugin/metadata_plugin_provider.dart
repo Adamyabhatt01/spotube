@@ -1153,11 +1153,20 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     return logoFile;
   }
 
+  /// The root a theme's `asset://` paths are resolved against.
+  ///
+  /// The directory is versioned and immutable once promoted; callers must
+  /// still validate each relative path with [isSafePluginEntryPath] before
+  /// joining, which is what `ThemeUiAssets` does.
+  Future<Directory> getPluginDirectory(PluginConfiguration plugin) =>
+      _getPluginExtractionDir(plugin);
+
   /// Re-evaluates the active theme (e.g. after shell scheme changes).
   ///
   /// Manual v1 refresh path alongside the automatic file-watch signals:
   /// `themeDefinitionProvider` recomputes, `ThemeData` rebuilds.
   void refreshThemeDefinition() {
+    ref.read(themeUiOverrideProvider.notifier).state = null;
     ref.invalidate(themeDefinitionProvider);
   }
 }
@@ -1303,12 +1312,23 @@ final pluginThemeUiProvider = FutureProvider<ThemeUiDocument?>((ref) async {
   return plugin.theme.getUi();
 });
 
+/// A UI document returned by a theme's `onUiAction()`.
+///
+/// It wins over the current inline/`getUi()` document for the rest of the
+/// session, which is what makes a plugin-driven screen change feel like a
+/// live theme rather than a one-shot re-render. Selecting another theme
+/// clears it through [MetadataPluginNotifier.refreshThemeDefinition].
+final themeUiOverrideProvider = StateProvider<ThemeUiDocument?>((ref) => null);
+
 /// The declarative UI the app should draw.
 ///
 /// A theme may carry it inline in `getTheme()` (and then it rides the theme
 /// definition cache) or answer from `getUi()`. Inline wins, because it
 /// arrived with the same payload the colours did.
 final themeUiProvider = FutureProvider<ThemeUiDocument?>((ref) async {
+  final override = ref.watch(themeUiOverrideProvider);
+  if (override != null) return override;
+
   final definition = await ref.watch(themeDefinitionProvider.future);
   if (definition == null) return null;
   if (definition.ui != null) return definition.ui;

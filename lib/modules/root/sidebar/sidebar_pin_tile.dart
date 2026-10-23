@@ -55,7 +55,9 @@ class SidebarPinTile extends HookConsumerWidget {
           ? const ButtonStyle.secondary()
           : (showLabels ? const ButtonStyle.ghost() : null),
       alignment: showLabels ? AlignmentDirectional.centerStart : null,
-      label: showLabels ? Text(tile.title) : null,
+      label: showLabels
+          ? Text(tile.title, maxLines: 1, overflow: TextOverflow.ellipsis)
+          : null,
       onPressed: () {
         context.navigateTo(tile.route);
       },

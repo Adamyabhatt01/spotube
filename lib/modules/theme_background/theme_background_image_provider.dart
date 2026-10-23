@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/components/image/universal_image.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/theme_background/theme_shell_source.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_assets.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/services/theme_definition_cache.dart';
 
@@ -53,15 +56,43 @@ final themeBackdropUrlProvider = Provider<String?>((ref) {
   return ref.watch(themeShellSourceProvider).getBackgroundPath();
 });
 
+/// The theme's own background asset, resolved inside its plugin directory.
+///
+/// Only `source: "asset"` reaches this provider, and only an existing file
+/// inside the extraction root is returned. The scope and the layer share it,
+/// so the scaffold only turns transparent once there is a real image behind
+/// it instead of a failed resolve flashing the desktop/black ground.
+final themeBackgroundAssetFileProvider = Provider<File?>((ref) {
+  final live = ref.watch(
+    themeDefinitionProvider.select((s) => s.asData?.value?.background),
+  );
+  final cached = ref.watch(
+    cachedThemeDefinitionProvider.select((s) => s.asData?.value?.background),
+  );
+  final background = live?.source == ThemeBackgroundSource.asset
+      ? live
+      : cached?.source == ThemeBackgroundSource.asset
+          ? cached
+          : null;
+  if (background == null) return null;
+
+  final assets = ref.watch(themeUiAssetsProvider).asData?.value;
+  final file = assets?.resolve(background.asset);
+  if (file == null || !file.existsSync()) return null;
+  return file;
+});
+
 /// Whether [ThemeBackgroundLayer] is actually painting behind the app.
 ///
 /// Chrome that exists only to bend the shell's glass to the terminal must
 /// switch off with it: a transparent scaffold ground over nothing is just an
-/// unpainted window. So a built-in theme, a plugin with no backdrop, or a
-/// shell-sourced plugin on a desktop with no Caelestia state keeps the
-/// appearance it had before the shell owned any of it.
+/// unpainted window. So a built-in theme, a plugin with no backdrop, a
+/// shell-sourced plugin on a desktop with no Caelestia state, or a missing
+/// theme asset keeps the appearance it had before the shell owned any of it.
 final themeBackdropActiveProvider = Provider<bool>(
-  (ref) => ref.watch(themeBackdropUrlProvider) != null,
+  (ref) =>
+      ref.watch(themeBackdropUrlProvider) != null ||
+      ref.watch(themeBackgroundAssetFileProvider) != null,
 );
 
 /// Resolves the background image for the active [ThemeBackground] spec,
