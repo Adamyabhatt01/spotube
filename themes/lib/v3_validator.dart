@@ -191,6 +191,7 @@ const uiNodeTypes = <String>[
   'conditional',
   'template',
   'animate',
+  'progress',
 ];
 
 /// The actions the host dispatches on a theme's behalf.
@@ -372,6 +373,21 @@ const uiNodeProps = <String, List<String>>{
   'conditional': ['bind', 'equals', 'invert'],
   'template': ['name', 'args'],
   'animate': ['kind', 'duration', 'curve', 'bind', 'reverse'],
+  'progress': [
+    'bind',
+    'maxBind',
+    'width',
+    'height',
+    'hitHeight',
+    'radius',
+    'borderWidth',
+    'borderColor',
+    'color',
+    'trackColor',
+    'thumbColor',
+    'thumbSize',
+    'interactive',
+  ],
 };
 
 /// The colour roles a `@role` reference may name.
@@ -1382,7 +1398,7 @@ int _uiNode(String path, Object? raw, int depth, List<Issue> issues,
 /// One prop, checked against what its node type says it means.
 void _uiProp(
     String path, String type, String key, Object? value, List<Issue> issues) {
-  if (key == 'bind' || key == 'disabledWhen') {
+  if (key == 'bind' || key == 'maxBind' || key == 'disabledWhen') {
     if (value is! String || !uiBindings.contains(value)) {
       issues.add(Issue(
         Severity.error,
@@ -1449,7 +1465,7 @@ void _uiProp(
     return;
   }
 
-  if (key == 'color') {
+  if (key == 'color' || key == 'trackColor' || key == 'thumbColor') {
     _colorOrRole(path, value, issues);
     return;
   }
@@ -1600,7 +1616,8 @@ void _uiProp(
   if (key == 'reverse' ||
       key == 'invert' ||
       key == 'uppercase' ||
-      key == 'tile') {
+      key == 'tile' ||
+      key == 'interactive') {
     if (value is! bool) {
       issues.add(Issue(Severity.error, path, 'must be a boolean'));
     }
@@ -1716,7 +1733,9 @@ void _uiProp(
       key == 'right' ||
       key == 'bottom' ||
       key == 'left' ||
-      key == 'borderWidth') {
+      key == 'borderWidth' ||
+      key == 'hitHeight' ||
+      key == 'thumbSize') {
     _uiNumber(path, value, min: 0, max: 96, issues: issues);
     return;
   }

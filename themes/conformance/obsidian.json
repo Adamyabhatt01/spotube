@@ -875,44 +875,51 @@
         "children": [
           {
             "type": "row",
-            "gap": 10,
+            "gap": 8,
             "align": "center",
             "justify": "start",
             "children": [
               {
                 "type": "image",
                 "src": "asset://images/logo.png",
-                "width": 30,
-                "height": 30,
+                "width": 28,
+                "height": 28,
                 "shape": "square",
                 "fit": "contain",
                 "filter": "nearest"
               },
               {
-                "type": "column",
-                "gap": 0,
-                "align": "start",
+                "type": "expanded",
                 "children": [
                   {
-                    "type": "text",
-                    "text": "OBSIDIAN",
-                    "size": "lg",
-                    "weight": "bold",
-                    "color": "@primary",
-                    "family": "Silkscreen",
-                    "letterSpacing": 1.5,
-                    "uppercase": true,
-                    "maxLines": 1
-                  },
-                  {
-                    "type": "text",
-                    "text": "BYOMM PLAYER",
-                    "size": "xs",
-                    "color": "@mutedForeground",
-                    "family": "Silkscreen",
-                    "letterSpacing": 1.0,
-                    "uppercase": true,
-                    "maxLines": 1
+                    "type": "column",
+                    "gap": 0,
+                    "align": "start",
+                    "children": [
+                      {
+                        "type": "text",
+                        "text": "OBSIDIAN",
+                        "size": "md",
+                        "weight": "bold",
+                        "color": "@primary",
+                        "family": "Silkscreen",
+                        "letterSpacing": 1.0,
+                        "uppercase": true,
+                        "maxLines": 1,
+                        "overflow": "ellipsis"
+                      },
+                      {
+                        "type": "text",
+                        "text": "BYOMM PLAYER",
+                        "size": "xs",
+                        "color": "@mutedForeground",
+                        "family": "Silkscreen",
+                        "letterSpacing": 1.0,
+                        "uppercase": true,
+                        "maxLines": 1,
+                        "overflow": "ellipsis"
+                      }
+                    ]
                   }
                 ]
               }
@@ -1021,27 +1028,32 @@
                 "filter": "nearest"
               },
               {
-                "type": "column",
-                "gap": 2,
-                "align": "start",
+                "type": "expanded",
                 "children": [
                   {
-                    "type": "text",
-                    "bind": "player.title",
-                    "size": "small",
-                    "color": "@foreground",
-                    "family": "VT323",
-                    "maxLines": 1,
-                    "overflow": "ellipsis"
-                  },
-                  {
-                    "type": "text",
-                    "bind": "player.artist",
-                    "size": "xs",
-                    "color": "@mutedForeground",
-                    "family": "VT323",
-                    "maxLines": 1,
-                    "overflow": "ellipsis"
+                    "type": "column",
+                    "gap": 2,
+                    "align": "start",
+                    "children": [
+                      {
+                        "type": "text",
+                        "bind": "player.title",
+                        "size": "small",
+                        "color": "@foreground",
+                        "family": "VT323",
+                        "maxLines": 1,
+                        "overflow": "ellipsis"
+                      },
+                      {
+                        "type": "text",
+                        "bind": "player.artist",
+                        "size": "xs",
+                        "color": "@mutedForeground",
+                        "family": "VT323",
+                        "maxLines": 1,
+                        "overflow": "ellipsis"
+                      }
+                    ]
                   }
                 ]
               }
@@ -1101,6 +1113,50 @@
                 "action": {
                   "type": "setLoopMode"
                 }
+              }
+            ]
+          }
+        ]
+      },
+      "player.progress": {
+        "children": [
+          {
+            "type": "row",
+            "gap": 10,
+            "align": "center",
+            "children": [
+              {
+                "type": "text",
+                "bind": "player.position",
+                "size": "xs",
+                "color": "@mutedForeground",
+                "family": "VT323",
+                "maxLines": 1
+              },
+              {
+                "type": "expanded",
+                "children": [
+                  {
+                    "type": "progress",
+                    "height": 8,
+                    "hitHeight": 26,
+                    "radius": 0,
+                    "borderWidth": 2,
+                    "borderColor": "#5A3F7A",
+                    "color": "@primary",
+                    "trackColor": "#1A1422",
+                    "thumbColor": "@primary",
+                    "thumbSize": 12
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "bind": "player.duration",
+                "size": "xs",
+                "color": "@mutedForeground",
+                "family": "VT323",
+                "maxLines": 1
               }
             ]
           }
@@ -1270,6 +1326,46 @@
               },
               {
                 "type": "row",
+                "gap": 10,
+                "align": "center",
+                "children": [
+                  {
+                    "type": "text",
+                    "bind": "player.position",
+                    "size": "xs",
+                    "color": "@mutedForeground",
+                    "family": "VT323",
+                    "maxLines": 1
+                  },
+                  {
+                    "type": "expanded",
+                    "children": [
+                      {
+                        "type": "progress",
+                        "height": 10,
+                        "hitHeight": 30,
+                        "radius": 0,
+                        "borderWidth": 2,
+                        "borderColor": "#5A3F7A",
+                        "color": "@primary",
+                        "trackColor": "#1A1422",
+                        "thumbColor": "@primary",
+                        "thumbSize": 14
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "bind": "player.duration",
+                    "size": "xs",
+                    "color": "@mutedForeground",
+                    "family": "VT323",
+                    "maxLines": 1
+                  }
+                ]
+              },
+              {
+                "type": "row",
                 "gap": 8,
                 "align": "center",
                 "justify": "center",
@@ -1400,27 +1496,32 @@
                         "filter": "nearest"
                       },
                       {
-                        "type": "column",
-                        "gap": 2,
-                        "align": "start",
+                        "type": "expanded",
                         "children": [
                           {
-                            "type": "text",
-                            "text": "WELCOME TO THE END",
-                            "size": "3xl",
-                            "weight": "bold",
-                            "color": "@primary",
-                            "family": "Silkscreen",
-                            "uppercase": true,
-                            "letterSpacing": 1.0,
-                            "maxLines": 2
-                          },
-                          {
-                            "type": "text",
-                            "text": "A pixel player for the music you own.",
-                            "size": "lg",
-                            "color": "@mutedForeground",
-                            "family": "VT323"
+                            "type": "column",
+                            "gap": 2,
+                            "align": "start",
+                            "children": [
+                              {
+                                "type": "text",
+                                "text": "WELCOME TO THE END",
+                                "size": "3xl",
+                                "weight": "bold",
+                                "color": "@primary",
+                                "family": "Silkscreen",
+                                "uppercase": true,
+                                "letterSpacing": 1.0,
+                                "maxLines": 2
+                              },
+                              {
+                                "type": "text",
+                                "text": "A pixel player for the music you own.",
+                                "size": "lg",
+                                "color": "@mutedForeground",
+                                "family": "VT323"
+                              }
+                            ]
                           }
                         ]
                       }

@@ -680,6 +680,22 @@
       "player.progress": {
         "children": [
           {
+            "type": "progress",
+            "bind": "player.position",
+            "maxBind": "player.duration",
+            "width": 480,
+            "height": 8,
+            "hitHeight": 26,
+            "radius": 4,
+            "borderWidth": 1,
+            "borderColor": "@border",
+            "color": "@primary",
+            "trackColor": "@muted",
+            "thumbColor": "@primary",
+            "thumbSize": 12,
+            "interactive": true
+          },
+          {
             "type": "card",
             "padding": 8,
             "radius": 0,

@@ -582,6 +582,16 @@ body.is-playing .gated { animation-play-state: running; }
         return children.map(_node).join();
       case 'animate':
         return _animate(props, children);
+      case 'progress':
+        final height = _px(props['height'] ?? 6);
+        final color = _color(props['color'] ?? '@primary');
+        final track = _color(props['trackColor'] ?? '@border');
+        final thumb = (props['thumbSize'] as num?)?.toDouble() ?? 12;
+        return '<div class="node-progress" style="height:${_px(props['hitHeight'] ?? 28)};display:flex;align-items:center;gap:8px">'
+            '<div style="position:relative;flex:1;height:$height;background:$track;border-radius:${_px(props['radius'] ?? 0)}">'
+            '<div style="width:38%;height:100%;background:$color;border-radius:${_px(props['radius'] ?? 0)}"></div>'
+            '<div style="position:absolute;left:calc(38% - ${thumb / 2}px);top:50%;width:${_px(thumb)};height:${_px(thumb)};margin-top:calc(-${thumb / 2}px);background:$color;border:2px solid ${_color(props['borderColor'] ?? '@border')}"></div>'
+            '</div></div>';
       default:
         return '';
     }

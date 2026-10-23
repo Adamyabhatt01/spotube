@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-23T14:14:12.844782Z",
+  "generatedAt": "2026-10-23T18:06:00.676591Z",
   "themes": [
     {
       "id": "asset-demo",
@@ -105,8 +105,8 @@
         "theme"
       ],
       "file": "kitchen-sink-1.0.0.smplug",
-      "bytes": 9939,
-      "sha256": "f7ba48521693372625a0e139662de204a858ab856e771e7ffcaff653dfd8cd05",
+      "bytes": 10037,
+      "sha256": "0bf72a21ba19b2b4de8f15772fb6ff517ffe0857bd09e690f1f0ef0b960ed26b",
       "optionalMethods": [],
       "hasUiSpec": false
     },
@@ -135,8 +135,8 @@
         "theme"
       ],
       "file": "obsidian-1.0.0.smplug",
-      "bytes": 95225,
-      "sha256": "164c7a2200f7fe45b3995bd02181bcc2b6bfc8feedf18f969bdee5b31e3935ca",
+      "bytes": 95417,
+      "sha256": "7b5524d4afa10ba388e8baba929826d5cb725fceaa802120fedee95ddd9bcb83",
       "optionalMethods": [],
       "hasUiSpec": false,
       "published": "obsidian/plugin.smplug"

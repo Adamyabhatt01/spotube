@@ -1340,6 +1340,106 @@
               "type": "boolean"
             }
           }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "progress"
+            },
+            "props": {
+              "type": "object"
+            },
+            "bind": {
+              "enum": [
+                "player.title",
+                "player.artist",
+                "player.album",
+                "player.artwork",
+                "player.playing",
+                "player.loop",
+                "player.shuffled",
+                "player.position",
+                "player.duration",
+                "player.volume",
+                "user.name",
+                "user.avatar",
+                "app.version",
+                "app.brightness",
+                "app.themeMode",
+                "clock.now"
+              ]
+            },
+            "maxBind": {
+              "enum": [
+                "player.title",
+                "player.artist",
+                "player.album",
+                "player.artwork",
+                "player.playing",
+                "player.loop",
+                "player.shuffled",
+                "player.position",
+                "player.duration",
+                "player.volume",
+                "user.name",
+                "user.avatar",
+                "app.version",
+                "app.brightness",
+                "app.themeMode",
+                "clock.now"
+              ]
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "hitHeight": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "radius": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 999
+            },
+            "borderWidth": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "borderColor": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "color": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "trackColor": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "thumbColor": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "thumbSize": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "interactive": {
+              "type": "boolean"
+            }
+          }
         }
       ]
     },

@@ -323,9 +323,18 @@ into the flat one, but every theme in this repository writes the flat form.)
 | `conditional` | `bind`, `equals`, `invert` |
 | `template` | `name`, `args` |
 | `animate` | `kind`, `duration`, `curve`, `bind`, `reverse` |
+| `progress` | `bind`, `maxBind`, `width`, `height`, `hitHeight`, `radius`, `borderWidth`, `borderColor`, `color`, `trackColor`, `thumbColor`, `thumbSize` |
 
 An unknown prop is an error, not a silent no-op: the build fails rather than
 shipping a theme that does not do what you wrote.
+
+**Seeking.** `progress` draws the current playhead from `player.position` /
+`player.duration` and is draggable and tappable. A drag previews locally and
+commits on release; both paths dispatch `seek` with a clamped `fraction`.
+`width` fixes the bar's logical width when it sits in a footer that Flutter
+measures intrinsically (put it inside `expanded` when the row should flex
+instead); `hitHeight` controls the touch target independently of the painted
+`height`.
 
 **Sizes and colours.** `text.size` is `xs`, `small`, `sm`, `md`, `lg`, `xl`,
 `2xl` or `3xl`; `text.weight` is `100`–`900` or `thin` … `black`. A colour is
