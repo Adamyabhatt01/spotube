@@ -24,6 +24,14 @@ class ThemeDefinition with _$ThemeDefinition {
     @Default(ThemeTokens()) ThemeTokens tokens,
     @Default(ThemeLayout()) ThemeLayout layout,
     @JsonKey(name: 'dynamic') DynamicTheme? dynamicTheme,
+
+    /// The declarative UI tree a theme may carry inline in `getTheme()`.
+    ///
+    /// A theme that answers from its optional `getUi()` method leaves this
+    /// null; `themeUiProvider` asks the plugin and caches the result. A
+    /// malformed tree is dropped here rather than taking the palette with
+    /// it, so a broken screen cannot leave the user on the built-in theme.
+    @JsonKey(fromJson: _themeUiFromJson) ThemeUiDocument? ui,
   }) = _ThemeDefinition;
 
   factory ThemeDefinition.fromJson(Map<String, dynamic> json) =>
@@ -234,9 +242,20 @@ class ThemeSurfaces with _$ThemeSurfaces {
 @freezed
 class ThemeBackground with _$ThemeBackground {
   const factory ThemeBackground({
-    @Default(ThemeBackgroundSource.none) ThemeBackgroundSource source,
+    @JsonKey(unknownEnumValue: ThemeBackgroundSource.none)
+    @Default(ThemeBackgroundSource.none)
+    ThemeBackgroundSource source,
     @Default(0.0) double opacity,
     @Default(0.0) double blur,
+
+    /// A v3 background shipped with the theme (`asset://…`).
+    String? asset,
+
+    /// Repeat [asset] instead of stretching it.
+    @Default(false) bool tile,
+
+    /// Whole-number magnification for a tiled [asset], 1..8.
+    @Default(1) int scale,
 
     /// Optional veil over the background image as `#RRGGBB` or
     /// Flutter-native `#AARRGGBB` (alpha honored, e.g. `#80000000`
@@ -268,6 +287,7 @@ enum ThemeBackgroundSource {
   none,
   albumArt,
   shell,
+  asset,
 }
 
 @freezed
@@ -302,3 +322,85 @@ enum DynamicThemeSource {
 enum DynamicThemeAlgorithm {
   material,
 }
+
+/// A theme's declarative UI, either inline in `getTheme()` or returned by the
+/// optional `getUi()` method.
+///
+/// Nodes stay as JSON maps at this layer on purpose: the node vocabulary is
+/// the theme contract's, not the host model's, so a renderer can accept a new
+/// node without a fresh Freezed class. Slots, screens and templates get
+/// structure here because the host mounts and navigates them.
+@freezed
+class ThemeUiDocument with _$ThemeUiDocument {
+  const factory ThemeUiDocument({
+    @Default(1) int specVersion,
+    @Default(<String, ThemeUiSlot>{}) Map<String, ThemeUiSlot> slots,
+    @Default(<String, ThemeUiScreen>{}) Map<String, ThemeUiScreen> screens,
+    @Default(<String, ThemeUiTemplate>{})
+    Map<String, ThemeUiTemplate> templates,
+  }) = _ThemeUiDocument;
+
+  factory ThemeUiDocument.fromJson(Map<String, dynamic> json) =>
+      _$ThemeUiDocumentFromJson(json);
+}
+
+/// One host slot, with the children the theme wants mounted there.
+@freezed
+class ThemeUiSlot with _$ThemeUiSlot {
+  const factory ThemeUiSlot({
+    @Default(<Map<String, dynamic>>[])
+    List<Map<String, dynamic>> children,
+
+    /// How often the host may refresh data-bound children in this slot.
+    /// Zero means "on state changes only".
+    double? refreshSeconds,
+  }) = _ThemeUiSlot;
+
+  factory ThemeUiSlot.fromJson(Map<String, dynamic> json) =>
+      _$ThemeUiSlotFromJson(json);
+}
+
+/// A screen the theme owns, reachable from an action's `screen:<id>` target.
+@freezed
+class ThemeUiScreen with _$ThemeUiScreen {
+  const factory ThemeUiScreen({
+    String? title,
+    @Default(false) bool showBack,
+    @Default(<Map<String, dynamic>>[])
+    List<Map<String, dynamic>> children,
+  }) = _ThemeUiScreen;
+
+  factory ThemeUiScreen.fromJson(Map<String, dynamic> json) =>
+      _$ThemeUiScreenFromJson(json);
+}
+
+/// A reusable subtree a text node may expand with `template`/`args`.
+@freezed
+class ThemeUiTemplate with _$ThemeUiTemplate {
+  const factory ThemeUiTemplate({
+    @Default(<String>[]) List<String> params,
+    @Default(<Map<String, dynamic>>[])
+    List<Map<String, dynamic>> children,
+  }) = _ThemeUiTemplate;
+
+  factory ThemeUiTemplate.fromJson(Map<String, dynamic> json) =>
+      _$ThemeUiTemplateFromJson(json);
+}
+
+/// Parses a UI document without letting a malformed tree take the theme down.
+///
+/// Installed plugins are not built by this checkout, so the host cannot rely
+/// on the theme-side validator. A bad UI loses the UI, never the palette.
+ThemeUiDocument? parseThemeUiDocument(Map<String, dynamic> json) {
+  try {
+    return ThemeUiDocument.fromJson(json);
+  } catch (_) {
+    return null;
+  }
+}
+
+ThemeUiDocument? _themeUiFromJson(dynamic value) {
+  if (value is! Map) return null;
+  return parseThemeUiDocument(value.cast<String, dynamic>());
+}
+

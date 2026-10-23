@@ -13,7 +13,7 @@ import 'package:spotube/services/metadata/theme_sanitizer.dart';
 /// paint; the live provider stays authoritative and overwrites silently.
 /// Every layer treats cached data as untrusted: any structural problem
 /// falls back to null (built-in/live path).
-const _cacheKey = 'spotube.theme_definition_cache.v2';
+const _cacheKey = 'spotube.theme_definition_cache.v3';
 const _pluginKeyKey = 'spotube.theme_default_plugin_key.v1';
 
 /// Identity of the selected theme plugin. Written at selection time so
@@ -56,10 +56,10 @@ Future<void> writeThemeCache({
     await prefs.setString(
       _cacheKey,
       jsonEncode({
-        // v2: shell-derived glass landed inside ThemeDefinition, so a v1
-        // entry would replay the old whole-group-alpha veil until the live
-        // provider overwrote it.
-        'v': 2,
+        // v3: the inline UI tree is part of the definition, so a warm start
+        // keeps the theme's layout as well as its palette. A v2 entry has no
+        // `ui` key and would flash the stock shell until live resolution.
+        'v': 3,
         'pluginKey': pluginKey,
         'shellKey': shellKey,
         'definition': definition.toJson(),
@@ -94,7 +94,7 @@ final cachedThemeDefinitionProvider =
 
     final json = jsonDecode(raw);
     if (json is! Map<String, dynamic>) return null;
-    if (json['v'] != 2) return null;
+    if (json['v'] != 3) return null;
     if (json['pluginKey'] != pluginKey) return null;
 
     final definition = json['definition'];

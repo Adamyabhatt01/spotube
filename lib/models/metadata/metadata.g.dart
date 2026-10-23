@@ -651,6 +651,7 @@ _$ThemeDefinitionImpl _$$ThemeDefinitionImplFromJson(Map json) =>
           ? null
           : DynamicTheme.fromJson(
               Map<String, dynamic>.from(json['dynamic'] as Map)),
+      ui: _themeUiFromJson(json['ui']),
     );
 
 Map<String, dynamic> _$$ThemeDefinitionImplToJson(
@@ -666,6 +667,7 @@ Map<String, dynamic> _$$ThemeDefinitionImplToJson(
       'tokens': instance.tokens.toJson(),
       'layout': instance.layout.toJson(),
       'dynamic': instance.dynamicTheme?.toJson(),
+      'ui': instance.ui?.toJson(),
     };
 
 _$ThemeLayoutImpl _$$ThemeLayoutImplFromJson(Map json) => _$ThemeLayoutImpl(
@@ -845,11 +847,15 @@ Map<String, dynamic> _$$ThemeSurfacesImplToJson(_$ThemeSurfacesImpl instance) =>
 
 _$ThemeBackgroundImpl _$$ThemeBackgroundImplFromJson(Map json) =>
     _$ThemeBackgroundImpl(
-      source:
-          $enumDecodeNullable(_$ThemeBackgroundSourceEnumMap, json['source']) ??
-              ThemeBackgroundSource.none,
+      source: $enumDecodeNullable(
+              _$ThemeBackgroundSourceEnumMap, json['source'],
+              unknownValue: ThemeBackgroundSource.none) ??
+          ThemeBackgroundSource.none,
       opacity: (json['opacity'] as num?)?.toDouble() ?? 0.0,
       blur: (json['blur'] as num?)?.toDouble() ?? 0.0,
+      asset: json['asset'] as String?,
+      tile: json['tile'] as bool? ?? false,
+      scale: (json['scale'] as num?)?.toInt() ?? 1,
       overlay: json['overlay'] as String?,
       transparent: _transparentFromJson(json['transparent']),
     );
@@ -860,6 +866,9 @@ Map<String, dynamic> _$$ThemeBackgroundImplToJson(
       'source': _$ThemeBackgroundSourceEnumMap[instance.source]!,
       'opacity': instance.opacity,
       'blur': instance.blur,
+      'asset': instance.asset,
+      'tile': instance.tile,
+      'scale': instance.scale,
       'overlay': instance.overlay,
       'transparent': instance.transparent,
     };
@@ -868,6 +877,7 @@ const _$ThemeBackgroundSourceEnumMap = {
   ThemeBackgroundSource.none: 'none',
   ThemeBackgroundSource.albumArt: 'albumArt',
   ThemeBackgroundSource.shell: 'shell',
+  ThemeBackgroundSource.asset: 'asset',
 };
 
 _$ThemeRadiusImpl _$$ThemeRadiusImplFromJson(Map json) => _$ThemeRadiusImpl(
@@ -906,3 +916,82 @@ const _$DynamicThemeSourceEnumMap = {
 const _$DynamicThemeAlgorithmEnumMap = {
   DynamicThemeAlgorithm.material: 'material',
 };
+
+_$ThemeUiDocumentImpl _$$ThemeUiDocumentImplFromJson(Map json) =>
+    _$ThemeUiDocumentImpl(
+      specVersion: (json['specVersion'] as num?)?.toInt() ?? 1,
+      slots: (json['slots'] as Map?)?.map(
+            (k, e) => MapEntry(k as String,
+                ThemeUiSlot.fromJson(Map<String, dynamic>.from(e as Map))),
+          ) ??
+          const <String, ThemeUiSlot>{},
+      screens: (json['screens'] as Map?)?.map(
+            (k, e) => MapEntry(k as String,
+                ThemeUiScreen.fromJson(Map<String, dynamic>.from(e as Map))),
+          ) ??
+          const <String, ThemeUiScreen>{},
+      templates: (json['templates'] as Map?)?.map(
+            (k, e) => MapEntry(k as String,
+                ThemeUiTemplate.fromJson(Map<String, dynamic>.from(e as Map))),
+          ) ??
+          const <String, ThemeUiTemplate>{},
+    );
+
+Map<String, dynamic> _$$ThemeUiDocumentImplToJson(
+        _$ThemeUiDocumentImpl instance) =>
+    <String, dynamic>{
+      'specVersion': instance.specVersion,
+      'slots': instance.slots.map((k, e) => MapEntry(k, e.toJson())),
+      'screens': instance.screens.map((k, e) => MapEntry(k, e.toJson())),
+      'templates': instance.templates.map((k, e) => MapEntry(k, e.toJson())),
+    };
+
+_$ThemeUiSlotImpl _$$ThemeUiSlotImplFromJson(Map json) => _$ThemeUiSlotImpl(
+      children: (json['children'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          const <Map<String, dynamic>>[],
+      refreshSeconds: (json['refreshSeconds'] as num?)?.toDouble(),
+    );
+
+Map<String, dynamic> _$$ThemeUiSlotImplToJson(_$ThemeUiSlotImpl instance) =>
+    <String, dynamic>{
+      'children': instance.children,
+      'refreshSeconds': instance.refreshSeconds,
+    };
+
+_$ThemeUiScreenImpl _$$ThemeUiScreenImplFromJson(Map json) =>
+    _$ThemeUiScreenImpl(
+      title: json['title'] as String?,
+      showBack: json['showBack'] as bool? ?? false,
+      children: (json['children'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          const <Map<String, dynamic>>[],
+    );
+
+Map<String, dynamic> _$$ThemeUiScreenImplToJson(_$ThemeUiScreenImpl instance) =>
+    <String, dynamic>{
+      'title': instance.title,
+      'showBack': instance.showBack,
+      'children': instance.children,
+    };
+
+_$ThemeUiTemplateImpl _$$ThemeUiTemplateImplFromJson(Map json) =>
+    _$ThemeUiTemplateImpl(
+      params: (json['params'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[],
+      children: (json['children'] as List<dynamic>?)
+              ?.map((e) => Map<String, dynamic>.from(e as Map))
+              .toList() ??
+          const <Map<String, dynamic>>[],
+    );
+
+Map<String, dynamic> _$$ThemeUiTemplateImplToJson(
+        _$ThemeUiTemplateImpl instance) =>
+    <String, dynamic>{
+      'params': instance.params,
+      'children': instance.children,
+    };

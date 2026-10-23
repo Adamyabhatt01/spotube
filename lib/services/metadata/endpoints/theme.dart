@@ -25,25 +25,44 @@ class MetadataPluginThemeEndpoint {
     }
 
     final result = await theme.invoke("getTheme");
-
-    if (result == null) {
-      return null;
-    }
-
-    // Hetu struct literals cross the boundary as HTStruct, while values
-    // produced by bindings arrive as plain Dart maps. Accept both so
-    // hand-written static themes work the same as computed ones.
-    final Map<String, dynamic> json;
-    if (result is HTStruct) {
-      json = jsonifyStruct(result);
-    } else if (result is Map<String, dynamic>) {
-      json = result;
-    } else if (result is Map) {
-      json = result.cast<String, dynamic>();
-    } else {
+    final json = _jsonMap(result);
+    if (json == null) {
       return null;
     }
 
     return sanitizeThemeDefinition(ThemeDefinition.fromJson(json));
+  }
+
+  /// The theme's optional declarative UI, or null when it carries no
+  /// `getUi()` method.
+  ///
+  /// The method is optional by contract, so a missing or throwing method is
+  /// an ordinary "no UI here", not a theme failure: the palette still loads.
+  Future<ThemeUiDocument?> getUi() async {
+    final theme = _theme;
+    if (theme == null) return null;
+
+    try {
+      final result = await theme.invoke("getUi");
+      final json = _jsonMap(result);
+      if (json == null) return null;
+      return parseThemeUiDocument(json);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Hetu struct literals cross the boundary as HTStruct, while values
+  /// produced by bindings arrive as plain Dart maps. Accept both so
+  /// hand-written static themes work the same as computed ones.
+  Map<String, dynamic>? _jsonMap(dynamic result) {
+    if (result is HTStruct) {
+      return jsonifyStruct(result);
+    } else if (result is Map<String, dynamic>) {
+      return result;
+    } else if (result is Map) {
+      return result.cast<String, dynamic>();
+    }
+    return null;
   }
 }

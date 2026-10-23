@@ -1293,6 +1293,28 @@ final themePluginProvider = FutureProvider<MetadataPlugin?>(
   },
 );
 
+/// UI a theme answers from its optional `getUi()` method.
+///
+/// Kept separate from [themeUiProvider] so a shell palette refresh does not
+/// re-invoke the plugin: this future only rebuilds when the plugin VM does.
+final pluginThemeUiProvider = FutureProvider<ThemeUiDocument?>((ref) async {
+  final plugin = await ref.watch(themePluginProvider.future);
+  if (plugin == null) return null;
+  return plugin.theme.getUi();
+});
+
+/// The declarative UI the app should draw.
+///
+/// A theme may carry it inline in `getTheme()` (and then it rides the theme
+/// definition cache) or answer from `getUi()`. Inline wins, because it
+/// arrived with the same payload the colours did.
+final themeUiProvider = FutureProvider<ThemeUiDocument?>((ref) async {
+  final definition = await ref.watch(themeDefinitionProvider.future);
+  if (definition == null) return null;
+  if (definition.ui != null) return definition.ui;
+  return ref.watch(pluginThemeUiProvider.future);
+});
+
 /// In-memory cache for MetadataPlugin instances (Hetu VMs).
 /// Scoped to provider lifecycle with explicit disposal. Generic so the
 /// failure-recovery and eviction semantics are unit-testable without a

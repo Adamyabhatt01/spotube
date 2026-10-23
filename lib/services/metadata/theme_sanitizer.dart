@@ -24,6 +24,7 @@ ThemeDefinition sanitizeThemeDefinition(ThemeDefinition definition) {
     background: definition.background.copyWith(
       opacity: _fraction(definition.background.opacity, 0.0),
       blur: _px(definition.background.blur, max: 100),
+      scale: _intBetween(definition.background.scale, min: 1, max: 8),
       // Tri-state opt-in, intentionally unclamped: a bool cannot poison
       // layout, and the tri-state (true/false/absent) is the contract —
       // normalizing here would collapse "no opinion" into a decision.
@@ -86,6 +87,13 @@ double _between(
 }) {
   if (!value.isFinite) return fallback;
   return value.clamp(min, max).toDouble();
+}
+
+/// A whole-number pixel multiplier (background tile scale), clamped.
+int _intBetween(int value, {required int min, required int max}) {
+  if (value < min) return min;
+  if (value > max) return max;
+  return value;
 }
 
 /// Keeps a font family name only if it can plausibly name one.

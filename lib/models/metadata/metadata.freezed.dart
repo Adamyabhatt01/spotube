@@ -6800,6 +6800,15 @@ mixin _$ThemeDefinition {
   @JsonKey(name: 'dynamic')
   DynamicTheme? get dynamicTheme => throw _privateConstructorUsedError;
 
+  /// The declarative UI tree a theme may carry inline in `getTheme()`.
+  ///
+  /// A theme that answers from its optional `getUi()` method leaves this
+  /// null; `themeUiProvider` asks the plugin and caches the result. A
+  /// malformed tree is dropped here rather than taking the palette with
+  /// it, so a broken screen cannot leave the user on the built-in theme.
+  @JsonKey(fromJson: _themeUiFromJson)
+  ThemeUiDocument? get ui => throw _privateConstructorUsedError;
+
   /// Serializes this ThemeDefinition to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -6826,7 +6835,8 @@ abstract class $ThemeDefinitionCopyWith<$Res> {
       double density,
       ThemeTokens tokens,
       ThemeLayout layout,
-      @JsonKey(name: 'dynamic') DynamicTheme? dynamicTheme});
+      @JsonKey(name: 'dynamic') DynamicTheme? dynamicTheme,
+      @JsonKey(fromJson: _themeUiFromJson) ThemeUiDocument? ui});
 
   $ThemeColorsCopyWith<$Res> get light;
   $ThemeColorsCopyWith<$Res> get dark;
@@ -6836,6 +6846,7 @@ abstract class $ThemeDefinitionCopyWith<$Res> {
   $ThemeTokensCopyWith<$Res> get tokens;
   $ThemeLayoutCopyWith<$Res> get layout;
   $DynamicThemeCopyWith<$Res>? get dynamicTheme;
+  $ThemeUiDocumentCopyWith<$Res>? get ui;
 }
 
 /// @nodoc
@@ -6863,6 +6874,7 @@ class _$ThemeDefinitionCopyWithImpl<$Res, $Val extends ThemeDefinition>
     Object? tokens = null,
     Object? layout = null,
     Object? dynamicTheme = freezed,
+    Object? ui = freezed,
   }) {
     return _then(_value.copyWith(
       specVersion: null == specVersion
@@ -6905,6 +6917,10 @@ class _$ThemeDefinitionCopyWithImpl<$Res, $Val extends ThemeDefinition>
           ? _value.dynamicTheme
           : dynamicTheme // ignore: cast_nullable_to_non_nullable
               as DynamicTheme?,
+      ui: freezed == ui
+          ? _value.ui
+          : ui // ignore: cast_nullable_to_non_nullable
+              as ThemeUiDocument?,
     ) as $Val);
   }
 
@@ -6991,6 +7007,20 @@ class _$ThemeDefinitionCopyWithImpl<$Res, $Val extends ThemeDefinition>
       return _then(_value.copyWith(dynamicTheme: value) as $Val);
     });
   }
+
+  /// Create a copy of ThemeDefinition
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ThemeUiDocumentCopyWith<$Res>? get ui {
+    if (_value.ui == null) {
+      return null;
+    }
+
+    return $ThemeUiDocumentCopyWith<$Res>(_value.ui!, (value) {
+      return _then(_value.copyWith(ui: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -7011,7 +7041,8 @@ abstract class _$$ThemeDefinitionImplCopyWith<$Res>
       double density,
       ThemeTokens tokens,
       ThemeLayout layout,
-      @JsonKey(name: 'dynamic') DynamicTheme? dynamicTheme});
+      @JsonKey(name: 'dynamic') DynamicTheme? dynamicTheme,
+      @JsonKey(fromJson: _themeUiFromJson) ThemeUiDocument? ui});
 
   @override
   $ThemeColorsCopyWith<$Res> get light;
@@ -7029,6 +7060,8 @@ abstract class _$$ThemeDefinitionImplCopyWith<$Res>
   $ThemeLayoutCopyWith<$Res> get layout;
   @override
   $DynamicThemeCopyWith<$Res>? get dynamicTheme;
+  @override
+  $ThemeUiDocumentCopyWith<$Res>? get ui;
 }
 
 /// @nodoc
@@ -7054,6 +7087,7 @@ class __$$ThemeDefinitionImplCopyWithImpl<$Res>
     Object? tokens = null,
     Object? layout = null,
     Object? dynamicTheme = freezed,
+    Object? ui = freezed,
   }) {
     return _then(_$ThemeDefinitionImpl(
       specVersion: null == specVersion
@@ -7096,6 +7130,10 @@ class __$$ThemeDefinitionImplCopyWithImpl<$Res>
           ? _value.dynamicTheme
           : dynamicTheme // ignore: cast_nullable_to_non_nullable
               as DynamicTheme?,
+      ui: freezed == ui
+          ? _value.ui
+          : ui // ignore: cast_nullable_to_non_nullable
+              as ThemeUiDocument?,
     ));
   }
 }
@@ -7113,7 +7151,8 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
       this.density = 1.0,
       this.tokens = const ThemeTokens(),
       this.layout = const ThemeLayout(),
-      @JsonKey(name: 'dynamic') this.dynamicTheme});
+      @JsonKey(name: 'dynamic') this.dynamicTheme,
+      @JsonKey(fromJson: _themeUiFromJson) this.ui});
 
   factory _$ThemeDefinitionImpl.fromJson(Map<String, dynamic> json) =>
       _$$ThemeDefinitionImplFromJson(json);
@@ -7156,9 +7195,19 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
   @JsonKey(name: 'dynamic')
   final DynamicTheme? dynamicTheme;
 
+  /// The declarative UI tree a theme may carry inline in `getTheme()`.
+  ///
+  /// A theme that answers from its optional `getUi()` method leaves this
+  /// null; `themeUiProvider` asks the plugin and caches the result. A
+  /// malformed tree is dropped here rather than taking the palette with
+  /// it, so a broken screen cannot leave the user on the built-in theme.
+  @override
+  @JsonKey(fromJson: _themeUiFromJson)
+  final ThemeUiDocument? ui;
+
   @override
   String toString() {
-    return 'ThemeDefinition(specVersion: $specVersion, light: $light, dark: $dark, surfaces: $surfaces, background: $background, radius: $radius, density: $density, tokens: $tokens, layout: $layout, dynamicTheme: $dynamicTheme)';
+    return 'ThemeDefinition(specVersion: $specVersion, light: $light, dark: $dark, surfaces: $surfaces, background: $background, radius: $radius, density: $density, tokens: $tokens, layout: $layout, dynamicTheme: $dynamicTheme, ui: $ui)';
   }
 
   @override
@@ -7179,13 +7228,14 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
             (identical(other.tokens, tokens) || other.tokens == tokens) &&
             (identical(other.layout, layout) || other.layout == layout) &&
             (identical(other.dynamicTheme, dynamicTheme) ||
-                other.dynamicTheme == dynamicTheme));
+                other.dynamicTheme == dynamicTheme) &&
+            (identical(other.ui, ui) || other.ui == ui));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, specVersion, light, dark,
-      surfaces, background, radius, density, tokens, layout, dynamicTheme);
+      surfaces, background, radius, density, tokens, layout, dynamicTheme, ui);
 
   /// Create a copy of ThemeDefinition
   /// with the given fields replaced by the non-null parameter values.
@@ -7215,7 +7265,8 @@ abstract class _ThemeDefinition implements ThemeDefinition {
           final double density,
           final ThemeTokens tokens,
           final ThemeLayout layout,
-          @JsonKey(name: 'dynamic') final DynamicTheme? dynamicTheme}) =
+          @JsonKey(name: 'dynamic') final DynamicTheme? dynamicTheme,
+          @JsonKey(fromJson: _themeUiFromJson) final ThemeUiDocument? ui}) =
       _$ThemeDefinitionImpl;
 
   factory _ThemeDefinition.fromJson(Map<String, dynamic> json) =
@@ -7251,6 +7302,16 @@ abstract class _ThemeDefinition implements ThemeDefinition {
   @override
   @JsonKey(name: 'dynamic')
   DynamicTheme? get dynamicTheme;
+
+  /// The declarative UI tree a theme may carry inline in `getTheme()`.
+  ///
+  /// A theme that answers from its optional `getUi()` method leaves this
+  /// null; `themeUiProvider` asks the plugin and caches the result. A
+  /// malformed tree is dropped here rather than taking the palette with
+  /// it, so a broken screen cannot leave the user on the built-in theme.
+  @override
+  @JsonKey(fromJson: _themeUiFromJson)
+  ThemeUiDocument? get ui;
 
   /// Create a copy of ThemeDefinition
   /// with the given fields replaced by the non-null parameter values.
@@ -9330,9 +9391,19 @@ ThemeBackground _$ThemeBackgroundFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$ThemeBackground {
+  @JsonKey(unknownEnumValue: ThemeBackgroundSource.none)
   ThemeBackgroundSource get source => throw _privateConstructorUsedError;
   double get opacity => throw _privateConstructorUsedError;
   double get blur => throw _privateConstructorUsedError;
+
+  /// A v3 background shipped with the theme (`asset://…`).
+  String? get asset => throw _privateConstructorUsedError;
+
+  /// Repeat [asset] instead of stretching it.
+  bool get tile => throw _privateConstructorUsedError;
+
+  /// Whole-number magnification for a tiled [asset], 1..8.
+  int get scale => throw _privateConstructorUsedError;
 
   /// Optional veil over the background image as `#RRGGBB` or
   /// Flutter-native `#AARRGGBB` (alpha honored, e.g. `#80000000`
@@ -9367,9 +9438,13 @@ abstract class $ThemeBackgroundCopyWith<$Res> {
       _$ThemeBackgroundCopyWithImpl<$Res, ThemeBackground>;
   @useResult
   $Res call(
-      {ThemeBackgroundSource source,
+      {@JsonKey(unknownEnumValue: ThemeBackgroundSource.none)
+      ThemeBackgroundSource source,
       double opacity,
       double blur,
+      String? asset,
+      bool tile,
+      int scale,
       String? overlay,
       @JsonKey(fromJson: _transparentFromJson) bool? transparent});
 }
@@ -9392,6 +9467,9 @@ class _$ThemeBackgroundCopyWithImpl<$Res, $Val extends ThemeBackground>
     Object? source = null,
     Object? opacity = null,
     Object? blur = null,
+    Object? asset = freezed,
+    Object? tile = null,
+    Object? scale = null,
     Object? overlay = freezed,
     Object? transparent = freezed,
   }) {
@@ -9408,6 +9486,18 @@ class _$ThemeBackgroundCopyWithImpl<$Res, $Val extends ThemeBackground>
           ? _value.blur
           : blur // ignore: cast_nullable_to_non_nullable
               as double,
+      asset: freezed == asset
+          ? _value.asset
+          : asset // ignore: cast_nullable_to_non_nullable
+              as String?,
+      tile: null == tile
+          ? _value.tile
+          : tile // ignore: cast_nullable_to_non_nullable
+              as bool,
+      scale: null == scale
+          ? _value.scale
+          : scale // ignore: cast_nullable_to_non_nullable
+              as int,
       overlay: freezed == overlay
           ? _value.overlay
           : overlay // ignore: cast_nullable_to_non_nullable
@@ -9429,9 +9519,13 @@ abstract class _$$ThemeBackgroundImplCopyWith<$Res>
   @override
   @useResult
   $Res call(
-      {ThemeBackgroundSource source,
+      {@JsonKey(unknownEnumValue: ThemeBackgroundSource.none)
+      ThemeBackgroundSource source,
       double opacity,
       double blur,
+      String? asset,
+      bool tile,
+      int scale,
       String? overlay,
       @JsonKey(fromJson: _transparentFromJson) bool? transparent});
 }
@@ -9452,6 +9546,9 @@ class __$$ThemeBackgroundImplCopyWithImpl<$Res>
     Object? source = null,
     Object? opacity = null,
     Object? blur = null,
+    Object? asset = freezed,
+    Object? tile = null,
+    Object? scale = null,
     Object? overlay = freezed,
     Object? transparent = freezed,
   }) {
@@ -9468,6 +9565,18 @@ class __$$ThemeBackgroundImplCopyWithImpl<$Res>
           ? _value.blur
           : blur // ignore: cast_nullable_to_non_nullable
               as double,
+      asset: freezed == asset
+          ? _value.asset
+          : asset // ignore: cast_nullable_to_non_nullable
+              as String?,
+      tile: null == tile
+          ? _value.tile
+          : tile // ignore: cast_nullable_to_non_nullable
+              as bool,
+      scale: null == scale
+          ? _value.scale
+          : scale // ignore: cast_nullable_to_non_nullable
+              as int,
       overlay: freezed == overlay
           ? _value.overlay
           : overlay // ignore: cast_nullable_to_non_nullable
@@ -9484,9 +9593,13 @@ class __$$ThemeBackgroundImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$ThemeBackgroundImpl implements _ThemeBackground {
   const _$ThemeBackgroundImpl(
-      {this.source = ThemeBackgroundSource.none,
+      {@JsonKey(unknownEnumValue: ThemeBackgroundSource.none)
+      this.source = ThemeBackgroundSource.none,
       this.opacity = 0.0,
       this.blur = 0.0,
+      this.asset,
+      this.tile = false,
+      this.scale = 1,
       this.overlay,
       @JsonKey(fromJson: _transparentFromJson) this.transparent});
 
@@ -9494,7 +9607,7 @@ class _$ThemeBackgroundImpl implements _ThemeBackground {
       _$$ThemeBackgroundImplFromJson(json);
 
   @override
-  @JsonKey()
+  @JsonKey(unknownEnumValue: ThemeBackgroundSource.none)
   final ThemeBackgroundSource source;
   @override
   @JsonKey()
@@ -9502,6 +9615,20 @@ class _$ThemeBackgroundImpl implements _ThemeBackground {
   @override
   @JsonKey()
   final double blur;
+
+  /// A v3 background shipped with the theme (`asset://…`).
+  @override
+  final String? asset;
+
+  /// Repeat [asset] instead of stretching it.
+  @override
+  @JsonKey()
+  final bool tile;
+
+  /// Whole-number magnification for a tiled [asset], 1..8.
+  @override
+  @JsonKey()
+  final int scale;
 
   /// Optional veil over the background image as `#RRGGBB` or
   /// Flutter-native `#AARRGGBB` (alpha honored, e.g. `#80000000`
@@ -9523,7 +9650,7 @@ class _$ThemeBackgroundImpl implements _ThemeBackground {
 
   @override
   String toString() {
-    return 'ThemeBackground(source: $source, opacity: $opacity, blur: $blur, overlay: $overlay, transparent: $transparent)';
+    return 'ThemeBackground(source: $source, opacity: $opacity, blur: $blur, asset: $asset, tile: $tile, scale: $scale, overlay: $overlay, transparent: $transparent)';
   }
 
   @override
@@ -9534,6 +9661,9 @@ class _$ThemeBackgroundImpl implements _ThemeBackground {
             (identical(other.source, source) || other.source == source) &&
             (identical(other.opacity, opacity) || other.opacity == opacity) &&
             (identical(other.blur, blur) || other.blur == blur) &&
+            (identical(other.asset, asset) || other.asset == asset) &&
+            (identical(other.tile, tile) || other.tile == tile) &&
+            (identical(other.scale, scale) || other.scale == scale) &&
             (identical(other.overlay, overlay) || other.overlay == overlay) &&
             (identical(other.transparent, transparent) ||
                 other.transparent == transparent));
@@ -9541,8 +9671,8 @@ class _$ThemeBackgroundImpl implements _ThemeBackground {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, source, opacity, blur, overlay, transparent);
+  int get hashCode => Object.hash(runtimeType, source, opacity, blur, asset,
+      tile, scale, overlay, transparent);
 
   /// Create a copy of ThemeBackground
   /// with the given fields replaced by the non-null parameter values.
@@ -9563,9 +9693,13 @@ class _$ThemeBackgroundImpl implements _ThemeBackground {
 
 abstract class _ThemeBackground implements ThemeBackground {
   const factory _ThemeBackground(
-          {final ThemeBackgroundSource source,
+          {@JsonKey(unknownEnumValue: ThemeBackgroundSource.none)
+          final ThemeBackgroundSource source,
           final double opacity,
           final double blur,
+          final String? asset,
+          final bool tile,
+          final int scale,
           final String? overlay,
           @JsonKey(fromJson: _transparentFromJson) final bool? transparent}) =
       _$ThemeBackgroundImpl;
@@ -9574,11 +9708,24 @@ abstract class _ThemeBackground implements ThemeBackground {
       _$ThemeBackgroundImpl.fromJson;
 
   @override
+  @JsonKey(unknownEnumValue: ThemeBackgroundSource.none)
   ThemeBackgroundSource get source;
   @override
   double get opacity;
   @override
   double get blur;
+
+  /// A v3 background shipped with the theme (`asset://…`).
+  @override
+  String? get asset;
+
+  /// Repeat [asset] instead of stretching it.
+  @override
+  bool get tile;
+
+  /// Whole-number magnification for a tiled [asset], 1..8.
+  @override
+  int get scale;
 
   /// Optional veil over the background image as `#RRGGBB` or
   /// Flutter-native `#AARRGGBB` (alpha honored, e.g. `#80000000`
@@ -9982,5 +10129,830 @@ abstract class _DynamicTheme implements DynamicTheme {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$DynamicThemeImplCopyWith<_$DynamicThemeImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ThemeUiDocument _$ThemeUiDocumentFromJson(Map<String, dynamic> json) {
+  return _ThemeUiDocument.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ThemeUiDocument {
+  int get specVersion => throw _privateConstructorUsedError;
+  Map<String, ThemeUiSlot> get slots => throw _privateConstructorUsedError;
+  Map<String, ThemeUiScreen> get screens => throw _privateConstructorUsedError;
+  Map<String, ThemeUiTemplate> get templates =>
+      throw _privateConstructorUsedError;
+
+  /// Serializes this ThemeUiDocument to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ThemeUiDocument
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ThemeUiDocumentCopyWith<ThemeUiDocument> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ThemeUiDocumentCopyWith<$Res> {
+  factory $ThemeUiDocumentCopyWith(
+          ThemeUiDocument value, $Res Function(ThemeUiDocument) then) =
+      _$ThemeUiDocumentCopyWithImpl<$Res, ThemeUiDocument>;
+  @useResult
+  $Res call(
+      {int specVersion,
+      Map<String, ThemeUiSlot> slots,
+      Map<String, ThemeUiScreen> screens,
+      Map<String, ThemeUiTemplate> templates});
+}
+
+/// @nodoc
+class _$ThemeUiDocumentCopyWithImpl<$Res, $Val extends ThemeUiDocument>
+    implements $ThemeUiDocumentCopyWith<$Res> {
+  _$ThemeUiDocumentCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ThemeUiDocument
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? specVersion = null,
+    Object? slots = null,
+    Object? screens = null,
+    Object? templates = null,
+  }) {
+    return _then(_value.copyWith(
+      specVersion: null == specVersion
+          ? _value.specVersion
+          : specVersion // ignore: cast_nullable_to_non_nullable
+              as int,
+      slots: null == slots
+          ? _value.slots
+          : slots // ignore: cast_nullable_to_non_nullable
+              as Map<String, ThemeUiSlot>,
+      screens: null == screens
+          ? _value.screens
+          : screens // ignore: cast_nullable_to_non_nullable
+              as Map<String, ThemeUiScreen>,
+      templates: null == templates
+          ? _value.templates
+          : templates // ignore: cast_nullable_to_non_nullable
+              as Map<String, ThemeUiTemplate>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ThemeUiDocumentImplCopyWith<$Res>
+    implements $ThemeUiDocumentCopyWith<$Res> {
+  factory _$$ThemeUiDocumentImplCopyWith(_$ThemeUiDocumentImpl value,
+          $Res Function(_$ThemeUiDocumentImpl) then) =
+      __$$ThemeUiDocumentImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {int specVersion,
+      Map<String, ThemeUiSlot> slots,
+      Map<String, ThemeUiScreen> screens,
+      Map<String, ThemeUiTemplate> templates});
+}
+
+/// @nodoc
+class __$$ThemeUiDocumentImplCopyWithImpl<$Res>
+    extends _$ThemeUiDocumentCopyWithImpl<$Res, _$ThemeUiDocumentImpl>
+    implements _$$ThemeUiDocumentImplCopyWith<$Res> {
+  __$$ThemeUiDocumentImplCopyWithImpl(
+      _$ThemeUiDocumentImpl _value, $Res Function(_$ThemeUiDocumentImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ThemeUiDocument
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? specVersion = null,
+    Object? slots = null,
+    Object? screens = null,
+    Object? templates = null,
+  }) {
+    return _then(_$ThemeUiDocumentImpl(
+      specVersion: null == specVersion
+          ? _value.specVersion
+          : specVersion // ignore: cast_nullable_to_non_nullable
+              as int,
+      slots: null == slots
+          ? _value._slots
+          : slots // ignore: cast_nullable_to_non_nullable
+              as Map<String, ThemeUiSlot>,
+      screens: null == screens
+          ? _value._screens
+          : screens // ignore: cast_nullable_to_non_nullable
+              as Map<String, ThemeUiScreen>,
+      templates: null == templates
+          ? _value._templates
+          : templates // ignore: cast_nullable_to_non_nullable
+              as Map<String, ThemeUiTemplate>,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
+  const _$ThemeUiDocumentImpl(
+      {this.specVersion = 1,
+      final Map<String, ThemeUiSlot> slots = const <String, ThemeUiSlot>{},
+      final Map<String, ThemeUiScreen> screens =
+          const <String, ThemeUiScreen>{},
+      final Map<String, ThemeUiTemplate> templates =
+          const <String, ThemeUiTemplate>{}})
+      : _slots = slots,
+        _screens = screens,
+        _templates = templates;
+
+  factory _$ThemeUiDocumentImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ThemeUiDocumentImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final int specVersion;
+  final Map<String, ThemeUiSlot> _slots;
+  @override
+  @JsonKey()
+  Map<String, ThemeUiSlot> get slots {
+    if (_slots is EqualUnmodifiableMapView) return _slots;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_slots);
+  }
+
+  final Map<String, ThemeUiScreen> _screens;
+  @override
+  @JsonKey()
+  Map<String, ThemeUiScreen> get screens {
+    if (_screens is EqualUnmodifiableMapView) return _screens;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_screens);
+  }
+
+  final Map<String, ThemeUiTemplate> _templates;
+  @override
+  @JsonKey()
+  Map<String, ThemeUiTemplate> get templates {
+    if (_templates is EqualUnmodifiableMapView) return _templates;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_templates);
+  }
+
+  @override
+  String toString() {
+    return 'ThemeUiDocument(specVersion: $specVersion, slots: $slots, screens: $screens, templates: $templates)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ThemeUiDocumentImpl &&
+            (identical(other.specVersion, specVersion) ||
+                other.specVersion == specVersion) &&
+            const DeepCollectionEquality().equals(other._slots, _slots) &&
+            const DeepCollectionEquality().equals(other._screens, _screens) &&
+            const DeepCollectionEquality()
+                .equals(other._templates, _templates));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      specVersion,
+      const DeepCollectionEquality().hash(_slots),
+      const DeepCollectionEquality().hash(_screens),
+      const DeepCollectionEquality().hash(_templates));
+
+  /// Create a copy of ThemeUiDocument
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ThemeUiDocumentImplCopyWith<_$ThemeUiDocumentImpl> get copyWith =>
+      __$$ThemeUiDocumentImplCopyWithImpl<_$ThemeUiDocumentImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ThemeUiDocumentImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ThemeUiDocument implements ThemeUiDocument {
+  const factory _ThemeUiDocument(
+      {final int specVersion,
+      final Map<String, ThemeUiSlot> slots,
+      final Map<String, ThemeUiScreen> screens,
+      final Map<String, ThemeUiTemplate> templates}) = _$ThemeUiDocumentImpl;
+
+  factory _ThemeUiDocument.fromJson(Map<String, dynamic> json) =
+      _$ThemeUiDocumentImpl.fromJson;
+
+  @override
+  int get specVersion;
+  @override
+  Map<String, ThemeUiSlot> get slots;
+  @override
+  Map<String, ThemeUiScreen> get screens;
+  @override
+  Map<String, ThemeUiTemplate> get templates;
+
+  /// Create a copy of ThemeUiDocument
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ThemeUiDocumentImplCopyWith<_$ThemeUiDocumentImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ThemeUiSlot _$ThemeUiSlotFromJson(Map<String, dynamic> json) {
+  return _ThemeUiSlot.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ThemeUiSlot {
+  List<Map<String, dynamic>> get children => throw _privateConstructorUsedError;
+
+  /// How often the host may refresh data-bound children in this slot.
+  /// Zero means "on state changes only".
+  double? get refreshSeconds => throw _privateConstructorUsedError;
+
+  /// Serializes this ThemeUiSlot to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ThemeUiSlot
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ThemeUiSlotCopyWith<ThemeUiSlot> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ThemeUiSlotCopyWith<$Res> {
+  factory $ThemeUiSlotCopyWith(
+          ThemeUiSlot value, $Res Function(ThemeUiSlot) then) =
+      _$ThemeUiSlotCopyWithImpl<$Res, ThemeUiSlot>;
+  @useResult
+  $Res call({List<Map<String, dynamic>> children, double? refreshSeconds});
+}
+
+/// @nodoc
+class _$ThemeUiSlotCopyWithImpl<$Res, $Val extends ThemeUiSlot>
+    implements $ThemeUiSlotCopyWith<$Res> {
+  _$ThemeUiSlotCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ThemeUiSlot
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? children = null,
+    Object? refreshSeconds = freezed,
+  }) {
+    return _then(_value.copyWith(
+      children: null == children
+          ? _value.children
+          : children // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>,
+      refreshSeconds: freezed == refreshSeconds
+          ? _value.refreshSeconds
+          : refreshSeconds // ignore: cast_nullable_to_non_nullable
+              as double?,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ThemeUiSlotImplCopyWith<$Res>
+    implements $ThemeUiSlotCopyWith<$Res> {
+  factory _$$ThemeUiSlotImplCopyWith(
+          _$ThemeUiSlotImpl value, $Res Function(_$ThemeUiSlotImpl) then) =
+      __$$ThemeUiSlotImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({List<Map<String, dynamic>> children, double? refreshSeconds});
+}
+
+/// @nodoc
+class __$$ThemeUiSlotImplCopyWithImpl<$Res>
+    extends _$ThemeUiSlotCopyWithImpl<$Res, _$ThemeUiSlotImpl>
+    implements _$$ThemeUiSlotImplCopyWith<$Res> {
+  __$$ThemeUiSlotImplCopyWithImpl(
+      _$ThemeUiSlotImpl _value, $Res Function(_$ThemeUiSlotImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ThemeUiSlot
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? children = null,
+    Object? refreshSeconds = freezed,
+  }) {
+    return _then(_$ThemeUiSlotImpl(
+      children: null == children
+          ? _value._children
+          : children // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>,
+      refreshSeconds: freezed == refreshSeconds
+          ? _value.refreshSeconds
+          : refreshSeconds // ignore: cast_nullable_to_non_nullable
+              as double?,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ThemeUiSlotImpl implements _ThemeUiSlot {
+  const _$ThemeUiSlotImpl(
+      {final List<Map<String, dynamic>> children =
+          const <Map<String, dynamic>>[],
+      this.refreshSeconds})
+      : _children = children;
+
+  factory _$ThemeUiSlotImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ThemeUiSlotImplFromJson(json);
+
+  final List<Map<String, dynamic>> _children;
+  @override
+  @JsonKey()
+  List<Map<String, dynamic>> get children {
+    if (_children is EqualUnmodifiableListView) return _children;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_children);
+  }
+
+  /// How often the host may refresh data-bound children in this slot.
+  /// Zero means "on state changes only".
+  @override
+  final double? refreshSeconds;
+
+  @override
+  String toString() {
+    return 'ThemeUiSlot(children: $children, refreshSeconds: $refreshSeconds)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ThemeUiSlotImpl &&
+            const DeepCollectionEquality().equals(other._children, _children) &&
+            (identical(other.refreshSeconds, refreshSeconds) ||
+                other.refreshSeconds == refreshSeconds));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType,
+      const DeepCollectionEquality().hash(_children), refreshSeconds);
+
+  /// Create a copy of ThemeUiSlot
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ThemeUiSlotImplCopyWith<_$ThemeUiSlotImpl> get copyWith =>
+      __$$ThemeUiSlotImplCopyWithImpl<_$ThemeUiSlotImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ThemeUiSlotImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ThemeUiSlot implements ThemeUiSlot {
+  const factory _ThemeUiSlot(
+      {final List<Map<String, dynamic>> children,
+      final double? refreshSeconds}) = _$ThemeUiSlotImpl;
+
+  factory _ThemeUiSlot.fromJson(Map<String, dynamic> json) =
+      _$ThemeUiSlotImpl.fromJson;
+
+  @override
+  List<Map<String, dynamic>> get children;
+
+  /// How often the host may refresh data-bound children in this slot.
+  /// Zero means "on state changes only".
+  @override
+  double? get refreshSeconds;
+
+  /// Create a copy of ThemeUiSlot
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ThemeUiSlotImplCopyWith<_$ThemeUiSlotImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ThemeUiScreen _$ThemeUiScreenFromJson(Map<String, dynamic> json) {
+  return _ThemeUiScreen.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ThemeUiScreen {
+  String? get title => throw _privateConstructorUsedError;
+  bool get showBack => throw _privateConstructorUsedError;
+  List<Map<String, dynamic>> get children => throw _privateConstructorUsedError;
+
+  /// Serializes this ThemeUiScreen to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ThemeUiScreen
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ThemeUiScreenCopyWith<ThemeUiScreen> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ThemeUiScreenCopyWith<$Res> {
+  factory $ThemeUiScreenCopyWith(
+          ThemeUiScreen value, $Res Function(ThemeUiScreen) then) =
+      _$ThemeUiScreenCopyWithImpl<$Res, ThemeUiScreen>;
+  @useResult
+  $Res call(
+      {String? title, bool showBack, List<Map<String, dynamic>> children});
+}
+
+/// @nodoc
+class _$ThemeUiScreenCopyWithImpl<$Res, $Val extends ThemeUiScreen>
+    implements $ThemeUiScreenCopyWith<$Res> {
+  _$ThemeUiScreenCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ThemeUiScreen
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? title = freezed,
+    Object? showBack = null,
+    Object? children = null,
+  }) {
+    return _then(_value.copyWith(
+      title: freezed == title
+          ? _value.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String?,
+      showBack: null == showBack
+          ? _value.showBack
+          : showBack // ignore: cast_nullable_to_non_nullable
+              as bool,
+      children: null == children
+          ? _value.children
+          : children // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ThemeUiScreenImplCopyWith<$Res>
+    implements $ThemeUiScreenCopyWith<$Res> {
+  factory _$$ThemeUiScreenImplCopyWith(
+          _$ThemeUiScreenImpl value, $Res Function(_$ThemeUiScreenImpl) then) =
+      __$$ThemeUiScreenImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String? title, bool showBack, List<Map<String, dynamic>> children});
+}
+
+/// @nodoc
+class __$$ThemeUiScreenImplCopyWithImpl<$Res>
+    extends _$ThemeUiScreenCopyWithImpl<$Res, _$ThemeUiScreenImpl>
+    implements _$$ThemeUiScreenImplCopyWith<$Res> {
+  __$$ThemeUiScreenImplCopyWithImpl(
+      _$ThemeUiScreenImpl _value, $Res Function(_$ThemeUiScreenImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ThemeUiScreen
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? title = freezed,
+    Object? showBack = null,
+    Object? children = null,
+  }) {
+    return _then(_$ThemeUiScreenImpl(
+      title: freezed == title
+          ? _value.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String?,
+      showBack: null == showBack
+          ? _value.showBack
+          : showBack // ignore: cast_nullable_to_non_nullable
+              as bool,
+      children: null == children
+          ? _value._children
+          : children // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ThemeUiScreenImpl implements _ThemeUiScreen {
+  const _$ThemeUiScreenImpl(
+      {this.title,
+      this.showBack = false,
+      final List<Map<String, dynamic>> children =
+          const <Map<String, dynamic>>[]})
+      : _children = children;
+
+  factory _$ThemeUiScreenImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ThemeUiScreenImplFromJson(json);
+
+  @override
+  final String? title;
+  @override
+  @JsonKey()
+  final bool showBack;
+  final List<Map<String, dynamic>> _children;
+  @override
+  @JsonKey()
+  List<Map<String, dynamic>> get children {
+    if (_children is EqualUnmodifiableListView) return _children;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_children);
+  }
+
+  @override
+  String toString() {
+    return 'ThemeUiScreen(title: $title, showBack: $showBack, children: $children)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ThemeUiScreenImpl &&
+            (identical(other.title, title) || other.title == title) &&
+            (identical(other.showBack, showBack) ||
+                other.showBack == showBack) &&
+            const DeepCollectionEquality().equals(other._children, _children));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, title, showBack,
+      const DeepCollectionEquality().hash(_children));
+
+  /// Create a copy of ThemeUiScreen
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ThemeUiScreenImplCopyWith<_$ThemeUiScreenImpl> get copyWith =>
+      __$$ThemeUiScreenImplCopyWithImpl<_$ThemeUiScreenImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ThemeUiScreenImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ThemeUiScreen implements ThemeUiScreen {
+  const factory _ThemeUiScreen(
+      {final String? title,
+      final bool showBack,
+      final List<Map<String, dynamic>> children}) = _$ThemeUiScreenImpl;
+
+  factory _ThemeUiScreen.fromJson(Map<String, dynamic> json) =
+      _$ThemeUiScreenImpl.fromJson;
+
+  @override
+  String? get title;
+  @override
+  bool get showBack;
+  @override
+  List<Map<String, dynamic>> get children;
+
+  /// Create a copy of ThemeUiScreen
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ThemeUiScreenImplCopyWith<_$ThemeUiScreenImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ThemeUiTemplate _$ThemeUiTemplateFromJson(Map<String, dynamic> json) {
+  return _ThemeUiTemplate.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ThemeUiTemplate {
+  List<String> get params => throw _privateConstructorUsedError;
+  List<Map<String, dynamic>> get children => throw _privateConstructorUsedError;
+
+  /// Serializes this ThemeUiTemplate to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ThemeUiTemplate
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ThemeUiTemplateCopyWith<ThemeUiTemplate> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ThemeUiTemplateCopyWith<$Res> {
+  factory $ThemeUiTemplateCopyWith(
+          ThemeUiTemplate value, $Res Function(ThemeUiTemplate) then) =
+      _$ThemeUiTemplateCopyWithImpl<$Res, ThemeUiTemplate>;
+  @useResult
+  $Res call({List<String> params, List<Map<String, dynamic>> children});
+}
+
+/// @nodoc
+class _$ThemeUiTemplateCopyWithImpl<$Res, $Val extends ThemeUiTemplate>
+    implements $ThemeUiTemplateCopyWith<$Res> {
+  _$ThemeUiTemplateCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ThemeUiTemplate
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? params = null,
+    Object? children = null,
+  }) {
+    return _then(_value.copyWith(
+      params: null == params
+          ? _value.params
+          : params // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      children: null == children
+          ? _value.children
+          : children // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ThemeUiTemplateImplCopyWith<$Res>
+    implements $ThemeUiTemplateCopyWith<$Res> {
+  factory _$$ThemeUiTemplateImplCopyWith(_$ThemeUiTemplateImpl value,
+          $Res Function(_$ThemeUiTemplateImpl) then) =
+      __$$ThemeUiTemplateImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({List<String> params, List<Map<String, dynamic>> children});
+}
+
+/// @nodoc
+class __$$ThemeUiTemplateImplCopyWithImpl<$Res>
+    extends _$ThemeUiTemplateCopyWithImpl<$Res, _$ThemeUiTemplateImpl>
+    implements _$$ThemeUiTemplateImplCopyWith<$Res> {
+  __$$ThemeUiTemplateImplCopyWithImpl(
+      _$ThemeUiTemplateImpl _value, $Res Function(_$ThemeUiTemplateImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ThemeUiTemplate
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? params = null,
+    Object? children = null,
+  }) {
+    return _then(_$ThemeUiTemplateImpl(
+      params: null == params
+          ? _value._params
+          : params // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      children: null == children
+          ? _value._children
+          : children // ignore: cast_nullable_to_non_nullable
+              as List<Map<String, dynamic>>,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ThemeUiTemplateImpl implements _ThemeUiTemplate {
+  const _$ThemeUiTemplateImpl(
+      {final List<String> params = const <String>[],
+      final List<Map<String, dynamic>> children =
+          const <Map<String, dynamic>>[]})
+      : _params = params,
+        _children = children;
+
+  factory _$ThemeUiTemplateImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ThemeUiTemplateImplFromJson(json);
+
+  final List<String> _params;
+  @override
+  @JsonKey()
+  List<String> get params {
+    if (_params is EqualUnmodifiableListView) return _params;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_params);
+  }
+
+  final List<Map<String, dynamic>> _children;
+  @override
+  @JsonKey()
+  List<Map<String, dynamic>> get children {
+    if (_children is EqualUnmodifiableListView) return _children;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_children);
+  }
+
+  @override
+  String toString() {
+    return 'ThemeUiTemplate(params: $params, children: $children)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ThemeUiTemplateImpl &&
+            const DeepCollectionEquality().equals(other._params, _params) &&
+            const DeepCollectionEquality().equals(other._children, _children));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      const DeepCollectionEquality().hash(_params),
+      const DeepCollectionEquality().hash(_children));
+
+  /// Create a copy of ThemeUiTemplate
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ThemeUiTemplateImplCopyWith<_$ThemeUiTemplateImpl> get copyWith =>
+      __$$ThemeUiTemplateImplCopyWithImpl<_$ThemeUiTemplateImpl>(
+          this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ThemeUiTemplateImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ThemeUiTemplate implements ThemeUiTemplate {
+  const factory _ThemeUiTemplate(
+      {final List<String> params,
+      final List<Map<String, dynamic>> children}) = _$ThemeUiTemplateImpl;
+
+  factory _ThemeUiTemplate.fromJson(Map<String, dynamic> json) =
+      _$ThemeUiTemplateImpl.fromJson;
+
+  @override
+  List<String> get params;
+  @override
+  List<Map<String, dynamic>> get children;
+
+  /// Create a copy of ThemeUiTemplate
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ThemeUiTemplateImplCopyWith<_$ThemeUiTemplateImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
