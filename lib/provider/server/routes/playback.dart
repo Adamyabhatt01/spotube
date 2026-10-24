@@ -452,7 +452,16 @@ class ServerPlaybackRoutes {
         await ref
             .read(sourcedTrackProvider(track.query).notifier)
             .swapWithNextSibling()
-            .then((track) => track.url!);
+            .then((swapped) {
+              final newUrl = swapped.url ?? track.url;
+              if (newUrl == null) {
+                throw StateError(
+                  'No stream URL available for ${track.query.id} '
+                  'after sibling swap',
+                );
+              }
+              return newUrl;
+            });
 
     if (isStreamUrlExpired(url)) {
       try {
@@ -686,8 +695,10 @@ class ServerPlaybackRoutes {
 
           // Shared with the proactive refresh in resolveServingUrl above.
           final sourcedTrack = await _refreshStreamingUrlOnce(track.query);
-
-          url = sourcedTrack.url!;
+          final freshUrl = sourcedTrack.url;
+          if (freshUrl != null) {
+            url = freshUrl;
+          }
 
           probedContentType = (await dio.head(
             url,
@@ -788,8 +799,8 @@ class ServerPlaybackRoutes {
         );
       }
 
-      if (mirror != null) {
-        res.data?.stream = await mirror.attach(res.data!.stream);
+      if (mirror != null && res.data != null) {
+        res.data.stream = await mirror.attach(res.data.stream);
       }
       // No wrap on the pass-through path: a client disconnect cancels shelf's
       // subscription, which reaches the dio body stream directly and closes

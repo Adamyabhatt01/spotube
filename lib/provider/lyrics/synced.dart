@@ -194,7 +194,11 @@ class SyncedLyricsNotifier
         throw const LyricsUnavailableException();
       }
 
-      if (fromCache == null) {
+      final shouldWrite = fromCache == null ||
+          (lyrics.hasContent &&
+              (lyrics.isSynced ||
+                  (fromCache != null && !fromCache.isSynced && lyrics.isSynced)));
+      if (shouldWrite) {
         // Replace rather than append, so a track never accumulates rows that
         // the read above then has to arbitrate between. One transaction, so a
         // kill between the two statements can never leave the track with no

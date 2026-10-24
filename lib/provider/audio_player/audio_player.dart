@@ -491,6 +491,9 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     try {
       for (int i = 0; i < addableTracks.length; i++) {
         final track = addableTracks.elementAt(i);
+        if (track is! SpotubeLocalTrackObject) {
+          await ref.read(playbackServerPortProvider.future);
+        }
         final insertAt = max(previousState.currentIndex, 0) + i + 1;
 
         await insertMediaIntoBackend(
@@ -530,6 +533,9 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     List<({int index, SpotubeTrackObject track})> removed,
   ) async {
     for (final entry in removed..sort((a, b) => a.index.compareTo(b.index))) {
+      if (entry.track is! SpotubeLocalTrackObject) {
+        await ref.read(playbackServerPortProvider.future);
+      }
       try {
         await insertMediaIntoBackend(SpotubeMedia(entry.track), entry.index);
       } catch (e, stack) {
@@ -549,6 +555,9 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       tracks: [...state.tracks, track],
     );
 
+    if (track is! SpotubeLocalTrackObject) {
+      await ref.read(playbackServerPortProvider.future);
+    }
     try {
       await audioPlayer.addTrack(SpotubeMedia(track));
     } catch (_) {
@@ -584,6 +593,9 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     _bulkMutationDepth++;
     try {
       for (final track in addableTracks) {
+        if (track is! SpotubeLocalTrackObject) {
+          await ref.read(playbackServerPortProvider.future);
+        }
         await addMediaToBackend(SpotubeMedia(track));
         addedIndexes.add(baseIndex + addedIndexes.length);
       }
@@ -681,6 +693,13 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     bool autoPlay = false,
   }) async {
     _assertAllowedTracks(tracks);
+
+    final hasRemoteTracks = tracks.any(
+      (track) => track is! SpotubeLocalTrackObject,
+    );
+    if (hasRemoteTracks) {
+      await ref.read(playbackServerPortProvider.future);
+    }
 
     // Keyed dedupe: same first-occurrence result as the nested scan, but
     // O(n) — a 2k-track load did ~n²/2 URI compares here before audio start.
