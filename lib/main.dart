@@ -37,7 +37,7 @@ import 'package:spotube/services/theme_definition_cache.dart';
 import 'package:spotube/modules/settings/color_scheme_picker_dialog.dart';
 import 'package:spotube/modules/theme_shell/theme_branding.dart';
 import 'package:spotube/modules/theme_shell/theme_presentation.dart';
-import 'package:spotube/modules/theme_shell/theme_shell.dart';
+import 'package:spotube/modules/theme_shell/resolved_layout.dart';
 import 'package:spotube/modules/splash/splash_screen.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_assets.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_fonts.dart';
@@ -489,6 +489,8 @@ class Spotube extends HookConsumerWidget {
     final themeTransitionMs = ref.watch(
       userPreferencesProvider.select((s) => s.themeTransitionMs),
     );
+    final userPlayerDock =
+        ref.watch(userPreferencesProvider.select((s) => s.playerDock));
     final themeDefinition = ref.watch(themeDefinitionProvider);
     final cachedThemeDefinition = ref.watch(cachedThemeDefinitionProvider);
 
@@ -817,11 +819,13 @@ class Spotube extends HookConsumerWidget {
     final branding = ThemeBranding.from(pluginTheme);
     final appTitle = branding.windowTitle;
     // One resolved layout for every consumer: splash, shell and pages all see
-    // the same breakpoint variant at the current window width.
-    final themeLayout = applyResponsiveLayout(
+    // the same breakpoint variant, footer dock and volume decision.
+    final resolvedLayout = resolveLayout(
       pluginTheme?.layout ?? const ThemeLayout(),
-      MediaQuery.sizeOf(context).width,
+      width: MediaQuery.sizeOf(context).width,
+      userDock: userPlayerDock,
     );
+    final themeLayout = resolvedLayout.layout;
     final splashSpec = themeLayout.splash;
     final rawSplashLogo = splashSpec['logo'];
     final themeSplashLogo = rawSplashLogo is String
@@ -937,7 +941,9 @@ class Spotube extends HookConsumerWidget {
             // Breakpoint variants are resolved at the window width, so a
             // theme's `responsive` override reaches every consumer through
             // the same `context.layout` the base layout uses.
-            layout: themeLayout,
+            layout: resolvedLayout.layout,
+            playerDock: resolvedLayout.playerDock,
+            volumeOverride: resolvedLayout.volumeOverride,
             semanticColors: materialBrightness == Brightness.dark
                 ? darkSemanticColors
                 : lightSemanticColors,

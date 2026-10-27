@@ -30,7 +30,6 @@ import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/modules/playlist/liked_playlist_synthetic.dart';
 import 'package:spotube/modules/theme_shell/theme_branding.dart';
 import 'package:spotube/modules/theme_shell/theme_navigation.dart';
-import 'package:spotube/modules/theme_shell/theme_shell.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/radio/favorites.dart';
 import 'package:spotube/provider/sidebar/sidebar_provider.dart';
@@ -78,10 +77,7 @@ class Sidebar extends HookConsumerWidget {
 
     final layoutMode =
         ref.watch(userPreferencesProvider.select((s) => s.layoutMode));
-    final playerDock = resolvePlayerDock(
-      layout,
-      ref.watch(userPreferencesProvider.select((s) => s.playerDock)),
-    );
+    final playerDock = context.playerDock;
     final measuredPlayerHeight = ref.watch(bottomPlayerHeightProvider);
     final storedLibraryOrder = ref.watch(
       userPreferencesProvider.select((s) => s.sidebarLibraryOrder),
@@ -138,45 +134,31 @@ class Sidebar extends HookConsumerWidget {
       [sidebarLibraryTileList, storedLibraryOrder],
     );
 
-    final navMembership =
-        themeEnforces(layout, ThemeShellKeys.navItems);
-    final navOrder = themeEnforces(layout, ThemeShellKeys.navOrder);
-    final libraryMembership =
-        themeEnforces(layout, ThemeShellKeys.libraryItems);
-
-    // The top entries the theme asked for. Membership-enforced themes resolve
-    // against the full registry (so `search` becomes available); an
-    // order-only claim reorders the host's own entries without adding any.
+    // The top entries the theme asked for. A non-empty list is the surface,
+    // resolved against the full registry (so `search` becomes available); an
+    // empty list keeps the host's own entries and order.
     final sidebarTileList = useMemoized(
       () {
-        if (!navMembership && !navOrder) {
+        if (layout.navItems.isEmpty) {
           return getSidebarTileList(context.l10n);
         }
         return themeEntriesFor(
-          host: navMembership
-              ? getSidebarTileRegistry(context.l10n)
-              : getSidebarTileList(context.l10n),
+          host: getSidebarTileRegistry(context.l10n),
           themeIds: layout.navItems,
-          layout: layout,
           screens: screens,
-          membershipKey: ThemeShellKeys.navItems,
-          orderKey: ThemeShellKeys.navOrder,
         );
       },
-      [context.l10n, layout, screens, navMembership, navOrder],
+      [context.l10n, layout, screens],
     );
 
     // Library group as the theme asked for it, or in the user's own order.
     final visibleLibraryTiles = useMemoized(
       () {
-        if (!libraryMembership && !navOrder) return orderedLibraryTiles;
+        if (layout.libraryItems.isEmpty) return orderedLibraryTiles;
         return themeEntriesFor(
-          host: libraryMembership ? sidebarLibraryTileList : orderedLibraryTiles,
+          host: sidebarLibraryTileList,
           themeIds: layout.libraryItems,
-          layout: layout,
           screens: screens,
-          membershipKey: ThemeShellKeys.libraryItems,
-          orderKey: ThemeShellKeys.navOrder,
         );
       },
       [
@@ -184,8 +166,6 @@ class Sidebar extends HookConsumerWidget {
         orderedLibraryTiles,
         layout,
         screens,
-        libraryMembership,
-        navOrder,
       ],
     );
 

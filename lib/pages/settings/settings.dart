@@ -35,9 +35,9 @@ class SettingsPage extends HookConsumerWidget {
     final hasBefore = themeUiSlotExists(ref, 'settings.before');
     final hasAfter = themeUiSlotExists(ref, 'settings.after');
 
-    // The theme may reorder or replace the settings groups when it claims
-    // `settings`; platform-only groups are not offered to it on the platforms
-    // they do not exist on.
+    // A non-empty section list is the theme's surface; otherwise the host
+    // order is kept whole. Platform-only groups are not offered on the
+    // platforms they do not exist on.
     final sections = useMemoized(
       () => resolveThemeSections(
         defaults: [
@@ -52,7 +52,6 @@ class SettingsPage extends HookConsumerWidget {
           'about',
         ],
         block: layout.settings,
-        enforced: themeEnforces(layout, ThemeShellKeys.settings),
       ),
       [layout],
     );

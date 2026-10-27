@@ -87,8 +87,12 @@ class ThemeLayout with _$ThemeLayout {
     /// keep the host's footer player.
     @Default(ThemePlayerLayout()) ThemePlayerLayout player,
 
-    /// Layout fields the theme takes over even when the user chose otherwise.
-    /// The host only acts on fields it understands.
+    /// Deprecated v3 opt-in, retained so v3 payloads still parse.
+    ///
+    /// The host no longer reads it. A layout field takes effect when the
+    /// theme sends a meaningful value: a non-empty entry/section list, a
+    /// `compact` dock, or `showVolume: false`. A v3 host still gates on this
+    /// list, so a payload shipped to both hosts keeps it.
     @Default([]) List<String> enforce,
 
     /// The navigation entries and library entries the theme wants the host

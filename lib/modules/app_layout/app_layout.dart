@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
+import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/theme_shell/theme_presentation.dart';
 import 'package:spotube/utils/theme_converter.dart';
@@ -21,6 +22,16 @@ class AppLayout extends InheritedWidget {
   final ThemeTokens tokens;
   final ThemeRadius radii;
   final ThemeLayout layout;
+
+  /// The footer shape the shell resolved for this window and user.
+  ///
+  /// Published here so the router shell and the sidebar share one answer
+  /// instead of each combining the theme's claim with the user preference.
+  final PlayerDock playerDock;
+
+  /// `false` when the theme removed the volume control; null defers to the
+  /// user's own visibility setting.
+  final bool? volumeOverride;
 
   /// The theme's v3 spacing scale, in logical pixels at scaling 1.
   ///
@@ -43,6 +54,8 @@ class AppLayout extends InheritedWidget {
     this.tokens = const ThemeTokens(),
     this.radii = const ThemeRadius(),
     this.layout = const ThemeLayout(),
+    this.playerDock = PlayerDock.fullWidth,
+    this.volumeOverride,
     this.spacing,
     this.motion = const ThemeMotion(),
     this.spacingScale = 1,
@@ -54,6 +67,8 @@ class AppLayout extends InheritedWidget {
     return oldWidget.tokens != tokens ||
         oldWidget.radii != radii ||
         oldWidget.layout != layout ||
+        oldWidget.playerDock != playerDock ||
+        oldWidget.volumeOverride != volumeOverride ||
         oldWidget.spacing != spacing ||
         oldWidget.motion != motion ||
         oldWidget.spacingScale != spacingScale ||
@@ -77,8 +92,15 @@ extension AppLayoutX on BuildContext {
   ThemeLayout get _layout => _appLayout?.layout ?? const ThemeLayout();
 
   /// The theme's layout decisions, already resolved for the current window
-  /// width (see `applyResponsiveLayout` in `theme_shell.dart`).
+  /// width (see `resolveLayout` in `theme_shell/resolved_layout.dart`).
   ThemeLayout get layout => _layout;
+
+  /// The footer shape resolved once by the app root.
+  PlayerDock get playerDock =>
+      _appLayout?.playerDock ?? PlayerDock.fullWidth;
+
+  /// The theme's volume-control override, if it declared one.
+  bool? get volumeOverride => _appLayout?.volumeOverride;
 
   ThemeSemanticColors get _semanticColors =>
       _appLayout?.semanticColors ?? const ThemeSemanticColors();

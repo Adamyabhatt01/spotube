@@ -10,7 +10,6 @@ import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
-import 'package:spotube/modules/theme_shell/theme_shell.dart';
 import 'package:spotube/modules/player/player_actions.dart';
 import 'package:spotube/modules/player/player_overlay.dart';
 import 'package:spotube/modules/player/player_progress.dart';
@@ -99,14 +98,8 @@ class BottomPlayer extends HookConsumerWidget {
     final playerLayout = context.layout.player;
     final userVolumeMode =
         ref.watch(userPreferencesProvider.select((s) => s.volumeControlMode));
-    // A theme only takes the volume preference over when it claims it; without
-    // the claim an explicitly hidden control stays hidden.
-    final volumeOverride = themeEnforces(
-      context.layout,
-      ThemeShellKeys.volume,
-    )
-        ? playerLayout.showVolume
-        : null;
+    // The theme can hide the control; otherwise the user's preference stands.
+    final volumeOverride = context.volumeOverride;
     final hasThemeLeading = themeUiSlotExists(ref, 'player.leading');
     final hasThemeControls = themeUiSlotExists(ref, 'player.controls');
     final hasThemeTrailing = themeUiSlotExists(ref, 'player.trailing');

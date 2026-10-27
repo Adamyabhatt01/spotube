@@ -8,7 +8,6 @@ import 'package:spotube/modules/player/radio/radio_player_actions.dart';
 import 'package:spotube/modules/player/radio/radio_player_controls.dart';
 import 'package:spotube/modules/player/radio/radio_player_track_details.dart';
 import 'package:spotube/modules/player/volume_slider.dart';
-import 'package:spotube/modules/theme_shell/theme_shell.dart';
 import 'package:spotube/provider/radio/radio_playback.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 
@@ -21,9 +20,7 @@ class RadioBottomPlayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final layout = context.layout;
-    final volumeOverride =
-        themeEnforces(layout, ThemeShellKeys.volume) ? layout.player.showVolume : null;
+    final volumeOverride = context.volumeOverride;
 
     return SurfaceCard(
       borderRadius: BorderRadius.zero,

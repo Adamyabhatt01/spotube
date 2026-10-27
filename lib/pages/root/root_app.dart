@@ -13,7 +13,6 @@ import 'package:spotube/modules/root/spotube_navigation_bar.dart';
 import 'package:spotube/hooks/configurators/use_endless_playback.dart';
 import 'package:spotube/modules/root/use_global_subscriptions.dart';
 import 'package:spotube/modules/theme_background/real_transparency.dart';
-import 'package:spotube/modules/theme_shell/theme_shell.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 import 'package:spotube/provider/glance/glance.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
@@ -51,11 +50,7 @@ class RootAppPage extends HookConsumerWidget {
     // Sidebar discards [contentFooter] on its own compact early return.
     final layoutMode =
         ref.watch(userPreferencesProvider.select((s) => s.layoutMode));
-    final layout = context.layout;
-    final playerDock = resolvePlayerDock(
-      layout,
-      ref.watch(userPreferencesProvider.select((s) => s.playerDock)),
-    );
+    final playerDock = context.playerDock;
     // Real transparency owns the scaffold ground with everything else: an
     // opaque default here would be the window. Inset chrome keeps its own
     // panel treatment (the theme asked for that panel explicitly).

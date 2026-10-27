@@ -11,7 +11,6 @@ import 'package:spotube/collections/side_bar_tiles.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/theme_background/real_transparency.dart';
 import 'package:spotube/modules/theme_shell/theme_navigation.dart';
-import 'package:spotube/modules/theme_shell/theme_shell.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/database/database.dart';
@@ -79,24 +78,16 @@ class SpotubeNavigationBar extends HookConsumerWidget {
       [themeUi],
     );
 
-    // The theme may replace the bar's entries (membership) or just their
-    // order, and may add destinations of its own through `screen:<id>`.
+    // A non-empty theme list replaces the bar's entries, in its order, and
+    // may add destinations of its own through `screen:<id>`.
     final navbarTileList = useMemoized(
       () {
         final host = getNavbarTileList(context.l10n);
-        if (!themeEnforces(layout, ThemeShellKeys.navbarItems) &&
-            !themeEnforces(layout, ThemeShellKeys.navOrder)) {
-          return host;
-        }
+        if (layout.navbarItems.isEmpty) return host;
         return themeEntriesFor(
-          host: themeEnforces(layout, ThemeShellKeys.navbarItems)
-              ? getNavbarTileRegistry(context.l10n)
-              : host,
+          host: getNavbarTileRegistry(context.l10n),
           themeIds: layout.navbarItems,
-          layout: layout,
           screens: screens,
-          membershipKey: ThemeShellKeys.navbarItems,
-          orderKey: ThemeShellKeys.navOrder,
         );
       },
       [context.l10n, layout, screens],

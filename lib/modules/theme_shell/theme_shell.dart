@@ -1,26 +1,4 @@
-import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
-
-/// The shell fields a theme may take ownership of.
-///
-/// These are the keys the contract accepts in `layout.enforce`. A field that
-/// conflicts with an explicit user choice only takes effect when its key is
-/// listed; fields with no user-facing counterpart (section order, window
-/// title-bar geometry) apply whenever the theme sends them.
-abstract final class ThemeShellKeys {
-  static const nav = 'nav';
-  static const navItems = 'navItems';
-  static const navbarItems = 'navbarItems';
-  static const libraryItems = 'libraryItems';
-  static const navOrder = 'navOrder';
-  static const player = 'player';
-  static const playerDock = 'playerDock';
-  static const volume = 'volume';
-  static const home = 'home';
-  static const settings = 'settings';
-  static const titlebar = 'titlebar';
-  static const splash = 'splash';
-}
 
 /// The breakpoint a responsive variant targets.
 enum ThemeBreakpoint { compact, medium, expanded }
@@ -88,40 +66,24 @@ Map<String, dynamic>? _variantFor(
   return null;
 }
 
-bool themeEnforces(ThemeLayout layout, String key) =>
-    layout.enforce.contains(key);
-
-/// The bar shape after the theme's claim, if any.
-///
-/// The host has two footer shapes, so the theme's four names collapse onto
-/// them: `compact` is the bar tucked under the content, everything else keeps
-/// the full-width footer. Without the `playerDock` claim the user's own choice
-/// stands.
-PlayerDock resolvePlayerDock(ThemeLayout layout, PlayerDock userDock) {
-  if (!themeEnforces(layout, ThemeShellKeys.playerDock)) return userDock;
-  return layout.player.dock == ThemePlayerDock.compact
-      ? PlayerDock.docked
-      : PlayerDock.fullWidth;
-}
-
 /// Resolves the ids a navigation surface should show, in order.
 ///
 /// [hostIds] is the complete set the host implements, [themeIds] the theme's
 /// requested list (which may be empty), and [screens] the theme-screen ids that
 /// a `screen:<id>` entry may point at.
 ///
-/// With membership enforced the theme's list is the surface: valid entries in
-/// the theme's order, falling back to the host's list when the filter leaves
-/// nothing (a theme that names only unknown ids must not blank the nav). With
-/// only order enforced the theme's entries come first and the rest follow, so
-/// a theme can move an entry without hiding the ones it did not mention.
+/// A non-empty theme list is the surface: valid entries in the theme's order.
+/// It falls back to the host's list when the filter leaves nothing (a theme
+/// that names only unknown ids must not blank the nav). An empty list leaves
+/// the host surface untouched. There is no separate "membership" opt-in — a
+/// theme that only wants to reorder names the entries it wants to keep.
 List<String> resolveThemeItems({
   required List<String> hostIds,
   required List<String> themeIds,
   required Set<String> screens,
-  required bool enforceMembership,
-  required bool enforceOrder,
 }) {
+  if (themeIds.isEmpty) return hostIds;
+
   final known = hostIds.toSet();
   final chosen = <String>[];
   for (final id in themeIds) {
@@ -130,27 +92,19 @@ List<String> resolveThemeItems({
             screens.contains(id.substring('screen:'.length)));
     if (valid && !chosen.contains(id)) chosen.add(id);
   }
-
-  if (enforceMembership) {
-    return chosen.isEmpty ? hostIds : chosen;
-  }
-  if (enforceOrder && chosen.isNotEmpty) {
-    return [...chosen, ...hostIds.where((id) => !chosen.contains(id))];
-  }
-  return hostIds;
+  return chosen.isEmpty ? hostIds : chosen;
 }
 
 /// Resolves a `home`/`settings` section list.
 ///
-/// Section membership is opt-in through `enforce`: a theme that carries a
-/// partial list without claiming it must not silently delete the sections it
-/// did not mention. Unknown ids are dropped and duplicates collapse.
+/// A non-empty `sections` list is the theme's surface; unknown ids are dropped
+/// and duplicates collapse. Without one — or when the list is empty or
+/// malformed — the host order stands whole, so a theme cannot delete the
+/// sections it did not mention by accident.
 List<String> resolveThemeSections({
   required List<String> defaults,
   required Map<String, dynamic> block,
-  required bool enforced,
 }) {
-  if (!enforced) return defaults;
   final raw = block['sections'];
   if (raw is! List) return defaults;
 

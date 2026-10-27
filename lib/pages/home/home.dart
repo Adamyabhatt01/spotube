@@ -57,14 +57,13 @@ class HomePage extends HookConsumerWidget {
       [themeDefinition],
     );
 
-    // The theme may reorder or replace the Browse sections when it claims
-    // `home`; otherwise the host order is kept whole.
+    // A non-empty section list is the theme's surface; otherwise the host
+    // order is kept whole.
     final layout = context.layout;
     final homeSections = useMemoized(
       () => resolveThemeSections(
         defaults: const ['recent', 'featured', 'new_releases', 'browse'],
         block: layout.home,
-        enforced: themeEnforces(layout, ThemeShellKeys.home),
       ),
       [layout],
     );

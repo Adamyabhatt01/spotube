@@ -29,16 +29,14 @@ Map<String, SideBarTiles> themeScreenTiles(ThemeUiDocument? ui) {
 
 /// Applies a theme's entry list to a host-ordered navigation surface.
 ///
-/// [host] is the surface as the user's own settings ordered it. The theme may
-/// replace membership (enforced) or just the order; entries it names are
-/// pulled out of [host] or resolved from [screens], and everything it did not
-/// name keeps its host position when only the order is enforced.
-List<SideBarTiles> applyThemeEntryOrder({
+/// [host] is the complete set the surface implements. A non-empty [themeIds]
+/// list replaces the surface, in the theme's order: entries it names are
+/// pulled out of [host] or resolved from [screens], and everything else is
+/// left out. An empty list keeps the user's own order untouched.
+List<SideBarTiles> themeEntriesFor({
   required List<SideBarTiles> host,
   required List<String> themeIds,
   required Map<String, SideBarTiles> screens,
-  required bool enforceMembership,
-  required bool enforceOrder,
 }) {
   if (themeIds.isEmpty) return host;
 
@@ -53,8 +51,6 @@ List<SideBarTiles> applyThemeEntryOrder({
     hostIds: [for (final tile in host) tile.id],
     themeIds: themeIds,
     screens: screenIds,
-    enforceMembership: enforceMembership,
-    enforceOrder: enforceOrder,
   );
 
   final result = <SideBarTiles>[];
@@ -63,24 +59,6 @@ List<SideBarTiles> applyThemeEntryOrder({
     if (tile != null) result.add(tile);
   }
   return result;
-}
-
-/// Resolves the entry list a theme wants for [layout]-driven navigation.
-List<SideBarTiles> themeEntriesFor({
-  required List<SideBarTiles> host,
-  required List<String> themeIds,
-  required ThemeLayout layout,
-  required Map<String, SideBarTiles> screens,
-  required String membershipKey,
-  required String orderKey,
-}) {
-  return applyThemeEntryOrder(
-    host: host,
-    themeIds: themeIds,
-    screens: screens,
-    enforceMembership: themeEnforces(layout, membershipKey),
-    enforceOrder: themeEnforces(layout, orderKey),
-  );
 }
 
 /// Opens a navigation entry, whether it is a host route or a theme screen.
