@@ -22,6 +22,13 @@ import 'package:archive/archive.dart';
 import 'package:meta/meta.dart';
 import 'package:pub_semver/pub_semver.dart';
 
+part 'plugin_providers.dart';
+part 'plugin_cache.dart';
+part 'plugin_seeding.dart';
+part 'plugin_releases.dart';
+part 'plugin_assets.dart';
+part 'plugin_updates.dart';
+
 final allowedDomainsRegex = RegExp(
   r"^(https?:\/\/)?(www\.)?(github\.com|codeberg\.org)\/.+",
 );
@@ -249,201 +256,6 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     );
   }
 
-  Future<void> _loadDefaultPlugins(MetadataPluginState pluginState) async {
-    final seedConfigs = <PluginConfiguration>[];
-    // Identity is (name, author), not slug — same rule as the duplicate check.
-    final installedNow = <String>{};
-
-    for (final plugin in bundledPlugins) {
-      final byteData = await rootBundle.load(
-        "assets/plugins/$plugin/plugin.smplug",
-      );
-      // Only the central directory is read here; inflating `plugin.json` is a
-      // few hundred bytes. Writing the archive out again is what used to sit
-      // on the startup path for every launch of an up-to-date install.
-      final archive = ZipDecoder().decodeBytes(byteData.buffer.asUint8List());
-      final pluginConfig = PluginStorage.readArchiveConfig(archive);
-      seedConfigs.add(pluginConfig);
-
-      if (!await isBundledPluginUpToDate(
-        pluginConfig,
-        archive
-            .firstWhereOrNull(
-              (file) => file.isFile && file.name == "plugin.out",
-            )
-            ?.size,
-        pluginState,
-      )) {
-        await _storage.extractArchiveFrom(archive);
-      }
-
-      try {
-        await addPlugin(pluginConfig);
-        installedNow.add('${pluginConfig.name}|${pluginConfig.author}');
-      } on MetadataPluginException catch (e) {
-        if (e.errorCode != MetadataPluginErrorCode.duplicatePlugin) {
-          continue;
-        }
-        if (!await isPluginUpdate(pluginConfig)) continue;
-
-        // Identity is (name, author), not slug: two differently-authored
-        // plugins may slugify to the same string.
-        final oldConfig = pluginState.plugins.firstWhereOrNull(
-          (p) => p.name == pluginConfig.name && p.author == pluginConfig.author,
-        );
-        if (oldConfig == null) continue;
-
-        final replaced = await _replacePlugin(oldConfig, pluginConfig);
-        if (!replaced) {
-          // The row disappeared between the duplicate check and the update.
-          // The staged files are already valid; register them as a fresh
-          // install rather than failing startup.
-          try {
-            await addPlugin(pluginConfig);
-            installedNow.add('${pluginConfig.name}|${pluginConfig.author}');
-          } on MetadataPluginException {
-            // Another writer won the race; its row is authoritative.
-          }
-        }
-      }
-    }
-
-    await handOverDefaultMetadata(
-      recommended: seedConfigs.firstWhereOrNull(
-        (config) =>
-            config.abilities.contains(PluginAbilities.metadata) &&
-            installedNow.contains('${config.name}|${config.author}'),
-      ),
-      seedConfigs: seedConfigs,
-    );
-  }
-
-  /// Makes the newly bundled metadata seed the default on installs that
-  /// predate it.
-  ///
-  /// [addPlugin] claims a default slot only when nothing else holds one, so on
-  /// an existing install the bundled plugin would land as merely available and
-  /// the previous seed would keep the recommendation. Two guards keep this
-  /// from stomping a deliberate choice: it runs only for a row this very pass
-  /// created (so it fires once per install, never again), and only while the
-  /// current default is one of the *other bundled seeds* — a default the user
-  /// picked from the plugin index is left alone.
-  @visibleForTesting
-  Future<void> handOverDefaultMetadata({
-    required PluginConfiguration? recommended,
-    required List<PluginConfiguration> seedConfigs,
-  }) async {
-    if (recommended == null) return;
-
-    final current = (await (database.pluginsTable.select()
-              ..where((tbl) => tbl.selectedForMetadata.equals(true))
-              ..limit(1))
-            .get())
-        .firstOrNull;
-    if (current == null) return;
-    if (current.name == recommended.name &&
-        current.author == recommended.author) {
-      return;
-    }
-
-    final isBundledSeed = seedConfigs.any(
-      (config) =>
-          config.name == current.name && config.author == current.author,
-    );
-    if (!isBundledSeed) return;
-
-    await setDefaultMetadataPlugin(recommended);
-  }
-
-  /// Whether the bundled [config] is already registered and complete on disk,
-  /// in which case startup has nothing to do.
-  ///
-  /// Completeness is the declared bytecode size rather than a content hash: a
-  /// write interrupted by a crash leaves a short `plugin.out` behind, and the
-  /// unconditional re-extraction this replaces used to repair that.
-  Future<bool> isBundledPluginUpToDate(
-    PluginConfiguration config,
-    int? byteCodeLength,
-    MetadataPluginState installed,
-  ) async {
-    if (byteCodeLength == null) return false;
-
-    final row = installed.plugins.firstWhereOrNull(
-      (plugin) => plugin.name == config.name && plugin.author == config.author,
-    );
-    if (row == null || row.version != config.version) return false;
-
-    final extractionDir = await _storage.extractionDir(config);
-    if (!await File(join(extractionDir.path, "plugin.json")).exists()) {
-      return false;
-    }
-    final binary = File(join(extractionDir.path, "plugin.out"));
-    if (!await binary.exists()) return false;
-
-    return await binary.length() == byteCodeLength;
-  }
-
-  Uri _getGithubReleasesUrl(String repoUrl) {
-    final parsedUri = Uri.parse(repoUrl);
-    final uri = parsedUri.replace(
-      host: "api.github.com",
-      pathSegments: [
-        "repos",
-        ...parsedUri.pathSegments,
-        "releases",
-      ],
-      queryParameters: {
-        "per_page": "1",
-        "page": "1",
-      },
-    );
-
-    return uri;
-  }
-
-  Uri _getCodebergeReleasesUrl(String repoUrl) {
-    final parsedUri = Uri.parse(repoUrl);
-    final uri = parsedUri.replace(
-      pathSegments: [
-        "api",
-        "v1",
-        "repos",
-        ...parsedUri.pathSegments,
-        "releases",
-      ],
-      queryParameters: {
-        "limit": "1",
-        "page": "1",
-      },
-    );
-
-    return uri;
-  }
-
-  Future<String> _getPluginDownloadUrl(Uri uri) async {
-    AppLogger.log.i("Getting plugin download URL from: $uri");
-    final res = await ref.read(appDioProvider).getUri(
-      uri,
-      options: Options(responseType: ResponseType.json),
-    );
-
-    if (res.statusCode != 200) {
-      throw MetadataPluginException.failedToGetRelease();
-    }
-    final releases = res.data as List;
-    if (releases.isEmpty) {
-      throw MetadataPluginException.noReleasesFound();
-    }
-    final latestRelease = releases.first;
-    final downloadUrl = (latestRelease["assets"] as List).firstWhere(
-      (asset) => (asset["name"] as String).endsWith(".smplug"),
-    )["browser_download_url"];
-    if (downloadUrl == null) {
-      throw MetadataPluginException.assetUrlNotFound();
-    }
-    return downloadUrl;
-  }
-
   /// Downloads, extracts & caches the plugin from the given URL and returns the plugin config.
   /// If only a text/html URL is provided, it will try to get the latest release from
   /// the URL for supported websites (github.com, codeberg.org).
@@ -470,13 +282,13 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     await pluginDir.create(recursive: true);
 
     final pluginRes = await ref.read(appDioProvider).get(
-      pluginDownloadUrl,
-      options: Options(
-        responseType: ResponseType.bytes,
-        followRedirects: true,
-        receiveTimeout: const Duration(seconds: 30),
-      ),
-    );
+          pluginDownloadUrl,
+          options: Options(
+            responseType: ResponseType.bytes,
+            followRedirects: true,
+            receiveTimeout: const Duration(seconds: 30),
+          ),
+        );
 
     if ((pluginRes.statusCode ?? 500) > 299) {
       throw MetadataPluginException.pluginDownloadFailed();
@@ -571,8 +383,8 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     // A (re)installed plugin's bytecode differs from anything cached under
     // the same slug — drop stale VMs so the next resolution recompiles.
     ref.read(pluginCacheProvider).evictPlugin(plugin.slug);
-    _storage.validatedPlugins
-        .removeWhere((key) => key.startsWith(PluginStorage.validationPrefix(plugin)));
+    _storage.validatedPlugins.removeWhere(
+        (key) => key.startsWith(PluginStorage.validationPrefix(plugin)));
   }
 
   Future<void> removePlugin(PluginConfiguration plugin) async {
@@ -590,8 +402,8 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
 
     // Cached VMs of a removed plugin must not resolve anymore.
     ref.read(pluginCacheProvider).evictPlugin(plugin.slug);
-    _storage.validatedPlugins
-        .removeWhere((key) => key.startsWith(PluginStorage.validationPrefix(plugin)));
+    _storage.validatedPlugins.removeWhere(
+        (key) => key.startsWith(PluginStorage.validationPrefix(plugin)));
 
     // The removed plugin can no longer seed the startup cache. Clear
     // before the promotion blocks below: a promoted replacement
@@ -657,104 +469,20 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     required String oldPluginApiVersion,
     required String newVersion,
     required String newPluginApiVersion,
-  }) {
-    final oldParsed = _tryParseVersion(oldVersion);
-    final newParsed = _tryParseVersion(newVersion);
-    if (oldParsed != null && newParsed != null) {
-      if (newParsed > oldParsed) return true;
-      if (newParsed < oldParsed) return false;
-      // Same precedence but a different string (e.g. build metadata
-      // `1.0.0+1`): the archive is still a distinct release to install.
-      if (oldVersion != newVersion) return true;
-    } else if (oldVersion != newVersion) {
-      // Non-semver versions cannot be ordered; any change is an update.
-      return true;
-    }
+  }) =>
+      pluginShouldUpdate(
+        oldVersion: oldVersion,
+        oldPluginApiVersion: oldPluginApiVersion,
+        newVersion: newVersion,
+        newPluginApiVersion: newPluginApiVersion,
+      );
 
-    final oldApi = _tryParseVersion(oldPluginApiVersion);
-    final newApi = _tryParseVersion(newPluginApiVersion);
-    if (oldApi == null || newApi == null) return false;
-    return newApi > oldApi;
-  }
-
-  static Version? _tryParseVersion(String value) {
-    try {
-      return Version.parse(value);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<bool> isPluginUpdate(PluginConfiguration newPlugin) async {
-    final pluginRes = await (database.pluginsTable.select()
-          ..where(
-            (tbl) =>
-                tbl.name.equals(newPlugin.name) &
-                tbl.author.equals(newPlugin.author),
-          )
-          ..limit(1))
-        .get();
-
-    if (pluginRes.isEmpty) {
-      return false;
-    }
-
-    final oldPlugin = pluginRes.first;
-    return shouldUpdatePlugin(
-      oldVersion: oldPlugin.version,
-      oldPluginApiVersion: oldPlugin.pluginApiVersion,
-      newVersion: newPlugin.version,
-      newPluginApiVersion: newPlugin.pluginApiVersion,
-    );
-  }
-
-  /// Updates the existing row in place.
-  ///
-  /// This is deliberately not remove-then-add: the row is the only thing that
-  /// makes the extracted files discoverable, so deleting it before the new
-  /// insert (or crashing between the two) leaves the plugin unreachable. A
-  /// single UPDATE also preserves the selected/default flags, which the old
-  /// remove/add dance had to capture and restore manually.
-  ///
-  /// Returns the previous row, or null when no row with the same identity
-  /// exists. Exposed for the atomicity regression test.
   @visibleForTesting
   static Future<PluginsTableData?> replacePluginRow({
     required AppDatabase database,
     required PluginConfiguration plugin,
-  }) {
-    return database.transaction(() async {
-      final rows = await (database.pluginsTable.select()
-            ..where(
-              (tbl) =>
-                  tbl.name.equals(plugin.name) &
-                  tbl.author.equals(plugin.author),
-            )
-            ..limit(1))
-          .get();
-      if (rows.isEmpty) return null;
-
-      await (database.pluginsTable.update()
-            ..where(
-              (tbl) =>
-                  tbl.name.equals(plugin.name) &
-                  tbl.author.equals(plugin.author),
-            ))
-          .write(
-        PluginsTableCompanion(
-          description: Value(plugin.description),
-          version: Value(plugin.version),
-          entryPoint: Value(plugin.entryPoint),
-          apis: Value(plugin.apis.map((e) => e.name).toList()),
-          abilities: Value(plugin.abilities.map((e) => e.name).toList()),
-          repository: Value(plugin.repository),
-          pluginApiVersion: Value(plugin.pluginApiVersion),
-        ),
-      );
-
-      return rows.first;
-    });
-  }
+  }) =>
+      replacePluginRowInDatabase(database: database, plugin: plugin);
 
   /// Replaces the installed plugin's metadata row and then removes the old
   /// version directory. The new files must already be extracted.
@@ -782,8 +510,8 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     }
 
     ref.read(pluginCacheProvider).evictPlugin(newPlugin.slug);
-    _storage.validatedPlugins
-        .removeWhere((key) => key.startsWith(PluginStorage.validationPrefix(newPlugin)));
+    _storage.validatedPlugins.removeWhere(
+        (key) => key.startsWith(PluginStorage.validationPrefix(newPlugin)));
 
     if (oldRow.selectedForTheme) {
       await writeThemePluginKey(
@@ -922,38 +650,6 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     );
   }
 
-  Future<Uint8List> getPluginByteCode(PluginConfiguration plugin) async {
-    final pluginExtractionDirPath = await _storage.extractionDir(plugin);
-
-    final libraryFile = File(join(pluginExtractionDirPath.path, "plugin.out"));
-
-    if (!await libraryFile.exists()) {
-      throw MetadataPluginException.pluginByteCodeFileNotFound();
-    }
-
-    return await libraryFile.readAsBytes();
-  }
-
-  Future<File?> getLogoPath(PluginConfiguration plugin) async {
-    final pluginExtractionDirPath = await _storage.extractionDir(plugin);
-
-    final logoFile = File(join(pluginExtractionDirPath.path, "logo.png"));
-
-    if (!await logoFile.exists()) {
-      return null;
-    }
-
-    return logoFile;
-  }
-
-  /// The root a theme's `asset://` paths are resolved against.
-  ///
-  /// The directory is versioned and immutable once promoted; callers must
-  /// still validate each relative path with [isSafePluginEntryPath] before
-  /// joining, which is what `ThemeUiAssets` does.
-  Future<Directory> getPluginDirectory(PluginConfiguration plugin) =>
-      _storage.extractionDir(plugin);
-
   /// Re-evaluates the active theme (e.g. after shell scheme changes).
   ///
   /// Manual v1 refresh path alongside the automatic file-watch signals:
@@ -963,214 +659,3 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     ref.invalidate(themeDefinitionProvider);
   }
 }
-
-final metadataPluginsProvider =
-    AsyncNotifierProvider<MetadataPluginNotifier, MetadataPluginState>(
-  MetadataPluginNotifier.new,
-);
-
-final metadataPluginProvider = FutureProvider<MetadataPlugin?>(
-  (ref) async {
-    final defaultPlugin = await ref.watch(
-      metadataPluginsProvider
-          .selectAsync((data) => data.defaultMetadataPluginConfig),
-    );
-    final youtubeEngine = ref.read(youtubeEngineProvider);
-
-    if (defaultPlugin == null) {
-      return null;
-    }
-
-    final pluginsNotifier = ref.read(metadataPluginsProvider.notifier);
-    final pluginByteCode =
-        await pluginsNotifier.getPluginByteCode(defaultPlugin);
-
-    return await MetadataPlugin.create(
-      youtubeEngine,
-      defaultPlugin,
-      pluginByteCode,
-    );
-  },
-);
-
-final audioSourcePluginProvider = FutureProvider<MetadataPlugin?>(
-  (ref) async {
-    final defaultPlugin = await ref.watch(
-      metadataPluginsProvider
-          .selectAsync((data) => data.defaultAudioSourcePluginConfig),
-    );
-    final youtubeEngine = ref.watch(youtubeEngineProvider);
-
-    if (defaultPlugin == null) {
-      return null;
-    }
-
-    final pluginsNotifier = ref.read(metadataPluginsProvider.notifier);
-    final pluginByteCode =
-        await pluginsNotifier.getPluginByteCode(defaultPlugin);
-
-    return await MetadataPlugin.create(
-      youtubeEngine,
-      defaultPlugin,
-      pluginByteCode,
-    );
-  },
-);
-
-final themeDefinitionProvider = FutureProvider<ThemeDefinition?>(
-  (ref) async {
-    try {
-      // Recomputes when the shell reports a possible palette change.
-      // Unconditional by design: shell involvement is only known after
-      // the plugin theme loads, and scheme changes are rare.
-      ref.watch(shellThemeSignalProvider);
-
-      // Reuses a memoized plugin instance instead of spinning a fresh Hetu
-      // VM on every recompute (the previous code created one per signal,
-      // and Hetu VMs are never released). The instance only rebuilds when
-      // the default theme plugin changes.
-      final plugin = await ref.watch(themePluginProvider.future);
-      if (plugin == null) return null;
-
-      final defaultPlugin = await ref.watch(
-        metadataPluginsProvider
-            .selectAsync((data) => data.defaultThemePluginConfig),
-      );
-      if (defaultPlugin == null) return null;
-
-      final definition = await plugin.theme.getTheme();
-
-      // Generic shell handoff: no shell names or paths here. When the
-      // plugin declares `dynamic.source == shell`, the host shell source
-      // supplies the palette and, if it renders through user config, the
-      // glass the desktop actually draws with. Geometry stays plugin-owned.
-      // NOTE: ref.read (not watch) is required here — this runs after
-      // awaits. Reactivity comes from shellThemeSignalProvider above.
-      final resolved = await resolveThemeDefinition(
-        definition,
-        readShellTheme: () => ref.read(themeShellSourceProvider).getTheme(),
-        readShellGlass: () => ref.read(themeShellSourceProvider).getGlass(),
-      );
-
-      // Cache only successful resolutions for instant warm startup.
-      // Null (failure) outcomes never touch the cache.
-      if (resolved != null) {
-        unawaited(
-          writeThemeCache(
-            pluginKey: themePluginKey(defaultPlugin),
-            shellKey: ref.read(themeShellSourceProvider).cacheKey,
-            definition: resolved,
-          ),
-        );
-      }
-      return resolved;
-    } catch (e, stackTrace) {
-      AppLogger.reportError(e, stackTrace, 'themeDefinitionProvider');
-      return null;
-    }
-  },
-);
-
-/// Memoized theme plugin instance. Rebuilds only when the default theme
-/// plugin changes, so theme recomputes reuse the same Hetu VM instead of
-/// creating a new one each time (Hetu VMs are never disposed).
-final themePluginProvider = FutureProvider<MetadataPlugin?>(
-  (ref) async {
-    final defaultPlugin = await ref.watch(
-      metadataPluginsProvider
-          .selectAsync((data) => data.defaultThemePluginConfig),
-    );
-    if (defaultPlugin == null) return null;
-
-    final pluginsNotifier = ref.read(metadataPluginsProvider.notifier);
-    final pluginByteCode =
-        await pluginsNotifier.getPluginByteCode(defaultPlugin);
-    final youtubeEngine = ref.read(youtubeEngineProvider);
-
-    return MetadataPlugin.create(
-      youtubeEngine,
-      defaultPlugin,
-      pluginByteCode,
-    );
-  },
-);
-
-/// UI a theme answers from its optional `getUi()` method.
-///
-/// Kept separate from [themeUiProvider] so a shell palette refresh does not
-/// re-invoke the plugin: this future only rebuilds when the plugin VM does.
-final pluginThemeUiProvider = FutureProvider<ThemeUiDocument?>((ref) async {
-  final plugin = await ref.watch(themePluginProvider.future);
-  if (plugin == null) return null;
-  return plugin.theme.getUi();
-});
-
-/// A UI document returned by a theme's `onUiAction()`.
-///
-/// It wins over the current inline/`getUi()` document for the rest of the
-/// session, which is what makes a plugin-driven screen change feel like a
-/// live theme rather than a one-shot re-render. Selecting another theme
-/// clears it through [MetadataPluginNotifier.refreshThemeDefinition].
-final themeUiOverrideProvider = StateProvider<ThemeUiDocument?>((ref) => null);
-
-/// The declarative UI the app should draw.
-///
-/// A theme may carry it inline in `getTheme()` (and then it rides the theme
-/// definition cache) or answer from `getUi()`. Inline wins, because it
-/// arrived with the same payload the colours did.
-final themeUiProvider = FutureProvider<ThemeUiDocument?>((ref) async {
-  final override = ref.watch(themeUiOverrideProvider);
-  if (override != null) return override;
-
-  final definition = await ref.watch(themeDefinitionProvider.future);
-  if (definition == null) return null;
-  if (definition.ui != null) return definition.ui;
-  return ref.watch(pluginThemeUiProvider.future);
-});
-
-/// In-memory cache for MetadataPlugin instances (Hetu VMs).
-/// Scoped to provider lifecycle with explicit disposal. Generic so the
-/// failure-recovery and eviction semantics are unit-testable without a
-/// real Hetu VM.
-class PluginVmCache<T> {
-  final Map<String, Future<T>> _cache = {};
-
-  /// Caches the creation [Future] (so concurrent attempts share one VM), but
-  /// a FAILED future must not linger: without the removal below, one transient
-  /// error would permanently disable this (plugin, engine) candidate.
-  Future<T> getOrCreate(String key, Future<T> Function() factory) {
-    final existing = _cache[key];
-    if (existing != null) return existing;
-
-    late final Future<T> tracked;
-    tracked = factory().catchError((Object error, StackTrace stack) {
-      if (identical(_cache[key], tracked)) _cache.remove(key);
-      return Future<T>.error(error, stack);
-    });
-    _cache[key] = tracked;
-    return tracked;
-  }
-
-  void evictPlugin(String pluginSlug) {
-    // Keys look like "<slug>@<version>:<engine>" (see SourceCandidate.key).
-    _cache.keys
-        .where(
-            (k) => k.startsWith('$pluginSlug:') || k.startsWith('$pluginSlug@'))
-        .toList()
-        .forEach(_cache.remove);
-  }
-
-  void clear() => _cache.clear();
-
-  @visibleForTesting
-  int get length => _cache.length;
-}
-
-/// Provider for the plugin cache. Drops cached VM references when the
-/// provider is disposed; hetu_script exposes no VM disposal API, so the
-/// VMs themselves become garbage-collectable but are not force-released.
-final pluginCacheProvider = Provider<PluginVmCache<MetadataPlugin>>((ref) {
-  final cache = PluginVmCache<MetadataPlugin>();
-  ref.onDispose(() => cache.clear());
-  return cache;
-});
