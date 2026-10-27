@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:spotube/services/control/control_commands.dart';
+import 'package:spotube/provider/server/control_commands.dart';
 import 'package:spotube/services/control/control_server.dart';
 import 'package:spotube/services/logger/logger.dart';
 

@@ -17,6 +17,7 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/metadata_plugin/audio_source/quality_presets.dart';
 import 'package:spotube/provider/server/sourced_track_provider.dart';
+import 'package:spotube/provider/sourced_track/source_dependencies.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/provider/vpn/vpn_provider.dart';
 import 'package:spotube/services/downloads/download_store.dart';
@@ -922,7 +923,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     required Object? lastError,
     required StackTrace? lastStack,
   }) async {
-    final resolver = SourceResolver(ref);
+    final resolver = SourceResolver(ref.sourceDeps);
     final candidates = await resolver.candidates();
 
     for (final candidate in candidates) {

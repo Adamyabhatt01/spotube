@@ -4,20 +4,16 @@ import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/models/playback/track_sources.dart';
-import 'package:spotube/provider/database/database.dart';
-import 'package:spotube/provider/metadata_plugin/audio_source/quality_presets.dart';
-import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
-import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/services/dio/dio.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 
 import 'package:spotube/services/sourced_track/exceptions.dart';
 import 'package:spotube/services/sourced_track/manifest_cache.dart';
+import 'package:spotube/services/sourced_track/source_dependencies.dart';
 import 'package:spotube/services/sourced_track/source_resolver.dart';
 import 'package:spotube/services/sourced_track/validation.dart';
 import 'package:spotube/utils/stream_url_expiry.dart';
@@ -211,10 +207,10 @@ SourceMatchCacheDecision classifyCachedSourceMatch({
 }
 
 class SourcedTrack extends BasicSourcedTrack {
-  final Ref ref;
+  final SourceDependencies deps;
 
   SourcedTrack({
-    required this.ref,
+    required this.deps,
     required super.info,
     required super.query,
     required super.source,
@@ -225,23 +221,22 @@ class SourcedTrack extends BasicSourcedTrack {
 
   static Future<SourcedTrack> fetchFromTrack({
     required SpotubeFullTrackObject query,
-    required Ref ref,
+    required SourceDependencies deps,
   }) async {
     // The cached-row read and the primary candidate are independent: overlap
     // them instead of paying two sequential awaits on every track start,
     // hit or miss. The plugin/config pair above stays sequential on purpose:
     // a missing audio plugin must throw before any plugin-list work starts.
-    final audioSource = await ref.read(audioSourcePluginProvider.future);
-    final audioSourceConfig = await ref.read(metadataPluginsProvider
-        .selectAsync((data) => data.defaultAudioSourcePluginConfig));
-    final youtubeEngine =
-        ref.read(userPreferencesProvider.select((s) => s.youtubeClientEngine));
+    final audioSource = await deps.defaultAudioSourcePlugin();
+    final audioSourceConfig =
+        (await deps.pluginSnapshot()).defaultAudioSourcePluginConfig;
+    final youtubeEngine = deps.youtubeClientEngine;
     if (audioSource == null || audioSourceConfig == null) {
       throw MetadataPluginException.noDefaultAudioSourcePlugin();
     }
 
-    final database = ref.read(databaseProvider);
-    final resolver = SourceResolver(ref);
+    final database = deps.database;
+    final resolver = SourceResolver(deps);
     final (cachedRows, candidateKey) = await (
       (database.select(database.sourceMatchTable)
             ..where((s) =>
@@ -284,7 +279,7 @@ class SourcedTrack extends BasicSourcedTrack {
       var siblings = const <SpotubeAudioSourceMatchObject>[];
       Object? primaryFailure;
       try {
-        siblings = await fetchSiblings(ref: ref, query: query);
+        siblings = await fetchSiblings(deps: deps, query: query);
       } on TrackNotFoundError {
         // answered "no such track"
       } catch (error) {
@@ -348,7 +343,7 @@ class SourcedTrack extends BasicSourcedTrack {
       final manifest = await audioSource.audioSource.streams(siblings.first);
 
       return SourcedTrack(
-        ref: ref,
+        deps: deps,
         siblings: siblings.skip(1).toList(),
         info: siblings.first,
         source: audioSourceConfig.slug,
@@ -389,7 +384,7 @@ class SourcedTrack extends BasicSourcedTrack {
         })();
 
     final sourcedTrack = SourcedTrack(
-      ref: ref,
+      deps: deps,
       siblings: [],
       sources: manifest,
       info: item,
@@ -500,9 +495,9 @@ class SourcedTrack extends BasicSourcedTrack {
 
   static Future<List<SpotubeAudioSourceMatchObject>> fetchSiblings({
     required SpotubeFullTrackObject query,
-    required Ref ref,
+    required SourceDependencies deps,
   }) async {
-    final audioSource = await ref.read(audioSourcePluginProvider.future);
+    final audioSource = await deps.defaultAudioSourcePlugin();
 
     if (audioSource == null) {
       throw MetadataPluginException.noDefaultAudioSourcePlugin();
@@ -562,10 +557,10 @@ class SourcedTrack extends BasicSourcedTrack {
     if (siblings.isNotEmpty) {
       return this;
     }
-    final fetchedSiblings = await fetchSiblings(ref: ref, query: query);
+    final fetchedSiblings = await fetchSiblings(deps: deps, query: query);
 
     return SourcedTrack(
-      ref: ref,
+      deps: deps,
       siblings: fetchedSiblings.where((s) => s.id != info.id).toList(),
       source: source,
       sources: sources,
@@ -582,9 +577,9 @@ class SourcedTrack extends BasicSourcedTrack {
       return null;
     }
 
-    final audioSource = await ref.read(audioSourcePluginProvider.future);
-    final audioSourceConfig = await ref.read(metadataPluginsProvider
-        .selectAsync((data) => data.defaultAudioSourcePluginConfig));
+    final audioSource = await deps.defaultAudioSourcePlugin();
+    final audioSourceConfig =
+        (await deps.pluginSnapshot()).defaultAudioSourcePluginConfig;
     if (audioSource == null || audioSourceConfig == null) {
       throw MetadataPluginException.noDefaultAudioSourcePlugin();
     }
@@ -600,7 +595,7 @@ class SourcedTrack extends BasicSourcedTrack {
 
     final manifest = await audioSource.audioSource.streams(newSourceInfo);
 
-    final database = ref.read(databaseProvider);
+    final database = deps.database;
 
     await (database.sourceMatchTable.delete()
           ..where(
@@ -621,7 +616,7 @@ class SourcedTrack extends BasicSourcedTrack {
         );
 
     return SourcedTrack(
-      ref: ref,
+      deps: deps,
       source: source,
       siblings: newSiblings,
       sources: manifest,
@@ -632,9 +627,9 @@ class SourcedTrack extends BasicSourcedTrack {
   }
 
   Future<SourcedTrack> refreshStream() async {
-    final audioSource = await ref.read(audioSourcePluginProvider.future);
-    final audioSourceConfig = await ref.read(metadataPluginsProvider
-        .selectAsync((data) => data.defaultAudioSourcePluginConfig));
+    final audioSource = await deps.defaultAudioSourcePlugin();
+    final audioSourceConfig =
+        (await deps.pluginSnapshot()).defaultAudioSourcePluginConfig;
     if (audioSource == null || audioSourceConfig == null) {
       throw MetadataPluginException.noDefaultAudioSourcePlugin();
     }
@@ -713,7 +708,7 @@ class SourcedTrack extends BasicSourcedTrack {
     }
 
     final sourcedTrack = SourcedTrack(
-      ref: ref,
+      deps: deps,
       siblings: siblings,
       source: source,
       sources: validStreams,
@@ -728,7 +723,7 @@ class SourcedTrack extends BasicSourcedTrack {
   }
 
   String? get url {
-    final preferences = ref.read(audioSourcePresetsProvider);
+    final preferences = deps.presets;
     final preset = preferences.presets
             .elementAtOrNull(preferences.selectedStreamingContainerIndex) ??
         preferences.presets.firstOrNull;
@@ -838,7 +833,7 @@ class SourcedTrack extends BasicSourcedTrack {
   /// past the end of a shrunken list. Callers must not force-unwrap this —
   /// see [container] for the null-safe way to read the container.
   SpotubeAudioSourceContainerPreset? get qualityPreset {
-    final presetState = ref.read(audioSourcePresetsProvider);
+    final presetState = deps.presets;
     return presetState.presets
         .elementAtOrNull(presetState.selectedStreamingContainerIndex);
   }
@@ -856,7 +851,7 @@ class SourcedTrack extends BasicSourcedTrack {
   ///   2. the first available preset (stale persisted index),
   ///   3. the container of the first resolved stream (no presets yet).
   ({String name, String extension})? get container {
-    final presetState = ref.read(audioSourcePresetsProvider);
+    final presetState = deps.presets;
     final preset = presetState.presets
             .elementAtOrNull(presetState.selectedStreamingContainerIndex) ??
         presetState.presets.firstOrNull;

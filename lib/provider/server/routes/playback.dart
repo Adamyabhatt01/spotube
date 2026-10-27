@@ -20,6 +20,7 @@ import 'package:spotube/provider/local_tracks/local_tracks_provider.dart';
 
 import 'package:spotube/provider/server/active_track_sources.dart';
 import 'package:spotube/provider/server/sourced_track_provider.dart';
+import 'package:spotube/provider/sourced_track/source_dependencies.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/provider/vpn/vpn_provider.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
@@ -414,7 +415,7 @@ class ServerPlaybackRoutes {
       return memo.urls;
     }
 
-    final urls = await playbackFallbackUrls(ref, track);
+    final urls = await playbackFallbackUrls(ref.sourceDeps, track);
     if (key != null) {
       // Same bound as the HEAD probes: a handful of live tracks, cleared
       // wholesale rather than aged.

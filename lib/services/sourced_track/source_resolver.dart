@@ -1,16 +1,14 @@
 import 'dart:async';
 
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 // ignore: depend_on_referenced_packages
 import 'package:meta/meta.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
-import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
-import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/services/metadata/metadata.dart';
 import 'package:spotube/services/sourced_track/exceptions.dart';
+import 'package:spotube/services/sourced_track/source_dependencies.dart';
 import 'package:spotube/services/sourced_track/sourced_track.dart';
 import 'package:spotube/services/youtube_engine/newpipe_engine.dart';
 import 'package:spotube/services/youtube_engine/youtube_engine.dart';
@@ -21,7 +19,7 @@ import 'package:spotube/utils/perf_counters.dart';
 
 /// A single source candidate: one audio-source plugin paired with one
 /// YouTube engine. Plugin instances are created lazily per (config, engine)
-/// and cached via [pluginCacheProvider], scoped to provider lifecycle.
+/// and cached via [SourceDependencies.pluginCache], scoped to its lifecycle.
 class SourceCandidate {
   final PluginConfiguration config;
   final YouTubeEngine engine;
@@ -57,9 +55,9 @@ const sourceCandidateBudget = Duration(seconds: 20);
 /// so fallback logic is never duplicated. Plugin construction is deferred
 /// until a candidate is actually attempted, and reused within one resolver.
 class SourceResolver {
-  final Ref ref;
+  final SourceDependencies deps;
 
-  SourceResolver(this.ref);
+  SourceResolver(this.deps);
 
   /// The primary candidate, computed once per resolver.
   ///
@@ -75,12 +73,10 @@ class SourceResolver {
   /// selected default first, then every other installed audio-source plugin
   /// by slug.
   Future<List<PluginConfiguration>> _orderedPlugins() async {
-    final state = await ref.read(metadataPluginsProvider.future);
-    final priority = ref.read(
-      userPreferencesProvider.select((s) => s.sourcePriority),
-    );
+    final snapshot = await deps.pluginSnapshot();
+    final priority = deps.sourcePriority;
 
-    final audioSourcePlugins = state.plugins
+    final audioSourcePlugins = snapshot.plugins
         .where((p) => p.abilities.contains(PluginAbilities.audioSource))
         .toList();
 
@@ -95,7 +91,7 @@ class SourceResolver {
       return ordered.toSet().toList();
     }
 
-    final defaultConfig = state.defaultAudioSourcePluginConfig;
+    final defaultConfig = snapshot.defaultAudioSourcePluginConfig;
     return [
       if (defaultConfig != null) defaultConfig,
       ...audioSourcePlugins.where(
@@ -108,12 +104,8 @@ class SourceResolver {
   /// (list of engine labels) when present; otherwise the user-selected engine
   /// first, then every other platform-available engine.
   List<YoutubeClientEngine> _orderedEngineModes() {
-    final priority = ref.read(
-      userPreferencesProvider.select((s) => s.sourcePriority),
-    );
-    final userPref = ref.read(
-      userPreferencesProvider.select((value) => value.youtubeClientEngine),
-    );
+    final priority = deps.sourcePriority;
+    final userPref = deps.youtubeClientEngine;
 
     List<YoutubeClientEngine> modes;
     if (priority.isNotEmpty) {
@@ -182,20 +174,18 @@ class SourceResolver {
     final isDefault = candidate.key == (await primaryCandidate()).key;
 
     if (isDefault) {
-      final defaultPlugin = await ref.read(audioSourcePluginProvider.future);
+      final defaultPlugin = await deps.defaultAudioSourcePlugin();
       if (defaultPlugin != null) {
-        final cache = ref.read(pluginCacheProvider);
-        cache.getOrCreate(candidate.key, () => Future.value(defaultPlugin));
+        deps.pluginCache
+            .getOrCreate(candidate.key, () => Future.value(defaultPlugin));
         return defaultPlugin;
       }
     }
 
-    final cache = ref.read(pluginCacheProvider);
-    return cache.getOrCreate(
+    return deps.pluginCache.getOrCreate(
       candidate.key,
       () async {
-        final notifier = ref.read(metadataPluginsProvider.notifier);
-        final byteCode = await notifier.getPluginByteCode(candidate.config);
+        final byteCode = await deps.pluginByteCode(candidate.config);
         return MetadataPlugin.create(
           candidate.engine,
           candidate.config,
@@ -325,7 +315,7 @@ class SourceResolver {
     final sources = await plugin.audioSource.streams(info);
 
     return SourcedTrack(
-      ref: ref,
+      deps: deps,
       info: info,
       source: candidate.config.slug,
       siblings: ranked.skip(1).toList(),
@@ -347,7 +337,7 @@ class SourceResolver {
     final sources = await plugin.audioSource.streams(match);
 
     return SourcedTrack(
-      ref: ref,
+      deps: deps,
       info: match,
       source: candidate.config.slug,
       siblings: const [],
@@ -374,7 +364,7 @@ const fallbackCascadeBudget = Duration(seconds: 45);
 /// hangs does not count against [maxFallbacks], so the loop can still visit
 /// every plugin × engine, each up to [sourceCandidateBudget] on its own.
 Future<List<String>> playbackFallbackUrls(
-  Ref ref,
+  SourceDependencies deps,
   SourcedTrack primary,
 ) async {
   final urls = <String>{};
@@ -382,7 +372,7 @@ Future<List<String>> playbackFallbackUrls(
   final primaryUrl = primary.url;
   if (primaryUrl != null) urls.add(primaryUrl);
 
-  final resolver = SourceResolver(ref);
+  final resolver = SourceResolver(deps);
   final candidates = await resolver.candidates();
 
   // Find the primary candidate key to skip it (already yielded primary.url)

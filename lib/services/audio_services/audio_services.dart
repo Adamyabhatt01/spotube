@@ -1,9 +1,7 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotube/collections/env.dart';
 import 'package:spotube/models/metadata/metadata.dart';
-import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/audio_services/mobile_audio_service.dart';
 import 'package:spotube/services/audio_services/windows_audio_service.dart';
@@ -17,13 +15,14 @@ class AudioServices with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
   }
 
+  /// [onStop] clears the queue and stops playback; the providers own that
+  /// state, so the service layer receives it as a callback.
   static Future<AudioServices> create(
-    Ref ref,
-    AudioPlayerNotifier playback,
+    Future<void> Function() onStop,
   ) async {
     final mobile = kIsMobile || kIsMacOS || kIsLinux
         ? await AudioService.init(
-            builder: () => MobileAudioService(playback),
+            builder: () => MobileAudioService(onStop),
             config: AudioServiceConfig(
               androidNotificationChannelId: switch ((
                 kIsLinux,
@@ -40,7 +39,7 @@ class AudioServices with WidgetsBindingObserver {
             ),
           )
         : null;
-    final smtc = kIsWindows ? WindowsAudioService(ref, playback) : null;
+    final smtc = kIsWindows ? WindowsAudioService(onStop) : null;
 
     return AudioServices(mobile, smtc);
   }

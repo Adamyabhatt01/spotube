@@ -9,6 +9,7 @@ import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/services/metadata/metadata.dart';
+import 'package:spotube/services/sourced_track/source_dependencies.dart';
 
 part 'quality_presets.g.dart';
 part 'quality_presets.freezed.dart';
@@ -33,7 +34,9 @@ int clampPresetIndex(int index, int length) {
 }
 
 @freezed
-class AudioSourcePresetsState with _$AudioSourcePresetsState {
+class AudioSourcePresetsState
+    with _$AudioSourcePresetsState
+    implements AudioSourcePresetSelection {
   factory AudioSourcePresetsState({
     @Default([]) final List<SpotubeAudioSourceContainerPreset> presets,
     @Default(0) final int selectedStreamingQualityIndex,

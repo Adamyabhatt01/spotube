@@ -4,6 +4,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+import 'package:spotube/provider/sourced_track/source_dependencies.dart';
 import 'package:spotube/services/sourced_track/sourced_track.dart';
 import 'package:spotube/utils/perf_counters.dart';
 
@@ -23,7 +24,10 @@ class SourcedTrackNotifier
     // Observation only, on the one span a listener feels: pressing play until a
     // resolved stream exists. Everything the cascade measures sits inside it.
     final stopwatch = Stopwatch()..start();
-    return SourcedTrack.fetchFromTrack(query: query, ref: ref).whenComplete(
+    return SourcedTrack.fetchFromTrack(
+      query: query,
+      deps: ref.sourceDeps,
+    ).whenComplete(
       () => PerfCounters.time('source.resolve', stopwatch.elapsed),
     );
   }

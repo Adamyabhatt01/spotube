@@ -36,7 +36,7 @@ class AudioPlayerStreamListeners {
   bool _seekingSponsorSkip = false;
 
   AudioPlayerStreamListeners(this.ref) {
-    AudioServices.create(ref, ref.read(audioPlayerProvider.notifier)).then(
+    AudioServices.create(ref.read(audioPlayerProvider.notifier).stop).then(
       (value) {
         notificationService = value;
         final pending = _pendingNotification.take();

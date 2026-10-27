@@ -3,8 +3,6 @@ import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
-import 'package:spotube/provider/audio_player/audio_player.dart';
-import 'package:spotube/provider/audio_player/state.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:media_kit/media_kit.dart' hide Track;
 import 'package:spotube/services/audio_player/playback_state.dart';
@@ -13,12 +11,9 @@ import 'package:spotube/utils/platform.dart';
 
 class MobileAudioService extends BaseAudioHandler {
   AudioSession? session;
-  final AudioPlayerNotifier audioPlayerNotifier;
+  final Future<void> Function() _onStop;
 
-  // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
-  AudioPlayerState get playlist => audioPlayerNotifier.state;
-
-  MobileAudioService(this.audioPlayerNotifier) {
+  MobileAudioService(this._onStop) {
     AudioSession.instance.then((s) {
       session = s;
       session?.configure(const AudioSessionConfiguration.music());
@@ -117,7 +112,7 @@ class MobileAudioService extends BaseAudioHandler {
 
   @override
   Future<void> stop() async {
-    await audioPlayerNotifier.stop();
+    await _onStop();
   }
 
   @override
