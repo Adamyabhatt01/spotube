@@ -81,6 +81,13 @@ apk-arm64:
 		cp build/app/outputs/flutter-apk/app-arm64-v8a-stable-release.apk build/Spotube-android-arm64-v8a.apk
 		ls -lh build/Spotube-android-arm64-v8a.apk
 
+# Local gate. `test/` is gitignored, so CI cannot run the regression suite;
+# this is what keeps it honest before a push.
+.PHONY: check
+check:
+		$(FLUTTER) analyze
+		$(FLUTTER) test
+
 gensums:
 				sh -c scripts/gensums.sh
 
