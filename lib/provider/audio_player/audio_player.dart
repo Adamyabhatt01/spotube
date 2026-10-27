@@ -7,6 +7,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:spotube/extensions/list.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/audio_player/state.dart';
 import 'package:spotube/provider/blacklist_provider.dart';
 import 'package:spotube/provider/database/database.dart';
@@ -14,6 +15,7 @@ import 'package:spotube/provider/discord_provider.dart';
 import 'package:spotube/provider/server/server.dart';
 import 'package:spotube/provider/server/sourced_track_provider.dart';
 import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/services/audio_player/audio_player_port.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/utils/debounced_writer.dart';
 import 'package:spotube/utils/perf_counters.dart';
@@ -28,6 +30,10 @@ final audioPlayerInitStatusProvider =
 
 class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   BlackListNotifier get _blacklist => ref.read(blacklistProvider.notifier);
+
+  /// The music backend as tests see it: read through [audioPlayerPortProvider]
+  /// so a fake can be supplied instead of the process-wide player.
+  AudioPlayerPort get _player => ref.read(audioPlayerPortProvider);
 
   /// Phase 2 perf: collapses flap-prone flag persistence (playing/loop/
   /// shuffle — e.g. buffering toggles playing false->true per stall) into a
@@ -62,26 +68,26 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   /// fake to verify call counts, order and backend/state consistency.
   /// Production implementations delegate straight to [audioPlayer].
   Future<void> addMediaToBackend(SpotubeMedia media) =>
-      audioPlayer.addTrack(media);
+      _player.addTrack(media);
 
   Future<void> insertMediaIntoBackend(SpotubeMedia media, int index) =>
-      audioPlayer.addTrackAt(media, index);
+      _player.addTrackAt(media, index);
 
   Future<void> removeMediaFromBackend(int index) =>
-      audioPlayer.removeTrack(index);
+      _player.removeTrack(index);
 
   Future<void> openPlaylistOnBackend(
     List<SpotubeMedia> medias, {
     required int initialIndex,
     required bool autoPlay,
   }) =>
-      audioPlayer.openPlaylist(
+      _player.openPlaylist(
         medias,
         initialIndex: initialIndex,
         autoPlay: autoPlay,
       );
 
-  int get backendCurrentIndex => audioPlayer.currentIndex;
+  int get backendCurrentIndex => _player.currentIndex;
 
   /// Waits for the playback-server port every remote [SpotubeMedia] URI embeds.
   ///
@@ -103,7 +109,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   /// The backend's current media list, used to remember *which* queue a
   /// persistence write describes (see [_lastSyncedMedias]). A seam for the
   /// same reason as [backendCurrentIndex]: tests replace the native player.
-  List<Media> get backendMedias => audioPlayer.playlist.medias;
+  List<Media> get backendMedias => _player.playlist.medias;
 
   /// The media list the persisted `tracks` column describes, element-identical
   /// to what the backend holds. A playlist event whose medias are the same
@@ -166,9 +172,9 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       if (playerState == null) {
         await database.into(database.audioPlayerStateTable).insert(
               AudioPlayerStateTableCompanion.insert(
-                playing: audioPlayer.isPlaying,
-                loopMode: audioPlayer.loopMode,
-                shuffled: audioPlayer.isShuffled,
+                playing: _player.isPlaying,
+                loopMode: _player.loopMode,
+                shuffled: _player.isShuffled,
                 collections: <String>[],
                 tracks: const Value(<SpotubeTrackObject>[]),
                 currentIndex: const Value(0),
@@ -179,8 +185,8 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
         playerState =
             await database.select(database.audioPlayerStateTable).getSingle();
       } else {
-        await audioPlayer.setLoopMode(playerState.loopMode);
-        await audioPlayer.setShuffle(playerState.shuffled);
+        await _player.setLoopMode(playerState.loopMode);
+        await _player.setShuffle(playerState.shuffled);
       }
 
       final tracks = playerState.tracks;
@@ -213,7 +219,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
           '[startup] queueRestore: ${tracks.length} tracks at index '
           '$currentIndex (serverPort=${SpotubeMedia.serverPort})',
         );
-        await audioPlayer.openPlaylist(
+        await _player.openPlaylist(
           tracks.asMediaList(),
           initialIndex: currentIndex,
           autoPlay: false,
@@ -358,7 +364,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   @override
   build() {
     final subscriptions = [
-      audioPlayer.playingStream.listen((playing) async {
+      _player.playingStream.listen((playing) async {
         try {
           state = state.copyWith(
             playing: playing,
@@ -378,7 +384,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
           AppLogger.reportError(e, stack);
         }
       }),
-      audioPlayer.loopModeStream.listen((loopMode) async {
+      _player.loopModeStream.listen((loopMode) async {
         try {
           state = state.copyWith(loopMode: loopMode);
 
@@ -393,7 +399,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
           AppLogger.reportError(e, stack);
         }
       }),
-      audioPlayer.shuffledStream.listen((shuffled) async {
+      _player.shuffledStream.listen((shuffled) async {
         try {
           state = state.copyWith(shuffled: shuffled);
 
@@ -408,7 +414,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
           AppLogger.reportError(e, stack);
         }
       }),
-      audioPlayer.playlistStream.listen((playlist) async {
+      _player.playlistStream.listen((playlist) async {
         try {
           await onBackendPlaylist(playlist);
         } catch (e, stack) {
@@ -432,9 +438,9 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     });
 
     return AudioPlayerState(
-      loopMode: audioPlayer.loopMode,
-      playing: audioPlayer.isPlaying,
-      shuffled: audioPlayer.isShuffled,
+      loopMode: _player.loopMode,
+      playing: _player.isPlaying,
+      shuffled: _player.isShuffled,
       tracks: [],
       collections: [],
     );
@@ -576,7 +582,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       await _awaitPlaybackServerPort();
     }
     try {
-      await audioPlayer.addTrack(SpotubeMedia(track));
+      await _player.addTrack(SpotubeMedia(track));
     } catch (_) {
       state = previousState;
       rethrow;
@@ -638,7 +644,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     );
 
     try {
-      await audioPlayer.removeTrack(index);
+      await _player.removeTrack(index);
     } catch (_) {
       state = previousState;
       rethrow;
@@ -780,7 +786,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     }
 
     final oldState = state;
-    await audioPlayer.stop();
+    await _player.stop();
 
     await load(
       oldState.tracks,
@@ -794,7 +800,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       shuffled: false,
       hasStarted: oldState.hasStarted,
     );
-    await audioPlayer.setLoopMode(oldState.loopMode);
+    await _player.setLoopMode(oldState.loopMode);
     await _updatePlayerState(
       AudioPlayerStateTableCompanion(
         tracks: Value(state.tracks),
@@ -812,7 +818,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     // queue per jump costs O(queue) allocation on every seek.
     final index = state.tracks.indexWhere((element) => element.id == track.id);
     if (index == -1) return;
-    await audioPlayer.jumpTo(index);
+    await _player.jumpTo(index);
   }
 
   Future<void> moveTrack(int oldIndex, int newIndex) async {
@@ -824,7 +830,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       return;
     }
 
-    await audioPlayer.moveTrack(oldIndex, newIndex);
+    await _player.moveTrack(oldIndex, newIndex);
   }
 
   Future<void> stop() async {
@@ -837,7 +843,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       shuffled: false,
       hasStarted: false,
     );
-    await audioPlayer.stop();
+    await _player.stop();
     await _updatePlayerState(
       AudioPlayerStateTableCompanion(
         tracks: Value(state.tracks),

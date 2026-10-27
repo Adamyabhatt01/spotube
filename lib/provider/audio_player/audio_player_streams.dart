@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/audio_player/state.dart';
 import 'package:spotube/provider/discord_provider.dart';
 import 'package:spotube/provider/history/history.dart';
@@ -11,7 +12,7 @@ import 'package:spotube/provider/metadata_plugin/core/scrobble.dart';
 import 'package:spotube/provider/server/sourced_track_provider.dart';
 import 'package:spotube/provider/skip_segments/skip_segments.dart';
 import 'package:spotube/provider/scrobbler/scrobbler.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/services/audio_player/audio_player_port.dart';
 import 'package:spotube/services/audio_services/audio_services.dart';
 import 'package:spotube/services/logger/logger.dart';
 
@@ -67,12 +68,13 @@ class AudioPlayerStreamListeners {
 
   ScrobblerNotifier get scrobbler => ref.read(scrobblerProvider.notifier);
   DiscordNotifier get discord => ref.read(discordProvider.notifier);
+  AudioPlayerPort get player => ref.read(audioPlayerPortProvider);
   AudioPlayerState get audioPlayerState => ref.read(audioPlayerProvider);
   PlaybackHistoryActions get history =>
       ref.read(playbackHistoryActionsProvider);
 
   StreamSubscription subscribeToPlaylist() {
-    return audioPlayer.playlistStream.listen((mpvPlaylist) {
+    return player.playlistStream.listen((mpvPlaylist) {
       try {
         if (audioPlayerState.activeTrack == null) return;
         final service = notificationService;
@@ -105,7 +107,7 @@ class AudioPlayerStreamListeners {
   }
 
   StreamSubscription subscribeToSkipSponsor() {
-    return audioPlayer.positionStream.listen((position) async {
+    return player.positionStream.listen((position) async {
       try {
         if (_seekingSponsorSkip) return;
         final activeTrackId = audioPlayerState.activeTrack?.id;
@@ -128,7 +130,7 @@ class AudioPlayerStreamListeners {
 
             if (seconds < segment.start || seconds >= segment.end) continue;
 
-            await audioPlayer.seek(Duration(seconds: segment.end + 1));
+            await player.seek(Duration(seconds: segment.end + 1));
           }
         } finally {
           _seekingSponsorSkip = false;
@@ -144,7 +146,7 @@ class AudioPlayerStreamListeners {
     // Scrobble thresholds are in whole seconds, so the shared ~1 Hz tick is
     // the resolution this listener can act on. The sponsor-skip listener above
     // deliberately stays on the raw ~5 Hz stream.
-    return audioPlayer.positionTickStream.listen((position) async {
+    return player.positionTickStream.listen((position) async {
       try {
         final uid = audioPlayerState.activeTrack is SpotubeLocalTrackObject
             ? (audioPlayerState.activeTrack as SpotubeLocalTrackObject).path
@@ -153,12 +155,12 @@ class AudioPlayerStreamListeners {
         /// According to Listenbrainz and Last.fm, a scrobble should be sent
         /// after 4 minutes of listening or 50% of the track duration,
         /// whichever is less.
-        final minimumListenTime = min(audioPlayer.duration.inSeconds ~/ 2, 240);
+        final minimumListenTime = min(player.duration.inSeconds ~/ 2, 240);
 
         if (audioPlayerState.activeTrack == null ||
             lastScrobbled == uid ||
             position.inSeconds < minimumListenTime ||
-            audioPlayer.duration == Duration.zero ||
+            player.duration == Duration.zero ||
             position == Duration.zero) {
           return;
         }
@@ -184,9 +186,9 @@ class AudioPlayerStreamListeners {
 
     // Whole-second ticks: the 80% threshold it watches is expressed in
     // seconds, so the raw ~5 Hz stream only re-evaluated the same comparison.
-    return audioPlayer.positionTickStream.listen((event) async {
+    return player.positionTickStream.listen((event) async {
       final percentProgress =
-          (event.inSeconds / max(audioPlayer.duration.inSeconds, 1)) * 100;
+          (event.inSeconds / max(player.duration.inSeconds, 1)) * 100;
       try {
         if (percentProgress < 80 ||
             audioPlayerState.currentIndex == -1 ||
@@ -254,7 +256,7 @@ class AudioPlayerStreamListeners {
   /// `routes/playback.dart` owns recovery. This mirrors the radio backend's
   /// sink (`provider/radio/radio_playback.dart`).
   StreamSubscription subscribeToPlayerError() {
-    return audioPlayer.errorStream.listen((event) {
+    return player.errorStream.listen((event) {
       final message = event.trim();
       if (message.isEmpty) return;
       AppLogger.reportError(
