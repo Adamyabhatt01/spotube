@@ -7,8 +7,8 @@ import 'package:spotube/collections/routes.dart';
 import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/modules/player/player_controls.dart';
 import 'package:spotube/modules/search/search_term.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/audio_player/querying_track_info.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/utils/platform.dart';
 
 class PlayPauseIntent extends Intent {
@@ -18,15 +18,16 @@ class PlayPauseIntent extends Intent {
 
 class PlayPauseAction extends Action<PlayPauseIntent> {
   @override
-  invoke(intent) async {
+  invoke(PlayPauseIntent intent) async {
     if (PlayerControls.focusNode.canRequestFocus) {
       PlayerControls.focusNode.requestFocus();
     }
 
-    if (!audioPlayer.isPlaying) {
-      await audioPlayer.resume();
+    final player = intent.ref.read(audioPlayerPortProvider);
+    if (!player.isPlaying) {
+      await player.resume();
     } else {
-      await audioPlayer.pause();
+      await player.pause();
     }
     return null;
   }
@@ -125,8 +126,9 @@ class SeekAction extends Action<SeekIntent> {
       );
       return null;
     }
-    final position = audioPlayer.position.inSeconds;
-    await audioPlayer.seek(
+    final player = intent.ref.read(audioPlayerPortProvider);
+    final position = player.position.inSeconds;
+    await player.seek(
       Duration(
         seconds: intent.forward ? position + 5 : position - 5,
       ),

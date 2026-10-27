@@ -5,7 +5,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 
 /// Single-flight + served marker for queue-end radio fetches.
 ///
@@ -97,13 +97,12 @@ void useEndlessPlayback(WidgetRef ref) {
       // Sometimes user can change settings for which the currentIndexChanged
       // might not be called. So we need to check if the current track is the
       // last track and if it is then we need to call the listener manually.
-      if (currentIndex == queueTracks.length - 1 &&
-          audioPlayer.isPlaying) {
+      final player = ref.read(audioPlayerPortProvider);
+      if (currentIndex == queueTracks.length - 1 && player.isPlaying) {
         listener(currentIndex);
       }
 
-      final subscription =
-          audioPlayer.currentIndexChangedStream.listen(listener);
+      final subscription = player.currentIndexChangedStream.listen(listener);
 
       return subscription.cancel;
     },

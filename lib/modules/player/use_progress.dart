@@ -1,6 +1,6 @@
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 
 ({
   double progressStatic,
@@ -8,12 +8,13 @@ import 'package:spotube/services/audio_player/audio_player.dart';
   Duration duration,
   double bufferProgress
 }) useProgress(WidgetRef ref) {
+  final player = ref.read(audioPlayerPortProvider);
   // media_kit's `buffer` (demuxer-cache-time) fires several times a second
   // while the network refills, and the hint bar only ever renders whole
   // seconds. Quantize before the hook sees it, and hold one stream object so
   // the rebuild does not resubscribe (Stream has no value equality).
   final bufferedSecondsStream = useMemoized(
-    () => audioPlayer.bufferedPositionStream
+    () => player.bufferedPositionStream
         .map((buffered) => buffered.inSeconds)
         .distinct(),
     const [],
@@ -27,19 +28,19 @@ import 'package:spotube/services/audio_player/audio_player.dart';
   final sliderValue = position.value.inSeconds;
 
   useEffect(() {
-    duration.value = audioPlayer.duration;
+    duration.value = player.duration;
 
-    final durationSubscription = audioPlayer.durationStream.listen((event) {
+    final durationSubscription = player.durationStream.listen((event) {
       duration.value = event;
     });
 
-    position.value = audioPlayer.position;
+    position.value = player.position;
 
     // Shared whole-second ticks (~1/sec instead of the raw ~5/sec), and the
     // player service forces a tick after a seek so a scrub shows up within one
     // position event instead of waiting for the second to roll over.
     final positionSubscription =
-        audioPlayer.positionTickStream.listen((event) {
+        player.positionTickStream.listen((event) {
       position.value = event;
     });
 

@@ -57,7 +57,7 @@ import 'package:spotube/provider/radio/stations.dart';
 import 'package:spotube/l10n/l10n.dart';
 import 'package:spotube/provider/connect/clients.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/services/cli/cli.dart';
 import 'package:spotube/services/control/mcp_server.dart';
 import 'package:spotube/services/kv_store/encrypted_kv_store.dart';
@@ -659,10 +659,12 @@ class Spotube extends HookConsumerWidget {
         HomeWidget.registerInteractivityCallback(glanceBackgroundCallback);
       }
 
+      final player = ref.read(audioPlayerPortProvider);
+
       return () {
         /// For enabling hot reload for audio player
         if (!kDebugMode) return;
-        audioPlayer.dispose();
+        player.dispose();
         ConnectionCheckerService.instance.dispose();
       };
     }, []);

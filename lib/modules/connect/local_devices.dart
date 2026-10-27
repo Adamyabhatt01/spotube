@@ -1,27 +1,29 @@
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/ui/button_tile.dart';
 import 'package:spotube/extensions/context.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 
-class ConnectPageLocalDevices extends HookWidget {
+class ConnectPageLocalDevices extends HookConsumerWidget {
   const ConnectPageLocalDevices({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData(:typography) = Theme.of(context);
+    final player = ref.read(audioPlayerPortProvider);
     // `devices`/`selectedDevice` are async getters: every build made a new
     // Future, so useFuture saw a changed future on every rebuild triggered
     // by its own resolution — the same instance-churn storm the music-cache
     // dir site had. Memoize one future per element; the streams below are
     // the live source anyway (these are just their pre-first-event
     // fallbacks).
-    final devicesFuture = useFuture(useMemoized(() => audioPlayer.devices));
-    final devicesStream = useStream(audioPlayer.devicesStream);
+    final devicesFuture = useFuture(useMemoized(() => player.devices));
+    final devicesStream = useStream(player.devicesStream);
     final selectedDeviceFuture =
-        useFuture(useMemoized(() => audioPlayer.selectedDevice));
-    final selectedDeviceStream = useStream(audioPlayer.selectedDeviceStream);
+        useFuture(useMemoized(() => player.selectedDevice));
+    final selectedDeviceStream = useStream(player.selectedDeviceStream);
 
     final devices = devicesStream.data ?? devicesFuture.data;
     final selectedDevice =
@@ -52,7 +54,7 @@ class ConnectPageLocalDevices extends HookWidget {
 
             return ButtonTile(
               selected: selectedDevice == device,
-              onPressed: () => audioPlayer.setAudioDevice(device),
+              onPressed: () => player.setAudioDevice(device),
               leading: const Icon(SpotubeIcons.speaker),
               title: Text(device.description),
               subtitle: Text(device.name),

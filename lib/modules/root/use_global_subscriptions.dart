@@ -12,8 +12,8 @@ import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/updater/update_checker.dart';
 import 'package:spotube/provider/playlist_download_provider.dart';
 import 'package:spotube/provider/server/routes/connect.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/connectivity_adapter.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/utils/service_utils.dart';
@@ -64,7 +64,8 @@ void useGlobalSubscriptions(WidgetRef ref) {
       // Don't run the network + plugin-VM burst while audio is playing: the
       // first playback must not contend with it. Reschedule to the next idle
       // beat, capped so the once-a-day check still eventually lands.
-      if (audioPlayer.isPlaying && deferrals < _maxIdleDeferrals) {
+      if (ref.read(audioPlayerPortProvider).isPlaying &&
+          deferrals < _maxIdleDeferrals) {
         deferrals++;
         idleTimer = Timer(_startupIdleDelay, runUpdateChecks);
         return;
@@ -149,6 +150,7 @@ void useGlobalSubscriptions(WidgetRef ref) {
       },
     );
 
+    final player = ref.read(audioPlayerPortProvider);
     StreamSubscription? audioPlayerSubscription;
     bool pausedByStream = false;
     var wasConnected = ConnectionCheckerService.instance.isConnectedSync;
@@ -183,30 +185,29 @@ void useGlobalSubscriptions(WidgetRef ref) {
 
         /// Pausing or resuming based on connectivity to avoid MPV skipping
         /// audio while retrying to connect
-        if (audioPlayer.currentIndex >= 0) {
-          if (connected && audioPlayer.isPaused && pausedByStream) {
-            await audioPlayer.resume();
+        if (player.currentIndex >= 0) {
+          if (connected && player.isPaused && pausedByStream) {
+            await player.resume();
             pausedByStream = false;
-          } else if (!connected && audioPlayer.isPlaying) {
-            if ((audioPlayer.bufferedPosition - const Duration(seconds: 1)) <=
-                audioPlayer.position) {
-              await audioPlayer.pause();
+          } else if (!connected && player.isPlaying) {
+            if ((player.bufferedPosition - const Duration(seconds: 1)) <=
+                player.position) {
+              await player.pause();
               pausedByStream = true;
             } else {
               // Raw stream on purpose: this watches the remaining buffer, so
               // pausing up to a second late (the shared tick's cadence) would
               // let mpv hit the underrun.
               audioPlayerSubscription =
-                  audioPlayer.positionStream.listen((position) async {
+                  player.positionStream.listen((position) async {
                 if (ConnectionCheckerService.instance.isConnectedSync) return;
 
                 final bufferedPosition =
-                    audioPlayer.bufferedPosition - const Duration(seconds: 1);
-                final duration =
-                    audioPlayer.duration - const Duration(seconds: 1);
+                    player.bufferedPosition - const Duration(seconds: 1);
+                final duration = player.duration - const Duration(seconds: 1);
 
                 if (bufferedPosition <= position || position >= duration) {
-                  audioPlayer.pause();
+                  player.pause();
                   pausedByStream = true;
                 }
               });

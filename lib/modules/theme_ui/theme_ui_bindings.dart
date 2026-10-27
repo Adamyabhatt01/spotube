@@ -3,9 +3,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/volume_provider.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
 
 /// A point-in-time view of the data a theme UI may bind to.
 ///
@@ -126,11 +126,11 @@ String _trimNumber(double value) {
 /// The latest whole-second position tick. Auto-disposed so a theme with no
 /// position-bound UI does not keep a listener after its slots unmount.
 final themePlayerPositionProvider = StreamProvider.autoDispose<Duration>(
-  (ref) => audioPlayer.positionTickStream,
+  (ref) => ref.read(audioPlayerPortProvider).positionTickStream,
 );
 
 final themePlayerDurationProvider = StreamProvider.autoDispose<Duration>(
-  (ref) => audioPlayer.durationStream,
+  (ref) => ref.read(audioPlayerPortProvider).durationStream,
 );
 
 /// Package metadata is a platform-channel call; one lookup per session is
@@ -159,9 +159,9 @@ ThemeUiBindings buildThemeUiBindings(
   final volume = ref.watch(volumeProvider);
   final user = ref.watch(metadataPluginUserProvider).asData?.value;
   final position = ref.watch(themePlayerPositionProvider).asData?.value ??
-      audioPlayer.position;
+      ref.read(audioPlayerPortProvider).position;
   final duration = ref.watch(themePlayerDurationProvider).asData?.value ??
-      audioPlayer.duration;
+      ref.read(audioPlayerPortProvider).duration;
   final version = ref.watch(themeAppVersionProvider).asData?.value ?? '';
   final now = DateTime.now();
 

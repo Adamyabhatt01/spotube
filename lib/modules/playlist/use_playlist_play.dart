@@ -16,7 +16,7 @@ import 'package:spotube/provider/history/history.dart';
 import 'package:spotube/provider/metadata_plugin/library/tracks.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/playlist.dart';
 import 'package:spotube/provider/playlist_download_provider.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/services/connectivity_adapter.dart';
 import 'package:spotube/services/logger/logger.dart';
 
@@ -107,9 +107,9 @@ UsePlaylistPlay usePlaylistPlay(
   final playlistNotifier = ref.watch(audioPlayerProvider.notifier);
   final historyNotifier = ref.read(playbackHistoryActionsProvider);
   final isOnline = ref.watch(isOnlineProvider).asData?.value ?? true;
+  final player = ref.read(audioPlayerPortProvider);
 
-  final playing =
-      useStream(audioPlayer.playingStream).data ?? audioPlayer.isPlaying;
+  final playing = useStream(player.playingStream).data ?? player.isPlaying;
 
   final isPlaylistPlaying = useMemoized<bool>(
     () => playlistCollections.contains(playlist.id),
@@ -137,7 +137,7 @@ UsePlaylistPlay usePlaylistPlay(
       // Pause/resume has no preparation step and must not flash the button
       // into a spinner while the player is still stopping/starting.
       if (isPlaylistPlaying) {
-        return playing ? audioPlayer.pause() : audioPlayer.resume();
+        return playing ? player.pause() : player.resume();
       }
 
       updating.value = true;

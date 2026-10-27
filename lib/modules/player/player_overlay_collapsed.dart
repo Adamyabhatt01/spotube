@@ -8,7 +8,7 @@ import 'package:spotube/modules/player/player_track_details.dart';
 import 'package:spotube/modules/root/spotube_navigation_bar.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/audio_player/querying_track_info.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 
 class PlayerOverlayCollapsedSection extends HookConsumerWidget {
   final PanelController panelController;
@@ -93,17 +93,18 @@ class _CollapsedTransportControls extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isResolving = ref.watch(isResolvingActiveTrackProvider);
+    final player = ref.read(audioPlayerPortProvider);
 
     return Row(
       children: [
         IconButton.ghost(
           icon: const Icon(SpotubeIcons.skipBack),
-          onPressed: isResolving ? null : audioPlayer.skipToPrevious,
+          onPressed: isResolving ? null : player.skipToPrevious,
         ),
         const PlayerPlayPauseButton(showTooltip: false),
         IconButton.ghost(
           icon: const Icon(SpotubeIcons.skipForward),
-          onPressed: isResolving ? null : audioPlayer.skipToNext,
+          onPressed: isResolving ? null : player.skipToNext,
         ),
         const Gap(5),
       ],

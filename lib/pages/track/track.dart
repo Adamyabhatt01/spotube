@@ -22,7 +22,7 @@ import 'package:spotube/modules/theme_background/theme_background_image_provider
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/track.dart';
 import 'package:spotube/provider/scroll_motion.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 
 import 'package:spotube/extensions/constrains.dart';
 import 'package:auto_route/auto_route.dart';
@@ -75,10 +75,11 @@ class TrackPage extends HookConsumerWidget {
       if (isActive) {
         // Pausing from here used to leave the button showing "pause" and
         // unable to resume; follow the real playback state instead.
+        final player = ref.read(audioPlayerPortProvider);
         if (isSounding) {
-          await audioPlayer.pause();
+          await player.pause();
         } else {
-          await audioPlayer.resume();
+          await player.resume();
         }
       } else {
         await playlistNotifier.load([track], autoPlay: true);

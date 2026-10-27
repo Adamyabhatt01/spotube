@@ -25,7 +25,7 @@ import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 import 'package:spotube/provider/metadata_plugin/library/tracks.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/album.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/playlist.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 
 /// Fuzzy score cutoff shared by recents filtering and library matching —
 /// the same `> 50` threshold the old string-only dropdown used.
@@ -1177,8 +1177,9 @@ bool _resumeIfLoaded(WidgetRef ref, String collectionId) {
   if (!ref.read(audioPlayerProvider).collections.contains(collectionId)) {
     return false;
   }
-  if (!audioPlayer.isPlaying) {
-    unawaited(audioPlayer.resume());
+  final player = ref.read(audioPlayerPortProvider);
+  if (!player.isPlaying) {
+    unawaited(player.resume());
   }
   return true;
 }

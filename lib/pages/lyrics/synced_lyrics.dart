@@ -12,8 +12,8 @@ import 'package:spotube/hooks/controllers/use_auto_scroll_controller.dart';
 import 'package:spotube/modules/lyrics/use_synced_lyrics.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/lyrics/synced.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 
 class SyncedLyrics extends HookConsumerWidget {
@@ -99,7 +99,7 @@ class SyncedLyrics extends HookConsumerWidget {
       // A plain local is enough: the effect runs once after mount and its
       // teardown runs exactly once, so there is no same-frame race to defend
       // against and no post-frame hand-off is needed.
-      final subscription = audioPlayer.positionStream.listen((event) {
+      final subscription = ref.read(audioPlayerPortProvider).positionStream.listen((event) {
         try {
           if (event > Duration.zero || !controller.hasClients) return;
           controller.animateTo(
@@ -218,11 +218,11 @@ class SyncedLyrics extends HookConsumerWidget {
                                         seconds:
                                             lyricSlice.time.inSeconds - delay,
                                       );
-                                      if (time > audioPlayer.duration ||
+                                      if (time > ref.read(audioPlayerPortProvider).duration ||
                                           time.isNegative) {
                                         return;
                                       }
-                                      audioPlayer.seek(time);
+                                      ref.read(audioPlayerPortProvider).seek(time);
                                     },
                                     child: Text(lyricSlice.text),
                                   ),

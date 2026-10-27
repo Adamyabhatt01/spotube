@@ -17,7 +17,7 @@ import 'package:spotube/provider/connect/connect.dart';
 import 'package:spotube/provider/history/history.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/album.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 
 extension FormattedAlbumType on SpotubeAlbumType {
   String get formatted => name.replaceFirst(name[0], name[0].toUpperCase());
@@ -41,8 +41,8 @@ class AlbumCard extends HookConsumerWidget {
     // Perf: only collection membership is consumed (isPlaylistPlaying).
     final playlistCollections =
         ref.watch(audioPlayerProvider.select((s) => s.collections));
-    final playing =
-        useStream(audioPlayer.playingStream).data ?? audioPlayer.isPlaying;
+    final player = ref.read(audioPlayerPortProvider);
+    final playing = useStream(player.playingStream).data ?? player.isPlaying;
     final playlistNotifier = ref.watch(audioPlayerProvider.notifier);
     final historyNotifier = ref.read(playbackHistoryActionsProvider);
 
@@ -92,7 +92,7 @@ class AlbumCard extends HookConsumerWidget {
       // Pause/resume has no preparation step and must not flash the play
       // button back into a spinner while audio is still stopping/starting.
       if (isPlaylistPlaying) {
-        return playing ? audioPlayer.pause() : audioPlayer.resume();
+        return playing ? player.pause() : player.resume();
       }
 
       playUpdating.value = true;
@@ -131,7 +131,7 @@ class AlbumCard extends HookConsumerWidget {
     }, [
       isPlaylistPlaying,
       playing,
-      audioPlayer,
+      player,
       fetchInitialTracks,
       fetchAllTrack,
       context,

@@ -15,7 +15,7 @@ import 'package:spotube/provider/connect/connect.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/audio_player/state.dart';
 import 'package:spotube/provider/metadata_plugin/artist/top_tracks.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 
 class ArtistPageTopTracks extends HookConsumerWidget {
   final String artistId;
@@ -165,10 +165,11 @@ class ArtistPageTopTracks extends HookConsumerWidget {
                       ),
                 onPressed: () async {
                   if (isPlaylistPlaying) {
+                    final player = ref.read(audioPlayerPortProvider);
                     if (isSounding) {
-                      await audioPlayer.pause();
+                      await player.pause();
                     } else {
-                      await audioPlayer.resume();
+                      await player.resume();
                     }
                     return;
                   }

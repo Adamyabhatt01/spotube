@@ -12,7 +12,7 @@ import 'package:spotube/modules/player/player_play_pause_button.dart';
 import 'package:spotube/modules/player/player_progress.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/audio_player/querying_track_info.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/utils/platform.dart';
 
 class PlayerControls extends HookConsumerWidget {
@@ -98,9 +98,9 @@ class PlayerControls extends HookConsumerWidget {
                             ? null
                             : () {
                                 if (shuffled) {
-                                  audioPlayer.setShuffle(false);
+                                  ref.read(audioPlayerPortProvider).setShuffle(false);
                                 } else {
-                                  audioPlayer.setShuffle(true);
+                                  ref.read(audioPlayerPortProvider).setShuffle(true);
                                 }
                               },
                       ),
@@ -114,7 +114,7 @@ class PlayerControls extends HookConsumerWidget {
                       size: buttonSize,
                       enabled: !isResolvingActiveTrack,
                       icon: const Icon(SpotubeIcons.skipBack),
-                      onPressed: audioPlayer.skipToPrevious,
+                      onPressed: ref.read(audioPlayerPortProvider).skipToPrevious,
                     ),
                   ),
                   PlayerPlayPauseButton(
@@ -131,7 +131,7 @@ class PlayerControls extends HookConsumerWidget {
                       icon: const Icon(SpotubeIcons.skipForward),
                       onPressed: isResolvingActiveTrack
                           ? null
-                          : audioPlayer.skipToNext,
+                          : ref.read(audioPlayerPortProvider).skipToNext,
                     ),
                   ),
                   Consumer(builder: (context, ref, _) {
@@ -165,7 +165,7 @@ class PlayerControls extends HookConsumerWidget {
                         onPressed: isResolvingActiveTrack
                             ? null
                             : () async {
-                                await audioPlayer.setLoopMode(
+                                await ref.read(audioPlayerPortProvider).setLoopMode(
                                   switch (loopMode) {
                                     PlaylistMode.loop => PlaylistMode.single,
                                     PlaylistMode.single => PlaylistMode.none,

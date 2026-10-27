@@ -1,7 +1,7 @@
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotube/models/lyrics.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 
 /// Returns the index of the active lyric line at the current playback
 /// position, i.e. the most recent line whose timestamp is at or before
@@ -31,8 +31,9 @@ int useSyncedLyrics(
   // the index is resolved here instead of in a position ValueNotifier that the
   // whole lyric list would watch.
   useEffect(() {
-    evaluate(audioPlayer.position);
-    return audioPlayer.positionStream.listen(evaluate).cancel;
+    final player = ref.read(audioPlayerPortProvider);
+    evaluate(player.position);
+    return player.positionStream.listen(evaluate).cancel;
   }, [lyrics, delay]);
 
   return activeIndex.value;

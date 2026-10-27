@@ -9,12 +9,12 @@ import 'package:spotube/modules/theme_ui/theme_ui_action.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_screen_stack.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
 import 'package:spotube/provider/download_manager/download_tasks.dart';
 import 'package:spotube/provider/metadata_plugin/library/tracks.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/volume_provider.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 
 /// Executes a theme action against the host.
@@ -29,20 +29,21 @@ Future<void> dispatchThemeUiAction(
   ThemeUiAction action,
 ) async {
   try {
+    final player = ref.read(audioPlayerPortProvider);
     switch (action.type) {
       case 'playPause':
         if (ref.read(audioPlayerProvider).activeTrack == null) return;
-        if (audioPlayer.isPlaying) {
-          await audioPlayer.pause();
+        if (player.isPlaying) {
+          await player.pause();
         } else {
-          await audioPlayer.resume();
+          await player.resume();
         }
       case 'next':
         if (ref.read(audioPlayerProvider).activeTrack == null) return;
-        await audioPlayer.skipToNext();
+        await player.skipToNext();
       case 'previous':
         if (ref.read(audioPlayerProvider).activeTrack == null) return;
-        await audioPlayer.skipToPrevious();
+        await player.skipToPrevious();
       case 'seek':
         await _seek(ref, action.args);
       case 'setVolume':
@@ -86,7 +87,8 @@ Future<void> dispatchThemeUiAction(
 }
 
 Future<void> _seek(WidgetRef ref, Map<String, dynamic> args) async {
-  final duration = audioPlayer.duration;
+  final player = ref.read(audioPlayerPortProvider);
+  final duration = player.duration;
   final seconds = args['position'];
   final fraction = args['fraction'];
   final target = switch ((seconds, fraction)) {
@@ -98,7 +100,7 @@ Future<void> _seek(WidgetRef ref, Map<String, dynamic> args) async {
   };
   if (target == null) return;
   final max = duration > Duration.zero ? duration : target;
-  await audioPlayer.seek(
+  await player.seek(
     Duration(
       milliseconds: target.inMilliseconds.clamp(0, max.inMilliseconds).toInt(),
     ),
@@ -121,10 +123,11 @@ Future<void> _setShuffle(WidgetRef ref, Map<String, dynamic> args) async {
   final current = ref.read(audioPlayerProvider).shuffled;
   final raw = args['value'] ?? args['shuffle'];
   final target = raw is bool ? raw : !current;
-  await audioPlayer.setShuffle(target);
+  await ref.read(audioPlayerPortProvider).setShuffle(target);
 }
 
 Future<void> _setLoopMode(WidgetRef ref, Map<String, dynamic> args) async {
+  final player = ref.read(audioPlayerPortProvider);
   final raw = args['mode'] ?? args['value'];
   final mode = switch (raw) {
     'off' || 'none' => PlaylistMode.none,
@@ -136,7 +139,7 @@ Future<void> _setLoopMode(WidgetRef ref, Map<String, dynamic> args) async {
         _ => PlaylistMode.none,
       },
   };
-  await audioPlayer.setLoopMode(mode);
+  await player.setLoopMode(mode);
 }
 
 Future<void> _toggleLike(WidgetRef ref) async {
@@ -206,7 +209,7 @@ Future<void> _playCollection(
   // not just "toggle shuffle". Setting the mode before the load keeps the
   // first track random instead of always starting at index 0.
   if (args['shuffle'] == true) {
-    await audioPlayer.setShuffle(true);
+    await ref.read(audioPlayerPortProvider).setShuffle(true);
   }
 
   await ref.read(audioPlayerProvider.notifier).load(

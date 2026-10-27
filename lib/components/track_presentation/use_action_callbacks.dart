@@ -12,9 +12,9 @@ import 'package:spotube/components/track_presentation/presentation_props.dart';
 import 'package:spotube/models/connect/connect.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/connect/connect.dart';
 import 'package:spotube/provider/history/history.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 
 typedef UseActionCallbacks = ({
@@ -41,6 +41,7 @@ typedef UseActionCallbacks = ({
 });
 
 UseActionCallbacks useActionCallbacks(WidgetRef ref) {
+  final player = ref.read(audioPlayerPortProvider);
   final isPlayLoading = useState(false);
   final isShuffleLoading = useState(false);
   final context = useContext();
@@ -99,7 +100,7 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
           autoPlay: true,
           initialIndex: Random().nextInt(initialTracks.length),
         );
-        await audioPlayer.setShuffle(true);
+        await player.setShuffle(true);
         playlistNotifier.addCollection(options.collectionId);
         if (options.collection is SpotubeSimpleAlbumObject) {
           historyNotifier
@@ -136,9 +137,9 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
       // do: a pause/resume has no target device to pick.
       if (isActive) {
         if (isPlaying) {
-          await audioPlayer.pause();
+          await player.pause();
         } else {
-          await audioPlayer.resume();
+          await player.resume();
         }
         return;
       }

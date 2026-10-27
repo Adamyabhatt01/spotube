@@ -9,7 +9,7 @@ import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/duration.dart';
 import 'package:spotube/modules/player/use_progress.dart';
 import 'package:spotube/provider/audio_player/querying_track_info.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 
 /// The content width a docked player can use, when it is not full-window.
 ///
@@ -208,9 +208,9 @@ class PlayerProgress extends HookConsumerWidget {
       enabled: !isResolvingActiveTrack,
       onScrub: (fraction) => progress.value = fraction,
       onSeek: (fraction) async {
-        await audioPlayer.seek(
-          Duration(seconds: (fraction * duration.inSeconds).toInt()),
-        );
+        await ref.read(audioPlayerPortProvider).seek(
+              Duration(seconds: (fraction * duration.inSeconds).toInt()),
+            );
       },
     );
   }
