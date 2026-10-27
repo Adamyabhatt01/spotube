@@ -13,6 +13,7 @@ import 'package:spotube/modules/root/spotube_navigation_bar.dart';
 import 'package:spotube/hooks/configurators/use_endless_playback.dart';
 import 'package:spotube/modules/root/use_global_subscriptions.dart';
 import 'package:spotube/modules/theme_background/real_transparency.dart';
+import 'package:spotube/modules/theme_shell/theme_shell.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 import 'package:spotube/provider/glance/glance.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
@@ -50,8 +51,11 @@ class RootAppPage extends HookConsumerWidget {
     // Sidebar discards [contentFooter] on its own compact early return.
     final layoutMode =
         ref.watch(userPreferencesProvider.select((s) => s.layoutMode));
-    final playerDock =
-        ref.watch(userPreferencesProvider.select((s) => s.playerDock));
+    final layout = context.layout;
+    final playerDock = resolvePlayerDock(
+      layout,
+      ref.watch(userPreferencesProvider.select((s) => s.playerDock)),
+    );
     // Real transparency owns the scaffold ground with everything else: an
     // opaque default here would be the window. Inset chrome keeps its own
     // panel treatment (the theme asked for that panel explicitly).
@@ -107,30 +111,72 @@ class RootAppPage extends HookConsumerWidget {
       top: false,
       child: Scaffold(
         footers: [
-          if (!isDocked) const BottomPlayer(),
+          if (!isDocked)
+            const MeasuredBottomPlayer(child: BottomPlayer()),
           const SpotubeNavigationBar(),
         ],
         floatingFooter: true,
         backgroundColor: realTransparent
             ? Colors.transparent
             : (insetChrome ? context.chromeInkColor : null),
-        child: !insetChrome
-            ? content
-            : Padding(
-                padding: EdgeInsets.all(context.chromeInsetGap),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(
-                    context.surfaceCornerRadius,
-                  ),
-                  child: ColoredBox(
-                    color: context.theme.colorScheme.background,
-                    child: content,
-                  ),
-                ),
-              ),
+        // Keep the wrapper depth constant whether the theme asks for inset
+        // chrome or not. Toggling it (the usual first-frame race: the theme
+        // resolves after the splash gate) moves the keyed router subtree to a
+        // new parent; `appRouterSlotKey` then tries to reparent it while the
+        // old `Expanded` still holds it, which Flutter reports as a duplicate
+        // GlobalKey and the view dies. A zero-padding, zero-radius, transparent
+        // wrapper is the flat layout, just with a stable element tree.
+        child: Padding(
+          padding: EdgeInsets.all(insetChrome ? context.chromeInsetGap : 0),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(
+              insetChrome ? context.surfaceCornerRadius : 0,
+            ),
+            child: ColoredBox(
+              color: insetChrome
+                  ? context.theme.colorScheme.background
+                  : Colors.transparent,
+              child: content,
+            ),
+          ),
+        ),
       ),
     );
 
-    return ThemeUiScreenHost(child: scaffold);
+    // Slots can add a band above/below the whole shell; the shell itself keeps
+    // every remaining pixel, so a missing slot costs nothing.
+    final hasShellBefore = themeUiSlotExists(ref, 'shell.before');
+    final hasShellAfter = themeUiSlotExists(ref, 'shell.after');
+    Widget shell = scaffold;
+    if (hasShellBefore || hasShellAfter) {
+      shell = Column(
+        children: [
+          if (hasShellBefore)
+            const ThemeSlot(
+              'shell.before',
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+            ),
+          Expanded(child: shell),
+          if (hasShellAfter)
+            const ThemeSlot(
+              'shell.after',
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+            ),
+        ],
+      );
+    }
+
+    // The overlay is painted above the shell but below theme screens, so its
+    // content can be decorative or interactive without displacing anything.
+    if (themeUiSlotExists(ref, 'app.overlay')) {
+      shell = Stack(
+        children: [
+          shell,
+          const Positioned.fill(child: ThemeSlot('app.overlay')),
+        ],
+      );
+    }
+
+    return ThemeUiScreenHost(child: shell);
   }
 }

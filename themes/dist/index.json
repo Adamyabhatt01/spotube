@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-23T18:06:00.676591Z",
+  "generatedAt": "2026-10-25T09:13:04.081078Z",
   "themes": [
     {
       "id": "asset-demo",
@@ -105,8 +105,8 @@
         "theme"
       ],
       "file": "kitchen-sink-1.0.0.smplug",
-      "bytes": 10037,
-      "sha256": "0bf72a21ba19b2b4de8f15772fb6ff517ffe0857bd09e690f1f0ef0b960ed26b",
+      "bytes": 10499,
+      "sha256": "0ee00112b44fea4df852d7ed776839eba46a288e9ae02fdad7c82a1f3772f5f3",
       "optionalMethods": [],
       "hasUiSpec": false
     },
@@ -145,14 +145,14 @@
       "id": "spotify-shell",
       "name": "Spotify Shell Theme",
       "author": "Adamya Bhatt",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "entryPoint": "SpotifyTheme",
       "abilities": [
         "theme"
       ],
-      "file": "spotify-shell-1.0.0.smplug",
-      "bytes": 1274,
-      "sha256": "285e252ed531a77ab09397be78270cc29c8d8ade00f53c079fa7ff6f30a2f837",
+      "file": "spotify-shell-1.1.0.smplug",
+      "bytes": 562637,
+      "sha256": "9639ee6e4ce5d017f2b7b13fc7d7cbd7890dcee3287509466a96597691980103",
       "optionalMethods": [],
       "hasUiSpec": false,
       "published": "spotify-shell/plugin.smplug"

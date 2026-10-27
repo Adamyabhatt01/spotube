@@ -69,6 +69,7 @@ class SidebarStationPinTile extends HookConsumerWidget {
       label: showLabels
           ? Text(station.name, maxLines: 1, overflow: TextOverflow.ellipsis)
           : null,
+      overflow: NavigationOverflow.ellipsis,
       onPressed: onTap,
       child: Tooltip(
         tooltip: TooltipContainer(child: Text(station.name)).call,

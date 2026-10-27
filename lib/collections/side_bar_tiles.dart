@@ -7,12 +7,32 @@ import 'package:spotube/l10n/l10n.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 
+/// The ids a theme may name in `layout.navItems` and `libraryItems`.
+///
+/// These mirror the contract's closed registries. A theme may also name
+/// `screen:<id>` to link one of its own `ui.screens`; that entry has no route
+/// and opens through the theme screen stack instead.
+const sidebarNavIds = <String>['home', 'radio', 'stats', 'search'];
+const sidebarLibraryIds = <String>[
+  'playlists',
+  'artists',
+  'albums',
+  'stations',
+  'local_library',
+];
+const navbarNavIds = <String>['home', 'search', 'radio', 'library', 'stats'];
+
 class SideBarTiles {
   final IconData icon;
   final String title;
   final String id;
   final String pathPrefix;
-  final PageRouteInfo route;
+
+  /// The route an entry opens, or null for a theme-screen entry.
+  final PageRouteInfo? route;
+
+  /// Set for a `screen:<id>` entry; the sidebar opens the theme screen.
+  final String? screenId;
 
   /// Optional small cover art. Null for the static tiles; set for pinned
   /// playlist tiles, which render the cover in the icon slot so the
@@ -27,35 +47,74 @@ class SideBarTiles {
     required this.icon,
     required this.title,
     required this.id,
-    required this.route,
     required this.pathPrefix,
+    this.route,
+    this.screenId,
     this.imageUrl,
     this.playlist,
   });
+
+  /// An entry that links a screen the theme owns.
+  factory SideBarTiles.screen({
+    required String id,
+    required String title,
+  }) {
+    return SideBarTiles(
+      id: 'screen:$id',
+      screenId: id,
+      title: title,
+      pathPrefix: '/theme/$id',
+      icon: SpotubeIcons.magic,
+    );
+  }
 }
 
-List<SideBarTiles> getSidebarTileList(AppLocalizations l10n) => [
-      SideBarTiles(
+SideBarTiles _sidebarNavTile(AppLocalizations l10n, String id) {
+  return switch (id) {
+    'home' => SideBarTiles(
         id: "home",
         pathPrefix: "/home",
         route: const HomeRoute(),
         icon: SpotubeIcons.home,
         title: l10n.browse,
       ),
-      SideBarTiles(
+    'search' => SideBarTiles(
+        id: "search",
+        pathPrefix: "/search",
+        route: const SearchRoute(),
+        icon: SpotubeIcons.search,
+        title: l10n.search,
+      ),
+    'radio' => SideBarTiles(
         id: "radio",
         pathPrefix: "/radio",
         route: const RadioRoute(),
         icon: SpotubeIcons.radio,
         title: "Radio",
       ),
-      SideBarTiles(
+    'stats' => SideBarTiles(
         id: "stats",
         pathPrefix: "/stats",
         route: const StatsRoute(),
         icon: SpotubeIcons.chart,
         title: l10n.stats,
       ),
+    _ => throw ArgumentError.value(id, 'id', 'unknown sidebar entry'),
+  };
+}
+
+/// Every top navigation entry the host implements, in the default order.
+///
+/// Search is part of the registry but not of the default sidebar: a theme may
+/// put it there through `navItems`, which is what the contract's `navItems`
+/// list has always named.
+List<SideBarTiles> getSidebarTileRegistry(AppLocalizations l10n) => [
+      for (final id in sidebarNavIds) _sidebarNavTile(l10n, id),
+    ];
+
+List<SideBarTiles> getSidebarTileList(AppLocalizations l10n) => [
+      for (final id in const ['home', 'radio', 'stats'])
+        _sidebarNavTile(l10n, id),
     ];
 
 List<SideBarTiles> getSidebarLibraryTileList(AppLocalizations l10n) => [
@@ -99,43 +158,25 @@ List<SideBarTiles> getSidebarLibraryTileList(AppLocalizations l10n) => [
       ),
     ];
 
-List<SideBarTiles> getNavbarTileList(AppLocalizations l10n) => [
-      SideBarTiles(
-        id: "home",
-        pathPrefix: "/home",
-        route: const HomeRoute(),
-        icon: SpotubeIcons.home,
-        title: l10n.browse,
-      ),
-      SideBarTiles(
-        id: "search",
-        pathPrefix: "/search",
-        route: const SearchRoute(),
-        icon: SpotubeIcons.search,
-        title: l10n.search,
-      ),
-      SideBarTiles(
-        id: "radio",
-        pathPrefix: "/radio",
-        route: const RadioRoute(),
-        icon: SpotubeIcons.radio,
-        title: "Radio",
-      ),
-      SideBarTiles(
-        id: "library",
-        pathPrefix: "/library",
-        route: const UserPlaylistsRoute(),
-        icon: SpotubeIcons.library,
-        title: l10n.library,
-      ),
-      SideBarTiles(
-        id: "stats",
-        pathPrefix: "/stats",
-        route: const StatsRoute(),
-        icon: SpotubeIcons.chart,
-        title: l10n.stats,
-      ),
+SideBarTiles _navbarTile(AppLocalizations l10n, String id) {
+  if (id == 'library') {
+    return SideBarTiles(
+      id: "library",
+      pathPrefix: "/library",
+      route: const UserPlaylistsRoute(),
+      icon: SpotubeIcons.library,
+      title: l10n.library,
+    );
+  }
+  return _sidebarNavTile(l10n, id);
+}
+
+List<SideBarTiles> getNavbarTileRegistry(AppLocalizations l10n) => [
+      for (final id in navbarNavIds) _navbarTile(l10n, id),
     ];
+
+List<SideBarTiles> getNavbarTileList(AppLocalizations l10n) =>
+    getNavbarTileRegistry(l10n);
 
 /// Whether the mobile bottom navigation bar is visible for the given window
 /// and layout mode. Mirrors `SpotubeNavigationBar`'s own gate, so pages that

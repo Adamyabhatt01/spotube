@@ -94,7 +94,13 @@ class ThemeLayout with _$ThemeLayout {
     /// The navigation entries and library entries the theme wants the host
     /// to show, in order. Kept raw so a theme can add a future entry without
     /// a model release; the host filters to the ids it implements.
+    ///
+    /// `navItems` drives the sidebar, `navbarItems` the bottom bar, and
+    /// `libraryItems` the library group below the sidebar's top entries. An
+    /// entry may also be `screen:<id>`, which links to one of the theme's own
+    /// `ui.screens`, so a theme can add a destination the host never shipped.
     @Default([]) List<String> navItems,
+    @Default([]) List<String> navbarItems,
     @Default([]) List<String> libraryItems,
 
     /// Home/settings section order and composition, as contract-owned maps.

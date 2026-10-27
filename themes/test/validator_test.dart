@@ -26,15 +26,15 @@ Map<String, dynamic> validPayload() {
     'ring',
   ];
   Map<String, dynamic> palette(String background, String foreground) => {
-        for (final role in roles) role: background,
-        'foreground': foreground,
-        'cardForeground': foreground,
-        'primaryForeground': background,
-        'secondaryForeground': foreground,
-        'mutedForeground': foreground,
-        'accentForeground': foreground,
-        'destructiveForeground': background,
-      };
+    for (final role in roles) role: background,
+    'foreground': foreground,
+    'cardForeground': foreground,
+    'primaryForeground': background,
+    'secondaryForeground': foreground,
+    'mutedForeground': foreground,
+    'accentForeground': foreground,
+    'destructiveForeground': background,
+  };
 
   return {
     'light': palette('#ffffff', '#121212'),
@@ -44,9 +44,9 @@ Map<String, dynamic> validPayload() {
 
 /// The paths of the findings, so a test can assert what was reported.
 List<String> pathsOf(ValidationReport report, Severity severity) => [
-      for (final issue in report.issues)
-        if (issue.severity == severity) issue.path,
-    ];
+  for (final issue in report.issues)
+    if (issue.severity == severity) issue.path,
+];
 
 void main() {
   group('a valid payload', () {
@@ -116,14 +116,16 @@ void main() {
       expect((report.resolved!['radius'] as Map)['large'], 64.0);
     });
 
-    test('density of zero reads as 1.0 — an unset field must not shrink the UI',
-        () {
-      final payload = validPayload();
-      payload['density'] = 0;
-      final report = validateThemePayload(payload);
-      expect(report.hasErrors, isFalse);
-      expect(report.resolved!['density'], 1.0);
-    });
+    test(
+      'density of zero reads as 1.0 — an unset field must not shrink the UI',
+      () {
+        final payload = validPayload();
+        payload['density'] = 0;
+        final report = validateThemePayload(payload);
+        expect(report.hasErrors, isFalse);
+        expect(report.resolved!['density'], 1.0);
+      },
+    );
 
     test('density below the range is clamped', () {
       final payload = validPayload();
@@ -165,14 +167,16 @@ void main() {
   });
 
   group('unknown fields', () {
-    test('are a warning, not an error — that is what makes v3 shippable to v2',
-        () {
-      final payload = validPayload();
-      payload['somethingNew'] = {'a': 1};
-      final report = validateThemePayload(payload);
-      expect(report.hasErrors, isFalse);
-      expect(pathsOf(report, Severity.warning), contains('somethingNew'));
-    });
+    test(
+      'are a warning, not an error — that is what makes v3 shippable to v2',
+      () {
+        final payload = validPayload();
+        payload['somethingNew'] = {'a': 1};
+        final report = validateThemePayload(payload);
+        expect(report.hasErrors, isFalse);
+        expect(pathsOf(report, Severity.warning), contains('somethingNew'));
+      },
+    );
 
     test('a declared v3 payload knows the v3 blocks', () {
       final payload = validPayload();
@@ -181,8 +185,7 @@ void main() {
       payload['branding'] = {'appName': 'Aurora'};
       final report = validateThemePayload(payload);
       expect(report.hasErrors, isFalse);
-      expect(pathsOf(report, Severity.warning),
-          isNot(contains('specVersion')));
+      expect(pathsOf(report, Severity.warning), isNot(contains('specVersion')));
       expect(pathsOf(report, Severity.warning), isNot(contains('typography')));
       expect(pathsOf(report, Severity.warning), isNot(contains('branding')));
     });
@@ -190,11 +193,18 @@ void main() {
     test('a v3 block that breaks its own rules is an error', () {
       final payload = validPayload();
       payload['specVersion'] = 3;
-      payload['typography'] = {'family': 'Inter', 'styles': {'h1': {'fontSize': 400}}};
+      payload['typography'] = {
+        'family': 'Inter',
+        'styles': {
+          'h1': {'fontSize': 400},
+        },
+      };
       final report = validateThemePayload(payload);
       expect(report.hasErrors, isFalse);
-      expect(pathsOf(report, Severity.warning),
-          contains('typography.styles.h1.fontSize'));
+      expect(
+        pathsOf(report, Severity.warning),
+        contains('typography.styles.h1.fontSize'),
+      );
     });
   });
 
@@ -204,7 +214,10 @@ void main() {
       payload['tokens'] = {'fontFamily': 'Inter/../../etc'};
       final report = validateThemePayload(payload);
       expect(report.hasErrors, isFalse);
-      expect((report.resolved!['tokens'] as Map).containsKey('fontFamily'), isFalse);
+      expect(
+        (report.resolved!['tokens'] as Map).containsKey('fontFamily'),
+        isFalse,
+      );
     });
 
     test('a plain family is kept', () {
@@ -228,8 +241,10 @@ void main() {
       payload['background'] = {'source': 'shell', 'transparent': 'yes'};
       final report = validateThemePayload(payload);
       expect(report.hasErrors, isFalse);
-      expect((report.resolved!['background'] as Map).containsKey('transparent'),
-          isFalse);
+      expect(
+        (report.resolved!['background'] as Map).containsKey('transparent'),
+        isFalse,
+      );
     });
   });
 
@@ -241,7 +256,10 @@ void main() {
         'text',
         <String, dynamic>{},
         <String, dynamic>{'light': 'not an object', 'dark': 3},
-        <String, dynamic>{'light': <String, dynamic>{}, 'dark': <String, dynamic>{}},
+        <String, dynamic>{
+          'light': <String, dynamic>{},
+          'dark': <String, dynamic>{},
+        },
         <String, dynamic>{
           'light': <String, dynamic>{'background': '#fff'},
           'dark': <String, dynamic>{'background': '#fff'},
@@ -251,9 +269,12 @@ void main() {
       ];
 
       for (final input in inputs) {
-        expect(() => validateThemePayload(
-          input is Map<String, dynamic> ? input : <String, dynamic>{},
-        ), returnsNormally);
+        expect(
+          () => validateThemePayload(
+            input is Map<String, dynamic> ? input : <String, dynamic>{},
+          ),
+          returnsNormally,
+        );
       }
     });
 
@@ -270,19 +291,25 @@ void main() {
       };
 
       for (final entry in fatal.entries) {
-        final payload = jsonDecode(File('${dir.path}/${entry.key}').readAsStringSync())
-            as Map<String, dynamic>;
+        final payload =
+            jsonDecode(File('${dir.path}/${entry.key}').readAsStringSync())
+                as Map<String, dynamic>;
         final report = validateThemePayload(payload);
         expect(report.hasErrors, isTrue, reason: entry.key);
-        expect(pathsOf(report, Severity.error), contains(entry.value),
-            reason: entry.key);
+        expect(
+          pathsOf(report, Severity.error),
+          contains(entry.value),
+          reason: entry.key,
+        );
       }
     });
   });
 
   group('the ui contract', () {
-    Map<String, dynamic> withUi(Map<String, dynamic> ui,
-        {Map<String, dynamic> extra = const {}}) {
+    Map<String, dynamic> withUi(
+      Map<String, dynamic> ui, {
+      Map<String, dynamic> extra = const {},
+    }) {
       final payload = validPayload();
       payload['specVersion'] = 3;
       payload['ui'] = ui;
@@ -290,74 +317,125 @@ void main() {
       return payload;
     }
 
-    Map<String, dynamic> slot(String name, List<Map<String, dynamic>> children) =>
-        {
-          'specVersion': 2,
-          'slots': {
-            name: {'children': children},
-          },
-        };
+    Map<String, dynamic> slot(
+      String name,
+      List<Map<String, dynamic>> children,
+    ) => {
+      'specVersion': 2,
+      'slots': {
+        name: {'children': children},
+      },
+    };
 
     test('a flat prop is what the themes write, and it is read', () {
-      final report = validateThemePayload(withUi(slot('player.leading', [
-        {'type': 'image', 'src': 'player.artwork', 'width': 64, 'height': 64},
-      ])));
+      final report = validateThemePayload(
+        withUi(
+          slot('player.leading', [
+            {
+              'type': 'image',
+              'src': 'player.artwork',
+              'width': 64,
+              'height': 64,
+            },
+          ]),
+        ),
+      );
       expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
     });
 
     test('an unknown prop is an error, not a silent no-op', () {
-      final report = validateThemePayload(withUi(slot('player.leading', [
-        {'type': 'image', 'widht': 64},
-      ])));
-      expect(pathsOf(report, Severity.error),
-          contains('ui.slots.player.leading[0].widht'));
+      final report = validateThemePayload(
+        withUi(
+          slot('player.leading', [
+            {'type': 'image', 'widht': 64},
+          ]),
+        ),
+      );
+      expect(
+        pathsOf(report, Severity.error),
+        contains('ui.slots.player.leading[0].widht'),
+      );
     });
 
     test('the legacy props object still reads, with a warning', () {
-      final report = validateThemePayload(withUi(slot('player.leading', [
-        {
-          'type': 'image',
-          'props': {'src': 'player.artwork', 'width': 64},
-        },
-      ])));
+      final report = validateThemePayload(
+        withUi(
+          slot('player.leading', [
+            {
+              'type': 'image',
+              'props': {'src': 'player.artwork', 'width': 64},
+            },
+          ]),
+        ),
+      );
       expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
-      expect(pathsOf(report, Severity.warning),
-          contains('ui.slots.player.leading[0].props'));
+      expect(
+        pathsOf(report, Severity.warning),
+        contains('ui.slots.player.leading[0].props'),
+      );
     });
 
     test('an unknown binding is an error', () {
-      final report = validateThemePayload(withUi(slot('player.leading', [
-        {'type': 'text', 'bind': 'player.titel'},
-      ])));
-      expect(pathsOf(report, Severity.error),
-          contains('ui.slots.player.leading[0].bind'));
+      final report = validateThemePayload(
+        withUi(
+          slot('player.leading', [
+            {'type': 'text', 'bind': 'player.titel'},
+          ]),
+        ),
+      );
+      expect(
+        pathsOf(report, Severity.error),
+        contains('ui.slots.player.leading[0].bind'),
+      );
     });
 
     test('an unknown action is an error, and a known one is not', () {
-      final bad = validateThemePayload(withUi(slot('player.leading', [
-        {'type': 'button', 'action': {'type': 'skip'}},
-      ])));
-      expect(pathsOf(bad, Severity.error),
-          contains('ui.slots.player.leading[0].action.type'));
+      final bad = validateThemePayload(
+        withUi(
+          slot('player.leading', [
+            {
+              'type': 'button',
+              'action': {'type': 'skip'},
+            },
+          ]),
+        ),
+      );
+      expect(
+        pathsOf(bad, Severity.error),
+        contains('ui.slots.player.leading[0].action.type'),
+      );
 
-      final good = validateThemePayload(withUi(slot('player.leading', [
-        {
-          'type': 'button',
-          'action': {'type': 'navigate', 'args': {'target': 'lyrics'}},
-        },
-      ])));
+      final good = validateThemePayload(
+        withUi(
+          slot('player.leading', [
+            {
+              'type': 'button',
+              'action': {
+                'type': 'navigate',
+                'args': {'target': 'lyrics'},
+              },
+            },
+          ]),
+        ),
+      );
       expect(good.hasErrors, isFalse, reason: good.issues.join('\n'));
     });
 
     test('a navigate without a target warns', () {
-      final report = validateThemePayload(withUi(slot('player.leading', [
-        {
-          'type': 'button',
-          'action': {'type': 'navigate'},
-        },
-      ])));
-      expect(pathsOf(report, Severity.warning),
-          contains('ui.slots.player.leading[0].action.args.target'));
+      final report = validateThemePayload(
+        withUi(
+          slot('player.leading', [
+            {
+              'type': 'button',
+              'action': {'type': 'navigate'},
+            },
+          ]),
+        ),
+      );
+      expect(
+        pathsOf(report, Severity.warning),
+        contains('ui.slots.player.leading[0].action.args.target'),
+      );
     });
 
     test('the stage is a dock and has slots', () {
@@ -388,32 +466,44 @@ void main() {
       ui['specVersion'] = 1;
       final report = validateThemePayload(withUi(ui));
       expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
-      expect(pathsOf(report, Severity.warning),
-          contains('ui.slots.stage.center[0]'));
+      expect(
+        pathsOf(report, Severity.warning),
+        contains('ui.slots.stage.center[0]'),
+      );
     });
 
     test('the image props a pixel theme needs are validated', () {
-      final report = validateThemePayload(withUi(slot('stage.center', [
-        {
-          'type': 'image',
-          'src': 'player.artwork',
-          'shape': 'circle',
-          'fit': 'cover',
-          'filter': 'nearest',
-          'tile': false,
-          'radius': 999,
-        },
-      ])));
+      final report = validateThemePayload(
+        withUi(
+          slot('stage.center', [
+            {
+              'type': 'image',
+              'src': 'player.artwork',
+              'shape': 'circle',
+              'fit': 'cover',
+              'filter': 'nearest',
+              'tile': false,
+              'radius': 999,
+            },
+          ]),
+        ),
+      );
       expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
 
-      final bad = validateThemePayload(withUi(slot('stage.center', [
-        {'type': 'image', 'shape': 'round', 'filter': 'cubic'},
-      ])));
-      expect(pathsOf(bad, Severity.error),
-          containsAll([
-            'ui.slots.stage.center[0].shape',
-            'ui.slots.stage.center[0].filter',
-          ]));
+      final bad = validateThemePayload(
+        withUi(
+          slot('stage.center', [
+            {'type': 'image', 'shape': 'round', 'filter': 'cubic'},
+          ]),
+        ),
+      );
+      expect(
+        pathsOf(bad, Severity.error),
+        containsAll([
+          'ui.slots.stage.center[0].shape',
+          'ui.slots.stage.center[0].filter',
+        ]),
+      );
     });
 
     test('a tiled background keeps whole-number magnification', () {
@@ -435,6 +525,164 @@ void main() {
       final rounded = validateThemePayload(payload);
       expect(pathsOf(rounded, Severity.warning), contains('background.scale'));
       expect((rounded.resolved!['background'] as Map)['scale'], 3);
+    });
+    test('a list repeats a collection and resolves item bindings', () {
+      final report = validateThemePayload(
+        withUi(
+          slot('collection.content', [
+            {
+              'type': 'list',
+              'bind': 'collection.tracks',
+              'gap': 4,
+              'limit': 100,
+              'align': 'stretch',
+              'children': [
+                {
+                  'type': 'row',
+                  'children': [
+                    {'type': 'text', 'bind': 'item.title'},
+                    {
+                      'type': 'image',
+                      'src': 'item.artwork',
+                      'width': 40,
+                      'height': 40,
+                    },
+                    {
+                      'type': 'button',
+                      'label': 'Play',
+                      'action': {'type': 'playItem'},
+                    },
+                  ],
+                },
+              ],
+            },
+          ]),
+        ),
+      );
+      expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
+    });
+
+    test('a shelf and a sized shape are part of the vocabulary', () {
+      final report = validateThemePayload(
+        withUi(
+          slot('home.content', [
+            {
+              'type': 'list',
+              'bind': 'home.recent',
+              'direction': 'horizontal',
+              'gap': 12,
+              'limit': 20,
+              'children': [
+                {
+                  'type': 'card',
+                  'width': 36,
+                  'height': 36,
+                  'radius': 999,
+                  'padding': 0,
+                },
+              ],
+            },
+          ]),
+        ),
+      );
+      expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
+    });
+
+    test('home bindings resolve, including the greeting', () {
+      final report = validateThemePayload(
+        withUi(
+          slot('home.content', [
+            {'type': 'text', 'bind': 'app.greeting'},
+            {'type': 'text', 'bind': 'home.greeting'},
+            {
+              'type': 'list',
+              'bind': 'home.recent',
+              'children': [
+                {'type': 'text', 'bind': 'item.title'},
+              ],
+            },
+          ]),
+        ),
+      );
+      expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
+    });
+
+    test('the item action verbs are dispatched', () {
+      for (final type in [
+        'playItem',
+        'playCollection',
+        'openItem',
+        'likeItem',
+        'downloadItem',
+      ]) {
+        final report = validateThemePayload(
+          withUi(
+            slot('queue.content', [
+              {
+                'type': 'list',
+                'bind': 'queue.tracks',
+                'children': [
+                  {
+                    'type': 'button',
+                    'label': 'x',
+                    'action': {'type': type},
+                  },
+                ],
+              },
+            ]),
+          ),
+        );
+        expect(
+          report.hasErrors,
+          isFalse,
+          reason: '$type: ${report.issues.join('\n')}',
+        );
+      }
+    });
+
+    test('a binding outside a known scope is still a typo', () {
+      final report = validateThemePayload(
+        withUi(
+          slot('player.leading', [
+            {'type': 'text', 'bind': 'pages.title'},
+          ]),
+        ),
+      );
+      expect(
+        pathsOf(report, Severity.error),
+        contains('ui.slots.player.leading[0].bind'),
+      );
+    });
+
+    test('every page content slot is published', () {
+      const names = [
+        'collection.content',
+        'collection.header',
+        'collection.before_tracks',
+        'collection.after_tracks',
+        'artist.content',
+        'artist.header',
+        'home.content',
+        'search.content',
+        'library.content',
+        'queue.content',
+        'downloads.content',
+        'stats.content',
+      ];
+      final report = validateThemePayload(
+        withUi({
+          'specVersion': 2,
+          'slots': {
+            for (final name in names)
+              name: {
+                'children': [
+                  {'type': 'text', 'bind': 'player.title'},
+                ],
+              },
+          },
+        }),
+      );
+      expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
     });
   });
 }

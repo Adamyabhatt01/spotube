@@ -9,6 +9,7 @@ import 'package:spotube/components/image/universal_image.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/hooks/utils/use_palette_color.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 import 'package:spotube/pages/lyrics/plain_lyrics.dart';
 import 'package:spotube/pages/lyrics/synced_lyrics.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
@@ -54,6 +55,8 @@ class LyricsPage extends HookConsumerWidget {
     // the tree once it has been asked for. It stays there afterwards, so
     // switching back and forth never re-pays that layout.
     final plainRequested = useState(false);
+    final hasLyricsHeader = themeUiSlotExists(ref, 'lyrics.header');
+    final hasLyricsAfterTabs = themeUiSlotExists(ref, 'lyrics.after_tabs');
 
     Widget tabbar = Padding(
       padding: const EdgeInsets.all(10),
@@ -140,23 +143,45 @@ class LyricsPage extends HookConsumerWidget {
         color:
             hasArtwork ? palette.color.withValues(alpha: .7) : Colors.transparent,
         child: SafeArea(
-          child: IndexedStack(
-            index: selectedIndex.value,
+          child: Column(
             children: [
-              SyncedLyrics(
-                palette: palette,
-                isModal: false,
-                hasArtwork: hasArtwork,
+              if (hasLyricsHeader)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: ThemeSlot(
+                    'lyrics.header',
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  ),
+                ),
+              if (hasLyricsAfterTabs)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 4, 16, 0),
+                  child: ThemeSlot(
+                    'lyrics.after_tabs',
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  ),
+                ),
+              Expanded(
+                child: IndexedStack(
+                  index: selectedIndex.value,
+                  children: [
+                    SyncedLyrics(
+                      palette: palette,
+                      isModal: false,
+                      hasArtwork: hasArtwork,
+                    ),
+                    // Built on demand — see [plainRequested].
+                    if (plainRequested.value)
+                      PlainLyrics(
+                        palette: palette,
+                        isModal: false,
+                        hasArtwork: hasArtwork,
+                      )
+                    else
+                      const SizedBox.shrink(),
+                  ],
+                ),
               ),
-              // Built on demand — see [plainRequested].
-              if (plainRequested.value)
-                PlainLyrics(
-                  palette: palette,
-                  isModal: false,
-                  hasArtwork: hasArtwork,
-                )
-              else
-                const SizedBox.shrink(),
             ],
           ),
         ),

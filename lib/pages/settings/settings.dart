@@ -5,6 +5,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/components/titlebar/titlebar.dart';
 import 'package:spotube/extensions/context.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
+import 'package:spotube/modules/theme_shell/theme_shell.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 import 'package:spotube/pages/settings/sections/about.dart';
 import 'package:spotube/pages/settings/sections/accounts.dart';
 import 'package:spotube/pages/settings/sections/appearance.dart';
@@ -28,6 +31,31 @@ class SettingsPage extends HookConsumerWidget {
   Widget build(BuildContext context, ref) {
     final controller = useScrollController();
     final preferencesNotifier = ref.watch(userPreferencesProvider.notifier);
+    final layout = context.layout;
+    final hasBefore = themeUiSlotExists(ref, 'settings.before');
+    final hasAfter = themeUiSlotExists(ref, 'settings.after');
+
+    // The theme may reorder or replace the settings groups when it claims
+    // `settings`; platform-only groups are not offered to it on the platforms
+    // they do not exist on.
+    final sections = useMemoized(
+      () => resolveThemeSections(
+        defaults: [
+          'accounts',
+          'language_region',
+          'appearance',
+          'sidebar',
+          'playback',
+          'downloads',
+          if (kIsDesktop) 'desktop',
+          if (!kIsWeb) 'developers',
+          'about',
+        ],
+        block: layout.settings,
+        enforced: themeEnforces(layout, ThemeShellKeys.settings),
+      ),
+      [layout],
+    );
 
     return SafeArea(
       bottom: false,
@@ -49,21 +77,44 @@ class SettingsPage extends HookConsumerWidget {
                   child: ListView(
                     controller: controller,
                     children: [
-                      const SettingsAccountSection(),
-                      const SettingsLanguageRegionSection(),
-                      const SettingsAppearanceSection(),
-                      const SettingsSidebarSection(),
-                      const SettingsPlaybackSection(),
-                      const SettingsDownloadsSection(),
-                      if (kIsDesktop) const SettingsDesktopSection(),
-                      if (!kIsWeb) const SettingsDevelopersSection(),
-                      const SettingsAboutSection(),
+                      if (hasBefore)
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+                          child: ThemeSlot(
+                            'settings.before',
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                          ),
+                        ),
+                      for (final section in sections)
+                        switch (section) {
+                          'accounts' => const SettingsAccountSection(),
+                          'language_region' =>
+                            const SettingsLanguageRegionSection(),
+                          'appearance' => const SettingsAppearanceSection(),
+                          'sidebar' => const SettingsSidebarSection(),
+                          'playback' => const SettingsPlaybackSection(),
+                          'downloads' => const SettingsDownloadsSection(),
+                          'desktop' when kIsDesktop =>
+                            const SettingsDesktopSection(),
+                          'developers' when !kIsWeb =>
+                            const SettingsDevelopersSection(),
+                          'about' => const SettingsAboutSection(),
+                          _ => const SizedBox.shrink(),
+                        },
                       Center(
                         child: Button.destructive(
                           onPressed: preferencesNotifier.reset,
                           child: Text(context.l10n.restore_defaults),
                         ),
                       ),
+                      if (hasAfter)
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+                          child: ThemeSlot(
+                            'settings.after',
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                          ),
+                        ),
                       const SizedBox(height: 200),
                     ],
                   ),

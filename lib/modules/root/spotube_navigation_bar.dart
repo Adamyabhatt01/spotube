@@ -8,11 +8,15 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 
 import 'package:spotube/collections/side_bar_tiles.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/theme_background/real_transparency.dart';
+import 'package:spotube/modules/theme_shell/theme_navigation.dart';
+import 'package:spotube/modules/theme_shell/theme_shell.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
+import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/scroll_motion.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 
@@ -66,10 +70,35 @@ class SpotubeNavigationBar extends HookConsumerWidget {
     );
     final layoutMode =
         ref.watch(userPreferencesProvider.select((s) => s.layoutMode));
+    final layout = context.layout;
+    final themeUi = ref.watch(themeUiProvider).asData?.value;
 
+    final screens = useMemoized(
+      () => themeScreenTiles(themeUi),
+      [themeUi],
+    );
+
+    // The theme may replace the bar's entries (membership) or just their
+    // order, and may add destinations of its own through `screen:<id>`.
     final navbarTileList = useMemoized(
-      () => getNavbarTileList(context.l10n),
-      [context.l10n],
+      () {
+        final host = getNavbarTileList(context.l10n);
+        if (!themeEnforces(layout, ThemeShellKeys.navbarItems) &&
+            !themeEnforces(layout, ThemeShellKeys.navOrder)) {
+          return host;
+        }
+        return themeEntriesFor(
+          host: themeEnforces(layout, ThemeShellKeys.navbarItems)
+              ? getNavbarTileRegistry(context.l10n)
+              : host,
+          themeIds: layout.navbarItems,
+          layout: layout,
+          screens: screens,
+          membershipKey: ThemeShellKeys.navbarItems,
+          orderKey: ThemeShellKeys.navOrder,
+        );
+      },
+      [context.l10n, layout, screens],
     );
 
     final coveredByPanel = ref.watch(navigationPanelCoversBar);
@@ -127,7 +156,7 @@ class SpotubeNavigationBar extends HookConsumerWidget {
                       child: Icon(tile.icon),
                     ),
                     onPressed: () {
-                      context.navigateTo(tile.route);
+                      openSideBarTile(context, ref, tile);
                     },
                   )
               ],

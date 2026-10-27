@@ -7,6 +7,7 @@ import 'package:spotube/components/play_pause_icon.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/modules/playlist/use_playlist_play.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_pin_cover.dart';
+import 'package:spotube/modules/theme_shell/theme_navigation.dart';
 
 /// One pinned playlist row: the label navigates, the cover plays.
 ///
@@ -58,8 +59,9 @@ class SidebarPinTile extends HookConsumerWidget {
       label: showLabels
           ? Text(tile.title, maxLines: 1, overflow: TextOverflow.ellipsis)
           : null,
+      overflow: NavigationOverflow.ellipsis,
       onPressed: () {
-        context.navigateTo(tile.route);
+        openSideBarTile(context, ref, tile);
       },
       child: Tooltip(
         tooltip: TooltipContainer(child: Text(tile.title)).call,

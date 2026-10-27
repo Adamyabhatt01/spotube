@@ -24,6 +24,10 @@ class ThemeUiAction {
     'openDownloads',
     'toast',
     'plugin',
+    'playItem',
+    'openItem',
+    'likeItem',
+    'downloadItem',
   };
 
   final String type;

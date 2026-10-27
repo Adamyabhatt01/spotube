@@ -22,7 +22,7 @@ contract.
 | `caelestia-glassier` | Thinner surfaces than the base theme: more transparency, more blur, a lighter veil over the shell background | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/caelestia-glassier/plugin.smplug` |
 | `caelestia-shell` | The glassier backdrop with more opaque surfaces, so text survives a bright wallpaper | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/caelestia-shell/plugin.smplug` |
 | `caelestia-plain` | The base palette with no desktop backdrop and no shell-derived glass | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/caelestia-plain/plugin.smplug` |
-| `spotify-shell` | A Spotify-shaped shell instead of the Caelestia one: black and green, inset content, rail navigation, seek bar below the player | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/spotify-shell/plugin.smplug` |
+| `spotify-shell` | A Spotify-shaped shell instead of the Caelestia one: black and green, inset content, labelled sidebar, a full-width seek line with elapsed and total time below the transport, Inter | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/spotify-shell/plugin.smplug` |
 | `obsidian` | A pixel-Minecraft theme: black amethyst and lavender end stone, a stage player and a record that turns with the track | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/obsidian/plugin.smplug` |
 
 ### Which one should you install?
@@ -128,9 +128,13 @@ with the fonts, icons, album tile and both schemes inlined. It shows the
 palette, every component sample, the theme's screens, and the stage if the
 theme has one. Open it in a browser; the top bar switches scheme and
 play/pause, and the URL carries the state (`#mode=light`,
-`#screen=palette`, `#screen=now-playing`, `#screen=colophon`). The preview
-reads the same payload as the host, so it is how a theme is reviewed before
-the host can draw the whole v3 tree.
+`#screen=palette`, `#screen=now-playing`, `#screen=colophon`).
+
+The preview reads the same payload as the host, but it is still
+obsidian-shaped: its sample track, pixel styling and font allow-list assume
+that theme, and it does not draw `home.content` or `list` nodes. Use it to
+review obsidian or a stage-based theme; for any other theme the app is the
+reference renderer (`fvm flutter run -d linux` with the theme selected).
 
 ## The themes
 
@@ -140,7 +144,7 @@ the host can draw the whole v3 tree.
 | `caelestia-glassier` | The same, with thinner surfaces — published |
 | `caelestia-plain` | The base palette with no backdrop and no glass — published |
 | `caelestia-shell` | The balanced variant: readable text over a bright wallpaper — published |
-| `spotify-shell` | A Spotify-shaped shell: black and green, inset panel, rail navigation — published |
+| `spotify-shell` | A Spotify-shaped shell: black and green, inset panel, labelled sidebar, a full-width seek line with elapsed and total time below the transport, per-row downloads, a search empty state, Inter, its own page bodies — published |
 | `obsidian` | A pixel-Minecraft theme: black amethyst / lavender end stone, OFL fonts, pixel icons, a stage player and a turning record — published |
 | `minimal` | The SDK in nine lines: one seed colour |
 | `brand-demo` | The whole v3 payload, including a slot and a screen |
@@ -150,32 +154,41 @@ the host can draw the whole v3 tree.
 
 ## The payload
 
-`getTheme()` returns a map. The fields the app reads today (v2):
+`getTheme()` returns a map. `specVersion: 3` is the current contract; the
+fields the app reads:
 
 | Field | Meaning |
 |---|---|
-| `light`, `dark` | 17 color roles each: `background`, `foreground`, `card`, `cardForeground`, `primary`, `primaryForeground`, `secondary`, `secondaryForeground`, `muted`, `mutedForeground`, `accent`, `accentForeground`, `destructive`, `destructiveForeground`, `border`, `input`, `ring` |
+| `specVersion` | `3` for the current payload, `2` when omitted |
+| `light`, `dark` | 17 required color roles each: `background`, `foreground`, `card`, `cardForeground`, `primary`, `primaryForeground`, `secondary`, `secondaryForeground`, `muted`, `mutedForeground`, `accent`, `accentForeground`, `destructive`, `destructiveForeground`, `border`, `input`, `ring`; plus the optional v3 roles (sidebar, popover, chart, status) |
 | `surfaces` | `opacity` (0..1), `blur` (0..100), `tint` (`#RRGGBB` / `#AARRGGBB`) |
-| `background` | `source` (`none` / `albumArt` / `shell`), `opacity`, `blur`, `overlay`, `transparent` |
+| `background` | `source` (`none` / `albumArt` / `shell` / `asset`), `opacity`, `blur`, `asset`, `tile`, `scale`, `overlay`, `transparent` |
 | `radius` | `small`, `medium`, `large`, `pill` |
 | `density` | 0.7..1.5 — one number for the whole UI's size |
 | `tokens` | `cardWidth`, `cardHeight`, `artistCardWidth`, `artistCardHeight`, `gutter`, `fontFamily` |
-| `layout` | `chrome` (`flat` / `inset`), `nav` (`labels` / `rail`), `progress` (`inline` / `below`) |
-| `dynamic` | `source` (`albumArt` / `shell`), `algorithm` (`material`) |
+| `layout` | `chrome`, `nav`, `progress`, `player`, `enforce`, `navItems`, `navbarItems`, `libraryItems`, `home`, `settings`, `titlebar`, `splash`, `responsive` |
+| `typography`, `spacing`, `motion`, `scale`, `icons` | The v3 presentation blocks the host applies: font ladder and role colours, page padding and card gaps, animation durations and curves, scale multipliers, icon sizes |
+| `components`, `branding`, `assets` | The host draws the `player` component group and the `card`/`buttons` overrides used by UI nodes; branding drives the window title, wordmark and about text; assets resolve theme-shipped images |
+| `ui` | The theme's own UI tree: `specVersion`, `slots`, `screens`, `templates` |
 
 Rules that are not obvious:
 
 - **Colors are `#RRGGBB` or `#AARRGGBB`.** Anything else makes the app throw,
   and a throw there discards the *entire* theme — one typo loses the palette.
-- **Every one of the 17 roles is required** in both `light` and `dark`.
+- **Every one of the 17 base roles is required** in both `light` and `dark`.
+  The v3 roles are optional and fall back to the role they alias.
 - **Unknown fields are ignored.** That is what lets a newer theme ship to an
   older app: the app skips what it does not know. `build.dart` reports those
   fields as warnings.
 - **Numbers outside the app's range are clamped**, not rejected. The build
   prints the value the app will actually use.
+- **`dynamic` is v2-only.** The v3 schema has no `dynamic` block; use
+  `background.source` (`none` / `albumArt` / `shell` / `asset`). The validator
+  still accepts the legacy key, but nothing in the host reads it.
 
-`schemas/theme.v2.schema.json` is the contract in full, and `conformance/`
-holds the payloads that have to keep working.
+`schemas/theme.v3.schema.json` is the contract in full; `schemas/theme.v2.schema.json`
+is frozen for the older payload, and `conformance/` holds the payloads that
+have to keep working. `AUTHORING.md` covers the v3 blocks in detail.
 
 ## Authoring a theme
 

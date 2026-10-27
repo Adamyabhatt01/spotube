@@ -83,6 +83,23 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
 
   int get backendCurrentIndex => audioPlayer.currentIndex;
 
+  /// Waits for the playback-server port every remote [SpotubeMedia] URI embeds.
+  ///
+  /// A bind failure used to be cached by [playbackServerPortProvider] for the
+  /// rest of the process: every later play path threw here before touching the
+  /// queue, so the previous track kept playing and each tap looked dead. Drop
+  /// the cached failure and let the provider rebuild once; a port that is
+  /// genuinely unusable still surfaces the second error to the caller.
+  Future<void> _awaitPlaybackServerPort() async {
+    try {
+      await ref.read(playbackServerPortProvider.future);
+    } catch (e, stack) {
+      AppLogger.reportError(e, stack);
+      ref.invalidate(serverProvider);
+      await ref.read(playbackServerPortProvider.future);
+    }
+  }
+
   /// The backend's current media list, used to remember *which* queue a
   /// persistence write describes (see [_lastSyncedMedias]). A seam for the
   /// same reason as [backendCurrentIndex]: tests replace the native player.
@@ -185,7 +202,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
         // playlist, which is why a restart ended with an exhausted queue that
         // would not play.
         if (tracks.any((track) => track is! SpotubeLocalTrackObject)) {
-          await ref.read(playbackServerPortProvider.future);
+          await _awaitPlaybackServerPort();
         }
 
         state = state.copyWith(
@@ -492,7 +509,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       for (int i = 0; i < addableTracks.length; i++) {
         final track = addableTracks.elementAt(i);
         if (track is! SpotubeLocalTrackObject) {
-          await ref.read(playbackServerPortProvider.future);
+          await _awaitPlaybackServerPort();
         }
         final insertAt = max(previousState.currentIndex, 0) + i + 1;
 
@@ -534,7 +551,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   ) async {
     for (final entry in removed..sort((a, b) => a.index.compareTo(b.index))) {
       if (entry.track is! SpotubeLocalTrackObject) {
-        await ref.read(playbackServerPortProvider.future);
+        await _awaitPlaybackServerPort();
       }
       try {
         await insertMediaIntoBackend(SpotubeMedia(entry.track), entry.index);
@@ -556,7 +573,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     );
 
     if (track is! SpotubeLocalTrackObject) {
-      await ref.read(playbackServerPortProvider.future);
+      await _awaitPlaybackServerPort();
     }
     try {
       await audioPlayer.addTrack(SpotubeMedia(track));
@@ -594,7 +611,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     try {
       for (final track in addableTracks) {
         if (track is! SpotubeLocalTrackObject) {
-          await ref.read(playbackServerPortProvider.future);
+          await _awaitPlaybackServerPort();
         }
         await addMediaToBackend(SpotubeMedia(track));
         addedIndexes.add(baseIndex + addedIndexes.length);
@@ -698,7 +715,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       (track) => track is! SpotubeLocalTrackObject,
     );
     if (hasRemoteTracks) {
-      await ref.read(playbackServerPortProvider.future);
+      await _awaitPlaybackServerPort();
     }
 
     // Keyed dedupe: same first-occurrence result as the nested scan, but

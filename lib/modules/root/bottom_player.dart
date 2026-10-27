@@ -10,6 +10,7 @@ import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
+import 'package:spotube/modules/theme_shell/theme_shell.dart';
 import 'package:spotube/modules/player/player_actions.dart';
 import 'package:spotube/modules/player/player_overlay.dart';
 import 'package:spotube/modules/player/player_progress.dart';
@@ -19,7 +20,9 @@ import 'package:spotube/modules/player/volume_slider.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
+import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
+import 'package:spotube/utils/theme_converter.dart';
 
 import 'package:spotube/provider/volume_provider.dart';
 import 'package:spotube/provider/radio/radio_playback.dart';
@@ -27,7 +30,57 @@ import 'package:spotube/modules/player/radio/radio_player_bar.dart';
 import 'package:spotube/modules/player/radio/radio_player_overlay.dart';
 import 'package:spotube/modules/theme_background/real_transparency.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
-import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+
+/// The floating player's height, measured after layout.
+///
+/// Theme player slots can make the bar taller than the host's historic
+/// estimate, so the sidebar reserves the real height.
+final bottomPlayerHeightProvider = StateProvider<double>((ref) => 0);
+
+/// Reports [BottomPlayer]'s laid-out height to [bottomPlayerHeightProvider].
+class MeasuredBottomPlayer extends ConsumerStatefulWidget {
+  final Widget child;
+
+  const MeasuredBottomPlayer({required this.child, super.key});
+
+  @override
+  ConsumerState<MeasuredBottomPlayer> createState() =>
+      _MeasuredBottomPlayerState();
+}
+
+class _MeasuredBottomPlayerState extends ConsumerState<MeasuredBottomPlayer> {
+  final _key = GlobalKey();
+  double? _reported;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _report());
+  }
+
+  void _report() {
+    if (!mounted) return;
+    final box = _key.currentContext?.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return;
+    final height = box.size.height;
+    if (height == _reported) return;
+    _reported = height;
+    ref.read(bottomPlayerHeightProvider.notifier).state = height;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return NotificationListener<SizeChangedLayoutNotification>(
+      onNotification: (_) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _report());
+        return true;
+      },
+      child: SizeChangedLayoutNotifier(
+        child: KeyedSubtree(key: _key, child: widget.child),
+      ),
+    );
+  }
+}
 
 class BottomPlayer extends HookConsumerWidget {
   const BottomPlayer({super.key});
@@ -42,13 +95,38 @@ class BottomPlayer extends HookConsumerWidget {
     // swaps to radio content. Everything below stays the untouched music tree.
     final isRadio =
         ref.watch(radioPlaybackControllerProvider.select((s) => s.isRadio));
-    final playerLayout =
-        ref.watch(themeDefinitionProvider).asData?.value?.layout.player ??
-            const ThemePlayerLayout();
+    // The responsive expression of the player layout, resolved in main.dart.
+    final playerLayout = context.layout.player;
+    final userVolumeMode =
+        ref.watch(userPreferencesProvider.select((s) => s.volumeControlMode));
+    // A theme only takes the volume preference over when it claims it; without
+    // the claim an explicitly hidden control stays hidden.
+    final volumeOverride = themeEnforces(
+      context.layout,
+      ThemeShellKeys.volume,
+    )
+        ? playerLayout.showVolume
+        : null;
     final hasThemeLeading = themeUiSlotExists(ref, 'player.leading');
     final hasThemeControls = themeUiSlotExists(ref, 'player.controls');
     final hasThemeTrailing = themeUiSlotExists(ref, 'player.trailing');
     final hasThemeProgress = themeUiSlotExists(ref, 'player.progress');
+
+    // A theme may give the footer its own surface (Spotify's player is black
+    // against a #121212 page). No component means the host surface stands.
+    final themeDefinition = ref.watch(themeDefinitionProvider).asData?.value;
+    final rawPlayerStyle = themeDefinition?.components['player'];
+    final playerStyle = rawPlayerStyle is Map
+        ? rawPlayerStyle.cast<String, dynamic>()
+        : const <String, dynamic>{};
+    final playerBackground =
+        _themePlayerColor(context, playerStyle['background']);
+    final playerBorderColor =
+        _themePlayerColor(context, playerStyle['borderColor']);
+    final rawBorderWidth = playerStyle['borderWidth'];
+    final playerBorderWidth = rawBorderWidth is num
+        ? rawBorderWidth.toDouble().clamp(0.0, 8.0).toDouble()
+        : null;
 
     // The window breakpoint is not the player's breakpoint: a docked player
     // can be only ~700px wide at a 900px window. Volume is the widest optional
@@ -56,7 +134,9 @@ class BottomPlayer extends HookConsumerWidget {
     // footer has no width scope and falls back to the window width.
     final playerWidth =
         PlayerSeekWidth.maybeOf(context) ?? MediaQuery.sizeOf(context).width;
-    final showVolume = playerLayout.showVolume && playerWidth >= 800;
+    final showVolume =
+        (volumeOverride ?? userVolumeMode != VolumeControlMode.hidden) &&
+            playerWidth >= 800;
 
     String albumArt = useMemoized(
       () => activeTrack?.album.images.isNotEmpty == true
@@ -115,7 +195,7 @@ class BottomPlayer extends HookConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const ThemeSlot('player.trailing'),
-              if (showVolume) const BottomPlayerVolume(),
+              if (showVolume) BottomPlayerVolume(forceVisible: volumeOverride),
             ],
           )
         else if (playerLayout.showActions || showVolume)
@@ -140,7 +220,7 @@ class BottomPlayer extends HookConsumerWidget {
                       ),
                   ],
                 ),
-              if (showVolume) const BottomPlayerVolume(),
+              if (showVolume) BottomPlayerVolume(forceVisible: volumeOverride),
             ],
           ),
       ],
@@ -156,8 +236,10 @@ class BottomPlayer extends HookConsumerWidget {
       // Footer chrome, not content: transparent with the ground while real
       // transparency owns the window (`fillColor` only applies with
       // `filled`, so both flip together).
-      filled: realTransparent ? true : null,
-      fillColor: realTransparent ? Colors.transparent : null,
+      filled: realTransparent || playerBackground != null ? true : null,
+      fillColor: realTransparent ? Colors.transparent : playerBackground,
+      borderColor: realTransparent ? null : playerBorderColor,
+      borderWidth: realTransparent ? null : playerBorderWidth,
       child: !playerLayout.showProgress
           ? bar
           : hasThemeProgress
@@ -185,13 +267,20 @@ class BottomPlayer extends HookConsumerWidget {
 /// visibility the user can change. Its own widget so the preference watch and
 /// the volume watch stay off [BottomPlayer]'s rebuild path.
 class BottomPlayerVolume extends HookConsumerWidget {
-  const BottomPlayerVolume({super.key});
+  /// Overrides the user's visibility preference when the theme claimed
+  /// `volume`: true forces the control, false removes it.
+  final bool? forceVisible;
+
+  const BottomPlayerVolume({super.key, this.forceVisible});
 
   @override
   Widget build(BuildContext context, ref) {
     final mode =
         ref.watch(userPreferencesProvider.select((s) => s.volumeControlMode));
-    if (mode == VolumeControlMode.hidden) return const SizedBox.shrink();
+    if (forceVisible == false) return const SizedBox.shrink();
+    if (forceVisible == null && mode == VolumeControlMode.hidden) {
+      return const SizedBox.shrink();
+    }
 
     final volume = ref.watch(volumeProvider);
     return Container(
@@ -224,4 +313,33 @@ bool bottomPlayerVisibleOf(BuildContext context, LayoutMode layoutMode) {
   if (layoutMode == LayoutMode.compact) return false;
   if (layoutMode != LayoutMode.adaptive) return true;
   return !MediaQuery.sizeOf(context).mdAndDown;
+}
+
+/// Resolves the small role subset a player surface may name.
+///
+/// The theme node renderer has the full role table; the footer only needs the
+/// neutral surfaces and the accent, so an unknown role falls back to the
+/// host's own fill instead of guessing at a colour.
+Color? _themePlayerColor(BuildContext context, Object? raw) {
+  if (raw is! String || raw.isEmpty) return null;
+  if (raw.startsWith('@')) {
+    final scheme = Theme.of(context).colorScheme;
+    return switch (raw.substring(1)) {
+      'background' => scheme.background,
+      'foreground' => scheme.foreground,
+      'card' => scheme.card,
+      'cardForeground' => scheme.cardForeground,
+      'sidebar' => scheme.sidebar,
+      'sidebarForeground' => scheme.sidebarForeground,
+      'primary' => scheme.primary,
+      'primaryForeground' => scheme.primaryForeground,
+      'border' => scheme.border,
+      _ => null,
+    };
+  }
+  try {
+    return ThemeConverter.parseColor(raw);
+  } catch (_) {
+    return null;
+  }
 }

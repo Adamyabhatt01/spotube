@@ -138,6 +138,7 @@ class KitchenSinkThemeApi {
           'muted': {'radius': 8.0, 'background': '@muted'},
         },
         'card': {'radius': 16.0, 'padding': 16.0, 'surfaceOpacity': 0.9, 'surfaceBlur': 12.0, 'borderStyle': 'pixel'},
+        'player': {'background': '@card', 'borderColor': '@border', 'borderWidth': 1.0},
         'input': {'radius': 8.0, 'height': 36.0, 'borderColor': '@input'},
         'tabs': {'indicatorColor': '@primary', 'radius': 8.0},
         'nav': {'radius': 10.0, 'padding': 8.0},
@@ -185,7 +186,14 @@ class KitchenSinkThemeApi {
         'progress': 'inline',
         'navItems': ['home', 'radio', 'stats', 'search'],
         'navbarItems': ['home', 'search', 'radio', 'library', 'stats'],
-        'libraryItems': ['playlists', 'artists', 'albums', 'local_library'],
+        'libraryItems': [
+          'playlists',
+          'artists',
+          'albums',
+          'stations',
+          'local_library',
+          'screen:kitchen',
+        ],
         'player': {
           'dock': 'stage',
           'showTrackDetails': true,
@@ -218,10 +226,12 @@ class KitchenSinkThemeApi {
         'splash': {
           'text': 'Kitchen Sink',
         },
-        'enforce': ['playerDock'],
+        'enforce': ['playerDock', 'libraryItems', 'navbarItems'],
         'responsive': {
           'compact': {
             'nav': 'rail',
+            'progress': 'below',
+            'titlebar': {'height': 36.0},
             'navItems': ['home', 'radio', 'stats'],
             'player': {'showVolume': false, 'showActions': false},
             'home': {'sections': ['recent', 'featured']},
@@ -259,6 +269,95 @@ class KitchenSinkThemeApi {
         // 2 adds the animate node and the stage dock; 1 is still read.
         'specVersion': 2,
         'slots': {
+          // A whole page body: greeting, a shelf of recent items, and the
+          // Browse sections. `direction: horizontal` makes the same list
+          // subtree a sideways-scrolling row of cards.
+          'home.content': {
+            'children': [
+              {
+                'type': 'row',
+                'gap': 12,
+                'align': 'center',
+                'children': [
+                  // A childless card with a pill radius is a sized shape:
+                  // this is the circle a logo-mark theme draws instead of
+                  // carrying artwork it has no right to.
+                  {
+                    'type': 'card',
+                    'width': 36,
+                    'height': 36,
+                    'radius': 999,
+                    'padding': 0,
+                    'background': '@primary',
+                    'hoverBackground': '@accent',
+                    'borderColor': '@primary',
+                    'borderWidth': 0,
+                    'opacity': 1,
+                  },
+                  {
+                    'type': 'text',
+                    'bind': 'app.greeting',
+                    'size': '2xl',
+                    'weight': 'bold',
+                  },
+                  {'type': 'spacer', 'flex': 1},
+                  {
+                    'type': 'button',
+                    'label': 'Play recent',
+                    'icon': 'play',
+                    'variant': 'primary',
+                    'action': {'type': 'playCollection'},
+                  },
+                ],
+              },
+              {
+                'type': 'list',
+                'bind': 'home.recent',
+                'direction': 'horizontal',
+                'gap': 12,
+                'limit': 20,
+                'align': 'start',
+                'children': [
+                  {
+                    'type': 'column',
+                    'gap': 4,
+                    'children': [
+                      {
+                        'type': 'image',
+                        'src': 'item.artwork',
+                        'width': 140,
+                        'height': 140,
+                        'radius': 8,
+                        'fit': 'cover',
+                      },
+                      {
+                        'type': 'text',
+                        'bind': 'item.title',
+                        'size': 'sm',
+                        'maxLines': 1,
+                        'overflow': 'ellipsis',
+                      },
+                      {
+                        'type': 'text',
+                        'bind': 'item.kind',
+                        'size': 'xs',
+                        'color': '@mutedForeground',
+                      },
+                    ],
+                  },
+                ],
+              },
+              {
+                'type': 'list',
+                'bind': 'home.browse',
+                'gap': 6,
+                'limit': 12,
+                'children': [
+                  {'type': 'text', 'bind': 'item.title', 'size': 'lg'},
+                ],
+              },
+            ],
+          },
           'sidebar.footer': {
             'children': [
               {
@@ -360,6 +459,33 @@ class KitchenSinkThemeApi {
                     ],
                   },
                   {'type': 'button', 'icon': 'next', 'size': 'md', 'action': {'type': 'next'}},
+                ],
+              },
+              {
+                'type': 'list',
+                'bind': 'queue.tracks',
+                'gap': 4,
+                'limit': 50,
+                'align': 'stretch',
+                'children': [
+                  {
+                    'type': 'row',
+                    'gap': 8,
+                    'align': 'center',
+                    'children': [
+                      {'type': 'text', 'bind': 'item.number', 'size': 'sm', 'color': '@mutedForeground'},
+                      {'type': 'text', 'bind': 'item.title'},
+                      {'type': 'text', 'bind': 'item.artist', 'size': 'sm', 'color': '@mutedForeground'},
+                      {
+                        'type': 'button',
+                        'label': 'Play',
+                        'icon': 'play',
+                        'variant': 'ghost',
+                        'size': 'small',
+                        'action': {'type': 'playItem'},
+                      },
+                    ],
+                  },
                 ],
               },
             ],
@@ -484,6 +610,10 @@ class KitchenSinkThemeApi {
                           {'type': 'gap', 'size': 8},
                           {'type': 'spacer', 'flex': 1},
                         ],
+                      },
+                      {
+                        'type': 'search',
+                        'placeholder': 'Search the kitchen',
                       },
                       {
                         'type': 'align',

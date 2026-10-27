@@ -14,6 +14,7 @@ import 'package:spotube/components/track_presentation/use_action_callbacks.dart'
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/playlist/playlist_create_dialog.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_visibility.dart';
 import 'package:spotube/provider/playlist_download_provider.dart';
@@ -392,7 +393,7 @@ class _HeaderSurface extends ConsumerWidget {
     return OutlinedContainer(
       surfaceOpacity: context.theme.surfaceOpacity,
       surfaceBlur: sigma,
-      padding: EdgeInsets.all(24 * scale),
+      padding: EdgeInsets.all(context.pagePadding),
       borderRadius: BorderRadius.circular(22 * scale),
       borderWidth: 2,
       child: child,

@@ -14,6 +14,7 @@ import 'package:spotube/services/sourced_track/exceptions.dart';
 import 'package:spotube/services/sourced_track/sourced_track.dart';
 import 'package:spotube/services/youtube_engine/newpipe_engine.dart';
 import 'package:spotube/services/youtube_engine/youtube_engine.dart';
+import 'package:spotube/services/youtube_engine/ytdlp_flutter_engine.dart';
 import 'package:spotube/services/youtube_engine/youtube_explode_engine.dart';
 import 'package:spotube/services/youtube_engine/yt_dlp_engine.dart';
 import 'package:spotube/utils/perf_counters.dart';
@@ -146,6 +147,7 @@ class SourceResolver {
       YoutubeClientEngine.newPipe => NewPipeEngine(),
       YoutubeClientEngine.ytDlp => YtDlpEngine(),
       YoutubeClientEngine.youtubeExplode => YouTubeExplodeEngine(),
+      YoutubeClientEngine.ytdlpFlutter => YtdlpFlutterEngine(),
     };
   }
 

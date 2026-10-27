@@ -29,6 +29,7 @@ import sqlite3_flutter_libs
 import tray_manager
 import url_launcher_macos
 import window_manager
+import ytdlp_flutter
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   AudioServicePlugin.register(with: registry.registrar(forPlugin: "AudioServicePlugin"))
@@ -55,4 +56,5 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   TrayManagerPlugin.register(with: registry.registrar(forPlugin: "TrayManagerPlugin"))
   UrlLauncherPlugin.register(with: registry.registrar(forPlugin: "UrlLauncherPlugin"))
   WindowManagerPlugin.register(with: registry.registrar(forPlugin: "WindowManagerPlugin"))
+  YtdlpFlutterPlugin.register(with: registry.registrar(forPlugin: "YtdlpFlutterPlugin"))
 }

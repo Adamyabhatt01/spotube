@@ -49,8 +49,7 @@ class PlayerControls extends HookConsumerWidget {
               SeekIntent: SeekAction(),
             },
         []);
-    final isResolvingActiveTrack =
-        ref.watch(isResolvingActiveTrackProvider);
+    final isResolvingActiveTrack = ref.watch(isResolvingActiveTrackProvider);
     final theme = Theme.of(context);
 
     final buttonSize =
@@ -71,8 +70,6 @@ class PlayerControls extends HookConsumerWidget {
           constraints: const BoxConstraints(maxWidth: 600),
           child: Column(
             children: [
-              if (!compact && progressInline)
-                const PlayerProgress(inline: true),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -132,8 +129,9 @@ class PlayerControls extends HookConsumerWidget {
                     child: IconButton.ghost(
                       size: buttonSize,
                       icon: const Icon(SpotubeIcons.skipForward),
-                      onPressed:
-                          isResolvingActiveTrack ? null : audioPlayer.skipToNext,
+                      onPressed: isResolvingActiveTrack
+                          ? null
+                          : audioPlayer.skipToNext,
                     ),
                   ),
                   Consumer(builder: (context, ref, _) {
@@ -180,6 +178,8 @@ class PlayerControls extends HookConsumerWidget {
                   }),
                 ],
               ),
+              if (!compact && progressInline)
+                const PlayerProgress(inline: true),
               const SizedBox(height: 5)
             ],
           ),

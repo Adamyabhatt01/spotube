@@ -32,15 +32,16 @@ _LiveUi? _liveUi(
 
   final assets =
       ref.watch(themeUiAssetsProvider).asData?.value ?? const ThemeUiAssets();
-  final resolvedBindings = bindings ??
-      () {
-        final preferences = ref.watch(userPreferencesProvider);
-        return buildThemeUiBindings(
-          ref,
-          brightness: Theme.of(context).brightness,
-          themeMode: preferences.themeMode.name,
-        );
-      }();
+  final base = bindings ??
+      buildThemeUiBindings(
+        ref,
+        brightness: Theme.of(context).brightness,
+        themeMode: ref.watch(userPreferencesProvider).themeMode.name,
+      );
+  final page = ThemeUiPageBindings.of(context);
+  final resolvedBindings = page == null || page.isEmpty
+      ? base
+      : ThemeUiBindings({...base.values, ...page});
 
   return (
     runtime: ThemeUiRuntime(
@@ -146,6 +147,51 @@ class ThemeUiNodes extends StatelessWidget {
       crossAxisAlignment: crossAxisAlignment,
       children: children,
     );
+  }
+}
+
+/// Replaces a page body with [slot] when the active theme filled it.
+///
+/// A content slot is the "edit everything" lever: when a theme supplies one
+/// for a page, it owns the page's scroll, spacing and composition instead of
+/// adding to the host's. The page still publishes its data through
+/// [ThemeUiPageBindings] (title, artwork, tracks, and so on), and the host
+/// still owns the titlebar, back gesture and any chrome outside the body.
+class ThemePageContent extends ConsumerWidget {
+  final String slot;
+  final Map<String, Object?> bindings;
+  final Widget fallback;
+  final bool scroll;
+  final EdgeInsetsGeometry padding;
+
+  /// A binding snapshot to use instead of the live providers.
+  ///
+  /// Production callers leave this null; the page's own [bindings] still
+  /// override whatever the snapshot carries.
+  final ThemeUiBindings? liveBindings;
+
+  const ThemePageContent({
+    required this.slot,
+    required this.bindings,
+    required this.fallback,
+    this.scroll = true,
+    this.padding = EdgeInsets.zero,
+    this.liveBindings,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!themeUiSlotExists(ref, slot)) {
+      return ThemeUiPageBindings(values: bindings, child: fallback);
+    }
+
+    Widget content = Padding(
+      padding: padding,
+      child: ThemeSlot(slot, bindings: liveBindings),
+    );
+    if (scroll) content = SingleChildScrollView(child: content);
+    return ThemeUiPageBindings(values: bindings, child: content);
   }
 }
 

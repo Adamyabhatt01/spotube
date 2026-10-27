@@ -7619,7 +7619,13 @@ mixin _$ThemeLayout {
   /// The navigation entries and library entries the theme wants the host
   /// to show, in order. Kept raw so a theme can add a future entry without
   /// a model release; the host filters to the ids it implements.
+  ///
+  /// `navItems` drives the sidebar, `navbarItems` the bottom bar, and
+  /// `libraryItems` the library group below the sidebar's top entries. An
+  /// entry may also be `screen:<id>`, which links to one of the theme's own
+  /// `ui.screens`, so a theme can add a destination the host never shipped.
   List<String> get navItems => throw _privateConstructorUsedError;
+  List<String> get navbarItems => throw _privateConstructorUsedError;
   List<String> get libraryItems => throw _privateConstructorUsedError;
 
   /// Home/settings section order and composition, as contract-owned maps.
@@ -7659,6 +7665,7 @@ abstract class $ThemeLayoutCopyWith<$Res> {
       ThemePlayerLayout player,
       List<String> enforce,
       List<String> navItems,
+      List<String> navbarItems,
       List<String> libraryItems,
       Map<String, dynamic> home,
       Map<String, dynamic> settings,
@@ -7690,6 +7697,7 @@ class _$ThemeLayoutCopyWithImpl<$Res, $Val extends ThemeLayout>
     Object? player = null,
     Object? enforce = null,
     Object? navItems = null,
+    Object? navbarItems = null,
     Object? libraryItems = null,
     Object? home = null,
     Object? settings = null,
@@ -7721,6 +7729,10 @@ class _$ThemeLayoutCopyWithImpl<$Res, $Val extends ThemeLayout>
       navItems: null == navItems
           ? _value.navItems
           : navItems // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      navbarItems: null == navbarItems
+          ? _value.navbarItems
+          : navbarItems // ignore: cast_nullable_to_non_nullable
               as List<String>,
       libraryItems: null == libraryItems
           ? _value.libraryItems
@@ -7776,6 +7788,7 @@ abstract class _$$ThemeLayoutImplCopyWith<$Res>
       ThemePlayerLayout player,
       List<String> enforce,
       List<String> navItems,
+      List<String> navbarItems,
       List<String> libraryItems,
       Map<String, dynamic> home,
       Map<String, dynamic> settings,
@@ -7806,6 +7819,7 @@ class __$$ThemeLayoutImplCopyWithImpl<$Res>
     Object? player = null,
     Object? enforce = null,
     Object? navItems = null,
+    Object? navbarItems = null,
     Object? libraryItems = null,
     Object? home = null,
     Object? settings = null,
@@ -7837,6 +7851,10 @@ class __$$ThemeLayoutImplCopyWithImpl<$Res>
       navItems: null == navItems
           ? _value._navItems
           : navItems // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      navbarItems: null == navbarItems
+          ? _value._navbarItems
+          : navbarItems // ignore: cast_nullable_to_non_nullable
               as List<String>,
       libraryItems: null == libraryItems
           ? _value._libraryItems
@@ -7878,6 +7896,7 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
       this.player = const ThemePlayerLayout(),
       final List<String> enforce = const [],
       final List<String> navItems = const [],
+      final List<String> navbarItems = const [],
       final List<String> libraryItems = const [],
       final Map<String, dynamic> home = const {},
       final Map<String, dynamic> settings = const {},
@@ -7886,6 +7905,7 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
       final Map<String, dynamic> responsive = const {}})
       : _enforce = enforce,
         _navItems = navItems,
+        _navbarItems = navbarItems,
         _libraryItems = libraryItems,
         _home = home,
         _settings = settings,
@@ -7938,17 +7958,36 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
   /// The navigation entries and library entries the theme wants the host
   /// to show, in order. Kept raw so a theme can add a future entry without
   /// a model release; the host filters to the ids it implements.
+  ///
+  /// `navItems` drives the sidebar, `navbarItems` the bottom bar, and
+  /// `libraryItems` the library group below the sidebar's top entries. An
+  /// entry may also be `screen:<id>`, which links to one of the theme's own
+  /// `ui.screens`, so a theme can add a destination the host never shipped.
   final List<String> _navItems;
 
   /// The navigation entries and library entries the theme wants the host
   /// to show, in order. Kept raw so a theme can add a future entry without
   /// a model release; the host filters to the ids it implements.
+  ///
+  /// `navItems` drives the sidebar, `navbarItems` the bottom bar, and
+  /// `libraryItems` the library group below the sidebar's top entries. An
+  /// entry may also be `screen:<id>`, which links to one of the theme's own
+  /// `ui.screens`, so a theme can add a destination the host never shipped.
   @override
   @JsonKey()
   List<String> get navItems {
     if (_navItems is EqualUnmodifiableListView) return _navItems;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_navItems);
+  }
+
+  final List<String> _navbarItems;
+  @override
+  @JsonKey()
+  List<String> get navbarItems {
+    if (_navbarItems is EqualUnmodifiableListView) return _navbarItems;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_navbarItems);
   }
 
   final List<String> _libraryItems;
@@ -8019,7 +8058,7 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
 
   @override
   String toString() {
-    return 'ThemeLayout(chrome: $chrome, nav: $nav, progress: $progress, player: $player, enforce: $enforce, navItems: $navItems, libraryItems: $libraryItems, home: $home, settings: $settings, titlebar: $titlebar, splash: $splash, responsive: $responsive)';
+    return 'ThemeLayout(chrome: $chrome, nav: $nav, progress: $progress, player: $player, enforce: $enforce, navItems: $navItems, navbarItems: $navbarItems, libraryItems: $libraryItems, home: $home, settings: $settings, titlebar: $titlebar, splash: $splash, responsive: $responsive)';
   }
 
   @override
@@ -8034,6 +8073,8 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
             (identical(other.player, player) || other.player == player) &&
             const DeepCollectionEquality().equals(other._enforce, _enforce) &&
             const DeepCollectionEquality().equals(other._navItems, _navItems) &&
+            const DeepCollectionEquality()
+                .equals(other._navbarItems, _navbarItems) &&
             const DeepCollectionEquality()
                 .equals(other._libraryItems, _libraryItems) &&
             const DeepCollectionEquality().equals(other._home, _home) &&
@@ -8054,6 +8095,7 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
       player,
       const DeepCollectionEquality().hash(_enforce),
       const DeepCollectionEquality().hash(_navItems),
+      const DeepCollectionEquality().hash(_navbarItems),
       const DeepCollectionEquality().hash(_libraryItems),
       const DeepCollectionEquality().hash(_home),
       const DeepCollectionEquality().hash(_settings),
@@ -8086,6 +8128,7 @@ abstract class _ThemeLayout implements ThemeLayout {
       final ThemePlayerLayout player,
       final List<String> enforce,
       final List<String> navItems,
+      final List<String> navbarItems,
       final List<String> libraryItems,
       final Map<String, dynamic> home,
       final Map<String, dynamic> settings,
@@ -8128,8 +8171,15 @@ abstract class _ThemeLayout implements ThemeLayout {
   /// The navigation entries and library entries the theme wants the host
   /// to show, in order. Kept raw so a theme can add a future entry without
   /// a model release; the host filters to the ids it implements.
+  ///
+  /// `navItems` drives the sidebar, `navbarItems` the bottom bar, and
+  /// `libraryItems` the library group below the sidebar's top entries. An
+  /// entry may also be `screen:<id>`, which links to one of the theme's own
+  /// `ui.screens`, so a theme can add a destination the host never shipped.
   @override
   List<String> get navItems;
+  @override
+  List<String> get navbarItems;
   @override
   List<String> get libraryItems;
 

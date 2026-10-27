@@ -40,6 +40,13 @@ class PaginationProps {
 
 class TrackPresentationOptions {
   final Object collection;
+
+  /// Which collection page is being shown: `album`, `playlist` or `liked`.
+  ///
+  /// Themes branch on this in `collection.content` to draw the right header
+  /// without having to inspect the object or the route.
+  final String kind;
+
   final String title;
   final String? description;
   final String? owner;
@@ -63,6 +70,7 @@ class TrackPresentationOptions {
 
   const TrackPresentationOptions({
     required this.collection,
+    this.kind = 'collection',
     required this.title,
     this.description,
     this.owner,
@@ -91,6 +99,7 @@ class TrackPresentationOptions {
   operator ==(Object other) {
     return other is TrackPresentationOptions &&
         other.collection == collection &&
+        other.kind == kind &&
         other.title == title &&
         other.description == description &&
         other.image == image &&
@@ -108,6 +117,7 @@ class TrackPresentationOptions {
   int get hashCode =>
       super.hashCode ^
       collection.hashCode ^
+      kind.hashCode ^
       title.hashCode ^
       description.hashCode ^
       image.hashCode ^

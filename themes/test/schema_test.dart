@@ -17,52 +17,98 @@ void main() {
 
   late JsonSchema schema;
   setUpAll(() {
-    final document = jsonDecode(
-      File('$repoRoot/schemas/theme.v3.schema.json').readAsStringSync(),
-    ) as Map<String, dynamic>;
+    final document =
+        jsonDecode(
+              File('$repoRoot/schemas/theme.v3.schema.json').readAsStringSync(),
+            )
+            as Map<String, dynamic>;
     schema = JsonSchema.create(document);
   });
 
-  final payloads = Directory('$repoRoot/conformance')
-      .listSync()
-      .whereType<File>()
-      .where((file) => file.path.endsWith('.json'))
-      .toList()
-    ..sort((a, b) => a.path.compareTo(b.path));
+  final payloads =
+      Directory('$repoRoot/conformance')
+          .listSync()
+          .whereType<File>()
+          .where((file) => file.path.endsWith('.json'))
+          .toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
 
   group('the schema', () {
     test('is draft 7, which the Dart validator can enforce', () {
-      final document = jsonDecode(
-        File('$repoRoot/schemas/theme.v3.schema.json').readAsStringSync(),
-      ) as Map<String, dynamic>;
+      final document =
+          jsonDecode(
+                File(
+                  '$repoRoot/schemas/theme.v3.schema.json',
+                ).readAsStringSync(),
+              )
+              as Map<String, dynamic>;
       expect(document[r'$schema'], contains('draft-07'));
       expect(document.containsKey('definitions'), isTrue);
       expect(document.containsKey(r'$defs'), isFalse);
     });
 
     test('knows every node type the validator knows', () {
-      final document = jsonDecode(
-        File('$repoRoot/schemas/theme.v3.schema.json').readAsStringSync(),
-      ) as Map<String, dynamic>;
+      final document =
+          jsonDecode(
+                File(
+                  '$repoRoot/schemas/theme.v3.schema.json',
+                ).readAsStringSync(),
+              )
+              as Map<String, dynamic>;
       final variants =
           (document['definitions'] as Map<String, dynamic>)['uiNode']
               as Map<String, dynamic>;
       final constants = <String>{
         for (final variant in variants['oneOf'] as List)
           ((variant as Map<String, dynamic>)['properties']
-              as Map<String, dynamic>)['type']['const'] as String,
+                  as Map<String, dynamic>)['type']['const']
+              as String,
       };
-      expect(constants, uiNodeTypes.toSet(),
-          reason: 'a node type the validator accepts is not in the schema');
+      expect(
+        constants,
+        uiNodeTypes.toSet(),
+        reason: 'a node type the validator accepts is not in the schema',
+      );
     });
 
     test('closes the slots the validator closes', () {
-      final document = jsonDecode(
-        File('$repoRoot/schemas/theme.v3.schema.json').readAsStringSync(),
-      ) as Map<String, dynamic>;
-      final slots = (document['properties'] as Map<String, dynamic>)['ui']
-          ['properties']['slots']['propertyNames']['enum'] as List;
+      final document =
+          jsonDecode(
+                File(
+                  '$repoRoot/schemas/theme.v3.schema.json',
+                ).readAsStringSync(),
+              )
+              as Map<String, dynamic>;
+      final slots =
+          (document['properties']
+                  as Map<
+                    String,
+                    dynamic
+                  >)['ui']['properties']['slots']['propertyNames']['enum']
+              as List;
       expect(slots.toSet(), slotNames.toSet());
+    });
+
+    test('knows every action the validator dispatches', () {
+      final document =
+          jsonDecode(
+                File(
+                  '$repoRoot/schemas/theme.v3.schema.json',
+                ).readAsStringSync(),
+              )
+              as Map<String, dynamic>;
+      final actions =
+          (document['definitions']
+                  as Map<
+                    String,
+                    dynamic
+                  >)['uiAction']['properties']['type']['enum']
+              as List;
+      expect(
+        actions.toSet(),
+        uiActionTypes.toSet(),
+        reason: 'an action the validator accepts is not in the schema',
+      );
     });
   });
 
@@ -80,9 +126,11 @@ void main() {
           results.errors,
           isEmpty,
           reason: results.errors
-              .map((error) =>
-                  '${error.instancePath}: ${error.message} '
-                  '(schema ${error.schemaPath})')
+              .map(
+                (error) =>
+                    '${error.instancePath}: ${error.message} '
+                    '(schema ${error.schemaPath})',
+              )
               .join('\n'),
         );
       });

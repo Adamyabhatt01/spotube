@@ -3,10 +3,12 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 
 import 'package:spotube/models/database/database.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/player/radio/radio_player_actions.dart';
 import 'package:spotube/modules/player/radio/radio_player_controls.dart';
 import 'package:spotube/modules/player/radio/radio_player_track_details.dart';
 import 'package:spotube/modules/player/volume_slider.dart';
+import 'package:spotube/modules/theme_shell/theme_shell.dart';
 import 'package:spotube/provider/radio/radio_playback.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 
@@ -19,17 +21,21 @@ class RadioBottomPlayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final layout = context.layout;
+    final volumeOverride =
+        themeEnforces(layout, ThemeShellKeys.volume) ? layout.player.showVolume : null;
+
     return SurfaceCard(
       borderRadius: BorderRadius.zero,
       surfaceBlur: context.theme.surfaceBlur,
-      child: const Row(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
+          const Expanded(
             child: RadioPlayerTrackDetails(coverSize: 80),
           ),
           // transport
-          Flexible(
+          const Flexible(
             flex: 3,
             child: Padding(
               padding: EdgeInsets.only(top: 5),
@@ -40,8 +46,8 @@ class RadioBottomPlayer extends StatelessWidget {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              RadioPlayerActions(),
-              RadioBottomPlayerVolume(),
+              const RadioPlayerActions(),
+              RadioBottomPlayerVolume(forceVisible: volumeOverride),
             ],
           ),
         ],
@@ -54,13 +60,18 @@ class RadioBottomPlayer extends StatelessWidget {
 /// `volumeControlMode` preference and geometry) but wired to the radio
 /// player's own volume rather than the music `volumeProvider`.
 class RadioBottomPlayerVolume extends ConsumerWidget {
-  const RadioBottomPlayerVolume({super.key});
+  final bool? forceVisible;
+
+  const RadioBottomPlayerVolume({super.key, this.forceVisible});
 
   @override
   Widget build(BuildContext context, ref) {
     final mode =
         ref.watch(userPreferencesProvider.select((s) => s.volumeControlMode));
-    if (mode == VolumeControlMode.hidden) return const SizedBox.shrink();
+    if (forceVisible == false) return const SizedBox.shrink();
+    if (forceVisible == null && mode == VolumeControlMode.hidden) {
+      return const SizedBox.shrink();
+    }
 
     final volume =
         ref.watch(radioPlaybackControllerProvider.select((s) => s.volume));

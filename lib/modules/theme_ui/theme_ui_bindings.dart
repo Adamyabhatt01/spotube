@@ -1,5 +1,4 @@
-import 'dart:ui' show Brightness;
-
+import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:spotube/models/metadata/metadata.dart';
@@ -68,6 +67,44 @@ class ThemeUiBindings {
   }
 }
 
+/// Bindings a page publishes to the slots it contains.
+///
+/// Slot content is rendered deep inside the page's tree, so passing the map
+/// explicitly through every intermediate widget would couple host widgets to
+/// the theme system. The scope is read by [ThemeUiHost]'s slot builder and
+/// merged over the app-wide bindings; it is empty on every host-owned page.
+class ThemeUiPageBindings extends InheritedWidget {
+  final Map<String, Object?> values;
+
+  const ThemeUiPageBindings({
+    required this.values,
+    required super.child,
+    super.key,
+  });
+
+  static Map<String, Object?>? of(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<ThemeUiPageBindings>()
+        ?.values;
+  }
+
+  /// The page's bindings without subscribing the caller.
+  ///
+  /// Actions run outside build, where `dependOnInheritedWidgetOfExactType`
+  /// is not allowed. A collection play action reads the track list through
+  /// this, once, at tap time.
+  static Map<String, Object?>? read(BuildContext context) {
+    return context
+        .getInheritedWidgetOfExactType<ThemeUiPageBindings>()
+        ?.values;
+  }
+
+  @override
+  bool updateShouldNotify(ThemeUiPageBindings oldWidget) {
+    return oldWidget.values != values;
+  }
+}
+
 String formatDuration(Duration duration) {
   final totalSeconds = duration.inSeconds.clamp(0, 359999);
   final minutes = totalSeconds ~/ 60;
@@ -126,8 +163,10 @@ ThemeUiBindings buildThemeUiBindings(
   final duration = ref.watch(themePlayerDurationProvider).asData?.value ??
       audioPlayer.duration;
   final version = ref.watch(themeAppVersionProvider).asData?.value ?? '';
+  final now = DateTime.now();
 
   return ThemeUiBindings({
+    'player.trackId': track?.id ?? '',
     'player.title': track?.name ?? '',
     'player.artist':
         track?.artists.map((artist) => artist.name).join(', ') ?? '',
@@ -150,6 +189,16 @@ ThemeUiBindings buildThemeUiBindings(
     'app.version': version,
     'app.brightness': brightness.name,
     'app.themeMode': themeMode,
-    'clock.now': DateTime.now(),
+    'app.greeting': greetingFor(now),
+    'clock.now': now,
   });
+}
+
+/// The time-of-day greeting a home screen may draw.
+///
+/// Pure so the bucket boundaries are testable without mocking the clock.
+String greetingFor(DateTime now) {
+  if (now.hour < 12) return 'Good morning';
+  if (now.hour < 18) return 'Good afternoon';
+  return 'Good evening';
 }

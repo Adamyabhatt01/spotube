@@ -41,7 +41,19 @@ import 'package:spotube/provider/metadata_plugin/search/all.dart';
 /// Deliberately no `autofocus`: focus arrives only via the `Ctrl+Shift+2`
 /// shortcut, which bumps [homeSearchFocusRequestProvider].
 class HomeSearchBar extends HookConsumerWidget {
-  const HomeSearchBar({super.key});
+  /// A one-line field for a host chrome slot: no Radio button, no outer
+  /// gutters, and the dropdown matches the field's own width.
+  final bool compact;
+
+  /// Chrome slots name the Spotify placeholder; the page keeps the localized
+  /// default.
+  final String? placeholder;
+
+  const HomeSearchBar({
+    super.key,
+    this.compact = false,
+    this.placeholder,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -98,6 +110,11 @@ class HomeSearchBar extends HookConsumerWidget {
         return;
       }
       ref.read(recentSearchesProvider.notifier).add(value);
+      // A chrome field is the whole search affordance: clicking it must focus
+      // in place, while submitting is what opens the results page.
+      if (compact) {
+        context.navigateTo(const SearchRoute());
+      }
     }
 
     /// The single activation path: tapping a row and pressing Enter on a
@@ -188,7 +205,16 @@ class HomeSearchBar extends HookConsumerWidget {
     final liveLoading =
         liveSnapshot != null && liveSnapshot.isLoading && liveTracks.isEmpty;
 
-    final (:tracks, :playlists, :albums, :artists) = readLibrarySnapshot(ref);
+    // A chrome field starts unfocused; don't wake the four library providers
+    // until someone actually opens the panel.
+    final (:tracks, :playlists, :albums, :artists) = panelVisible
+        ? readLibrarySnapshot(ref)
+        : (
+            tracks: const <SpotubeFullTrackObject>[],
+            playlists: const <SpotubeSimplePlaylistObject>[],
+            albums: const <SpotubeSimpleAlbumObject>[],
+            artists: const <SpotubeFullArtistObject>[],
+          );
     final recents = ref.watch(recentSearchesProvider);
     final options = buildSearchSuggestions(
       text: fieldText.value,
@@ -281,6 +307,194 @@ class HomeSearchBar extends HookConsumerWidget {
     // bottom edge without any anchor changes.
     final scale = context.theme.scaling;
 
+    Widget buildField(double width) {
+      return CompositedTransformTarget(
+        key: fieldKey,
+        link: layerLink,
+        child: OverlayPortal(
+          controller: portalController,
+          // The pin is not built with `context` on purpose: the navigation
+          // callbacks below keep using the bar's own context, which outlives
+          // the entry's detach on hide.
+          overlayChildBuilder: (overlayContext) => Listener(
+            onPointerDown: (_) => panelPointerDown.value = true,
+            // Cleared a frame later so the button's tap (which resolves after
+            // this up is dispatched) still has its widget tree to complete in.
+            onPointerUp: (_) =>
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+              panelPointerDown.value = false;
+            }),
+            onPointerCancel: (_) =>
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+              panelPointerDown.value = false;
+            }),
+            child: Stack(
+              children: [
+                // Opaque: absorbs every outside tap so nothing behind the
+                // panel ever sees it (modal dismiss, never pass-through).
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: hideAndUnfocus,
+                    child: Container(
+                      color: const Color(0x0D000000),
+                    ),
+                  ),
+                ),
+                CompositedTransformFollower(
+                  link: layerLink,
+                  targetAnchor: Alignment.bottomLeft,
+                  followerAnchor: Alignment.topLeft,
+                  child: SizedBox(
+                    width: width,
+                    child: HomeSearchSuggestionsPanel(
+                      maxHeight: suggestionPanelMaxHeight(
+                        overlayContext,
+                        fieldKey,
+                      ),
+                      recents: options.recents,
+                      live: options.live,
+                      library: options.library,
+                      query: fieldText.value,
+                      seeAllTerm: seeAllTerm,
+                      activeIndex: activeIndex.value,
+                      liveLoading: liveLoading,
+                      onActivate: activateSuggestion,
+                      // A cover does both jobs at once: the queue starts on
+                      // the row's content and the panel takes the user to its
+                      // page. Playback is given the root navigator's context
+                      // rather than this bar's, so the route push below cannot
+                      // leave it talking to a disposed widget mid-fetch.
+                      onPlay: (option) {
+                        hideAndUnfocus();
+                        unawaited(
+                          playLibrarySuggestion(
+                            rootNavigatorKey.currentContext!,
+                            ref,
+                            option,
+                          ),
+                        );
+                        openLibrarySuggestion(context, focusNode, option);
+                      },
+                      // The cover plays and stops there: the listener asked
+                      // for the sound, not a page.
+                      onPlayOnly: (option) {
+                        hideAndUnfocus();
+                        unawaited(
+                          playLibrarySuggestion(
+                            rootNavigatorKey.currentContext!,
+                            ref,
+                            option,
+                          ),
+                        );
+                      },
+                      // The album named under a song row opens on its own,
+                      // without disturbing the queue.
+                      onOpenAlbum: (album) {
+                        hideAndUnfocus();
+                        openLibrarySuggestion(
+                          context,
+                          focusNode,
+                          AlbumSearchSuggestion(album),
+                        );
+                      },
+                      // So does the artist beside it. Credits name a simpler
+                      // artist model than a search hit does, so this pushes
+                      // the route directly.
+                      onOpenArtist: (artist) {
+                        hideAndUnfocus();
+                        openCreditedArtist(context, focusNode, artist);
+                      },
+                      onRemoveRecent: (term) {
+                        ref.read(recentSearchesProvider.notifier).remove(term);
+                      },
+                      onClearRecents: () {
+                        ref.read(recentSearchesProvider.notifier).clear();
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          child: Focus(
+            // An ancestor of the field, so it sees the keys the field leaves
+            // alone: arrows and Escape. Enter never arrives here — the field
+            // consumes it and [onSubmitted] reads the highlight instead.
+            canRequestFocus: false,
+            skipTraversal: true,
+            onKeyEvent: onFieldKeyEvent,
+            child: ListenableBuilder(
+              listenable: controller,
+              builder: (context, _) {
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  padding: compact
+                      ? EdgeInsets.symmetric(horizontal: 14 * scale)
+                      : EdgeInsets.symmetric(
+                          horizontal: 16 * scale,
+                          vertical: 12 * scale,
+                        ),
+                  borderRadius: compact
+                      ? BorderRadius.circular(999)
+                      : context.theme.borderRadiusXxl,
+                  filled: !compact,
+                  // A chrome card owns the pill fill and its hover hue; the
+                  // field itself stays transparent so that fill is visible.
+                  decoration: compact
+                      ? BoxDecoration(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(999),
+                        )
+                      : null,
+                  features: [
+                    InputFeature.leading(
+                      Icon(
+                        SpotubeIcons.search,
+                        size: compact ? 18 : null,
+                        color: compact
+                            ? context.theme.colorScheme.mutedForeground
+                            : null,
+                      ),
+                    ),
+                    InputFeature.trailing(
+                      AnimatedCrossFade(
+                        duration: const Duration(milliseconds: 300),
+                        crossFadeState: controller.text.isNotEmpty
+                            ? CrossFadeState.showFirst
+                            : CrossFadeState.showSecond,
+                        firstChild: IconButton.ghost(
+                          size: ButtonSize.small,
+                          icon: const Icon(SpotubeIcons.close),
+                          onPressed: onCleared,
+                        ),
+                        secondChild: const SizedBox.square(dimension: 28),
+                      ),
+                    )
+                  ],
+                  textInputAction: TextInputAction.search,
+                  placeholder: Text(placeholder ?? context.l10n.search),
+                  onSubmitted: onSubmitted,
+                );
+              },
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (compact) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return SizedBox(
+            height: 40,
+            child: buildField(constraints.maxWidth),
+          );
+        },
+      );
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -305,171 +519,7 @@ class HomeSearchBar extends HookConsumerWidget {
               alignment: Alignment.centerLeft,
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: panelWidth),
-                child: CompositedTransformTarget(
-                  key: fieldKey,
-                  link: layerLink,
-                  child: OverlayPortal(
-                    controller: portalController,
-                    // The pin is not built with `context` on purpose: the
-                    // navigation callbacks below keep using the bar's own
-                    // context, which outlives the entry's detach on hide.
-                    overlayChildBuilder: (overlayContext) => Listener(
-                      onPointerDown: (_) => panelPointerDown.value = true,
-                      // Cleared a frame later so the button's tap (which
-                      // resolves after this up is dispatched) still has its
-                      // widget tree to complete in.
-                      onPointerUp: (_) =>
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                        panelPointerDown.value = false;
-                      }),
-                      onPointerCancel: (_) =>
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                        panelPointerDown.value = false;
-                      }),
-                      child: Stack(
-                        children: [
-                          // Opaque: absorbs every outside tap so nothing behind the
-                          // panel ever sees it (modal dismiss, never pass-through).
-                          Positioned.fill(
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: hideAndUnfocus,
-                              child: Container(
-                                color: const Color(0x0D000000),
-                              ),
-                            ),
-                          ),
-                          CompositedTransformFollower(
-                            link: layerLink,
-                            targetAnchor: Alignment.bottomLeft,
-                            followerAnchor: Alignment.topLeft,
-                            child: SizedBox(
-                              width: panelWidth,
-                              child: HomeSearchSuggestionsPanel(
-                                maxHeight: suggestionPanelMaxHeight(
-                                  overlayContext,
-                                  fieldKey,
-                                ),
-                                recents: options.recents,
-                                live: options.live,
-                                library: options.library,
-                                query: fieldText.value,
-                                seeAllTerm: seeAllTerm,
-                                activeIndex: activeIndex.value,
-                                liveLoading: liveLoading,
-                                onActivate: activateSuggestion,
-                                // A cover does both jobs at once: the queue starts
-                                // on the row's content and the panel takes the
-                                // user to its page. Playback is given the root
-                                // navigator's context rather than this bar's, so
-                                // the route push below cannot leave it talking to
-                                // a disposed widget mid-fetch.
-                                onPlay: (option) {
-                                  hideAndUnfocus();
-                                  unawaited(
-                                    playLibrarySuggestion(
-                                      rootNavigatorKey.currentContext!,
-                                      ref,
-                                      option,
-                                    ),
-                                  );
-                                  openLibrarySuggestion(
-                                      context, focusNode, option);
-                                },
-                                // The cover plays and stops there: the listener
-                                // asked for the sound, not a page.
-                                onPlayOnly: (option) {
-                                  hideAndUnfocus();
-                                  unawaited(
-                                    playLibrarySuggestion(
-                                      rootNavigatorKey.currentContext!,
-                                      ref,
-                                      option,
-                                    ),
-                                  );
-                                },
-                                // The album named under a song row opens on its
-                                // own, without disturbing the queue.
-                                onOpenAlbum: (album) {
-                                  hideAndUnfocus();
-                                  openLibrarySuggestion(
-                                    context,
-                                    focusNode,
-                                    AlbumSearchSuggestion(album),
-                                  );
-                                },
-                                // So does the artist beside it. Credits name a
-                                // simpler artist model than a search hit does, so
-                                // this pushes the route directly.
-                                onOpenArtist: (artist) {
-                                  hideAndUnfocus();
-                                  openCreditedArtist(
-                                      context, focusNode, artist);
-                                },
-                                onRemoveRecent: (term) {
-                                  ref
-                                      .read(recentSearchesProvider.notifier)
-                                      .remove(term);
-                                },
-                                onClearRecents: () {
-                                  ref
-                                      .read(recentSearchesProvider.notifier)
-                                      .clear();
-                                },
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    child: Focus(
-                      // An ancestor of the field, so it sees the keys the field
-                      // leaves alone: arrows and Escape. Enter never arrives here
-                      // — the field consumes it and [onSubmitted] reads the
-                      // highlight instead.
-                      canRequestFocus: false,
-                      skipTraversal: true,
-                      onKeyEvent: onFieldKeyEvent,
-                      child: ListenableBuilder(
-                          listenable: controller,
-                          builder: (context, _) {
-                            return TextField(
-                              controller: controller,
-                              focusNode: focusNode,
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 16 * scale,
-                                vertical: 12 * scale,
-                              ),
-                              borderRadius: context.theme.borderRadiusXxl,
-                              filled: true,
-                              features: [
-                                const InputFeature.leading(
-                                  Icon(SpotubeIcons.search),
-                                ),
-                                InputFeature.trailing(
-                                  AnimatedCrossFade(
-                                    duration: const Duration(milliseconds: 300),
-                                    crossFadeState: controller.text.isNotEmpty
-                                        ? CrossFadeState.showFirst
-                                        : CrossFadeState.showSecond,
-                                    firstChild: IconButton.ghost(
-                                      size: ButtonSize.small,
-                                      icon: const Icon(SpotubeIcons.close),
-                                      onPressed: onCleared,
-                                    ),
-                                    secondChild:
-                                        const SizedBox.square(dimension: 28),
-                                  ),
-                                )
-                              ],
-                              textInputAction: TextInputAction.search,
-                              placeholder: Text(context.l10n.search),
-                              onSubmitted: onSubmitted,
-                            );
-                          }),
-                    ),
-                  ),
-                ),
+                child: buildField(panelWidth),
               ),
             ),
           ),
@@ -486,15 +536,15 @@ class HomeSearchBar extends HookConsumerWidget {
 /// bottom of the window. Measuring the field itself — instead of guessing from
 /// the viewport height — is what lets a long result list open at full length,
 /// and a short one stay short, without ever running past the window.
-double suggestionPanelMaxHeight(BuildContext overlayContext, GlobalKey fieldKey) {
+double suggestionPanelMaxHeight(
+    BuildContext overlayContext, GlobalKey fieldKey) {
   final media = MediaQuery.of(overlayContext);
   // The follower anchors to the field's bottom in global coordinates, so the
   // bottom inset (system nav bar) and the on-screen keyboard have to come off
   // the window height too. Without the keyboard inset the panel grows behind
   // the keyboard on a phone.
-  final windowBottom = media.size.height -
-      media.padding.bottom -
-      media.viewInsets.bottom;
+  final windowBottom =
+      media.size.height - media.padding.bottom - media.viewInsets.bottom;
 
   final box = fieldKey.currentContext?.findRenderObject() as RenderBox?;
   if (box == null || !box.attached || !box.hasSize) {

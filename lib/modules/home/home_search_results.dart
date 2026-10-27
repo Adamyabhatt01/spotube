@@ -9,12 +9,17 @@ import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/extensions/string.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/search/search_term.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 import 'package:spotube/pages/search/tabs/albums.dart';
 import 'package:spotube/pages/search/tabs/all.dart';
 import 'package:spotube/pages/search/tabs/artists.dart';
 import 'package:spotube/pages/search/tabs/playlists.dart';
 import 'package:spotube/pages/search/tabs/tracks.dart';
+import 'package:spotube/provider/metadata_plugin/search/albums.dart';
 import 'package:spotube/provider/metadata_plugin/search/all.dart';
+import 'package:spotube/provider/metadata_plugin/search/artists.dart';
+import 'package:spotube/provider/metadata_plugin/search/playlists.dart';
+import 'package:spotube/provider/metadata_plugin/search/tracks.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 
 /// Search result tab, as named by the metadata plugin's chip list.
@@ -88,6 +93,43 @@ class HomeSearchResults extends HookConsumerWidget {
         onRetry: () {
           ref.invalidate(metadataPluginSearchChipsProvider);
         },
+      );
+    }
+
+    final term = ref.watch(searchTermStateProvider);
+    final hasContent = themeUiSlotExists(ref, 'search.content');
+    if (hasContent) {
+      return ThemePageContent(
+        slot: 'search.content',
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        bindings: {
+          'search.query': term,
+          'search.tracks': ref
+                  .watch(metadataPluginSearchTracksProvider(term))
+                  .asData
+                  ?.value
+                  .items ??
+              const [],
+          'search.albums': ref
+                  .watch(metadataPluginSearchAlbumsProvider(term))
+                  .asData
+                  ?.value
+                  .items ??
+              const [],
+          'search.artists': ref
+                  .watch(metadataPluginSearchArtistsProvider(term))
+                  .asData
+                  ?.value
+                  .items ??
+              const [],
+          'search.playlists': ref
+                  .watch(metadataPluginSearchPlaylistsProvider(term))
+                  .asData
+                  ?.value
+                  .items ??
+              const [],
+        },
+        fallback: const SizedBox.shrink(),
       );
     }
 

@@ -46,6 +46,7 @@ class AlbumPage extends HookConsumerWidget {
       child: TrackPresentation(
         options: TrackPresentationOptions(
           collection: album,
+          kind: 'album',
           image: album.images.asUrlString(
             placeholder: ImagePlaceholder.albumArt,
           ),

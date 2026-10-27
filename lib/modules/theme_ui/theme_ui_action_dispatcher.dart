@@ -6,6 +6,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_action.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_screen_stack.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
@@ -67,6 +68,16 @@ Future<void> dispatchThemeUiAction(
         _toast(context, action.args);
       case 'plugin':
         await _askPlugin(ref, action.args);
+      case 'playItem':
+        await _playItem(ref, action.args);
+      case 'playCollection':
+        await _playCollection(context, ref, action.args);
+      case 'openItem':
+        _openItem(context, action.args);
+      case 'likeItem':
+        await _likeItem(ref, action.args);
+      case 'downloadItem':
+        _downloadItem(ref, action.args);
     }
   } catch (e, stack) {
     AppLogger.reportError(e, stack, 'themeUiAction:${action.type}');
@@ -139,6 +150,135 @@ void _download(WidgetRef ref) {
   final track = ref.read(audioPlayerProvider).activeTrack;
   if (track is! SpotubeFullTrackObject) return;
   ref.read(downloadManagerProvider.notifier).addToQueue(track);
+}
+
+/// Plays a row from a theme's `list`.
+///
+/// The renderer injects the typed item and the collection it came from, so a
+/// row click starts the surrounding list — not a one-track queue that ends
+/// after the song the user picked.
+Future<void> _playItem(WidgetRef ref, Map<String, dynamic> args) async {
+  final raw = args['item'];
+  if (raw is! SpotubeTrackObject) return;
+
+  final notifier = ref.read(audioPlayerProvider.notifier);
+  final queue = ref.read(audioPlayerProvider);
+  if (queue.tracks.any((track) => track.id == raw.id)) {
+    await notifier.jumpToTrack(raw);
+    return;
+  }
+
+  final items = args['items'] is List
+      ? (args['items'] as List).whereType<SpotubeTrackObject>().toList()
+      : const <SpotubeTrackObject>[];
+  if (items.length > 1) {
+    final index = items.indexWhere((track) => track.id == raw.id);
+    await notifier.load(
+      items,
+      initialIndex: index < 0 ? 0 : index,
+      autoPlay: true,
+    );
+    return;
+  }
+  await notifier.load([raw], autoPlay: true);
+}
+
+/// Plays the collection a page owns.
+///
+/// A content slot replaces the host's play button, so the theme needs a verb
+/// for "play the thing this page is about". The page bindings carry the typed
+/// list (`collection.tracks` or `artist.topTracks`); reading them at tap time
+/// keeps the action from carrying data through the node tree.
+Future<void> _playCollection(
+  BuildContext context,
+  WidgetRef ref,
+  Map<String, dynamic> args,
+) async {
+  final page = ThemeUiPageBindings.read(context);
+  if (page == null) return;
+  final raw = page['collection.tracks'] ?? page['artist.topTracks'];
+  if (raw is! List) return;
+  final tracks = raw.whereType<SpotubeTrackObject>().toList();
+  if (tracks.isEmpty) return;
+
+  // A collection header's shuffle button is "play this collection, shuffled",
+  // not just "toggle shuffle". Setting the mode before the load keeps the
+  // first track random instead of always starting at index 0.
+  if (args['shuffle'] == true) {
+    await audioPlayer.setShuffle(true);
+  }
+
+  await ref.read(audioPlayerProvider.notifier).load(
+        tracks,
+        initialIndex: 0,
+        autoPlay: true,
+      );
+}
+
+void _openItem(BuildContext context, Map<String, dynamic> args) {
+  switch (args['item']) {
+    case SpotubeTrackObject track:
+      context.navigateTo(TrackRoute(trackId: track.id));
+    case SpotubeFullAlbumObject album:
+      context.navigateTo(
+        AlbumRoute(id: album.id, album: _simpleAlbum(album)),
+      );
+    case SpotubeSimpleAlbumObject album:
+      context.navigateTo(AlbumRoute(id: album.id, album: album));
+    case SpotubeFullArtistObject artist:
+      context.navigateTo(ArtistRoute(artistId: artist.id));
+    case SpotubeSimpleArtistObject artist:
+      context.navigateTo(ArtistRoute(artistId: artist.id));
+    case SpotubeFullPlaylistObject playlist:
+      context.navigateTo(
+        PlaylistRoute(id: playlist.id, playlist: _simplePlaylist(playlist)),
+      );
+    case SpotubeSimplePlaylistObject playlist:
+      context.navigateTo(
+        PlaylistRoute(id: playlist.id, playlist: playlist),
+      );
+    case DownloadTask task:
+      context.navigateTo(TrackRoute(trackId: task.track.id));
+  }
+}
+
+Future<void> _likeItem(WidgetRef ref, Map<String, dynamic> args) async {
+  final raw = args['item'];
+  if (raw is! SpotubeTrackObject) return;
+  await ref
+      .read(metadataPluginSavedTracksProvider.notifier)
+      .toggleFavorite(raw);
+}
+
+void _downloadItem(WidgetRef ref, Map<String, dynamic> args) {
+  final raw = args['item'];
+  final track = raw is DownloadTask ? raw.track : raw;
+  if (track is! SpotubeFullTrackObject) return;
+  ref.read(downloadManagerProvider.notifier).addToQueue(track);
+}
+
+SpotubeSimpleAlbumObject _simpleAlbum(SpotubeFullAlbumObject album) {
+  return SpotubeSimpleAlbumObject(
+    id: album.id,
+    name: album.name,
+    externalUri: album.externalUri,
+    artists: album.artists,
+    images: album.images,
+    albumType: album.albumType,
+    releaseDate: album.releaseDate,
+  );
+}
+
+SpotubeSimplePlaylistObject _simplePlaylist(
+    SpotubeFullPlaylistObject playlist) {
+  return SpotubeSimplePlaylistObject(
+    id: playlist.id,
+    name: playlist.name,
+    description: playlist.description,
+    externalUri: playlist.externalUri,
+    owner: playlist.owner,
+    images: playlist.images,
+  );
 }
 
 Future<void> _navigate(

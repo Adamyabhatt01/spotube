@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/theme_shell/theme_presentation.dart';
 import 'package:spotube/utils/theme_converter.dart';
 
 /// Publishes the theme plugin's layout decisions to the widget tree.
@@ -21,6 +22,18 @@ class AppLayout extends InheritedWidget {
   final ThemeRadius radii;
   final ThemeLayout layout;
 
+  /// The theme's v3 spacing scale, in logical pixels at scaling 1.
+  ///
+  /// Null means the caller did not resolve one, in which case [AppLayoutX]
+  /// derives the card gap from the v2 `tokens.gutter`.
+  final ThemeSpacing? spacing;
+
+  /// The theme's v3 motion scale.
+  final ThemeMotion motion;
+
+  /// `scale.spacing`, applied on top of `theme.scaling`.
+  final double spacingScale;
+
   /// The status colours, which shadcn's `ColorScheme` has no slot for.
   final ThemeSemanticColors semanticColors;
 
@@ -30,6 +43,9 @@ class AppLayout extends InheritedWidget {
     this.tokens = const ThemeTokens(),
     this.radii = const ThemeRadius(),
     this.layout = const ThemeLayout(),
+    this.spacing,
+    this.motion = const ThemeMotion(),
+    this.spacingScale = 1,
     this.semanticColors = const ThemeSemanticColors(),
   });
 
@@ -38,6 +54,9 @@ class AppLayout extends InheritedWidget {
     return oldWidget.tokens != tokens ||
         oldWidget.radii != radii ||
         oldWidget.layout != layout ||
+        oldWidget.spacing != spacing ||
+        oldWidget.motion != motion ||
+        oldWidget.spacingScale != spacingScale ||
         oldWidget.semanticColors != semanticColors;
   }
 }
@@ -56,6 +75,10 @@ extension AppLayoutX on BuildContext {
   ThemeRadius get _radii => _appLayout?.radii ?? const ThemeRadius();
 
   ThemeLayout get _layout => _appLayout?.layout ?? const ThemeLayout();
+
+  /// The theme's layout decisions, already resolved for the current window
+  /// width (see `applyResponsiveLayout` in `theme_shell.dart`).
+  ThemeLayout get layout => _layout;
 
   ThemeSemanticColors get _semanticColors =>
       _appLayout?.semanticColors ?? const ThemeSemanticColors();
@@ -115,8 +138,9 @@ extension AppLayoutX on BuildContext {
   /// cannot outgrow the cell a theme widened only the height of.
   double get artistAvatarSize => artistCardWidth * 0.72;
 
-  /// Space between cards in a row or grid.
-  double get layoutGutter => _tokens.gutter * _scale;
+  /// The gap between cards in a shelf or grid: the v3 `spacing.cardGap` when
+  /// the theme declares it, otherwise the v2 `tokens.gutter`.
+  double get layoutGutter => _spacing.cardGap * _spacingUnit;
 
   /// Cover-art corner radius. Small because artwork is the smallest surface
   /// the radius scale reaches.
@@ -129,6 +153,26 @@ extension AppLayoutX on BuildContext {
   /// A radius that reads as "fully round" at any size. Flutter folds overlapping
   /// corner radii down, so a huge pill is safe on a short chip.
   double get pillCornerRadius => _radii.pill * _scale;
+
+  ThemeSpacing get _spacing =>
+      _appLayout?.spacing ?? ThemeSpacing(cardGap: _tokens.gutter);
+
+  /// The theme's motion scale, for the transitions the app owns.
+  ThemeMotion get motion => _appLayout?.motion ?? const ThemeMotion();
+
+  double get _spacingUnit => _scale * (_appLayout?.spacingScale ?? 1);
+
+  /// Padding inside a page's own surface.
+  double get pagePadding => _spacing.page * _spacingUnit;
+
+  /// The horizontal gutter between a page's content and the window edge.
+  double get pageHorizontalPadding => _spacing.pageHorizontal * _spacingUnit;
+
+  /// Vertical space between two sections of a page.
+  double get sectionGap => _spacing.section * _spacingUnit;
+
+  /// Space between two cards in a shelf or grid.
+  double get cardGap => _spacing.cardGap * _spacingUnit;
 
   /// Whether the content floats in a rounded panel instead of filling the
   /// window edge to edge.

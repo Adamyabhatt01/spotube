@@ -114,6 +114,7 @@ class PlaylistPage extends HookConsumerWidget {
       child: TrackPresentation(
         options: TrackPresentationOptions(
           collection: playlist,
+          kind: 'playlist',
           image: (freshPlaylist?.images ?? playlist.images).asUrlString(
             placeholder: ImagePlaceholder.collection,
           ),

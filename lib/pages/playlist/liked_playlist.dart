@@ -34,6 +34,7 @@ class LikedPlaylistPage extends HookConsumerWidget {
       child: TrackPresentation(
         options: TrackPresentationOptions(
           collection: playlist,
+          kind: 'liked',
           image: Assets.images.likedTracks.path,
           pagination: PaginationProps(
             hasNextPage: likedTracks.asData?.value.hasMore ?? false,
@@ -57,6 +58,9 @@ class LikedPlaylistPage extends HookConsumerWidget {
           shareUrl: null,
           onHeart: null,
           owner: playlist.owner.name,
+          ownerImage: playlist.owner.images.isEmpty
+              ? null
+              : playlist.owner.images.last.url,
         ),
       ),
     );

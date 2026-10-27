@@ -3,6 +3,30 @@
 The themes and the tool that builds them. The payload contract is versioned
 here; the app's reader is versioned with the app.
 
+## 1.7.0 — the host reads the presentation blocks
+
+The v3 payload already carried a type scale, spacing, motion, scale and icon
+ladder. The host now applies them instead of only validating them.
+
+- **Presentation blocks are consumed.** `typography.styles` resolves into
+  shadcn's type ladder (missing fields keep the host value; `color` accepts
+  `@role`), `icons` into the icon sizes, `scale` into independent size, text,
+  radius, icon and spacing multipliers, `spacing` into page/section/card
+  padding and `motion` into the durations and easing the UI renderer uses.
+  Every number is clamped on read.
+- **The kitchen sink exercises the whole contract again.** It now carries the
+  `player` component group, a `search` node and `card.hoverBackground`, so the
+  reference theme cannot drift behind the validator (22 node variants).
+- **`spotify-shell`:** the seek line moved below the transport and now draws
+  elapsed/total time, the search page has an empty state, track rows expose a
+  download button, and the theme declares its 16/20/24/32 icon ladder. The
+  manifest moves 1.0.0 → 1.1.0 so installed copies replace the old payload;
+  the build emits `spotify-shell-1.1.0.smplug` and the install copy at
+  `themes/spotify-shell/plugin.smplug`.
+- **Tests:** 141 in the contract suite, including the kitchen-sink drift
+  checks; the app pins the resolved presentation in
+  `test/theme_presentation_test.dart`.
+
 ## 1.6.0 — obsidian, and a contract you can check
 
 The v3 contract stopped being a draft and became something the build enforces

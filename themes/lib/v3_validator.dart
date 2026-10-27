@@ -53,7 +53,13 @@ const v3PaletteRoles = <String>[
 /// piece of the interface nobody can get back, so the list is closed.
 const navIds = <String>['home', 'radio', 'stats', 'search'];
 const navbarIds = <String>['home', 'search', 'radio', 'library', 'stats'];
-const libraryIds = <String>['playlists', 'artists', 'albums', 'local_library'];
+const libraryIds = <String>[
+  'playlists',
+  'artists',
+  'albums',
+  'stations',
+  'local_library',
+];
 const homeSectionIds = <String>['recent', 'featured', 'new_releases', 'browse'];
 const settingsSectionIds = <String>[
   'accounts',
@@ -92,16 +98,29 @@ const slotNames = <String>[
   'shell.after',
   'home.before_sections',
   'home.after_sections',
+  'home.content',
   'lyrics.header',
   'lyrics.after_tabs',
   'settings.before',
   'settings.after',
+  'collection.content',
+  'collection.header',
+  'collection.before_tracks',
+  'collection.after_tracks',
+  'artist.content',
+  'artist.header',
+  'search.content',
+  'library.content',
+  'queue.content',
+  'downloads.content',
+  'stats.content',
 ];
 
 /// The layout keys a theme may take ownership of.
 const enforceIds = <String>[
   'nav',
   'navItems',
+  'navbarItems',
   'libraryItems',
   'navOrder',
   'player',
@@ -117,6 +136,7 @@ const enforceIds = <String>[
 const componentGroups = <String>[
   'buttons',
   'card',
+  'player',
   'input',
   'tabs',
   'nav',
@@ -185,6 +205,7 @@ const uiNodeTypes = <String>[
   'image',
   'button',
   'card',
+  'search',
   'divider',
   'spacer',
   'gap',
@@ -192,6 +213,7 @@ const uiNodeTypes = <String>[
   'template',
   'animate',
   'progress',
+  'list',
 ];
 
 /// The actions the host dispatches on a theme's behalf.
@@ -212,10 +234,30 @@ const uiActionTypes = <String>[
   'openDownloads',
   'toast',
   'plugin',
+  'playItem',
+  'playCollection',
+  'openItem',
+  'likeItem',
+  'downloadItem',
 ];
+
+/// Whether [name] is a binding the host resolves.
+///
+/// `item.*` and the page scopes are open on purpose: a collection entry's and
+/// a page's fields are defined by the host's metadata model, and a future field
+/// must not require a build validator release. They only resolve where the
+/// host publishes that scope.
+bool isUiBinding(String name) {
+  if (uiBindings.contains(name)) return true;
+  return RegExp(
+    r'^(item|home|collection|artist|search|library|queue|downloads|stats)\.'
+    r'[A-Za-z][A-Za-z0-9_]{0,31}$',
+  ).hasMatch(name);
+}
 
 /// The data a theme's UI can bind to.
 const uiBindings = <String>[
+  'player.trackId',
   'player.title',
   'player.artist',
   'player.album',
@@ -231,6 +273,7 @@ const uiBindings = <String>[
   'app.version',
   'app.brightness',
   'app.themeMode',
+  'app.greeting',
   'clock.now',
 ];
 
@@ -244,6 +287,9 @@ const uiTextSizes = <String>[
   'xl',
   '2xl',
   '3xl',
+  '4xl',
+  '5xl',
+  '6xl',
 ];
 
 /// The weights a text node may name, when it does not use a number.
@@ -328,7 +374,15 @@ const uiNodeProps = <String, List<String>>{
   'column': ['gap', 'align', 'justify'],
   'stack': ['align', 'fit'],
   'wrap': ['gap', 'runGap', 'align', 'justify'],
-  'padding': ['all', 'horizontal', 'vertical', 'top', 'right', 'bottom', 'left'],
+  'padding': [
+    'all',
+    'horizontal',
+    'vertical',
+    'top',
+    'right',
+    'bottom',
+    'left',
+  ],
   'align': ['align', 'widthFactor', 'heightFactor'],
   'expanded': ['flex'],
   'scroll': ['direction', 'padding'],
@@ -363,10 +417,14 @@ const uiNodeProps = <String, List<String>>{
     'padding',
     'radius',
     'background',
+    'hoverBackground',
     'borderColor',
     'borderWidth',
     'opacity',
+    'width',
+    'height',
   ],
+  'search': ['placeholder'],
   'divider': ['orientation', 'thickness', 'color'],
   'spacer': ['flex'],
   'gap': ['size'],
@@ -388,6 +446,7 @@ const uiNodeProps = <String, List<String>>{
     'thumbSize',
     'interactive',
   ],
+  'list': ['bind', 'gap', 'limit', 'align', 'direction'],
 };
 
 /// The colour roles a `@role` reference may name.
@@ -449,11 +508,13 @@ List<Issue> validateV3Blocks(Map<String, dynamic> payload) {
 
   final specVersion = payload['specVersion'];
   if (specVersion is! num || specVersion < 3) {
-    issues.add(Issue(
-      Severity.error,
-      'specVersion',
-      'must be 3 or more to declare the v3 blocks',
-    ));
+    issues.add(
+      Issue(
+        Severity.error,
+        'specVersion',
+        'must be 3 or more to declare the v3 blocks',
+      ),
+    );
     return issues;
   }
 
@@ -488,11 +549,13 @@ void _paletteExtras(Object? raw, String path, List<Issue> issues) {
     final value = palette[role];
     if (value == null) continue;
     if (value is! String || !_isHex(value)) {
-      issues.add(Issue(
-        Severity.error,
-        '$path.$role',
-        'must be a #RRGGBB or #AARRGGBB color',
-      ));
+      issues.add(
+        Issue(
+          Severity.error,
+          '$path.$role',
+          'must be a #RRGGBB or #AARRGGBB color',
+        ),
+      );
     }
   }
 }
@@ -510,11 +573,13 @@ void _typography(Object? raw, List<Issue> issues) {
     final value = block[key];
     if (value == null) continue;
     if (value is! String || value.length > 64) {
-      issues.add(Issue(
-        Severity.warning,
-        'typography.$key',
-        'must be a family name of at most 64 characters — dropped',
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          'typography.$key',
+          'must be a family name of at most 64 characters — dropped',
+        ),
+      );
     }
   }
 
@@ -522,16 +587,19 @@ void _typography(Object? raw, List<Issue> issues) {
   if (styles != null) {
     if (styles is! Map) {
       issues.add(
-          const Issue(Severity.error, 'typography.styles', 'must be an object'));
+        const Issue(Severity.error, 'typography.styles', 'must be an object'),
+      );
     } else {
       final map = styles.cast<String, dynamic>();
       if (map.length > 32) {
-        issues.add(Issue(
-          Severity.warning,
-          'typography.styles',
-          'more than 32 style overrides — the extras are dropped',
-          resolved: 32,
-        ));
+        issues.add(
+          Issue(
+            Severity.warning,
+            'typography.styles',
+            'more than 32 style overrides — the extras are dropped',
+            resolved: 32,
+          ),
+        );
       }
       for (final entry in map.entries) {
         _textStyle('typography.styles.${entry.key}', entry.value, issues);
@@ -542,30 +610,37 @@ void _typography(Object? raw, List<Issue> issues) {
   final fonts = block['fonts'];
   if (fonts != null) {
     if (fonts is! List) {
-      issues.add(const Issue(Severity.error, 'typography.fonts', 'must be a list'));
+      issues.add(
+        const Issue(Severity.error, 'typography.fonts', 'must be a list'),
+      );
     } else {
       if (fonts.length > 8) {
-        issues.add(Issue(
-          Severity.warning,
-          'typography.fonts',
-          'more than 8 font files — the extras are dropped',
-          resolved: 8,
-        ));
+        issues.add(
+          Issue(
+            Severity.warning,
+            'typography.fonts',
+            'more than 8 font files — the extras are dropped',
+            resolved: 8,
+          ),
+        );
       }
       for (var i = 0; i < fonts.length && i < 8; i++) {
         final font = fonts[i];
         if (font is! Map) {
-          issues.add(Issue(
-              Severity.error, 'typography.fonts[$i]', 'must be an object'));
+          issues.add(
+            Issue(Severity.error, 'typography.fonts[$i]', 'must be an object'),
+          );
           continue;
         }
         final family = font['family'];
         if (family is! String || family.isEmpty || family.length > 64) {
-          issues.add(Issue(
-            Severity.error,
-            'typography.fonts[$i].family',
-            'must be a family name of at most 64 characters',
-          ));
+          issues.add(
+            Issue(
+              Severity.error,
+              'typography.fonts[$i].family',
+              'must be a family name of at most 64 characters',
+            ),
+          );
         }
         _assetPath('typography.fonts[$i].asset', font['asset'], issues);
       }
@@ -591,31 +666,35 @@ void _textStyle(String path, Object? raw, List<Issue> issues) {
 
   final family = style['fontFamily'];
   if (family != null && (family is! String || family.length > 64)) {
-    issues.add(Issue(
-      Severity.warning,
-      '$path.fontFamily',
-      'must be a family name of at most 64 characters — dropped',
-    ));
+    issues.add(
+      Issue(
+        Severity.warning,
+        '$path.fontFamily',
+        'must be a family name of at most 64 characters — dropped',
+      ),
+    );
   }
 
   final fontStyle = style['fontStyle'];
   if (fontStyle != null && fontStyle != 'normal' && fontStyle != 'italic') {
-    issues.add(Issue(
-      Severity.warning,
-      '$path.fontStyle',
-      'must be normal or italic — dropped',
-    ));
+    issues.add(
+      Issue(
+        Severity.warning,
+        '$path.fontStyle',
+        'must be normal or italic — dropped',
+      ),
+    );
   }
 
   final borderStyle = style['borderStyle'];
-  if (borderStyle != null &&
-      borderStyle != 'solid' &&
-      borderStyle != 'pixel') {
-    issues.add(Issue(
-      Severity.warning,
-      '$path.borderStyle',
-      'must be solid or pixel — the host draws solid',
-    ));
+  if (borderStyle != null && borderStyle != 'solid' && borderStyle != 'pixel') {
+    issues.add(
+      Issue(
+        Severity.warning,
+        '$path.borderStyle',
+        'must be solid or pixel — the host draws solid',
+      ),
+    );
   }
 }
 
@@ -667,12 +746,14 @@ void _motion(Object? raw, List<Issue> issues) {
   ];
   final easing = block['easing'];
   if (easing != null && (easing is! String || !easings.contains(easing))) {
-    issues.add(Issue(
-      Severity.warning,
-      'motion.easing',
-      'must be one of ${easings.join(', ')} — the host falls back',
-      resolved: 'easeOutCubic',
-    ));
+    issues.add(
+      Issue(
+        Severity.warning,
+        'motion.easing',
+        'must be one of ${easings.join(', ')} — the host falls back',
+        resolved: 'easeOutCubic',
+      ),
+    );
   }
   _customTokens(block, 'motion.custom', issues);
 }
@@ -707,16 +788,26 @@ void _icons(Object? raw, List<Issue> issues) {
     for (final entry in overrides.entries) {
       final value = entry.value;
       if (value is! Map) {
-        issues.add(Issue(
-            Severity.error, 'icons.overrides.${entry.key}', 'must be an object'));
+        issues.add(
+          Issue(
+            Severity.error,
+            'icons.overrides.${entry.key}',
+            'must be an object',
+          ),
+        );
         continue;
       }
       final icon = value.cast<String, dynamic>();
       if (icon['asset'] != null) {
         _assetPath('icons.overrides.${entry.key}.asset', icon['asset'], issues);
       }
-      _number(icon, 'icons.overrides.${entry.key}.size',
-          min: 8, max: 64, issues: issues);
+      _number(
+        icon,
+        'icons.overrides.${entry.key}.size',
+        min: 8,
+        max: 64,
+        issues: issues,
+      );
     }
   }
   _customTokens(block, 'icons.custom', issues);
@@ -733,11 +824,13 @@ void _components(Object? raw, List<Issue> issues) {
 
   for (final entry in block.entries) {
     if (!componentGroups.contains(entry.key)) {
-      issues.add(Issue(
-        Severity.warning,
-        'components.${entry.key}',
-        'not a component the app knows — ignored',
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          'components.${entry.key}',
+          'not a component the app knows — ignored',
+        ),
+      );
       continue;
     }
 
@@ -745,19 +838,30 @@ void _components(Object? raw, List<Issue> issues) {
       final buttons = entry.value;
       if (buttons is! Map) {
         issues.add(
-            const Issue(Severity.error, 'components.buttons', 'must be an object'));
+          const Issue(
+            Severity.error,
+            'components.buttons',
+            'must be an object',
+          ),
+        );
         continue;
       }
       for (final button in buttons.entries) {
         if (!buttonVariants.contains(button.key)) {
-          issues.add(Issue(
-            Severity.warning,
-            'components.buttons.${button.key}',
-            'not a button variant the app knows — ignored',
-          ));
+          issues.add(
+            Issue(
+              Severity.warning,
+              'components.buttons.${button.key}',
+              'not a button variant the app knows — ignored',
+            ),
+          );
           continue;
         }
-        _componentStyle('components.buttons.${button.key}', button.value, issues);
+        _componentStyle(
+          'components.buttons.${button.key}',
+          button.value,
+          issues,
+        );
       }
       continue;
     }
@@ -803,31 +907,35 @@ void _componentStyle(String path, Object? raw, List<Issue> issues) {
 
   final family = style['fontFamily'];
   if (family != null && (family is! String || family.length > 64)) {
-    issues.add(Issue(
-      Severity.warning,
-      '$path.fontFamily',
-      'must be a family name of at most 64 characters — dropped',
-    ));
+    issues.add(
+      Issue(
+        Severity.warning,
+        '$path.fontFamily',
+        'must be a family name of at most 64 characters — dropped',
+      ),
+    );
   }
 
   final fontStyle = style['fontStyle'];
   if (fontStyle != null && fontStyle != 'normal' && fontStyle != 'italic') {
-    issues.add(Issue(
-      Severity.warning,
-      '$path.fontStyle',
-      'must be normal or italic — dropped',
-    ));
+    issues.add(
+      Issue(
+        Severity.warning,
+        '$path.fontStyle',
+        'must be normal or italic — dropped',
+      ),
+    );
   }
 
   final borderStyle = style['borderStyle'];
-  if (borderStyle != null &&
-      borderStyle != 'solid' &&
-      borderStyle != 'pixel') {
-    issues.add(Issue(
-      Severity.warning,
-      '$path.borderStyle',
-      'must be solid or pixel — the host draws solid',
-    ));
+  if (borderStyle != null && borderStyle != 'solid' && borderStyle != 'pixel') {
+    issues.add(
+      Issue(
+        Severity.warning,
+        '$path.borderStyle',
+        'must be solid or pixel — the host draws solid',
+      ),
+    );
   }
 }
 
@@ -840,22 +948,26 @@ void _shellLayout(Object? raw, List<Issue> issues) {
   }
   final block = raw.cast<String, dynamic>();
 
-  _idList(block, 'layout.navItems', navIds, issues);
-  _idList(block, 'layout.navbarItems', navbarIds, issues);
-  _idList(block, 'layout.libraryItems', libraryIds, issues);
+  _idList(block, 'layout.navItems', navIds, issues, allowScreens: true);
+  _idList(block, 'layout.navbarItems', navbarIds, issues, allowScreens: true);
+  _idList(block, 'layout.libraryItems', libraryIds, issues, allowScreens: true);
 
   final enforce = block['enforce'];
   if (enforce != null) {
     if (enforce is! List) {
-      issues.add(const Issue(Severity.error, 'layout.enforce', 'must be a list'));
+      issues.add(
+        const Issue(Severity.error, 'layout.enforce', 'must be a list'),
+      );
     } else {
       for (final value in enforce) {
         if (value is! String || !enforceIds.contains(value)) {
-          issues.add(Issue(
-            Severity.warning,
-            'layout.enforce',
-            'unknown key — the host ignores it',
-          ));
+          issues.add(
+            Issue(
+              Severity.warning,
+              'layout.enforce',
+              'unknown key — the host ignores it',
+            ),
+          );
         }
       }
     }
@@ -867,12 +979,14 @@ void _shellLayout(Object? raw, List<Issue> issues) {
     const docks = ['full', 'compact', 'floating', 'stage'];
     final dock = flags['dock'];
     if (dock != null && (dock is! String || !docks.contains(dock))) {
-      issues.add(Issue(
-        Severity.warning,
-        'layout.player.dock',
-        'must be one of ${docks.join(', ')} — the host falls back',
-        resolved: 'full',
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          'layout.player.dock',
+          'must be one of ${docks.join(', ')} — the host falls back',
+          resolved: 'full',
+        ),
+      );
     }
     for (final key in [
       'showTrackDetails',
@@ -883,22 +997,31 @@ void _shellLayout(Object? raw, List<Issue> issues) {
     ]) {
       final value = flags[key];
       if (value != null && value is! bool) {
-        issues.add(Issue(
-            Severity.warning, 'layout.player.$key', 'must be a boolean'));
+        issues.add(
+          Issue(Severity.warning, 'layout.player.$key', 'must be a boolean'),
+        );
       }
     }
   }
 
   final home = block['home'];
   if (home is Map) {
-    _idList(home.cast<String, dynamic>(), 'layout.home.sections', homeSectionIds,
-        issues);
+    _idList(
+      home.cast<String, dynamic>(),
+      'layout.home.sections',
+      homeSectionIds,
+      issues,
+    );
   }
 
   final settings = block['settings'];
   if (settings is Map) {
-    _idList(settings.cast<String, dynamic>(), 'layout.settings.sections',
-        settingsSectionIds, issues);
+    _idList(
+      settings.cast<String, dynamic>(),
+      'layout.settings.sections',
+      settingsSectionIds,
+      issues,
+    );
   }
 
   final titlebar = block['titlebar'];
@@ -908,8 +1031,13 @@ void _shellLayout(Object? raw, List<Issue> issues) {
     _number(bar, 'layout.titlebar.padding', min: 0, max: 48, issues: issues);
     final showBack = bar['showBack'];
     if (showBack != null && showBack is! bool) {
-      issues.add(const Issue(
-          Severity.warning, 'layout.titlebar.showBack', 'must be a boolean'));
+      issues.add(
+        const Issue(
+          Severity.warning,
+          'layout.titlebar.showBack',
+          'must be a boolean',
+        ),
+      );
     }
   }
 
@@ -922,9 +1050,15 @@ void _shellLayout(Object? raw, List<Issue> issues) {
     if (spec['background'] != null) {
       _assetPath('layout.splash.background', spec['background'], issues);
     }
-    if (spec['text'] != null && (spec['text'] is! String || (spec['text'] as String).length > 80)) {
-      issues.add(const Issue(
-          Severity.warning, 'layout.splash.text', 'must be a short string'));
+    if (spec['text'] != null &&
+        (spec['text'] is! String || (spec['text'] as String).length > 80)) {
+      issues.add(
+        const Issue(
+          Severity.warning,
+          'layout.splash.text',
+          'must be a short string',
+        ),
+      );
     }
   }
 
@@ -932,25 +1066,48 @@ void _shellLayout(Object? raw, List<Issue> issues) {
   if (responsive is Map) {
     final map = responsive.cast<String, dynamic>();
     if (map.length > 4) {
-      issues.add(Issue(
-        Severity.warning,
-        'layout.responsive',
-        'more than four variants — the extras are dropped',
-        resolved: 4,
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          'layout.responsive',
+          'more than four variants — the extras are dropped',
+          resolved: 4,
+        ),
+      );
     }
     for (final entry in map.entries) {
       if (entry.value is! Map) {
-        issues.add(Issue(
-            Severity.error, 'layout.responsive.${entry.key}', 'must be an object'));
+        issues.add(
+          Issue(
+            Severity.error,
+            'layout.responsive.${entry.key}',
+            'must be an object',
+          ),
+        );
         continue;
       }
       final override = (entry.value as Map).cast<String, dynamic>();
-      _idList(override, 'layout.responsive.${entry.key}.navItems', navIds, issues);
-      _idList(override, 'layout.responsive.${entry.key}.navbarItems', navbarIds,
-          issues);
-      _idList(override, 'layout.responsive.${entry.key}.libraryItems',
-          libraryIds, issues);
+      _idList(
+        override,
+        'layout.responsive.${entry.key}.navItems',
+        navIds,
+        issues,
+        allowScreens: true,
+      );
+      _idList(
+        override,
+        'layout.responsive.${entry.key}.navbarItems',
+        navbarIds,
+        issues,
+        allowScreens: true,
+      );
+      _idList(
+        override,
+        'layout.responsive.${entry.key}.libraryItems',
+        libraryIds,
+        issues,
+        allowScreens: true,
+      );
       final player = override['player'];
       if (player is Map) {
         final flags = player.cast<String, dynamic>();
@@ -963,25 +1120,33 @@ void _shellLayout(Object? raw, List<Issue> issues) {
         ]) {
           final value = flags[key];
           if (value != null && value is! bool) {
-            issues.add(Issue(
-              Severity.warning,
-              'layout.responsive.${entry.key}.player.$key',
-              'must be a boolean',
-            ));
+            issues.add(
+              Issue(
+                Severity.warning,
+                'layout.responsive.${entry.key}.player.$key',
+                'must be a boolean',
+              ),
+            );
           }
         }
       }
       final home = override['home'];
       if (home is Map) {
-        _idList(home.cast<String, dynamic>(),
-            'layout.responsive.${entry.key}.home.sections', homeSectionIds,
-            issues);
+        _idList(
+          home.cast<String, dynamic>(),
+          'layout.responsive.${entry.key}.home.sections',
+          homeSectionIds,
+          issues,
+        );
       }
       final settings = override['settings'];
       if (settings is Map) {
-        _idList(settings.cast<String, dynamic>(),
-            'layout.responsive.${entry.key}.settings.sections', settingsSectionIds,
-            issues);
+        _idList(
+          settings.cast<String, dynamic>(),
+          'layout.responsive.${entry.key}.settings.sections',
+          settingsSectionIds,
+          issues,
+        );
       }
     }
   }
@@ -1009,11 +1174,13 @@ void _branding(Object? raw, List<Issue> issues) {
     final value = block[entry.key];
     if (value == null) continue;
     if (value is! String || value.length > entry.value) {
-      issues.add(Issue(
-        Severity.warning,
-        'branding.${entry.key}',
-        'must be a string of at most ${entry.value} characters — dropped',
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          'branding.${entry.key}',
+          'must be a string of at most ${entry.value} characters — dropped',
+        ),
+      );
     }
   }
 
@@ -1026,13 +1193,23 @@ void _branding(Object? raw, List<Issue> issues) {
     final mark = wordmark.cast<String, dynamic>();
     final text = mark['text'];
     if (text != null && (text is! String || text.length > 48)) {
-      issues.add(const Issue(
-          Severity.warning, 'branding.wordmark.text', 'must be a short string'));
+      issues.add(
+        const Issue(
+          Severity.warning,
+          'branding.wordmark.text',
+          'must be a short string',
+        ),
+      );
     }
     final family = mark['fontFamily'];
     if (family != null && (family is! String || family.length > 64)) {
-      issues.add(const Issue(
-          Severity.warning, 'branding.wordmark.fontFamily', 'must be a family name'));
+      issues.add(
+        const Issue(
+          Severity.warning,
+          'branding.wordmark.fontFamily',
+          'must be a family name',
+        ),
+      );
     }
     if (mark['asset'] != null) {
       _assetPath('branding.wordmark.asset', mark['asset'], issues);
@@ -1060,29 +1237,34 @@ void _assets(Object? raw, List<Issue> issues) {
       continue;
     }
     if (entries.length > 64) {
-      issues.add(Issue(
-        Severity.warning,
-        'assets.$key',
-        'more than 64 assets — the extras are dropped',
-        resolved: 64,
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          'assets.$key',
+          'more than 64 assets — the extras are dropped',
+          resolved: 64,
+        ),
+      );
     }
     for (var i = 0; i < entries.length && i < 64; i++) {
       final entry = entries[i];
       if (entry is! Map) {
-        issues.add(Issue(
-            Severity.error, 'assets.$key[$i]', 'must be an object'));
+        issues.add(
+          Issue(Severity.error, 'assets.$key[$i]', 'must be an object'),
+        );
         continue;
       }
       final asset = entry.cast<String, dynamic>();
       _assetPath('assets.$key[$i].path', asset['path'], issues);
       final kind = asset['kind'];
       if (kind != null && (kind is! String || !kinds.contains(kind))) {
-        issues.add(Issue(
-          Severity.warning,
-          'assets.$key[$i].kind',
-          'must be one of ${kinds.join(', ')}',
-        ));
+        issues.add(
+          Issue(
+            Severity.warning,
+            'assets.$key[$i].kind',
+            'must be one of ${kinds.join(', ')}',
+          ),
+        );
       }
     }
   }
@@ -1110,11 +1292,13 @@ void _ui(Object? raw, List<Issue> issues) {
   final specVersion = block['specVersion'];
   final version = specVersion is num ? specVersion.toInt() : null;
   if (version != 1 && version != 2) {
-    issues.add(const Issue(
-      Severity.error,
-      'ui.specVersion',
-      'must be 1 or 2 — the host reads no other version',
-    ));
+    issues.add(
+      const Issue(
+        Severity.error,
+        'ui.specVersion',
+        'must be 1 or 2 — the host reads no other version',
+      ),
+    );
   }
   final reads = version ?? 2;
 
@@ -1123,42 +1307,54 @@ void _ui(Object? raw, List<Issue> issues) {
   final slots = block['slots'];
   if (slots is Map) {
     final map = slots.cast<String, dynamic>();
-    if (map.length > 32) {
-      issues.add(Issue(
-        Severity.warning,
-        'ui.slots',
-        'more than 32 slots — the extras are dropped',
-        resolved: 32,
-      ));
+    if (map.length > 48) {
+      issues.add(
+        Issue(
+          Severity.warning,
+          'ui.slots',
+          'more than 48 slots — the extras are dropped',
+          resolved: 48,
+        ),
+      );
     }
     for (final entry in map.entries) {
       if (!slotNames.contains(entry.key)) {
-        issues.add(Issue(
-          Severity.error,
-          'ui.slots.${entry.key}',
-          'not a slot the host publishes — the content would never appear',
-        ));
+        issues.add(
+          Issue(
+            Severity.error,
+            'ui.slots.${entry.key}',
+            'not a slot the host publishes — the content would never appear',
+          ),
+        );
         continue;
       }
       final slot = entry.value;
       if (slot is! Map) {
-        issues.add(Issue(
-            Severity.error, 'ui.slots.${entry.key}', 'must be an object'));
+        issues.add(
+          Issue(Severity.error, 'ui.slots.${entry.key}', 'must be an object'),
+        );
         continue;
       }
       final body = slot.cast<String, dynamic>();
       final refresh = body['refreshSeconds'];
       if (refresh != null) {
         if (refresh is! num || refresh < 0 || refresh > 3600) {
-          issues.add(Issue(
-            Severity.warning,
-            'ui.slots.${entry.key}.refreshSeconds',
-            'must be a number of seconds between 0 and 3600',
-          ));
+          issues.add(
+            Issue(
+              Severity.warning,
+              'ui.slots.${entry.key}.refreshSeconds',
+              'must be a number of seconds between 0 and 3600',
+            ),
+          );
         }
       }
-      total += _uiNodes('ui.slots.${entry.key}', body['children'],
-          maxUiNodesPerSlot, issues, reads);
+      total += _uiNodes(
+        'ui.slots.${entry.key}',
+        body['children'],
+        maxUiNodesPerSlot,
+        issues,
+        reads,
+      );
     }
   }
 
@@ -1166,39 +1362,51 @@ void _ui(Object? raw, List<Issue> issues) {
   if (screens is Map) {
     final map = screens.cast<String, dynamic>();
     if (map.length > 16) {
-      issues.add(Issue(
-        Severity.warning,
-        'ui.screens',
-        'more than 16 screens — the extras are dropped',
-        resolved: 16,
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          'ui.screens',
+          'more than 16 screens — the extras are dropped',
+          resolved: 16,
+        ),
+      );
     }
     for (final entry in map.entries) {
       final screen = entry.value;
       if (screen is! Map) {
-        issues.add(Issue(
-            Severity.error, 'ui.screens.${entry.key}', 'must be an object'));
+        issues.add(
+          Issue(Severity.error, 'ui.screens.${entry.key}', 'must be an object'),
+        );
         continue;
       }
       final body = screen.cast<String, dynamic>();
       final title = body['title'];
       if (title != null && (title is! String || title.length > 80)) {
-        issues.add(Issue(
-          Severity.warning,
-          'ui.screens.${entry.key}.title',
-          'must be a string of at most 80 characters',
-        ));
+        issues.add(
+          Issue(
+            Severity.warning,
+            'ui.screens.${entry.key}.title',
+            'must be a string of at most 80 characters',
+          ),
+        );
       }
       final showBack = body['showBack'];
       if (showBack != null && showBack is! bool) {
-        issues.add(Issue(
-          Severity.warning,
-          'ui.screens.${entry.key}.showBack',
-          'must be a boolean',
-        ));
+        issues.add(
+          Issue(
+            Severity.warning,
+            'ui.screens.${entry.key}.showBack',
+            'must be a boolean',
+          ),
+        );
       }
-      total += _uiNodes('ui.screens.${entry.key}', body['children'], 500,
-          issues, reads);
+      total += _uiNodes(
+        'ui.screens.${entry.key}',
+        body['children'],
+        500,
+        issues,
+        reads,
+      );
     }
   }
 
@@ -1206,70 +1414,96 @@ void _ui(Object? raw, List<Issue> issues) {
   if (templates is Map) {
     final map = templates.cast<String, dynamic>();
     if (map.length > 32) {
-      issues.add(Issue(
-        Severity.warning,
-        'ui.templates',
-        'more than 32 templates — the extras are dropped',
-        resolved: 32,
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          'ui.templates',
+          'more than 32 templates — the extras are dropped',
+          resolved: 32,
+        ),
+      );
     }
     for (final entry in map.entries) {
       final template = entry.value;
       if (template is! Map) {
-        issues.add(Issue(
-            Severity.error, 'ui.templates.${entry.key}', 'must be an object'));
+        issues.add(
+          Issue(
+            Severity.error,
+            'ui.templates.${entry.key}',
+            'must be an object',
+          ),
+        );
         continue;
       }
       final body = template.cast<String, dynamic>();
       final params = body['params'];
       if (params != null) {
         if (params is! List || params.length > 16) {
-          issues.add(Issue(
-            Severity.warning,
-            'ui.templates.${entry.key}.params',
-            'must be a list of at most 16 names',
-          ));
+          issues.add(
+            Issue(
+              Severity.warning,
+              'ui.templates.${entry.key}.params',
+              'must be a list of at most 16 names',
+            ),
+          );
         } else {
           for (final param in params) {
             if (param is! String || param.length > 64) {
-              issues.add(Issue(
-                Severity.warning,
-                'ui.templates.${entry.key}.params',
-                'a parameter name must be a short string',
-              ));
+              issues.add(
+                Issue(
+                  Severity.warning,
+                  'ui.templates.${entry.key}.params',
+                  'a parameter name must be a short string',
+                ),
+              );
             }
           }
         }
       }
-      total += _uiNodes('ui.templates.${entry.key}', body['children'],
-          maxUiNodesPerSlot, issues, reads);
+      total += _uiNodes(
+        'ui.templates.${entry.key}',
+        body['children'],
+        maxUiNodesPerSlot,
+        issues,
+        reads,
+      );
     }
   }
 
   if (total > maxUiNodesTotal) {
-    issues.add(Issue(
-      Severity.warning,
-      'ui',
-      'more than $maxUiNodesTotal nodes in total — the extras are dropped',
-      resolved: maxUiNodesTotal,
-    ));
+    issues.add(
+      Issue(
+        Severity.warning,
+        'ui',
+        'more than $maxUiNodesTotal nodes in total — the extras are dropped',
+        resolved: maxUiNodesTotal,
+      ),
+    );
   }
 }
 
 /// A list of nodes, checked for type, depth, size and bindings.
-int _uiNodes(String path, Object? raw, int limit, List<Issue> issues, int version) {
+int _uiNodes(
+  String path,
+  Object? raw,
+  int limit,
+  List<Issue> issues,
+  int version,
+) {
   if (raw == null) return 0;
   if (raw is! List) {
     issues.add(Issue(Severity.error, path, 'must be a list of nodes'));
     return 0;
   }
   if (raw.length > limit) {
-    issues.add(Issue(
-      Severity.warning,
-      path,
-      'more than $limit nodes — the extras are dropped',
-      resolved: limit,
-    ));
+    issues.add(
+      Issue(
+        Severity.warning,
+        path,
+        'more than $limit nodes — the extras are dropped',
+        resolved: limit,
+      ),
+    );
   }
 
   var count = 0;
@@ -1280,8 +1514,13 @@ int _uiNodes(String path, Object? raw, int limit, List<Issue> issues, int versio
 }
 
 /// One node.
-int _uiNode(String path, Object? raw, int depth, List<Issue> issues,
-    int version) {
+int _uiNode(
+  String path,
+  Object? raw,
+  int depth,
+  List<Issue> issues,
+  int version,
+) {
   if (raw is! Map) {
     issues.add(Issue(Severity.error, path, 'must be an object'));
     return 0;
@@ -1289,30 +1528,36 @@ int _uiNode(String path, Object? raw, int depth, List<Issue> issues,
   final node = raw.cast<String, dynamic>();
 
   if (depth > maxUiDepth) {
-    issues.add(Issue(
-      Severity.warning,
-      path,
-      'deeper than $maxUiDepth levels — the subtree is dropped',
-    ));
+    issues.add(
+      Issue(
+        Severity.warning,
+        path,
+        'deeper than $maxUiDepth levels — the subtree is dropped',
+      ),
+    );
     return 0;
   }
 
   final type = node['type'];
   if (type is! String || !uiNodeTypes.contains(type)) {
-    issues.add(Issue(
-      Severity.error,
-      path,
-      'unknown node type — the host renders nothing for it',
-    ));
+    issues.add(
+      Issue(
+        Severity.error,
+        path,
+        'unknown node type — the host renders nothing for it',
+      ),
+    );
     return 0;
   }
 
   if (type == 'animate' && version < 2) {
-    issues.add(Issue(
-      Severity.warning,
-      path,
-      'animate needs ui.specVersion 2 — a v1 host draws its child still',
-    ));
+    issues.add(
+      Issue(
+        Severity.warning,
+        path,
+        'animate needs ui.specVersion 2 — a v1 host draws its child still',
+      ),
+    );
   }
 
   var count = 1;
@@ -1327,11 +1572,13 @@ int _uiNode(String path, Object? raw, int depth, List<Issue> issues,
       issues.add(Issue(Severity.error, '$path.props', 'must be an object'));
     } else {
       props.addAll(nested.cast<String, dynamic>());
-      issues.add(Issue(
-        Severity.warning,
-        '$path.props',
-        'the legacy shape — write the props flat on the node',
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          '$path.props',
+          'the legacy shape — write the props flat on the node',
+        ),
+      );
     }
   }
   for (final entry in node.entries) {
@@ -1342,11 +1589,13 @@ int _uiNode(String path, Object? raw, int depth, List<Issue> issues,
   final allowed = uiNodeProps[type] ?? const <String>[];
   for (final key in props.keys) {
     if (!allowed.contains(key)) {
-      issues.add(Issue(
-        Severity.error,
-        '$path.$key',
-        'not a prop of a "$type" node — the host ignores it',
-      ));
+      issues.add(
+        Issue(
+          Severity.error,
+          '$path.$key',
+          'not a prop of a "$type" node — the host ignores it',
+        ),
+      );
     }
   }
   for (final entry in props.entries) {
@@ -1354,11 +1603,13 @@ int _uiNode(String path, Object? raw, int depth, List<Issue> issues,
   }
 
   if (node.containsKey('action') && node.containsKey('actions')) {
-    issues.add(Issue(
-      Severity.warning,
-      path,
-      'both action and actions — the host reads actions',
-    ));
+    issues.add(
+      Issue(
+        Severity.warning,
+        path,
+        'both action and actions — the host reads actions',
+      ),
+    );
   }
   if (node['action'] != null) {
     _uiAction('$path.action', node['action'], issues);
@@ -1369,12 +1620,14 @@ int _uiNode(String path, Object? raw, int depth, List<Issue> issues,
       issues.add(Issue(Severity.error, '$path.actions', 'must be a list'));
     } else {
       if (actions.length > maxUiActionsPerNode) {
-        issues.add(Issue(
-          Severity.warning,
-          '$path.actions',
-          'more than $maxUiActionsPerNode actions — the extras are dropped',
-          resolved: maxUiActionsPerNode,
-        ));
+        issues.add(
+          Issue(
+            Severity.warning,
+            '$path.actions',
+            'more than $maxUiActionsPerNode actions — the extras are dropped',
+            resolved: maxUiActionsPerNode,
+          ),
+        );
       }
       for (var i = 0; i < actions.length; i++) {
         _uiAction('$path.actions[$i]', actions[i], issues);
@@ -1385,8 +1638,13 @@ int _uiNode(String path, Object? raw, int depth, List<Issue> issues,
   final children = node['children'];
   if (children is List) {
     for (var i = 0; i < children.length; i++) {
-      count += _uiNode('$path.children[$i]', children[i], depth + 1, issues,
-          version);
+      count += _uiNode(
+        '$path.children[$i]',
+        children[i],
+        depth + 1,
+        issues,
+        version,
+      );
     }
   } else if (children != null) {
     issues.add(Issue(Severity.error, '$path.children', 'must be a list'));
@@ -1397,14 +1655,21 @@ int _uiNode(String path, Object? raw, int depth, List<Issue> issues,
 
 /// One prop, checked against what its node type says it means.
 void _uiProp(
-    String path, String type, String key, Object? value, List<Issue> issues) {
+  String path,
+  String type,
+  String key,
+  Object? value,
+  List<Issue> issues,
+) {
   if (key == 'bind' || key == 'maxBind' || key == 'disabledWhen') {
-    if (value is! String || !uiBindings.contains(value)) {
-      issues.add(Issue(
-        Severity.error,
-        path,
-        'not a binding the host knows — the node renders empty',
-      ));
+    if (value is! String || !isUiBinding(value)) {
+      issues.add(
+        Issue(
+          Severity.error,
+          path,
+          'not a binding the host knows — the node renders empty',
+        ),
+      );
     }
     return;
   }
@@ -1413,11 +1678,13 @@ void _uiProp(
     if (value is! String) {
       issues.add(Issue(Severity.error, path, 'must be a string'));
     } else if (value.length > maxUiTextLength) {
-      issues.add(Issue(
-        Severity.warning,
-        path,
-        'longer than $maxUiTextLength characters — truncated',
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          path,
+          'longer than $maxUiTextLength characters — truncated',
+        ),
+      );
     }
     return;
   }
@@ -1426,11 +1693,9 @@ void _uiProp(
     if (value is! String) {
       issues.add(Issue(Severity.error, path, 'must be a string'));
     } else if (value.length > 200) {
-      issues.add(Issue(
-        Severity.warning,
-        path,
-        'longer than 200 characters — truncated',
-      ));
+      issues.add(
+        Issue(Severity.warning, path, 'longer than 200 characters — truncated'),
+      );
     }
     return;
   }
@@ -1440,12 +1705,16 @@ void _uiProp(
       issues.add(Issue(Severity.error, path, 'must be a string'));
     } else if (value.startsWith('asset://')) {
       _assetPath(path, value, issues);
-    } else if (!uiImageSources.contains(value)) {
-      issues.add(Issue(
-        Severity.error,
-        path,
-        'must be one of ${uiImageSources.join(', ')} or an asset:// path',
-      ));
+    } else if (!uiImageSources.contains(value) &&
+        !(value.contains('.') && isUiBinding(value))) {
+      issues.add(
+        Issue(
+          Severity.error,
+          path,
+          'must be one of ${uiImageSources.join(', ')}, a binding, '
+          'or an asset:// path',
+        ),
+      );
     }
     return;
   }
@@ -1456,11 +1725,9 @@ void _uiProp(
     } else if (value.startsWith('asset://')) {
       _assetPath(path, value, issues);
     } else if (value.length > 64) {
-      issues.add(Issue(
-        Severity.warning,
-        path,
-        'longer than 64 characters — dropped',
-      ));
+      issues.add(
+        Issue(Severity.warning, path, 'longer than 64 characters — dropped'),
+      );
     }
     return;
   }
@@ -1474,19 +1741,22 @@ void _uiProp(
     // `size` means three different things: a type scale on text, a pixel
     // size on an icon, a gap on a gap node. The node type says which.
     if (type == 'icon' || type == 'gap') {
-      _uiNumber(path, value, min: type == 'icon' ? 8 : 0, max: 96,
-          issues: issues);
+      _uiNumber(
+        path,
+        value,
+        min: type == 'icon' ? 8 : 0,
+        max: 96,
+        issues: issues,
+      );
       return;
     }
     final allowed = type == 'button'
         ? const ['small', 'md', 'lg']
         : uiTextSizes;
     if (value is! String || !allowed.contains(value)) {
-      issues.add(Issue(
-        Severity.error,
-        path,
-        'must be one of ${allowed.join(', ')}',
-      ));
+      issues.add(
+        Issue(Severity.error, path, 'must be one of ${allowed.join(', ')}'),
+      );
     }
     return;
   }
@@ -1495,11 +1765,13 @@ void _uiProp(
     if (value is num) {
       _uiNumber(path, value, min: 100, max: 900, issues: issues);
     } else if (value is! String || !uiFontWeights.contains(value)) {
-      issues.add(Issue(
-        Severity.error,
-        path,
-        'must be 100..900 or one of ${uiFontWeights.join(', ')}',
-      ));
+      issues.add(
+        Issue(
+          Severity.error,
+          path,
+          'must be 100..900 or one of ${uiFontWeights.join(', ')}',
+        ),
+      );
     }
     return;
   }
@@ -1511,59 +1783,55 @@ void _uiProp(
       _ => uiAlignments,
     };
     if (value is! String || !allowed.contains(value)) {
-      issues.add(Issue(
-        Severity.error,
-        path,
-        'must be one of ${allowed.join(', ')}',
-      ));
+      issues.add(
+        Issue(Severity.error, path, 'must be one of ${allowed.join(', ')}'),
+      );
     }
     return;
   }
 
   if (key == 'justify') {
     if (value is! String || !uiJustifications.contains(value)) {
-      issues.add(Issue(
-        Severity.error,
-        path,
-        'must be one of ${uiJustifications.join(', ')}',
-      ));
+      issues.add(
+        Issue(
+          Severity.error,
+          path,
+          'must be one of ${uiJustifications.join(', ')}',
+        ),
+      );
     }
     return;
   }
 
   if (key == 'overflow') {
     if (value is! String || !uiOverflows.contains(value)) {
-      issues.add(Issue(
-        Severity.error,
-        path,
-        'must be one of ${uiOverflows.join(', ')}',
-      ));
+      issues.add(
+        Issue(Severity.error, path, 'must be one of ${uiOverflows.join(', ')}'),
+      );
     }
     return;
   }
 
   if (key == 'fit') {
     // A stack fits its children to itself; an image fits itself to its box.
-    final allowed = type == 'stack'
-        ? const ['loose', 'expand']
-        : uiImageFits;
+    final allowed = type == 'stack' ? const ['loose', 'expand'] : uiImageFits;
     if (value is! String || !allowed.contains(value)) {
-      issues.add(Issue(
-        Severity.error,
-        path,
-        'must be one of ${allowed.join(', ')}',
-      ));
+      issues.add(
+        Issue(Severity.error, path, 'must be one of ${allowed.join(', ')}'),
+      );
     }
     return;
   }
 
   if (key == 'filter') {
     if (value is! String || !uiImageFilters.contains(value)) {
-      issues.add(Issue(
-        Severity.error,
-        path,
-        'must be one of ${uiImageFilters.join(', ')}',
-      ));
+      issues.add(
+        Issue(
+          Severity.error,
+          path,
+          'must be one of ${uiImageFilters.join(', ')}',
+        ),
+      );
     }
     return;
   }
@@ -1577,33 +1845,39 @@ void _uiProp(
 
   if (key == 'variant') {
     if (value is! String || !buttonVariants.contains(value)) {
-      issues.add(Issue(
-        Severity.error,
-        path,
-        'must be one of ${buttonVariants.join(', ')}',
-      ));
+      issues.add(
+        Issue(
+          Severity.error,
+          path,
+          'must be one of ${buttonVariants.join(', ')}',
+        ),
+      );
     }
     return;
   }
 
   if (key == 'kind') {
     if (value is! String || !uiAnimationKinds.contains(value)) {
-      issues.add(Issue(
-        Severity.error,
-        path,
-        'must be one of ${uiAnimationKinds.join(', ')}',
-      ));
+      issues.add(
+        Issue(
+          Severity.error,
+          path,
+          'must be one of ${uiAnimationKinds.join(', ')}',
+        ),
+      );
     }
     return;
   }
 
   if (key == 'curve') {
     if (value is! String || !uiAnimationCurves.contains(value)) {
-      issues.add(Issue(
-        Severity.error,
-        path,
-        'must be one of ${uiAnimationCurves.join(', ')}',
-      ));
+      issues.add(
+        Issue(
+          Severity.error,
+          path,
+          'must be one of ${uiAnimationCurves.join(', ')}',
+        ),
+      );
     }
     return;
   }
@@ -1626,22 +1900,22 @@ void _uiProp(
 
   if (key == 'equals') {
     if (value is! String && value is! num && value is! bool) {
-      issues.add(Issue(
-        Severity.error,
-        path,
-        'must be a string, a number or a boolean',
-      ));
+      issues.add(
+        Issue(Severity.error, path, 'must be a string, a number or a boolean'),
+      );
     }
     return;
   }
 
   if (key == 'name') {
     if (value is! String || value.isEmpty || value.length > 64) {
-      issues.add(Issue(
-        Severity.error,
-        path,
-        'must be a template name of at most 64 characters',
-      ));
+      issues.add(
+        Issue(
+          Severity.error,
+          path,
+          'must be a template name of at most 64 characters',
+        ),
+      );
     }
     return;
   }
@@ -1669,11 +1943,13 @@ void _uiProp(
 
   if (key == 'family') {
     if (value is! String || value.length > 64) {
-      issues.add(Issue(
-        Severity.error,
-        path,
-        'must be a family name of at most 64 characters',
-      ));
+      issues.add(
+        Issue(
+          Severity.error,
+          path,
+          'must be a family name of at most 64 characters',
+        ),
+      );
     }
     return;
   }
@@ -1740,7 +2016,9 @@ void _uiProp(
     return;
   }
 
-  if (key == 'background' || key == 'borderColor') {
+  if (key == 'background' ||
+      key == 'hoverBackground' ||
+      key == 'borderColor') {
     _colorOrRole(path, value, issues);
     return;
   }
@@ -1758,11 +2036,13 @@ void _uiAction(String path, Object? raw, List<Issue> issues) {
   final action = raw.cast<String, dynamic>();
   final type = action['type'];
   if (type is! String || !uiActionTypes.contains(type)) {
-    issues.add(Issue(
-      Severity.error,
-      '$path.type',
-      'unknown action — the host ignores it',
-    ));
+    issues.add(
+      Issue(
+        Severity.error,
+        '$path.type',
+        'unknown action — the host ignores it',
+      ),
+    );
     return;
   }
   final args = action['args'];
@@ -1770,56 +2050,63 @@ void _uiAction(String path, Object? raw, List<Issue> issues) {
     issues.add(Issue(Severity.error, '$path.args', 'must be an object'));
     return;
   }
-  final map = args is Map ? args.cast<String, dynamic>() : const <String, dynamic>{};
+  final map = args is Map
+      ? args.cast<String, dynamic>()
+      : const <String, dynamic>{};
 
   if (type == 'navigate') {
     final target = map['target'];
     if (target is! String || target.isEmpty) {
-      issues.add(Issue(
-        Severity.warning,
-        '$path.args.target',
-        'navigate needs a target — the host ignores the action',
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          '$path.args.target',
+          'navigate needs a target — the host ignores the action',
+        ),
+      );
     }
   } else if (type == 'plugin') {
     final id = map['id'];
     if (id is! String || id.isEmpty) {
-      issues.add(Issue(
-        Severity.warning,
-        '$path.args.id',
-        'plugin needs an id — the host ignores the action',
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          '$path.args.id',
+          'plugin needs an id — the host ignores the action',
+        ),
+      );
     }
   } else if (type == 'toast') {
     final message = map['message'];
     if (message is! String || message.isEmpty) {
-      issues.add(Issue(
-        Severity.warning,
-        '$path.args.message',
-        'toast needs a message',
-      ));
+      issues.add(
+        Issue(Severity.warning, '$path.args.message', 'toast needs a message'),
+      );
     }
   } else if (type == 'seek') {
     final position = map['position'];
     if (position is! num) {
-      issues.add(Issue(
-        Severity.warning,
-        '$path.args.position',
-        'seek needs a position in seconds',
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          '$path.args.position',
+          'seek needs a position in seconds',
+        ),
+      );
     }
   } else if (type == 'setVolume') {
     final volume = map['volume'];
     if (volume is! num || volume < 0 || volume > 1) {
-      issues.add(Issue(
-        Severity.warning,
-        '$path.args.volume',
-        'setVolume needs a volume between 0 and 1',
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          '$path.args.volume',
+          'setVolume needs a volume between 0 and 1',
+        ),
+      );
     }
   }
 }
-
 
 /// A number given directly, rather than looked up in a map.
 void _uiNumber(
@@ -1836,12 +2123,14 @@ void _uiNumber(
   }
   final number = value.toDouble();
   if (!number.isFinite || number < min || number > max) {
-    issues.add(Issue(
-      Severity.warning,
-      path,
-      'outside $min..$max — the host clamps it',
-      resolved: number.clamp(min, max).toDouble(),
-    ));
+    issues.add(
+      Issue(
+        Severity.warning,
+        path,
+        'outside $min..$max — the host clamps it',
+        resolved: number.clamp(min, max).toDouble(),
+      ),
+    );
   }
 }
 
@@ -1850,8 +2139,9 @@ void _idList(
   Map<String, dynamic> map,
   String path,
   List<String> allowed,
-  List<Issue> issues,
-) {
+  List<Issue> issues, {
+  bool allowScreens = false,
+}) {
   final value = map[path.split('.').last];
   if (value == null) return;
   if (value is! List) {
@@ -1859,30 +2149,36 @@ void _idList(
     return;
   }
   if (value.length > 20) {
-    issues.add(Issue(
-      Severity.warning,
-      path,
-      'more than 20 entries — the extras are dropped',
-      resolved: 20,
-    ));
-  }
-  for (final entry in value) {
-    if (entry is! String || !allowed.contains(entry)) {
-      issues.add(Issue(
+    issues.add(
+      Issue(
         Severity.warning,
         path,
-        'unknown id — the host drops it',
-      ));
+        'more than 20 entries — the extras are dropped',
+        resolved: 20,
+      ),
+    );
+  }
+  for (final entry in value) {
+    final validScreen =
+        allowScreens &&
+        entry is String &&
+        RegExp(r'^screen:[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$').hasMatch(entry);
+    if (entry is! String || (!allowed.contains(entry) && !validScreen)) {
+      issues.add(
+        Issue(
+          Severity.warning,
+          path,
+          allowScreens
+              ? 'unknown id — the host drops it (entries may also be screen:<id>)'
+              : 'unknown id — the host drops it',
+        ),
+      );
     }
   }
 }
 
 /// A map of custom tokens.
-void _customTokens(
-  Map<String, dynamic> map,
-  String path,
-  List<Issue> issues,
-) {
+void _customTokens(Map<String, dynamic> map, String path, List<Issue> issues) {
   final value = map[path.split('.').last];
   if (value == null) return;
   if (value is! Map) {
@@ -1891,28 +2187,33 @@ void _customTokens(
   }
   final tokens = value.cast<String, dynamic>();
   if (tokens.length > maxCustomTokens) {
-    issues.add(Issue(
-      Severity.warning,
-      path,
-      'more than $maxCustomTokens tokens — the extras are dropped',
-      resolved: maxCustomTokens,
-    ));
+    issues.add(
+      Issue(
+        Severity.warning,
+        path,
+        'more than $maxCustomTokens tokens — the extras are dropped',
+        resolved: maxCustomTokens,
+      ),
+    );
   }
   for (final entry in tokens.entries) {
     final token = entry.value;
     if (token is! num) {
-      issues.add(Issue(
-          Severity.error, '$path.${entry.key}', 'must be a number'));
+      issues.add(
+        Issue(Severity.error, '$path.${entry.key}', 'must be a number'),
+      );
       continue;
     }
     final number = token.toDouble();
     if (!number.isFinite || number < 0 || number > 1000) {
-      issues.add(Issue(
-        Severity.warning,
-        '$path.${entry.key}',
-        'outside 0..1000 — the host clamps it',
-        resolved: number.clamp(0.0, 1000.0).toDouble(),
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          '$path.${entry.key}',
+          'outside 0..1000 — the host clamps it',
+          resolved: number.clamp(0.0, 1000.0).toDouble(),
+        ),
+      );
     }
   }
 }
@@ -1920,8 +2221,7 @@ void _customTokens(
 /// A number inside a range.
 void _number(
   Map<String, dynamic> map,
-  String path,
-  {
+  String path, {
   required double min,
   required double max,
   required List<Issue> issues,
@@ -1934,12 +2234,14 @@ void _number(
   }
   final number = value.toDouble();
   if (!number.isFinite || number < min || number > max) {
-    issues.add(Issue(
-      Severity.warning,
-      path,
-      'outside $min..$max — the host clamps it',
-      resolved: number.clamp(min, max).toDouble(),
-    ));
+    issues.add(
+      Issue(
+        Severity.warning,
+        path,
+        'outside $min..$max — the host clamps it',
+        resolved: number.clamp(min, max).toDouble(),
+      ),
+    );
   }
 }
 
@@ -1951,20 +2253,24 @@ void _colorOrRole(String path, Object? value, List<Issue> issues) {
   }
   if (value.startsWith('@')) {
     if (!roleNames.contains(value.substring(1))) {
-      issues.add(Issue(
-        Severity.warning,
-        path,
-        'unknown role reference — the host falls back',
-      ));
+      issues.add(
+        Issue(
+          Severity.warning,
+          path,
+          'unknown role reference — the host falls back',
+        ),
+      );
     }
     return;
   }
   if (!_isHex(value)) {
-    issues.add(Issue(
-      Severity.error,
-      path,
-      'must be a #RRGGBB color or a @role reference',
-    ));
+    issues.add(
+      Issue(
+        Severity.error,
+        path,
+        'must be a #RRGGBB color or a @role reference',
+      ),
+    );
   }
 }
 
@@ -1982,11 +2288,13 @@ void _assetPath(String path, Object? value, List<Issue> issues) {
     return;
   }
   if (!value.startsWith('asset://')) {
-    issues.add(Issue(
-      Severity.error,
-      path,
-      'must start with asset:// — only the plugin\'s own assets are reachable',
-    ));
+    issues.add(
+      Issue(
+        Severity.error,
+        path,
+        'must start with asset:// — only the plugin\'s own assets are reachable',
+      ),
+    );
     return;
   }
   final rest = value.substring('asset://'.length);
@@ -1994,10 +2302,12 @@ void _assetPath(String path, Object? value, List<Issue> issues) {
       rest.startsWith('/') ||
       rest.contains('..') ||
       rest.contains('\\')) {
-    issues.add(Issue(
-      Severity.error,
-      path,
-      'must be a relative path inside the plugin directory',
-    ));
+    issues.add(
+      Issue(
+        Severity.error,
+        path,
+        'must be a relative path inside the plugin directory',
+      ),
+    );
   }
 }

@@ -118,8 +118,12 @@ fvm dart run tools/preview.dart my-theme
 `dist/preview/my-theme.html`: one file with both schemes, the palette, the
 component samples and the theme's screens, plus the stage if it has one. Fonts
 and images are inlined, so it opens offline. The top bar switches scheme and
-play/pause; the URL carries the state (`#mode=light`, `#screen=palette`). Use it
-to review the design before the host can draw the whole v3 tree.
+play/pause; the URL carries the state (`#mode=light`, `#screen=palette`).
+
+The preview is obsidian-shaped: its sample track, pixel CSS and font allow-list
+assume that theme, and it does not draw `home.content` or `list` nodes. It is
+a quick palette/stage check, not a full renderer; the app is the reference for
+the whole v3 tree.
 
 ## Ship it
 
@@ -177,15 +181,35 @@ back to the role it aliases, so a theme can set only the ones it cares about:
 ```
 
 The style keys are the app's own typography styles: `h1` `h2` `h3` `h4` `p`
-`lead` `large` `small` `muted` `xSmall` `xLarge` `x2Large` … `x9Large`.
+`lead` `large` `small` `muted` `xSmall` `xLarge` `x2Large` … `x9Large`. A
+style key the host does not have (`brand`, `label`) is carried for future
+hosts and ignored today.
+
+`family` is the ladder's default: it applies to every role the theme does not
+give an explicit `fontFamily`, so naming Inter and overriding only `h1` still
+draws the rest of the ladder in Inter. `monoFamily` applies to `mono` and
+`inlineCode`.
+
+The host applies these blocks: `typography` becomes shadcn's type ladder
+(fields a style omits keep the host value), `icons` becomes the icon ladder,
+and `scale` multiplies size, text, radius, icon and spacing independently.
+`spacing.page` is the page surface padding and `spacing.cardGap` the
+shelf/grid gap (it falls back to `tokens.gutter` when omitted); `pageHorizontal`,
+`section` and `custom` are published on `AppLayout` for pages that draw their
+own sections. `motion` feeds the durations and easing of the transitions the
+host draws. Every number is clamped on read, so an out-of-range value degrades
+to the nearest usable one instead of breaking layout.
 
 A colour is a hex value or a `@role` reference (`@primary`, `@cardForeground`,
 `@chart3`, …).
 
 ### 3. Components
 
-Every shadcn component the app draws with may be restyled, and the buttons may
-be restyled per variant:
+Component groups are validated and carried by the contract. The host draws
+`player` (the footer surface) and the node-scoped `card`/`buttons` styles
+directly; the remaining groups are reserved for hosts that can express them,
+and a theme may ship them without a host release. Buttons may be restyled per
+variant:
 
 ```json
 "components": {
@@ -195,12 +219,13 @@ be restyled per variant:
     "destructive": {"background": "@destructive", "foreground": "@destructiveForeground"}
   },
   "card": {"radius": 16, "padding": 16, "surfaceOpacity": 0.9, "surfaceBlur": 12},
+  "player": {"background": "@background", "borderColor": "@border", "borderWidth": 0},
   "input": {"radius": 8, "height": 36, "borderColor": "@input"},
   "dialog": {"radius": 16, "padding": 24}
 }
 ```
 
-The groups are `card`, `input`, `tabs`, `nav`, `tooltip`, `badge`, `select`,
+The groups are `card`, `player`, `input`, `tabs`, `nav`, `tooltip`, `badge`, `select`,
 `switch`, `slider`, `scrollbar`, `avatar`, `skeleton`, `progress`, `divider`,
 `menu`, `dropdown`, `modal`, `dialog`, `sheet`, `table`, `checkbox`, `radio`,
 `toggle`, `toggleGroup`, `accordion`, `alert`, `breadcrumb`, `carousel`,
@@ -224,7 +249,7 @@ Each style may set `padding`, `margin`, `gap`, `radius`, `borderWidth`,
   "progress": "inline",
   "navItems": ["home", "radio", "stats", "search"],
   "navbarItems": ["home", "search", "radio", "library", "stats"],
-  "libraryItems": ["playlists", "artists", "albums", "local_library"],
+  "libraryItems": ["playlists", "artists", "albums", "stations", "local_library"],
   "player": {
     "dock": "stage",
     "showTrackDetails": true, "showActions": true,
@@ -234,24 +259,39 @@ Each style may set `padding`, `margin`, `gap`, `radius`, `borderWidth`,
   "settings": {"sections": ["accounts", "appearance", "playback", "about"]},
   "titlebar": {"height": 40, "padding": 12, "showBack": true},
   "splash": {"logo": "asset://images/splash.png", "text": "My Theme"},
-  "enforce": ["playerDock"],
+  "enforce": ["playerDock", "libraryItems"],
   "responsive": {"compact": {"nav": "rail", "player": {"showVolume": false}}}
 }
 ```
+
+`navItems` drives the sidebar's top entries, `navbarItems` the bottom bar and
+`libraryItems` the library group. The host ids are `home`, `radio`, `stats`,
+`search` (sidebar), `home`, `search`, `radio`, `library`, `stats` (bottom bar)
+and `playlists`, `artists`, `albums`, `stations`, `local_library` (library).
+An entry may also be `screen:<id>`, which links to one of the theme's own
+`ui.screens` — that is how a theme adds a destination the host never shipped.
 
 `dock` is `full`, `compact`, `floating` or `stage`. `stage` turns the player
 into the centre of the app: the record, its title and the transport, with the
 theme filling `stage.center` and `stage.below` itself (see §6). Navigation
 stays around it, so a stage theme is still a player, not a splash screen.
+The host has two footer shapes, so `compact` maps to the bar docked under the
+content and the other names keep the full-width footer.
 
 **The user's own settings win by default.** A theme takes the layout over
-only where it says so in `enforce`: `nav`, `navItems`, `libraryItems`,
-`navOrder`, `player`, `playerDock`, `volume`, `home`, `settings`, `titlebar`,
-`splash`. Without `enforce`, a theme that hides the volume control cannot
-override a user who chose to keep it.
+only where it says so in `enforce`: `nav`, `navItems`, `navbarItems`,
+`libraryItems`, `navOrder`, `player`, `playerDock`, `volume`, `home`,
+`settings`, `titlebar`, `splash`. `navItems`, `navbarItems` and
+`libraryItems` claim membership (the theme's list replaces the host's);
+`navOrder` alone only moves the entries the theme names to the front and
+leaves the rest in place. Without `enforce`, a theme that hides the volume
+control cannot override a user who chose to keep it.
 
-`responsive` holds up to four variants (`compact`, `medium`, `expanded`, or
-any name), each overriding the same fields.
+`responsive` holds up to four variants, each overriding the same fields. The
+name selects the window tier: `compact` (with `xs`/`sm` aliases, up to
+820 px), `medium` (`md`, up to 1024 px) and `expanded` (`lg`/`xl`/`2xl`).
+Variants merge over the base layout, so a variant may override just
+`player.showVolume` without restating anything else.
 
 ### 5. Branding
 
@@ -260,7 +300,7 @@ any name), each overriding the same fields.
   "appName": "Aurora",
   "shortName": "Aurora",
   "tagline": "Your music, your shell",
-  "wordmark": {"text": "Aurora", "fontFamily": "Cookie"},
+  "wordmark": {"text": "Aurora", "fontFamily": "Cookie", "asset": "asset://images/wordmark.png"},
   "logo": "asset://images/logo.png",
   "titlebarTitle": "Aurora",
   "windowTitle": "Aurora",
@@ -271,7 +311,9 @@ any name), each overriding the same fields.
 ```
 
 The host always keeps its name, version and licence on the About page,
-whatever a theme says.
+whatever a theme says. `wordmark` (text or asset) replaces the logo in the
+sidebar and the home header; `logo` is also the splash fallback; `aboutName`
+titles the About page and `windowTitle` the window.
 
 ### 6. Content
 
@@ -316,21 +358,24 @@ into the flat one, but every theme in this repository writes the flat form.)
 | `icon` | `icon`, `size`, `color` |
 | `image` | `src`, `bind`, `width`, `height`, `radius`, `shape`, `fit`, `filter`, `tile`, `opacity` |
 | `button` | `label`, `icon`, `variant`, `size`, `disabledWhen`, plus `action`/`actions` |
-| `card` | `padding`, `radius`, `background`, `borderColor`, `borderWidth`, `opacity` |
+| `card` | `padding`, `radius`, `background`, `hoverBackground`, `borderColor`, `borderWidth`, `opacity`, `width`, `height` |
+| `search` | `placeholder` |
 | `divider` | `orientation`, `thickness`, `color` |
 | `spacer` | `flex` |
 | `gap` | `size` |
 | `conditional` | `bind`, `equals`, `invert` |
 | `template` | `name`, `args` |
 | `animate` | `kind`, `duration`, `curve`, `bind`, `reverse` |
-| `progress` | `bind`, `maxBind`, `width`, `height`, `hitHeight`, `radius`, `borderWidth`, `borderColor`, `color`, `trackColor`, `thumbColor`, `thumbSize` |
+| `progress` | `bind`, `maxBind`, `width`, `height`, `hitHeight`, `radius`, `borderWidth`, `borderColor`, `color`, `trackColor`, `thumbColor`, `thumbSize`, `interactive` |
+| `list` | `bind`, `gap`, `limit`, `align`, `direction`, plus `children` (the row template) |
 
 An unknown prop is an error, not a silent no-op: the build fails rather than
 shipping a theme that does not do what you wrote.
 
 **Seeking.** `progress` draws the current playhead from `player.position` /
-`player.duration` and is draggable and tappable. A drag previews locally and
-commits on release; both paths dispatch `seek` with a clamped `fraction`.
+`player.duration`; with `interactive: true` it is draggable and tappable. A
+drag previews locally and commits on release; both paths dispatch `seek` with
+a clamped `fraction`.
 `width` fixes the bar's logical width when it sits in a footer that Flutter
 measures intrinsically (put it inside `expanded` when the row should flex
 instead); `hitHeight` controls the touch target independently of the painted
@@ -344,8 +389,10 @@ pixels.
 **Pixel work.** `image.filter: "nearest"` samples without smoothing — the
 one prop that keeps pixel art crisp. `image.shape: "circle"` clips to the
 short side, so a square cover becomes a record. `image.tile: true` repeats
-instead of stretching. `background.tile` and `background.scale` (1–8, whole
-numbers) do the same for the app's own backdrop, and
+instead of stretching. `card` with `width`, `height` and a pill `radius` is a
+sized shape with no children — a mark, avatar or dot drawn from the palette
+rather than shipped as a bitmap. `background.tile` and `background.scale`
+(1–8, whole numbers) do the same for the app's own backdrop, and
 `components.*.borderStyle: "pixel"` draws a two-tone bevel derived from
 `borderColor`.
 
@@ -356,19 +403,108 @@ binding is truthy and holds its position when it is not; `reverse` turns the
 other way. `animate` needs `ui.specVersion: 2`; a v1 host draws the child
 still, which is a graceful fallback rather than an error.
 
-**Bindings:** `player.title`, `player.artist`, `player.album`,
-`player.artwork`, `player.playing`, `player.loop`, `player.shuffled`,
-`player.position`, `player.duration`, `player.volume`, `user.name`,
-`user.avatar`, `app.version`, `app.brightness`, `app.themeMode`,
-`clock.now`.
+**Bindings:** `player.trackId`, `player.title`, `player.artist`,
+`player.album`, `player.artwork`, `player.playing`, `player.loop`,
+`player.shuffled`, `player.position`, `player.duration`, `player.volume`,
+`user.name`, `user.avatar`, `app.version`, `app.brightness`,
+`app.themeMode`, `app.greeting`, `clock.now`.
+
+**Repeating collections.** `list` draws its single child (or its children as
+a column) once per entry of a bound collection. `direction: "horizontal"`
+draws the same entries as a sideways-scrolling shelf; the default is
+vertical. The bound value must be a list of host objects, not display
+strings:
+
+```json
+{
+  "type": "list",
+  "bind": "collection.tracks",
+  "limit": 100,
+  "gap": 4,
+  "align": "stretch",
+  "children": [
+    {
+      "type": "row",
+      "gap": 12,
+      "align": "center",
+      "children": [
+        {"type": "text", "bind": "item.number", "size": "sm", "color": "@mutedForeground"},
+        {"type": "image", "src": "item.artwork", "width": 40, "height": 40, "radius": 4},
+        {
+          "type": "column",
+          "gap": 2,
+          "children": [
+            {"type": "text", "bind": "item.title"},
+            {"type": "text", "bind": "item.artist", "size": "sm", "color": "@mutedForeground"}
+          ]
+        },
+        {
+          "type": "button",
+          "label": "Play",
+          "action": {"type": "playItem"}
+        }
+      ]
+    }
+  ]
+}
+```
+
+`limit` defaults to 200 and caps at 500; the collection is truncated, never
+paged. Inside the template every `item.*` binding resolves against the current
+entry. The host publishes `item.index` (0-based), `item.number` (1-based),
+`item.kind` (`track`, `album`, `artist`, `playlist` or `download`) and
+`item.playing`; the fields below are present when the entry's type has them:
+
+| Entry | Fields |
+|---|---|
+| track / download | `id`, `title`, `name`, `artist`, `artistId`, `album`, `albumId`, `artwork`, `duration`, `uri`, `explicit`; downloads add `status`, `size` |
+| album | `id`, `title`, `name`, `artist`, `artistId`, `artwork`, `uri`, `releaseDate`, `year`, `trackCount`, `label`, `genres` |
+| artist | `id`, `title`, `name`, `artwork`, `uri`, `followers`, `genres` |
+| playlist | `id`, `title`, `name`, `description`, `owner`, `ownerId`, `artwork`, `uri`, plus `collaborative`, `public` when full |
+
+A map entry publishes its keys under `item.<key>`. Item actions receive the
+entry itself: `playItem` queues the bound list and starts at the tapped row
+(or jumps to a track already in the queue), `openItem` navigates to the
+entry's page, `likeItem` toggles a track's favourite, and `downloadItem`
+queues it for download. The host injects `item`, `index` and `items` into the
+action's args; a theme does not write them.
+
+**Page bindings.** The content slots below replace a page's body and publish
+that page's data. These names are open-ended, like `item.*`, and resolve only
+where the host publishes them:
+
+| Slot | Bindings |
+|---|---|
+| `home.content` | `home.greeting`, `home.recent`, `home.newReleases`, `home.browse` |
+| `collection.content`, `collection.header`, `collection.before_tracks`, `collection.after_tracks` | `collection.id`, `kind`, `title`, `description`, `owner`, `ownerImage`, `artwork`, `route`, `share`, `liked`, `tracks`, `trackCount` |
+| `artist.content`, `artist.header` | `artist.id`, `name`, `artwork`, `followers`, `genres`, `topTracks`, `albums`, `related` |
+| `search.content` | `search.query`, `tracks`, `albums`, `artists`, `playlists` |
+| `library.content` | `library.playlists`, `albums`, `artists` |
+| `queue.content` | `queue.tracks`, `currentIndex`, `count` |
+| `downloads.content` | `downloads.items`, `count` |
+| `stats.content` | `stats.period`, `minutes`, `tracks`, `artists`, `albums`, `playlists`, `fees`, `topTracks`, `topAlbums`, `topPlaylists` |
+
+A page-level slot whose name is absent leaves the host's own body in place.
+`collection.content` and `artist.content` replace only the scrolling body;
+the host keeps its titlebar and back button. `collection.header`,
+`collection.before_tracks` and `collection.after_tracks` are separate seams
+for use alongside the host's body. `home.content` replaces the whole home
+body (including the host's own search row), so a theme that fills it draws
+its own top bar and links into search with `navigate`. `search.content`
+replaces the result area only — the host keeps the search field and scope
+chips, because a theme has no input node.
 
 **Image sources:** `player.artwork`, `user.avatar`, `albumArt` (the original
-spelling, kept as an alias) or an `asset://` path.
+spelling, kept as an alias), an `asset://` path, or any binding that holds an
+image URL (`item.artwork`, `collection.artwork`, `artist.artwork`, …).
 
 **Actions:** `navigate`, `playPause`, `next`, `previous`, `seek`,
 `setVolume`, `setShuffle`, `setLoopMode`, `like`, `download`, `openSettings`,
-`openLyrics`, `openQueue`, `openDownloads`, `toast`, `plugin`. A node may
-carry one `action` or a list under `actions` (up to four, in order).
+`openLyrics`, `openQueue`, `openDownloads`, `toast`, `plugin`, `playItem`,
+`playCollection`, `openItem`, `likeItem`, `downloadItem`. A node may carry one
+`action` or a list under `actions` (up to four, in order). `playCollection`
+plays the page's own track list (`collection.tracks` or `artist.topTracks`),
+which is how a theme's content slot keeps a working play button.
 
 **Slots** (the only names a theme may use): `sidebar.header`,
 `sidebar.footer`, `sidebar.nav.before`, `sidebar.nav.after`,
@@ -376,7 +512,12 @@ carry one `action` or a list under `actions` (up to four, in order).
 `sidebar.pins.after`, `player.leading`, `player.controls`, `player.trailing`,
 `player.progress`, `stage.center`, `stage.below`, `app.overlay`,
 `shell.before`, `shell.after`, `home.before_sections`, `home.after_sections`,
-`lyrics.header`, `lyrics.after_tabs`, `settings.before`, `settings.after`.
+`home.content`,
+`lyrics.header`, `lyrics.after_tabs`, `settings.before`, `settings.after`,
+`collection.content`, `collection.header`, `collection.before_tracks`,
+`collection.after_tracks`, `artist.content`, `artist.header`,
+`search.content`, `library.content`, `queue.content`, `downloads.content`,
+`stats.content`.
 The two `stage.*` slots are where a `dock: "stage"` player puts its content.
 
 ### 7. A theme's own UI
@@ -461,7 +602,8 @@ a different theme than the one it wrote. The build reports every clamp:
 - `scale`: 0.5..2
 - icon sizes: 8..64
 - a UI tree: 12 levels deep, 200 nodes per slot, 1000 in total, 4 actions per
-  node, 500 characters of text
+  node, 500 characters of text; `list.limit`: 1..500 (200 when absent)
+- up to 48 slots (a theme only names the ones it fills)
 
 ## What a theme cannot do
 

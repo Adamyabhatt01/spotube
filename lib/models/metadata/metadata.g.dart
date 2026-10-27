@@ -732,6 +732,10 @@ _$ThemeLayoutImpl _$$ThemeLayoutImplFromJson(Map json) => _$ThemeLayoutImpl(
               ?.map((e) => e as String)
               .toList() ??
           const [],
+      navbarItems: (json['navbarItems'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       libraryItems: (json['libraryItems'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
@@ -766,6 +770,7 @@ Map<String, dynamic> _$$ThemeLayoutImplToJson(_$ThemeLayoutImpl instance) =>
       'player': instance.player.toJson(),
       'enforce': instance.enforce,
       'navItems': instance.navItems,
+      'navbarItems': instance.navbarItems,
       'libraryItems': instance.libraryItems,
       'home': instance.home,
       'settings': instance.settings,

@@ -9,7 +9,12 @@ import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/titlebar/titlebar.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
+import 'package:spotube/modules/theme_shell/theme_navigation.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
+import 'package:spotube/provider/metadata_plugin/library/albums.dart';
+import 'package:spotube/provider/metadata_plugin/library/artists.dart';
+import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 
 @RoutePage()
 class LibraryPage extends HookConsumerWidget {
@@ -44,6 +49,20 @@ class LibraryPage extends HookConsumerWidget {
       (e) => router.currentPath.startsWith(e.pathPrefix),
     );
 
+    final hasContent = themeUiSlotExists(ref, 'library.content');
+    final playlists = hasContent
+        ? ref.watch(metadataPluginSavedPlaylistsProvider).asData?.value.items ??
+            const []
+        : const [];
+    final albums = hasContent
+        ? ref.watch(metadataPluginSavedAlbumsProvider).asData?.value.items ??
+            const []
+        : const [];
+    final artists = hasContent
+        ? ref.watch(metadataPluginSavedArtistsProvider).asData?.value.items ??
+            const []
+        : const [];
+
     return PopScope(
       canPop: false,
       // Only a *blocked* pop is the user asking to leave the library, which is
@@ -69,7 +88,11 @@ class LibraryPage extends HookConsumerWidget {
                     child: TabList(
                       index: index,
                       onChanged: (index) {
-                        context.navigateTo(sidebarLibraryTileList[index].route);
+                        openSideBarTile(
+                          context,
+                          ref,
+                          sidebarLibraryTileList[index],
+                        );
                       },
                       children: [
                         for (final tile in sidebarLibraryTileList)
@@ -94,7 +117,15 @@ class LibraryPage extends HookConsumerWidget {
                 ),
               const Gap(10),
             ],
-            child: const AutoRouter(),
+            child: ThemePageContent(
+              slot: 'library.content',
+              bindings: {
+                'library.playlists': playlists,
+                'library.albums': albums,
+                'library.artists': artists,
+              },
+              fallback: const AutoRouter(),
+            ),
           );
         }),
       ),

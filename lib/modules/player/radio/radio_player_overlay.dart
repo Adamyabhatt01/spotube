@@ -5,12 +5,14 @@ import 'package:sliding_up_panel/sliding_up_panel.dart';
 
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/models/database/database.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/player/radio/radio_player_actions.dart';
 import 'package:spotube/modules/player/radio/radio_player_controls.dart';
 import 'package:spotube/modules/player/radio/radio_player_track_details.dart';
 import 'package:spotube/modules/player/volume_slider.dart';
 import 'package:spotube/modules/root/spotube_navigation_bar.dart';
 import 'package:spotube/modules/radio/radio_station_tile.dart';
+import 'package:spotube/modules/theme_shell/theme_shell.dart';
 import 'package:spotube/provider/radio/radio_playback.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 
@@ -130,6 +132,10 @@ class RadioPlayerPanel extends HookConsumerWidget {
 
     final mode =
         ref.watch(userPreferencesProvider.select((s) => s.volumeControlMode));
+    final layout = context.layout;
+    final volumeOverride =
+        themeEnforces(layout, ThemeShellKeys.volume) ? layout.player.showVolume : null;
+    final showVolume = volumeOverride ?? mode != VolumeControlMode.hidden;
 
     return Container(
       color: theme.colorScheme.background,
@@ -173,7 +179,7 @@ class RadioPlayerPanel extends HookConsumerWidget {
           const Center(child: RadioPlayerControls()),
           const Gap(12),
           const Center(child: RadioPlayerActions()),
-          if (mode != VolumeControlMode.hidden)
+          if (showVolume)
             Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Center(

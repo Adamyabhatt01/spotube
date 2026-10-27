@@ -22,11 +22,16 @@ import 'package:spotube/modules/root/sidebar/sidebar_pin_tile.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_reorderable_item.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_station_pin_tile.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_visibility.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_fonts.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/modules/playlist/liked_playlist_synthetic.dart';
+import 'package:spotube/modules/theme_shell/theme_branding.dart';
+import 'package:spotube/modules/theme_shell/theme_navigation.dart';
+import 'package:spotube/modules/theme_shell/theme_shell.dart';
+import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/radio/favorites.dart';
 import 'package:spotube/provider/sidebar/sidebar_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
@@ -54,11 +59,30 @@ class Sidebar extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData(:colorScheme) = Theme.of(context);
     final mediaQuery = MediaQuery.sizeOf(context);
+    // Already resolved for the current width (main.dart publishes the
+    // breakpoint variant through AppLayout).
+    final layout = context.layout;
+    // shadcn sizes each navigation label with `IntrinsicWidth`, so the face
+    // must be registered before that measurement. Registering a font does not
+    // invalidate an existing `RenderParagraph`, and a plain rebuild reuses the
+    // same `TextStyle`, so the intrinsic width would stay at the fallback
+    // face's value. Recreate the sidebar once the faces land (the key flips
+    // from false to true) to force a fresh measure with Inter.
+    final fontsLoaded = ref.watch(themeUiFontsProvider).hasValue;
+    final themeUi = ref.watch(themeUiProvider).asData?.value;
+    final themeDefinition = ref.watch(themeDefinitionProvider).asData?.value;
+    final branding = useMemoized(
+      () => ThemeBranding.from(themeDefinition),
+      [themeDefinition],
+    );
 
     final layoutMode =
         ref.watch(userPreferencesProvider.select((s) => s.layoutMode));
-    final playerDock =
-        ref.watch(userPreferencesProvider.select((s) => s.playerDock));
+    final playerDock = resolvePlayerDock(
+      layout,
+      ref.watch(userPreferencesProvider.select((s) => s.playerDock)),
+    );
+    final measuredPlayerHeight = ref.watch(bottomPlayerHeightProvider);
     final storedLibraryOrder = ref.watch(
       userPreferencesProvider.select((s) => s.sidebarLibraryOrder),
     );
@@ -77,9 +101,9 @@ class Sidebar extends HookConsumerWidget {
     final authenticated =
         ref.watch(metadataPluginAuthenticatedProvider).asData?.value;
 
-    final sidebarTileList = useMemoized(
-      () => getSidebarTileList(context.l10n),
-      [context.l10n],
+    final screens = useMemoized(
+      () => themeScreenTiles(themeUi),
+      [themeUi],
     );
 
     final sidebarLibraryTileList = useMemoized(
@@ -112,6 +136,57 @@ class Sidebar extends HookConsumerWidget {
         ];
       },
       [sidebarLibraryTileList, storedLibraryOrder],
+    );
+
+    final navMembership =
+        themeEnforces(layout, ThemeShellKeys.navItems);
+    final navOrder = themeEnforces(layout, ThemeShellKeys.navOrder);
+    final libraryMembership =
+        themeEnforces(layout, ThemeShellKeys.libraryItems);
+
+    // The top entries the theme asked for. Membership-enforced themes resolve
+    // against the full registry (so `search` becomes available); an
+    // order-only claim reorders the host's own entries without adding any.
+    final sidebarTileList = useMemoized(
+      () {
+        if (!navMembership && !navOrder) {
+          return getSidebarTileList(context.l10n);
+        }
+        return themeEntriesFor(
+          host: navMembership
+              ? getSidebarTileRegistry(context.l10n)
+              : getSidebarTileList(context.l10n),
+          themeIds: layout.navItems,
+          layout: layout,
+          screens: screens,
+          membershipKey: ThemeShellKeys.navItems,
+          orderKey: ThemeShellKeys.navOrder,
+        );
+      },
+      [context.l10n, layout, screens, navMembership, navOrder],
+    );
+
+    // Library group as the theme asked for it, or in the user's own order.
+    final visibleLibraryTiles = useMemoized(
+      () {
+        if (!libraryMembership && !navOrder) return orderedLibraryTiles;
+        return themeEntriesFor(
+          host: libraryMembership ? sidebarLibraryTileList : orderedLibraryTiles,
+          themeIds: layout.libraryItems,
+          layout: layout,
+          screens: screens,
+          membershipKey: ThemeShellKeys.libraryItems,
+          orderKey: ThemeShellKeys.navOrder,
+        );
+      },
+      [
+        sidebarLibraryTileList,
+        orderedLibraryTiles,
+        layout,
+        screens,
+        libraryMembership,
+        navOrder,
+      ],
     );
 
     // Pinned playlists in pin order. A pinned id with no playlist behind it
@@ -155,7 +230,7 @@ class Sidebar extends HookConsumerWidget {
     // `NavigationItem` cannot silently mis-map a pin onto another tile.
     final tileList = [
       ...sidebarTileList,
-      ...orderedLibraryTiles,
+      ...visibleLibraryTiles,
       ...pinnedTiles,
     ];
 
@@ -175,8 +250,13 @@ class Sidebar extends HookConsumerWidget {
     final labelSidebarWidth = 200.0 * Theme.of(context).scaling;
     final hasThemeHeader = themeUiSlotExists(ref, 'sidebar.header');
     final hasThemeNavBefore = themeUiSlotExists(ref, 'sidebar.nav.before');
+    final hasThemeNavAfter = themeUiSlotExists(ref, 'sidebar.nav.after');
     final hasThemeLibraryBefore =
         themeUiSlotExists(ref, 'sidebar.library.before');
+    final hasThemeLibraryAfter =
+        themeUiSlotExists(ref, 'sidebar.library.after');
+    final hasThemePinsBefore = themeUiSlotExists(ref, 'sidebar.pins.before');
+    final hasThemePinsAfter = themeUiSlotExists(ref, 'sidebar.pins.after');
     final hasThemeFooter = themeUiSlotExists(ref, 'sidebar.footer');
 
     final visiblePins =
@@ -212,14 +292,10 @@ class Sidebar extends HookConsumerWidget {
       if (!(hasThemeHeader && showLabels))
         NavigationLabel(
           child: showLabels
-              ? DefaultTextStyle(
-                  style: TextStyle(
-                    fontFamily: "Cookie",
-                    fontSize: 30,
-                    letterSpacing: 1.8,
-                    color: colorScheme.foreground,
-                  ),
-                  child: const Text("Spotube"),
+              ? ThemeBrandMark(
+                  branding: branding,
+                  fontSize: 30,
+                  color: colorScheme.foreground,
                 )
               : const Text(""),
         ),
@@ -229,26 +305,33 @@ class Sidebar extends HookConsumerWidget {
               ? const ButtonStyle.secondary()
               : null,
           label: showLabels ? Text(tile.title) : null,
+          // A fixed-width sidebar must not marquee its labels: the default
+          // `NavigationOverflow.marquee` starts scrolling the moment the
+          // label is a fraction wider than its box, which reads as clipped
+          // text that slides sideways. Ellipsis keeps long names still.
+          overflow: NavigationOverflow.ellipsis,
           child: Tooltip(
             tooltip: TooltipContainer(child: Text(tile.title)).call,
             child: Icon(tile.icon),
           ),
           onPressed: () {
-            context.navigateTo(tile.route);
+            openSideBarTile(context, ref, tile);
           },
         ),
+      if (showLabels && hasThemeNavAfter)
+        const _ThemeSlotNavigationItem('sidebar.nav.after'),
       const NavigationDivider(),
       if (showLabels && hasThemeLibraryBefore)
         const _ThemeSlotNavigationItem('sidebar.library.before')
       else if (showLabels)
         NavigationLabel(child: Text(context.l10n.library)),
-      for (final tile in orderedLibraryTiles)
+      for (final tile in visibleLibraryTiles)
         SidebarReorderableItem(
           key: ValueKey('lib:${tile.id}'),
           group: SidebarReorderGroup.library,
           id: tile.id,
           onAcceptInGroup: (draggedId, targetId, {required bool after}) {
-            final visible = [for (final t in orderedLibraryTiles) t.id];
+            final visible = [for (final t in visibleLibraryTiles) t.id];
             final drop = resolveSidebarDrop(
               visible,
               draggedId,
@@ -276,8 +359,9 @@ class Sidebar extends HookConsumerWidget {
                 : (showLabels ? const ButtonStyle.ghost() : null),
             alignment: showLabels ? AlignmentDirectional.centerStart : null,
             label: showLabels ? Text(tile.title) : null,
+            overflow: NavigationOverflow.ellipsis,
             onPressed: () {
-              context.navigateTo(tile.route);
+              openSideBarTile(context, ref, tile);
             },
             child: Tooltip(
               tooltip: TooltipContainer(child: Text(tile.title)).call,
@@ -290,9 +374,9 @@ class Sidebar extends HookConsumerWidget {
       SidebarTrailingDropZone(
         key: const ValueKey('lib-end'),
         group: SidebarReorderGroup.library,
-        visibleIds: [for (final t in orderedLibraryTiles) t.id],
+        visibleIds: [for (final t in visibleLibraryTiles) t.id],
         onAccept: (draggedId) {
-          final visible = [for (final t in orderedLibraryTiles) t.id];
+          final visible = [for (final t in visibleLibraryTiles) t.id];
           final from = visible.indexOf(draggedId);
           if (from == -1) return;
           ref.read(userPreferencesProvider.notifier).setSidebarLibraryOrder(
@@ -300,6 +384,10 @@ class Sidebar extends HookConsumerWidget {
               );
         },
       ),
+      if (showLabels && hasThemeLibraryAfter)
+        const _ThemeSlotNavigationItem('sidebar.library.after'),
+      if (showLabels && hasThemePinsBefore)
+        const _ThemeSlotNavigationItem('sidebar.pins.before'),
       if (pinnedTiles.isNotEmpty) ...[
         const NavigationDivider(),
         if (showLabels) _PinGroupHeading(title: context.l10n.pinned_playlists),
@@ -359,6 +447,7 @@ class Sidebar extends HookConsumerWidget {
         if (hasRailOverflow)
           NavigationButton(
             label: showLabels ? Text(context.l10n.show_all_playlists) : null,
+            overflow: NavigationOverflow.ellipsis,
             onPressed: () {
               context.navigateTo(const UserPlaylistsRoute());
             },
@@ -432,6 +521,8 @@ class Sidebar extends HookConsumerWidget {
             ),
           ),
       ],
+      if (showLabels && hasThemePinsAfter)
+        const _ThemeSlotNavigationItem('sidebar.pins.after'),
     ];
 
     final backdropActive = ref.watch(themeBackdropActiveProvider);
@@ -440,10 +531,13 @@ class Sidebar extends HookConsumerWidget {
     final transparentGround =
         backdropActive || ref.watch(realTransparencyActiveProvider);
     final navigationSidebar = NavigationSidebar(
+      // Recreate the label subtree when the theme faces finish loading:
+      // `IntrinsicWidth` measured the fallback face and registering a font
+      // does not invalidate that cached paragraph width.
+      key: ValueKey(fontsLoaded),
       index: selectedIndex,
       onSelected: (index) {
-        final tile = tileList[index];
-        context.navigateTo(tile.route);
+        openSideBarTile(context, ref, tileList[index]);
       },
       children: navigationButtons,
     );
@@ -501,8 +595,7 @@ class Sidebar extends HookConsumerWidget {
                         alignment: NavigationRailAlignment.start,
                         index: selectedIndex,
                         onSelected: (index) {
-                          final tile = tileList[index];
-                          context.navigateTo(tile.route);
+                          openSideBarTile(context, ref, tileList[index]);
                         },
                         children: navigationButtons,
                       ),
@@ -522,6 +615,7 @@ class Sidebar extends HookConsumerWidget {
                   context,
                   playerVisible: bottomPlayerVisibleOf(context, layoutMode),
                   dock: playerDock,
+                  playerHeight: measuredPlayerHeight,
                 ),
               ),
             ],
@@ -713,10 +807,16 @@ double sidebarClearance({
   required bool progressBelow,
   required PlayerDock dock,
   required double scaling,
+  double? playerHeight,
 }) {
   // The docked player lays out under the content only and never overlaps the
   // sidebar, so the nav column runs to the window bottom with a small pad.
   if (dock == PlayerDock.docked) return 12 * scaling;
+  // Theme player slots can grow the bar past the host's estimate; when the
+  // real height is known, reserve it plus a small pad.
+  if (playerVisible && playerHeight != null && playerHeight > 0) {
+    return playerHeight + 12 * scaling;
+  }
   final clearance = (lgAndUp ? 130 : 65) * scaling;
   if (!playerVisible || !progressBelow) return clearance;
   // `progress: below` adds the seek line under the transport controls.
@@ -727,6 +827,7 @@ double sidebarBottomClearanceOf(
   BuildContext context, {
   required bool playerVisible,
   required PlayerDock dock,
+  double? playerHeight,
 }) {
   return sidebarClearance(
     lgAndUp: MediaQuery.sizeOf(context).lgAndUp,
@@ -734,5 +835,6 @@ double sidebarBottomClearanceOf(
     progressBelow: context.progressBelow,
     dock: dock,
     scaling: Theme.of(context).scaling,
+    playerHeight: playerHeight,
   );
 }

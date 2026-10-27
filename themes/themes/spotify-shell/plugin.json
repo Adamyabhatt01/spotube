@@ -1,7 +1,7 @@
 {
   "name": "Spotify Shell Theme",
-  "description": "A Spotify-shaped shell: black and green palette, inset content panel, icon-only rail navigation, seek bar below the player and Spotify-sized cards.",
-  "version": "1.0.0",
+  "description": "A Spotify-shaped shell: black and green palette, inset content panel, labelled sidebar navigation, a full-width seek line with elapsed and total time below the transport, and Spotify-sized cards. Ships Inter.",
+  "version": "1.1.0",
   "author": "Adamya Bhatt",
   "entryPoint": "SpotifyTheme",
   "pluginApiVersion": "2.0.0",

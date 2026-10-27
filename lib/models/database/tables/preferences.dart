@@ -35,7 +35,8 @@ enum PlayerDock {
 enum YoutubeClientEngine {
   ytDlp("yt-dlp"),
   youtubeExplode("YouTubeExplode"),
-  newPipe("NewPipe");
+  newPipe("NewPipe"),
+  ytdlpFlutter("ytdlp_flutter");
 
   final String label;
 
@@ -47,6 +48,7 @@ enum YoutubeClientEngine {
         YouTubeExplodeEngine.isAvailableForPlatform,
       YoutubeClientEngine.ytDlp => YtDlpEngine.isAvailableForPlatform,
       YoutubeClientEngine.newPipe => NewPipeEngine.isAvailableForPlatform,
+      YoutubeClientEngine.ytdlpFlutter => true,
     };
   }
 }

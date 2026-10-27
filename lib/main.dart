@@ -35,8 +35,12 @@ import 'package:spotube/modules/theme_background/real_transparency.dart';
 import 'package:spotube/modules/theme_background/theme_background_scope.dart';
 import 'package:spotube/services/theme_definition_cache.dart';
 import 'package:spotube/modules/settings/color_scheme_picker_dialog.dart';
+import 'package:spotube/modules/theme_shell/theme_branding.dart';
+import 'package:spotube/modules/theme_shell/theme_presentation.dart';
+import 'package:spotube/modules/theme_shell/theme_shell.dart';
 import 'package:spotube/modules/splash/splash_screen.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_assets.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_fonts.dart';
 import 'package:spotube/modules/splash/splash_prefs.dart';
 import 'package:spotube/modules/theme_surfaces/theme_surfaces_scope.dart';
 import 'package:spotube/provider/audio_player/audio_player_streams.dart';
@@ -738,53 +742,51 @@ class Spotube extends HookConsumerWidget {
     // default of 10.0 and small/large/pill only reach the surfaces Spotube
     // draws itself. Density rides the app's size/text scaling, which is what
     // every `* scale` site in the UI already reads.
-    final pluginRadius =
-        pluginTheme == null ? .5 : pluginTheme.radius.medium / 20;
     final pluginDensity = pluginTheme?.density ?? 1.0;
+    // The v3 presentation blocks are resolved per palette because a style may
+    // name a colour role; the two presentations differ only in those colours.
+    final lightPresentation = useMemoized(
+      () => resolveThemePresentation(pluginTheme, scheme: lightColorScheme),
+      [pluginTheme, lightColorScheme],
+    );
+    final darkPresentation = useMemoized(
+      () => resolveThemePresentation(pluginTheme, scheme: darkColorScheme),
+      [pluginTheme, darkColorScheme],
+    );
+    final pluginRadius =
+        (pluginTheme?.radius.medium ?? 10) / 20 * lightPresentation.radiusScale;
     // Also fed to `PaletteTransitionScope` below, which must scale the theme it
     // animates exactly like `ShadcnLayer` does (`shadcn_app.dart:637-645`).
     final pluginScaling = useMemoized(
       () => AdaptiveScaling.only(
-        sizeScaling: pluginDensity,
-        textScaling: pluginDensity,
+        sizeScaling: pluginDensity * lightPresentation.sizeScale,
+        textScaling: pluginDensity * lightPresentation.textScale,
       ),
-      [pluginDensity],
-    );
-    final pluginTypography = useMemoized(
-      () => switch (pluginTheme?.tokens.fontFamily) {
-        null => const Typography.geist(),
-        // A family the platform cannot resolve falls back per-glyph, so this
-        // can only change the typeface, never break rendering.
-        final family => const Typography.geist().copyWith(
-            sans: () => TextStyle(fontFamily: family),
-            base: () => TextStyle(fontSize: 16, fontFamily: family),
-          ),
-      },
-      [pluginTheme?.tokens.fontFamily],
+      [pluginDensity, lightPresentation],
     );
 
     final appTheme = useMemoized(
       () => ThemeData(
         radius: pluginRadius,
-        typography: pluginTypography,
-        iconTheme: const IconThemeProperties(),
+        typography: lightPresentation.typography,
+        iconTheme: lightPresentation.iconTheme,
         colorScheme: lightColorScheme,
         surfaceOpacity: pluginTheme?.surfaces.opacity ?? .8,
         surfaceBlur: pluginTheme?.surfaces.blur ?? 10,
       ),
-      [pluginTheme, pluginRadius, pluginTypography, lightColorScheme],
+      [pluginTheme, pluginRadius, lightPresentation, lightColorScheme],
     );
 
     final appDarkTheme = useMemoized(
       () => ThemeData(
         radius: pluginRadius,
-        typography: pluginTypography,
-        iconTheme: const IconThemeProperties(),
+        typography: darkPresentation.typography,
+        iconTheme: darkPresentation.iconTheme,
         colorScheme: darkColorScheme,
         surfaceOpacity: pluginTheme?.surfaces.opacity ?? .8,
         surfaceBlur: pluginTheme?.surfaces.blur ?? 10,
       ),
-      [pluginTheme, pluginRadius, pluginTypography, darkColorScheme],
+      [pluginTheme, pluginRadius, darkPresentation, darkColorScheme],
     );
 
     final materialBrightness = switch (themeMode) {
@@ -808,23 +810,31 @@ class Spotube extends HookConsumerWidget {
     );
 
     final themeAssets = ref.watch(themeUiAssetsProvider).asData?.value;
-    final splashSpec = pluginTheme?.layout.splash;
-    final rawSplashLogo = splashSpec?['logo'];
-    final themeSplashLogo =
-        rawSplashLogo is String ? themeAssets?.resolve(rawSplashLogo) : null;
-    final rawSplashText = splashSpec?['text'];
+    // Theme fonts are registered through a FontLoader, which is asynchronous
+    // and does not invalidate text layout by itself. Watching here rebuilds
+    // the shell once the faces are ready: shadcn measures navigation labels
+    // with `IntrinsicWidth`, so a label measured against the fallback face and
+    // then painted with Inter is clipped on both edges.
+    ref.watch(themeUiFontsProvider);
+    final branding = ThemeBranding.from(pluginTheme);
+    final appTitle = branding.windowTitle;
+    // One resolved layout for every consumer: splash, shell and pages all see
+    // the same breakpoint variant at the current window width.
+    final themeLayout = applyResponsiveLayout(
+      pluginTheme?.layout ?? const ThemeLayout(),
+      MediaQuery.sizeOf(context).width,
+    );
+    final splashSpec = themeLayout.splash;
+    final rawSplashLogo = splashSpec['logo'];
+    final themeSplashLogo = rawSplashLogo is String
+        ? themeAssets?.resolve(rawSplashLogo)
+        : themeAssets?.resolve(branding.logoAsset);
+    final rawSplashText = splashSpec['text'];
     final splashText = rawSplashText is String &&
             rawSplashText.trim().isNotEmpty &&
             rawSplashText.trim().length <= 40
         ? rawSplashText.trim()
         : null;
-    final branding = pluginTheme?.branding;
-    final rawTitle = branding?['windowTitle'] ?? branding?['appName'];
-    final appTitle = rawTitle is String &&
-            rawTitle.trim().isNotEmpty &&
-            rawTitle.trim().length <= 80
-        ? rawTitle.trim()
-        : 'Spotube';
 
     // The GTK shell starts with its own "spotube" title; MaterialApp's title
     // only reaches the task switcher. Set the actual window title too so a
@@ -833,9 +843,13 @@ class Spotube extends HookConsumerWidget {
       if (kIsDesktop) {
         // MaterialApp's own Title updates the platform title during build;
         // call after that frame so the theme's title wins the race.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          unawaited(windowManager.setTitle(appTitle));
-        });
+        unawaited(() async {
+          // The first frame can be produced before the Wayland surface is
+          // mapped; a title set before that point never reaches the
+          // compositor. Wait until the frame is actually on screen.
+          await WidgetsBinding.instance.waitUntilFirstFrameRasterized;
+          await windowManager.setTitle(appTitle);
+        }());
       }
       return null;
     }, [appTitle]);
@@ -907,8 +921,25 @@ class Spotube extends HookConsumerWidget {
           realTransparent: ref.watch(realTransparencyActiveProvider),
           child: AppLayout(
             tokens: pluginTheme?.tokens ?? const ThemeTokens(),
-            radii: pluginTheme?.radius ?? const ThemeRadius(),
-            layout: pluginTheme?.layout ?? const ThemeLayout(),
+            radii: pluginTheme == null
+                ? const ThemeRadius()
+                : pluginTheme.radius.copyWith(
+                    small: pluginTheme.radius.small *
+                        lightPresentation.radiusScale,
+                    medium: pluginTheme.radius.medium *
+                        lightPresentation.radiusScale,
+                    large: pluginTheme.radius.large *
+                        lightPresentation.radiusScale,
+                    pill: pluginTheme.radius.pill *
+                        lightPresentation.radiusScale,
+                  ),
+            spacing: lightPresentation.spacing,
+            motion: lightPresentation.motion,
+            spacingScale: lightPresentation.spacingScale,
+            // Breakpoint variants are resolved at the window width, so a
+            // theme's `responsive` override reaches every consumer through
+            // the same `context.layout` the base layout uses.
+            layout: themeLayout,
             semanticColors: materialBrightness == Brightness.dark
                 ? darkSemanticColors
                 : lightSemanticColors,

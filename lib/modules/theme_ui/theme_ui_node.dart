@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart' show InkWell, Material;
+import 'package:flutter/material.dart'
+    show AnimatedContainer, InkWell, Material;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/image/universal_image.dart';
@@ -9,6 +10,9 @@ import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_action.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_assets.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
+import 'package:spotube/modules/home/home_search_bar.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_items.dart';
+import 'package:spotube/modules/theme_shell/theme_presentation.dart';
 import 'package:spotube/utils/theme_converter.dart';
 
 typedef ThemeUiActionCallback = void Function(ThemeUiAction action);
@@ -50,6 +54,7 @@ const _uiTypes = <String>{
   'image',
   'button',
   'card',
+  'search',
   'divider',
   'spacer',
   'gap',
@@ -57,6 +62,7 @@ const _uiTypes = <String>{
   'template',
   'animate',
   'progress',
+  'list',
 };
 
 const _maxDepth = 12;
@@ -100,6 +106,7 @@ class ThemeUiNodeView extends StatelessWidget {
       'image' => _image(context, props),
       'button' => _button(context, props, node, children),
       'card' => _card(context, props, children),
+      'search' => _search(context, props),
       'divider' => _divider(context, props),
       'spacer' => _spacer(props),
       'gap' => _gap(context, props),
@@ -107,6 +114,7 @@ class ThemeUiNodeView extends StatelessWidget {
       'template' => _template(context, props, children),
       'animate' => _animate(context, props, children),
       'progress' => _progress(context, props),
+      'list' => _list(context, props, children),
       _ => const SizedBox.shrink(),
     };
 
@@ -195,10 +203,22 @@ class ThemeUiNodeView extends StatelessWidget {
     Map<String, dynamic> props,
     List<Map<String, dynamic>> children,
   ) {
-    return Stack(
-      alignment: _alignment(props['align']),
-      fit: props['fit'] == 'expand' ? StackFit.expand : StackFit.loose,
-      children: _nodes(context, children),
+    final alignment = _alignment(props['align']);
+    final nodes = _nodes(context, children);
+    if (props['fit'] != 'expand') {
+      return Stack(alignment: alignment, children: nodes);
+    }
+    // Expand can only fill a bounded axis. A stack inside a scroll view (the
+    // home stage) gets unbounded height, and StackFit.expand would forward
+    // that infinity to fixed-size children such as a circular image.
+    return LayoutBuilder(
+      builder: (context, constraints) => Stack(
+        alignment: alignment,
+        fit: constraints.hasBoundedWidth && constraints.hasBoundedHeight
+            ? StackFit.expand
+            : StackFit.loose,
+        children: nodes,
+      ),
     );
   }
 
@@ -398,6 +418,108 @@ class ThemeUiNodeView extends StatelessWidget {
     return null;
   }
 
+  /// Repeats one subtree per entry of a collection binding.
+  ///
+  /// Each pass gets its own runtime, which is what makes `item.title`,
+  /// `item.artwork` and friends resolve and what lets `playItem`, `openItem`,
+  /// `likeItem` and `downloadItem` carry the typed entry to the dispatcher.
+  /// The item list is capped: a theme can render a page of rows, not an
+  /// unbounded virtualized feed the declarative vocabulary cannot express.
+  Widget _list(
+    BuildContext context,
+    Map<String, dynamic> props,
+    List<Map<String, dynamic>> children,
+  ) {
+    final source = props['bind'] is String
+        ? runtime.bindings.raw(props['bind'] as String)
+        : null;
+    if (source is! List || source.isEmpty || children.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final limit = _int(props['limit'], fallback: 200, min: 1, max: 500);
+    final items = source.take(limit).toList();
+    final activeTrackId = runtime.bindings.raw('player.trackId');
+    final gap = _gapSize(context, props['gap']);
+    final crossAxisAlignment = _cross(props['align']);
+    // A shelf is a list that scrolls sideways. The repeated entry is the same
+    // subtree; only the axis changes, so cards and rows share one vocabulary.
+    final horizontal = props['direction'] == 'horizontal';
+
+    final rows = <Widget>[];
+    for (var i = 0; i < items.length; i++) {
+      if (i > 0 && gap > 0) {
+        rows.add(SizedBox(
+          width: horizontal ? gap : 0,
+          height: horizontal ? 0 : gap,
+        ));
+      }
+      final item = items[i];
+      final itemRuntime = ThemeUiRuntime(
+        theme: runtime.theme,
+        bindings: ThemeUiBindings({
+          ...runtime.bindings.values,
+          ...themeItemBindings(
+            item,
+            index: i,
+            activeTrackId: activeTrackId is String ? activeTrackId : null,
+          ),
+        }),
+        assets: runtime.assets,
+        templates: runtime.templates,
+        specVersion: runtime.specVersion,
+        onAction: (action) {
+          if (itemActionTypes.contains(action.type)) {
+            runtime.onAction(ThemeUiAction(action.type, {
+              ...action.args,
+              'item': item,
+              'index': i,
+              'items': items,
+            }));
+          } else {
+            runtime.onAction(action);
+          }
+        },
+      );
+      rows.add(
+        children.length == 1
+            ? ThemeUiNodeView(
+                node: children.first,
+                runtime: itemRuntime,
+                depth: depth + 1,
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: crossAxisAlignment,
+                children: [
+                  for (final child in children)
+                    ThemeUiNodeView(
+                      node: child,
+                      runtime: itemRuntime,
+                      depth: depth + 1,
+                    ),
+                ],
+              ),
+      );
+    }
+
+    if (horizontal) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: crossAxisAlignment,
+          children: rows,
+        ),
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: crossAxisAlignment,
+      children: rows,
+    );
+  }
+
   // --------------------------------------------------------------- content
 
   Widget _text(BuildContext context, Map<String, dynamic> props) {
@@ -531,6 +653,11 @@ class ThemeUiNodeView extends StatelessWidget {
     if (raw == 'user.avatar') {
       return runtime.bindings.display('user.avatar');
     }
+    // Page and item scopes add bindings the vocabulary cannot enumerate
+    // ahead of time (`collection.artwork`, `item.artwork`, ...).
+    if (raw.contains('.') && runtime.bindings.raw(raw) != null) {
+      return runtime.bindings.display(raw);
+    }
     return raw;
   }
 
@@ -549,6 +676,17 @@ class ThemeUiNodeView extends StatelessWidget {
       );
     }
     return null;
+  }
+
+  /// The host's own search field, mounted in a chrome slot.
+  ///
+  /// This is intentionally not a themed text input: the field owns focus,
+  /// keyboard handling, recent searches and the suggestion portal, so a
+  /// click focuses in place instead of navigating away.
+  Widget _search(BuildContext context, Map<String, dynamic> props) {
+    final placeholder =
+        props['placeholder'] is String ? props['placeholder'] as String : null;
+    return HomeSearchBar(compact: true, placeholder: placeholder);
   }
 
   Widget _button(
@@ -741,38 +879,60 @@ class ThemeUiNodeView extends StatelessWidget {
       props['borderColor'] ?? component['borderColor'] ?? background,
       fallback: background,
     );
+    final hoverRaw = props['hoverBackground'] ?? component['hoverBackground'];
+    final hoverBackground = hoverRaw == null
+        ? null
+        : _color(context, hoverRaw, fallback: background);
     final opacity = _clamp(props['opacity'], 0, 1, fallback: 1);
     final padding = _px(
       context,
       props['padding'] ?? component['padding'],
       fallback: 0,
     );
+    // A card without children is a shape, not a container. Width and height
+    // are what let a theme draw its own mark — a circle avatar or logo — from
+    // the same node instead of shipping a bitmap for it.
+    final width = _pxOrNull(context, props['width']);
+    final height = _pxOrNull(context, props['height']);
     final pixel = component['borderStyle'] == 'pixel' && borderWidth > 0;
+    final motion = themeMotion(runtime.theme);
 
-    final card = Container(
-      padding: EdgeInsets.all(padding),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(radius),
-        border: borderWidth > 0
-            ? Border.all(color: border, width: borderWidth)
-            : null,
-        boxShadow: pixel
-            ? [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.30),
-                  offset: const Offset(2, 2),
-                  blurRadius: 0,
-                ),
-              ]
-            : null,
-      ),
-      child: _columnOf(context, children),
+    return _ThemeUiHoverBuilder(
+      hoverColor: hoverBackground,
+      builder: (context, hovered) {
+        final card = AnimatedContainer(
+          duration: motion.fastDuration,
+          curve: motion.curve,
+          width: width,
+          height: height,
+          padding: EdgeInsets.all(padding),
+          decoration: BoxDecoration(
+            color: hovered ? hoverBackground : background,
+            borderRadius: BorderRadius.circular(radius),
+            border: borderWidth > 0
+                ? Border.all(color: border, width: borderWidth)
+                : null,
+            boxShadow: pixel
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.30),
+                      offset: const Offset(2, 2),
+                      blurRadius: 0,
+                    ),
+                  ]
+                : null,
+          ),
+          child: _columnOf(context, children),
+        );
+        final clipped = radius > 0
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(radius), child: card)
+            : card;
+        return opacity < 1
+            ? Opacity(opacity: opacity, child: clipped)
+            : clipped;
+      },
     );
-    final clipped = radius > 0
-        ? ClipRRect(borderRadius: BorderRadius.circular(radius), child: card)
-        : card;
-    return opacity < 1 ? Opacity(opacity: opacity, child: clipped) : clipped;
   }
 
   Widget _conditional(
@@ -923,6 +1083,9 @@ class ThemeUiNodeView extends StatelessWidget {
       'xl' => 24.0,
       '2xl' => 30.0,
       '3xl' => 38.0,
+      '4xl' => 48.0,
+      '5xl' => 60.0,
+      '6xl' => 72.0,
       num value => value.toDouble(),
       _ => 16.0,
     };
@@ -960,6 +1123,9 @@ class ThemeUiNodeView extends StatelessWidget {
         'muted' => scheme.muted,
         'mutedForeground' => scheme.mutedForeground,
         'destructive' => scheme.destructive,
+        // v3 keeps destructiveForeground as a role; shadcn still stores the
+        // field but marks the getter deprecated. Keep the exact role colour.
+        // ignore: deprecated_member_use
         'destructiveForeground' => scheme.destructiveForeground,
         'background' => scheme.background,
         'foreground' => scheme.foreground,
@@ -1373,6 +1539,42 @@ class _ThemeUiProgressPainter extends CustomPainter {
       old.trackColor != trackColor ||
       old.thumbColor != thumbColor ||
       old.thumbSize != thumbSize;
+}
+
+/// Rebuilds one node with a hover flag when the theme gave it a hover colour.
+///
+/// Kept as a stateful wrapper rather than an [InkWell] highlight: the card's
+/// fill, border and radius belong to the same decoration, so the hover hue has
+/// to replace that fill instead of painting a translucent layer over it.
+class _ThemeUiHoverBuilder extends StatefulWidget {
+  final Color? hoverColor;
+  final Widget Function(BuildContext context, bool hovered) builder;
+
+  const _ThemeUiHoverBuilder({
+    required this.hoverColor,
+    required this.builder,
+  });
+
+  @override
+  State<_ThemeUiHoverBuilder> createState() => _ThemeUiHoverBuilderState();
+}
+
+class _ThemeUiHoverBuilderState extends State<_ThemeUiHoverBuilder> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.hoverColor == null) return widget.builder(context, false);
+    return MouseRegion(
+      onEnter: (_) {
+        if (!_hovered) setState(() => _hovered = true);
+      },
+      onExit: (_) {
+        if (_hovered) setState(() => _hovered = false);
+      },
+      child: widget.builder(context, _hovered),
+    );
+  }
 }
 
 class _AnimatedNode extends StatefulWidget {

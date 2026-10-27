@@ -800,7 +800,8 @@ class ServerPlaybackRoutes {
       }
 
       if (mirror != null && res.data != null) {
-        res.data.stream = await mirror.attach(res.data.stream);
+        final responseBody = res.data!;
+        responseBody.stream = await mirror.attach(responseBody.stream);
       }
       // No wrap on the pass-through path: a client disconnect cancels shelf's
       // subscription, which reaches the dio body stream directly and closes

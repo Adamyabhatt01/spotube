@@ -85,6 +85,19 @@ struct _MyApplication {
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 
 // Implements GApplication::activate.
+static gboolean print_title_state(gpointer data) {
+  GtkWindow* window = GTK_WINDOW(data);
+  GtkWidget* titlebar = gtk_window_get_titlebar(window);
+  const gchar* header_title = nullptr;
+  if (titlebar != nullptr && GTK_IS_HEADER_BAR(titlebar)) {
+    header_title = gtk_header_bar_get_title(GTK_HEADER_BAR(titlebar));
+  }
+  g_print("NATIVE_TITLE window=%s header=%s\n",
+          gtk_window_get_title(window) != nullptr ? gtk_window_get_title(window) : "(null)",
+          header_title != nullptr ? header_title : "(none)");
+  return G_SOURCE_REMOVE;
+}
+
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
 
@@ -132,8 +145,14 @@ static void my_application_activate(GApplication* application) {
   if (use_header_bar) {
     GtkHeaderBar* header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "spotube");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
+    // GTK's Wayland xdg title follows the header-bar title when a custom
+    // titlebar is installed. window_manager only changes the GtkWindow title,
+    // so mirror it into the header bar; otherwise the compositor keeps the
+    // initial title even though gtk_window_get_title() returns the new one.
+    gtk_window_set_title(window, "spotube");
+    g_object_bind_property(window, "title", header_bar, "title",
+                           G_BINDING_SYNC_CREATE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
   } else {
     gtk_window_set_title(window, "spotube");
@@ -141,6 +160,7 @@ static void my_application_activate(GApplication* application) {
 
   gtk_window_set_default_size(window, 1280, 720);
   gtk_widget_show(GTK_WIDGET(window));
+  g_timeout_add_seconds(3, print_title_state, window);
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(

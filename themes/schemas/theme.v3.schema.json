@@ -10,6 +10,10 @@
   ],
   "additionalProperties": true,
   "definitions": {
+    "screenEntry": {
+      "type": "string",
+      "pattern": "^screen:[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$"
+    },
     "color": {
       "type": "string",
       "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
@@ -210,6 +214,37 @@
           "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
         }
       }
+    },
+    "uiBinding": {
+      "description": "A host-supplied value. item.* and the page scopes are open-ended and resolve only where the host publishes them.",
+      "oneOf": [
+        {
+          "enum": [
+            "player.trackId",
+            "player.title",
+            "player.artist",
+            "player.album",
+            "player.artwork",
+            "player.playing",
+            "player.loop",
+            "player.shuffled",
+            "player.position",
+            "player.duration",
+            "player.volume",
+            "user.name",
+            "user.avatar",
+            "app.version",
+            "app.brightness",
+            "app.themeMode",
+            "app.greeting",
+            "clock.now"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^(item|home|collection|artist|search|library|queue|downloads|stats)\\.[A-Za-z][A-Za-z0-9_]{0,31}$"
+        }
+      ]
     },
     "uiNode": {
       "oneOf": [
@@ -671,24 +706,7 @@
               "maxLength": 500
             },
             "bind": {
-              "enum": [
-                "player.title",
-                "player.artist",
-                "player.album",
-                "player.artwork",
-                "player.playing",
-                "player.loop",
-                "player.shuffled",
-                "player.position",
-                "player.duration",
-                "player.volume",
-                "user.name",
-                "user.avatar",
-                "app.version",
-                "app.brightness",
-                "app.themeMode",
-                "clock.now"
-              ]
+              "$ref": "#/definitions/uiBinding"
             },
             "size": {
               "enum": [
@@ -699,7 +717,10 @@
                 "lg",
                 "xl",
                 "2xl",
-                "3xl"
+                "3xl",
+                "4xl",
+                "5xl",
+                "6xl"
               ]
             },
             "weight": {
@@ -835,11 +856,10 @@
             "src": {
               "oneOf": [
                 {
-                  "enum": [
-                    "albumArt",
-                    "player.artwork",
-                    "user.avatar"
-                  ]
+                  "const": "albumArt"
+                },
+                {
+                  "$ref": "#/definitions/uiBinding"
                 },
                 {
                   "type": "string",
@@ -848,10 +868,7 @@
               ]
             },
             "bind": {
-              "enum": [
-                "player.artwork",
-                "user.avatar"
-              ]
+              "$ref": "#/definitions/uiBinding"
             },
             "width": {
               "type": "number",
@@ -956,24 +973,7 @@
               ]
             },
             "disabledWhen": {
-              "enum": [
-                "player.title",
-                "player.artist",
-                "player.album",
-                "player.artwork",
-                "player.playing",
-                "player.loop",
-                "player.shuffled",
-                "player.position",
-                "player.duration",
-                "player.volume",
-                "user.name",
-                "user.avatar",
-                "app.version",
-                "app.brightness",
-                "app.themeMode",
-                "clock.now"
-              ]
+              "$ref": "#/definitions/uiBinding"
             }
           }
         },
@@ -1020,6 +1020,9 @@
             "background": {
               "$ref": "#/definitions/colorOrRole"
             },
+            "hoverBackground": {
+              "$ref": "#/definitions/colorOrRole"
+            },
             "borderColor": {
               "$ref": "#/definitions/colorOrRole"
             },
@@ -1032,6 +1035,52 @@
               "type": "number",
               "minimum": 0,
               "maximum": 1
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "search"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "placeholder": {
+              "type": "string",
+              "maxLength": 80
             }
           }
         },
@@ -1186,24 +1235,7 @@
               "type": "object"
             },
             "bind": {
-              "enum": [
-                "player.title",
-                "player.artist",
-                "player.album",
-                "player.artwork",
-                "player.playing",
-                "player.loop",
-                "player.shuffled",
-                "player.position",
-                "player.duration",
-                "player.volume",
-                "user.name",
-                "user.avatar",
-                "app.version",
-                "app.brightness",
-                "app.themeMode",
-                "clock.now"
-              ]
+              "$ref": "#/definitions/uiBinding"
             },
             "equals": {
               "oneOf": [
@@ -1317,24 +1349,7 @@
               ]
             },
             "bind": {
-              "enum": [
-                "player.title",
-                "player.artist",
-                "player.album",
-                "player.artwork",
-                "player.playing",
-                "player.loop",
-                "player.shuffled",
-                "player.position",
-                "player.duration",
-                "player.volume",
-                "user.name",
-                "user.avatar",
-                "app.version",
-                "app.brightness",
-                "app.themeMode",
-                "clock.now"
-              ]
+              "$ref": "#/definitions/uiBinding"
             },
             "reverse": {
               "type": "boolean"
@@ -1355,44 +1370,10 @@
               "type": "object"
             },
             "bind": {
-              "enum": [
-                "player.title",
-                "player.artist",
-                "player.album",
-                "player.artwork",
-                "player.playing",
-                "player.loop",
-                "player.shuffled",
-                "player.position",
-                "player.duration",
-                "player.volume",
-                "user.name",
-                "user.avatar",
-                "app.version",
-                "app.brightness",
-                "app.themeMode",
-                "clock.now"
-              ]
+              "$ref": "#/definitions/uiBinding"
             },
             "maxBind": {
-              "enum": [
-                "player.title",
-                "player.artist",
-                "player.album",
-                "player.artwork",
-                "player.playing",
-                "player.loop",
-                "player.shuffled",
-                "player.position",
-                "player.duration",
-                "player.volume",
-                "user.name",
-                "user.avatar",
-                "app.version",
-                "app.brightness",
-                "app.themeMode",
-                "clock.now"
-              ]
+              "$ref": "#/definitions/uiBinding"
             },
             "width": {
               "type": "number",
@@ -1438,6 +1419,66 @@
             },
             "interactive": {
               "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "list"
+            },
+            "children": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "gap": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            },
+            "align": {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ]
+            },
+            "direction": {
+              "enum": [
+                "horizontal",
+                "vertical"
+              ]
             }
           }
         }
@@ -1572,7 +1613,12 @@
             "openQueue",
             "openDownloads",
             "toast",
-            "plugin"
+            "plugin",
+            "playItem",
+            "playCollection",
+            "openItem",
+            "likeItem",
+            "downloadItem"
           ]
         },
         "args": {
@@ -2051,6 +2097,9 @@
         "card": {
           "$ref": "#/definitions/componentStyle"
         },
+        "player": {
+          "$ref": "#/definitions/componentStyle"
+        },
         "input": {
           "$ref": "#/definitions/componentStyle"
         },
@@ -2196,11 +2245,18 @@
           "type": "array",
           "maxItems": 20,
           "items": {
-            "enum": [
-              "home",
-              "radio",
-              "stats",
-              "search"
+            "anyOf": [
+              {
+                "enum": [
+                  "home",
+                  "radio",
+                  "stats",
+                  "search"
+                ]
+              },
+              {
+                "$ref": "#/definitions/screenEntry"
+              }
             ]
           }
         },
@@ -2208,12 +2264,19 @@
           "type": "array",
           "maxItems": 20,
           "items": {
-            "enum": [
-              "home",
-              "search",
-              "radio",
-              "library",
-              "stats"
+            "anyOf": [
+              {
+                "enum": [
+                  "home",
+                  "search",
+                  "radio",
+                  "library",
+                  "stats"
+                ]
+              },
+              {
+                "$ref": "#/definitions/screenEntry"
+              }
             ]
           }
         },
@@ -2221,11 +2284,19 @@
           "type": "array",
           "maxItems": 20,
           "items": {
-            "enum": [
-              "playlists",
-              "artists",
-              "albums",
-              "local_library"
+            "anyOf": [
+              {
+                "enum": [
+                  "playlists",
+                  "artists",
+                  "albums",
+                  "stations",
+                  "local_library"
+                ]
+              },
+              {
+                "$ref": "#/definitions/screenEntry"
+              }
             ]
           }
         },
@@ -2338,11 +2409,12 @@
         },
         "enforce": {
           "type": "array",
-          "maxItems": 8,
+          "maxItems": 12,
           "items": {
             "enum": [
               "nav",
               "navItems",
+              "navbarItems",
               "libraryItems",
               "navOrder",
               "player",
@@ -2362,6 +2434,18 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+              "chrome": {
+                "enum": [
+                  "flat",
+                  "inset"
+                ]
+              },
+              "progress": {
+                "enum": [
+                  "inline",
+                  "below"
+                ]
+              },
               "nav": {
                 "enum": [
                   "labels",
@@ -2372,11 +2456,18 @@
                 "type": "array",
                 "maxItems": 20,
                 "items": {
-                  "enum": [
-                    "home",
-                    "radio",
-                    "stats",
-                    "search"
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "home",
+                        "radio",
+                        "stats",
+                        "search"
+                      ]
+                    },
+                    {
+                      "$ref": "#/definitions/screenEntry"
+                    }
                   ]
                 }
               },
@@ -2384,12 +2475,19 @@
                 "type": "array",
                 "maxItems": 20,
                 "items": {
-                  "enum": [
-                    "home",
-                    "search",
-                    "radio",
-                    "library",
-                    "stats"
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "home",
+                        "search",
+                        "radio",
+                        "library",
+                        "stats"
+                      ]
+                    },
+                    {
+                      "$ref": "#/definitions/screenEntry"
+                    }
                   ]
                 }
               },
@@ -2397,11 +2495,19 @@
                 "type": "array",
                 "maxItems": 20,
                 "items": {
-                  "enum": [
-                    "playlists",
-                    "artists",
-                    "albums",
-                    "local_library"
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "playlists",
+                        "artists",
+                        "albums",
+                        "stations",
+                        "local_library"
+                      ]
+                    },
+                    {
+                      "$ref": "#/definitions/screenEntry"
+                    }
                   ]
                 }
               },
@@ -2413,7 +2519,8 @@
                     "enum": [
                       "full",
                       "compact",
-                      "floating"
+                      "floating",
+                      "stage"
                     ]
                   },
                   "showTrackDetails": {
@@ -2471,6 +2578,43 @@
                         "about"
                       ]
                     }
+                  }
+                }
+              },
+              "titlebar": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "height": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 200
+                  },
+                  "padding": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 48
+                  },
+                  "showBack": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "splash": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "logo": {
+                    "type": "string",
+                    "pattern": "^asset://"
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^asset://"
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 80
                   }
                 }
               }
@@ -2582,7 +2726,7 @@
         },
         "slots": {
           "type": "object",
-          "maxProperties": 32,
+          "maxProperties": 48,
           "propertyNames": {
             "enum": [
               "sidebar.header",
@@ -2604,10 +2748,22 @@
               "shell.after",
               "home.before_sections",
               "home.after_sections",
+              "home.content",
               "lyrics.header",
               "lyrics.after_tabs",
               "settings.before",
-              "settings.after"
+              "settings.after",
+              "collection.content",
+              "collection.header",
+              "collection.before_tracks",
+              "collection.after_tracks",
+              "artist.content",
+              "artist.header",
+              "search.content",
+              "library.content",
+              "queue.content",
+              "downloads.content",
+              "stats.content"
             ]
           },
           "additionalProperties": {

@@ -5,8 +5,10 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/components/button/back_button.dart';
 import 'package:spotube/components/titlebar/titlebar_buttons.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/theme_background/real_transparency.dart';
 import 'package:spotube/modules/theme_background/theme_background_image_provider.dart';
+import 'package:spotube/modules/theme_shell/theme_shell.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/utils/platform.dart';
 import 'package:window_manager/window_manager.dart';
@@ -86,16 +88,35 @@ class TitleBar extends HookConsumerWidget implements PreferredSizeWidget {
     // outside this widget's build.
     final noAppBlur = ref.watch(realTransparencyActiveProvider);
 
+    // A theme may resize the strip and decide whether the back control exists.
+    // The height is theme-logical pixels, so it follows the same scaling as
+    // every other chrome dimension the host owns.
+    final layout = context.layout;
+    final themeHeight = themeTitlebarHeight(layout);
+    final themePadding = themeTitlebarPadding(layout);
+    final themeShowBack = themeTitlebarShowBack(layout);
+    final resolvedHeight = themeHeight == null
+        ? height ?? 48 * context.theme.scaling
+        : themeHeight * context.theme.scaling;
+    final resolvedPadding = padding ??
+        (themePadding == null
+            ? EdgeInsets.zero
+            : EdgeInsets.symmetric(
+                horizontal: themePadding * context.theme.scaling,
+              ));
+
     return SizedBox(
-      height: height ?? (48 * context.theme.scaling),
+      height: resolvedHeight,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final hasFullscreen =
               MediaQuery.sizeOf(context).width == constraints.maxWidth;
 
           final canPop = leading.isEmpty &&
-              automaticallyImplyLeading &&
-              (Navigator.canPop(context) || context.watchRouter.canPop());
+              (themeShowBack ??
+                  (automaticallyImplyLeading &&
+                      (Navigator.canPop(context) ||
+                          context.watchRouter.canPop())));
 
           return GestureDetector(
             onHorizontalDragStart: (_) => onDrag(ref),
@@ -132,12 +153,12 @@ class TitleBar extends HookConsumerWidget implements PreferredSizeWidget {
               subtitle: subtitle,
               trailingExpanded: trailingExpanded,
               alignment: alignment,
-              padding: padding ?? EdgeInsets.zero,
+              padding: resolvedPadding,
               backgroundColor: backgroundColor ??
                   (bareChrome ? Colors.transparent : null),
               leadingGap: leadingGap,
               trailingGap: trailingGap,
-              height: height ?? (48 * context.theme.scaling),
+              height: resolvedHeight,
               surfaceBlur: noAppBlur ? 0 : surfaceBlur,
               surfaceOpacity: surfaceOpacity,
               useSafeArea: useSafeArea,
