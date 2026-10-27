@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:lrc/lrc.dart';
 import 'package:spotube/models/lyrics.dart';
 import 'package:spotube/models/metadata/metadata.dart';
-import 'package:spotube/services/dio/dio.dart';
 
 import 'lyrics_provider.dart';
 
@@ -97,6 +96,10 @@ Map<String, dynamic>? selectLrclibEntry(
 ///
 /// Lyrics credits: [lrclib.net](https://lrclib.net) and their contributors.
 class LRCLibLyricsProvider implements LyricsProvider {
+  LRCLibLyricsProvider(this.dio);
+
+  final Dio dio;
+
   @override
   String get id => "LRCLib";
 
@@ -128,7 +131,7 @@ class LRCLibLyricsProvider implements LyricsProvider {
     final firstArtist =
         track.artists.isNotEmpty ? track.artists.first.name : "";
 
-    final getRes = await globalDio.getUri(
+    final getRes = await dio.getUri(
       _endpoint("api/get", {
         "artist_name": firstArtist,
         "track_name": track.name,
@@ -149,7 +152,7 @@ class LRCLibLyricsProvider implements LyricsProvider {
     if (entry == null ||
         (!_hasText(entry['syncedLyrics'] as String?) &&
             !_hasText(entry['plainLyrics'] as String?))) {
-      final searchRes = await globalDio.getUri(
+      final searchRes = await dio.getUri(
         _endpoint("api/search", {
           "artist_name": firstArtist,
           "track_name": track.name,

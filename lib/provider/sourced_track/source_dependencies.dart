@@ -1,9 +1,12 @@
 import 'dart:typed_data';
 
+import 'package:dio/dio.dart';
+
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/database/database.dart';
+import 'package:spotube/provider/dio/dio_provider.dart';
 import 'package:spotube/provider/metadata_plugin/audio_source/quality_presets.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
@@ -53,6 +56,9 @@ class RefSourceDependencies implements SourceDependencies {
   YoutubeClientEngine get youtubeClientEngine => _ref.read(
         userPreferencesProvider.select((s) => s.youtubeClientEngine),
       );
+
+  @override
+  Dio get dio => _ref.read(appDioProvider);
 
   @override
   AppDatabase get database => _ref.read(databaseProvider);

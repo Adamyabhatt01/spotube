@@ -9,7 +9,7 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/root/update_dialog.dart';
 
 import 'package:spotube/provider/database/database.dart';
-import 'package:spotube/services/dio/dio.dart';
+import 'package:spotube/provider/dio/dio_provider.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/memory/memory_budget.dart';
 
@@ -69,7 +69,7 @@ abstract class ServiceUtils {
     // repository has published nothing yet simply has nowhere to update from.
     final Response response;
     try {
-      response = await globalDio.getUri(
+      response = await ref.read(appDioProvider).getUri(
         Uri.parse(
           Env.releaseChannel == ReleaseChannel.nightly
               ? "https://api.github.com/repos/${Env.updateRepo}/actions/workflows/spotube-release-binary.yml/runs?status=success&per_page=1"

@@ -32,7 +32,7 @@ final vpnManagerProvider = Provider<RefCountVpnManager>((ref) {
     backend: backend,
     readConfig: readConfig,
   );
-  // Lets Dio instances without Riverpod access (globalDio) source-pin to
+  // Lets Dio instances created by `createAppDio` source-pin to
   // the held lease. Null with no leases: adapters delegate unpinned.
   final readPin = manager.readPin;
   VpnPinHolder.reader = readPin;

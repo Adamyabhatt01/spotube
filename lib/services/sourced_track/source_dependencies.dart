@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:dio/dio.dart';
+
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/services/metadata/metadata.dart';
@@ -61,6 +63,9 @@ abstract interface class SourceDependencies {
 
   /// The engine the user selected.
   YoutubeClientEngine get youtubeClientEngine;
+
+  /// HTTP client for stream-URL validation probes.
+  Dio get dio;
 
   /// Source-match cache storage.
   AppDatabase get database;

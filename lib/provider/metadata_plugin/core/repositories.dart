@@ -3,8 +3,8 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 // ignore: depend_on_referenced_packages
 import 'package:meta/meta.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/provider/dio/dio_provider.dart';
 import 'package:spotube/provider/metadata_plugin/utils/paginated.dart';
-import 'package:spotube/services/dio/dio.dart';
 import 'package:spotube/services/logger/logger.dart';
 
 /// One plugin registry and whatever it answered.
@@ -47,7 +47,13 @@ const _indexTtl = Duration(seconds: 60);
 
 class MetadataPluginRepositoriesNotifier
     extends PaginatedAsyncNotifier<MetadataPluginRepository> {
-  MetadataPluginRepositoriesNotifier() : super();
+  /// [dio] is the test seam: a directly constructed notifier has no container
+  /// to read from, so tests pass their stubbed client explicitly.
+  MetadataPluginRepositoriesNotifier({Dio? dio}) : _dio = dio, super();
+
+  final Dio? _dio;
+
+  Dio get _client => _dio ?? ref.read(appDioProvider);
 
   final Map<String, bool> _hasMore = {};
 
@@ -84,7 +90,7 @@ class MetadataPluginRepositoriesNotifier
     }
 
     try {
-      final response = await globalDio.get(
+      final response = await _client.get(
         url,
         queryParameters: queryParameters,
         options: Options(

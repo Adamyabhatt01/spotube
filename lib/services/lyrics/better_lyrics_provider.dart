@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:spotube/models/lyrics.dart';
 import 'package:spotube/models/metadata/metadata.dart';
-import 'package:spotube/services/dio/dio.dart';
 
 import 'lyrics_provider.dart';
 
@@ -101,6 +100,10 @@ Future<List<LyricSlice>> parseTtmlDocument(String ttml) {
 /// Lyrics credits: [Better Lyrics](https://better-lyrics.boidu.dev) and their
 /// contributors.
 class BetterLyricsLyricsProvider implements LyricsProvider {
+  BetterLyricsLyricsProvider(this.dio);
+
+  final Dio dio;
+
   @override
   String get id => "Better Lyrics";
 
@@ -108,7 +111,7 @@ class BetterLyricsLyricsProvider implements LyricsProvider {
   Future<SubtitleSimple> fetchLyrics(SpotubeFullTrackObject track) async {
     final userAgent = await lyricsUserAgent();
 
-    final res = await globalDio.getUri(
+    final res = await dio.getUri(
       Uri(
         scheme: "https",
         host: "lyrics-api.boidu.dev",

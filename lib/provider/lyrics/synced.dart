@@ -6,6 +6,7 @@ import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/lyrics.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/database/database.dart';
+import 'package:spotube/provider/dio/dio_provider.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/lyrics/better_lyrics_provider.dart';
 import 'package:spotube/services/lyrics/lrclib_provider.dart';
@@ -18,10 +19,13 @@ import 'package:spotube/services/lyrics/lyrics_provider.dart';
 /// repopulating process-wide state, and app startup no longer has to register
 /// anything.
 final lyricsProvidersProvider = Provider<List<LyricsProvider>>(
-  (ref) => [
-    LRCLibLyricsProvider(),
-    BetterLyricsLyricsProvider(),
-  ],
+  (ref) {
+    final dio = ref.read(appDioProvider);
+    return [
+      LRCLibLyricsProvider(dio),
+      BetterLyricsLyricsProvider(dio),
+    ];
+  },
 );
 
 /// Resolutions currently running, keyed by track id.
@@ -72,7 +76,7 @@ void clearLyricsFetchState() {
 
 /// Wall-clock ceiling for the whole provider cascade (all providers
 /// combined). Each provider already bounds its own HTTP (LRCLib 10 s receive,
-/// Better Lyrics 8 s, both on globalDio 15 s connect): two sequential misses
+/// Better Lyrics 8 s, both on the shared client 15 s connect): two sequential misses
 /// on a degraded network could otherwise block the lyrics build for ~60 s.
 /// 30 s never fires on a healthy network (each provider answers in ~1 s) and
 /// on timeout the held plain fallback still wins over a miss.

@@ -12,7 +12,7 @@ import 'vpn_manager.dart';
 typedef VpnEndpoint = ({String ifname, InternetAddress address});
 
 /// Process-wide holder letting Dio instances without Riverpod access (notably
-/// the global `globalDio`) read the currently held pin.
+/// clients from `createAppDio`) read the currently held pin.
 ///
 /// Set exactly once by `vpnManagerProvider` on build and cleared on dispose.
 /// Single-threaded Dart makes the nullable-function read race-free. Null

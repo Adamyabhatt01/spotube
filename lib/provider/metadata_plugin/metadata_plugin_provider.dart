@@ -13,8 +13,8 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/services/theme_definition_cache.dart';
 import 'package:spotube/modules/theme_background/theme_shell_source.dart';
 import 'package:spotube/provider/database/database.dart';
+import 'package:spotube/provider/dio/dio_provider.dart';
 import 'package:spotube/provider/youtube_engine/youtube_engine.dart';
-import 'package:spotube/services/dio/dio.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/services/metadata/metadata.dart';
@@ -423,7 +423,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
 
   Future<String> _getPluginDownloadUrl(Uri uri) async {
     AppLogger.log.i("Getting plugin download URL from: $uri");
-    final res = await globalDio.getUri(
+    final res = await ref.read(appDioProvider).getUri(
       uri,
       options: Options(responseType: ResponseType.json),
     );
@@ -655,7 +655,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
   /// If only a text/html URL is provided, it will try to get the latest release from
   /// the URL for supported websites (github.com, codeberg.org).
   Future<PluginConfiguration> downloadAndCachePlugin(String url) async {
-    final res = await globalDio.head(url);
+    final res = await ref.read(appDioProvider).head(url);
     final isSupportedWebsite =
         (res.headers["Content-Type"]?.first)?.startsWith("text/html") == true &&
             allowedDomainsRegex.hasMatch(url);
@@ -676,7 +676,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     final pluginDir = await _getPluginRootDir();
     await pluginDir.create(recursive: true);
 
-    final pluginRes = await globalDio.get(
+    final pluginRes = await ref.read(appDioProvider).get(
       pluginDownloadUrl,
       options: Options(
         responseType: ResponseType.bytes,

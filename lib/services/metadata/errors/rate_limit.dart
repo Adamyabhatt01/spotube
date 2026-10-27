@@ -40,7 +40,7 @@ const maxRateLimitBackoff = Duration(minutes: 10);
 /// The Spotify plugin builds its HTTP client with no options
 /// (`HttpClient()` in `hetu_std`), so `hetu_std` hands Dio a null
 /// `BaseOptions` and connect/receive/send timeouts are all infinite. Nothing
-/// else bounds those requests either: metadata never touches `globalDio`,
+/// else bounds those requests either: metadata never touches the app HTTP client,
 /// whose 15s/30s/15s applies only to the app's own client. A stalled-but-open
 /// connection to Spotify therefore left the screen spinning forever, visually
 /// identical to a hang.

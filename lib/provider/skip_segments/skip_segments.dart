@@ -1,13 +1,13 @@
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/database/database.dart';
+import 'package:spotube/provider/dio/dio_provider.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:dio/dio.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/provider/server/active_track_sources.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 
-import 'package:spotube/services/dio/dio.dart';
 
 class SourcedSegments {
   final String source;
@@ -28,7 +28,7 @@ Future<List<SkipSegmentTableData>> getAndCacheSkipSegments(
       return cached;
     }
 
-    final res = await globalDio.getUri(
+    final res = await ref.read(appDioProvider).getUri(
       Uri(
         scheme: "https",
         host: "sponsor.ajay.app",

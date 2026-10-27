@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/models/playback/track_sources.dart';
-import 'package:spotube/services/dio/dio.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 
@@ -649,7 +648,7 @@ class SourcedTrack extends BasicSourcedTrack {
     final validSources = await filterValidBounded(
       sources,
       (source) async {
-        final res = await globalDio.head(
+        final res = await deps.dio.head(
           source.url,
           options: Options(
             validateStatus: (status) => status != null && status < 500,
@@ -688,7 +687,7 @@ class SourcedTrack extends BasicSourcedTrack {
       final revalidated = await filterValidBounded(
         refetched,
         (source) async {
-          final res = await globalDio.head(
+          final res = await deps.dio.head(
             source.url,
             options: Options(
               validateStatus: (status) => status != null && status < 500,
