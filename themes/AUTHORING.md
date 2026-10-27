@@ -271,21 +271,27 @@ and `playlists`, `artists`, `albums`, `stations`, `local_library` (library).
 An entry may also be `screen:<id>`, which links to one of the theme's own
 `ui.screens` — that is how a theme adds a destination the host never shipped.
 
+A non-empty list **is** the surface: the host shows exactly those entries, in
+that order, dropping ids it does not implement (a list of only unknown ids
+falls back to the host's own). An absent or empty list leaves the user's own
+entries and order untouched. The same presence rule applies to `home.sections`
+and `settings.sections`: a non-empty list replaces the group, anything else
+keeps the host order.
+
 `dock` is `full`, `compact`, `floating` or `stage`. `stage` turns the player
 into the centre of the app: the record, its title and the transport, with the
 theme filling `stage.center` and `stage.below` itself (see §6). Navigation
 stays around it, so a stage theme is still a player, not a splash screen.
-The host has two footer shapes, so `compact` maps to the bar docked under the
-content and the other names keep the full-width footer.
+`compact` docks the bar under the content; `full` and `floating` describe the
+host's default footer and defer to the user's own dock preference.
 
-**The user's own settings win by default.** A theme takes the layout over
-only where it says so in `enforce`: `nav`, `navItems`, `navbarItems`,
-`libraryItems`, `navOrder`, `player`, `playerDock`, `volume`, `home`,
-`settings`, `titlebar`, `splash`. `navItems`, `navbarItems` and
-`libraryItems` claim membership (the theme's list replaces the host's);
-`navOrder` alone only moves the entries the theme names to the front and
-leaves the rest in place. Without `enforce`, a theme that hides the volume
-control cannot override a user who chose to keep it.
+**The v4 host reads intent from what the theme sends, not from `enforce`.**
+`enforce` was the v3 opt-in gate and is ignored by the v4 host; keep the list
+if the same payload also ships to v3 hosts, and omit it from a v4-only build.
+Two preferences still belong to the user: a theme can hide the volume control
+with `"showVolume": false`, but cannot force it back onto a user who chose to
+keep it hidden, and cannot take the footer dock away from a user who chose
+`full` (only `compact` asks for the docked shape).
 
 `responsive` holds up to four variants, each overriding the same fields. The
 name selects the window tier: `compact` (with `xs`/`sm` aliases, up to
@@ -612,6 +618,7 @@ a different theme than the one it wrote. The build reports every clamp:
   directory.
 - It cannot change the app's package id, launcher name or icon.
 - It cannot collect text. There is no input in a theme's UI.
-- It cannot take the user's settings away, unless it lists the key in
-  `layout.enforce`.
+- It cannot force the volume control back on after the user hid it, and a
+  `full`/`floating` dock never overrides a docked preference; only `compact`
+  asks for the docked shape.
 - It cannot remove the host's name, version or licence from the About page.
