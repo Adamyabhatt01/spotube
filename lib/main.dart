@@ -53,7 +53,6 @@ import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/server/bonsoir.dart';
 import 'package:spotube/provider/server/server.dart';
 import 'package:spotube/provider/tray_manager/tray_manager.dart';
-import 'package:spotube/provider/lyrics/synced.dart';
 import 'package:spotube/provider/radio/stations.dart';
 import 'package:spotube/l10n/l10n.dart';
 import 'package:spotube/provider/connect/clients.dart';
@@ -319,9 +318,6 @@ Future<void> main(List<String> rawArgs) async {
     );
     PerfCounters.startDumpTimer(interval: interval, log: AppLogger.log.t);
   }
-
-  // Register lyrics providers at startup (idempotent)
-  registerLyricsProviders();
 
   AppLogger.runZoned(() async {
     final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/services/metadata/metadata.dart';
+import 'package:spotube/services/sourced_track/manifest_cache.dart';
 
 /// The installed audio-source plugins, plus which one is the default.
 class SourcePluginSnapshot {
@@ -51,6 +52,9 @@ abstract interface class SourceDependencies {
 
   /// Cache of plugin instances keyed by [SourceCandidate.key].
   MetadataPluginCache get pluginCache;
+
+  /// Extracted-manifest cache consulted when serving a cached match.
+  ManifestCache get manifestCache;
 
   /// User-configured plugin/engine priority; empty means "no preference".
   List<String> get sourcePriority;

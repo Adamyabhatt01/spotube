@@ -8,6 +8,7 @@ import 'package:spotube/provider/metadata_plugin/audio_source/quality_presets.da
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/services/metadata/metadata.dart';
+import 'package:spotube/services/sourced_track/manifest_cache.dart';
 import 'package:spotube/services/sourced_track/source_dependencies.dart';
 
 /// Adapts the Riverpod providers to the [SourceDependencies] port.
@@ -23,6 +24,9 @@ class RefSourceDependencies implements SourceDependencies {
   @override
   late final MetadataPluginCache pluginCache =
       _PluginVmCacheAdapter(_ref.read(pluginCacheProvider));
+
+  @override
+  ManifestCache get manifestCache => _ref.read(manifestCacheProvider);
 
   @override
   Future<SourcePluginSnapshot> pluginSnapshot() async {
@@ -70,6 +74,13 @@ class _PluginVmCacheAdapter implements MetadataPluginCache {
   ) =>
       _cache.getOrCreate(key, factory);
 }
+
+/// The extracted-manifest cache shared by every resolution in this container.
+///
+/// A provider (rather than a process-wide singleton) so the cache's lifetime
+/// is the container's: tests get a fresh, empty cache per case, and the
+/// bounded entries cannot outlive the app graph they belong to.
+final manifestCacheProvider = Provider<ManifestCache>((ref) => ManifestCache());
 
 /// The application-layer implementation of the source-resolution port.
 final sourceDependenciesProvider = Provider<SourceDependencies>(

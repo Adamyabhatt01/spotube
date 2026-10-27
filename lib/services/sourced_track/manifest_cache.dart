@@ -104,8 +104,3 @@ class ManifestCache {
   @visibleForTesting
   void clear() => _entries.clear();
 }
-
-/// The process-wide manifest cache. Keyed per track+source+match with
-/// strict expiry, so entries cannot leak across tracks, engines or plugin
-/// switches; bounded so a long session cannot accumulate manifests.
-final manifestCache = ManifestCache();

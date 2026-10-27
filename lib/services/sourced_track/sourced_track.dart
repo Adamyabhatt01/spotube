@@ -12,7 +12,6 @@ import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 
 import 'package:spotube/services/sourced_track/exceptions.dart';
-import 'package:spotube/services/sourced_track/manifest_cache.dart';
 import 'package:spotube/services/sourced_track/source_dependencies.dart';
 import 'package:spotube/services/sourced_track/source_resolver.dart';
 import 'package:spotube/services/sourced_track/validation.dart';
@@ -360,7 +359,7 @@ class SourcedTrack extends BasicSourcedTrack {
     // unexpired; anything else (miss, expiry, unknown expiry) falls through
     // to today's re-extract path, and failures there propagate exactly as
     // before — a failed extraction never populates the cache.
-    final manifest = manifestCache.lookup(
+    final manifest = deps.manifestCache.lookup(
           trackId: query.id,
           sourceSlug: audioSourceConfig.slug,
           matchId: item.id,
@@ -372,7 +371,7 @@ class SourcedTrack extends BasicSourcedTrack {
             [for (final source in extracted) source.url],
           );
           if (minExpire != null) {
-            manifestCache.store(
+            deps.manifestCache.store(
               trackId: query.id,
               sourceSlug: audioSourceConfig.slug,
               matchId: item.id,

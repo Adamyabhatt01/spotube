@@ -21,11 +21,6 @@ abstract interface class LyricsProvider {
   Future<SubtitleSimple> fetchLyrics(SpotubeFullTrackObject track);
 }
 
-/// Ordered set of lyric providers. Registration order determines priority
-/// within the rules above. Providers may be added at runtime by inserting into
-/// this list (typically at [init]).
-final List<LyricsProvider> lyricsProviders = [];
-
 /// Reads the app version for lyric-provider User-Agent headers.
 ///
 /// A process-wide memo: the version is a constant, but every provider used to

@@ -11,12 +11,18 @@ import 'package:spotube/services/lyrics/better_lyrics_provider.dart';
 import 'package:spotube/services/lyrics/lrclib_provider.dart';
 import 'package:spotube/services/lyrics/lyrics_provider.dart';
 
-/// Registers built-in lyric providers. Called at app startup (idempotent).
-void registerLyricsProviders() {
-  if (lyricsProviders.isNotEmpty) return;
-  lyricsProviders.add(LRCLibLyricsProvider());
-  lyricsProviders.add(BetterLyricsLyricsProvider());
-}
+/// Built-in lyric sources, in priority order.
+///
+/// A provider (rather than a mutable services-side registry) so the chain is
+/// scoped to the container: tests override it instead of clearing and
+/// repopulating process-wide state, and app startup no longer has to register
+/// anything.
+final lyricsProvidersProvider = Provider<List<LyricsProvider>>(
+  (ref) => [
+    LRCLibLyricsProvider(),
+    BetterLyricsLyricsProvider(),
+  ],
+);
 
 /// Resolutions currently running, keyed by track id.
 ///
@@ -57,8 +63,7 @@ void _recordLyricsMiss(String trackId) {
 }
 
 /// Clears the miss and in-flight maps. Test-only: static lyric state would
-/// otherwise leak between cases the way the provider registry already guards
-/// against with `lyricsProviders.clear()`.
+/// otherwise leak between cases.
 @visibleForTesting
 void clearLyricsFetchState() {
   _lyricsMisses.clear();
@@ -157,9 +162,10 @@ class SyncedLyricsNotifier
         // cannot block the build for a minute.
         SubtitleSimple? plainFallback;
         SubtitleSimple? syncedWinner;
+        final providers = ref.read(lyricsProvidersProvider);
         try {
           syncedWinner = await (() async {
-            for (final provider in lyricsProviders) {
+            for (final provider in providers) {
               try {
                 final candidate = await provider.fetchLyrics(track);
                 if (!candidate.hasContent) continue;
