@@ -6,16 +6,14 @@ import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:metadata_god/metadata_god.dart';
-import 'package:path/path.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' hide join;
-import 'package:spotube/collections/routes.dart';
-import 'package:spotube/components/dialogs/replace_downloaded_dialog.dart';
-import 'package:spotube/extensions/dio.dart';
-import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
-import 'package:spotube/provider/database/database.dart';
+import 'package:spotube/provider/download_manager/download_paths.dart';
+import 'package:spotube/provider/download_manager/download_pool.dart';
+import 'package:spotube/provider/download_manager/download_record_writer.dart';
 import 'package:spotube/provider/download_manager/download_tasks.dart';
+import 'package:spotube/provider/download_manager/download_transfer.dart';
+import 'package:spotube/provider/download_manager/replace_policy.dart';
 import 'package:spotube/provider/metadata_plugin/audio_source/quality_presets.dart';
 import 'package:spotube/provider/server/sourced_track_provider.dart';
 import 'package:spotube/provider/sourced_track/source_dependencies.dart';
@@ -23,14 +21,10 @@ import 'package:spotube/provider/user_preferences/user_preferences_provider.dart
 import 'package:spotube/provider/vpn/vpn_provider.dart';
 import 'package:spotube/services/downloads/download_store.dart';
 import 'package:spotube/services/logger/logger.dart';
-import 'package:spotube/services/music_cache_policy.dart';
-import 'package:spotube/services/sourced_track/source_resolver.dart';
-import 'package:spotube/services/sourced_track/sourced_track.dart';
 import 'package:spotube/services/vpn/vpn_lease.dart';
 import 'package:spotube/services/vpn/vpn_manager.dart';
 import 'package:spotube/services/vpn/vpn_pin.dart';
 import 'package:spotube/services/vpn/pinned_client.dart';
-import 'package:spotube/utils/service_utils.dart';
 
 class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   final Dio dio;
@@ -47,6 +41,22 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
             createHttpClient: () => createPinnedClient(VpnPinHolder.current),
           )),
         super();
+
+  late final DownloadRecordWriter _writer = DownloadRecordWriter(ref);
+  late final ReplacePolicyGate _replacePolicy = ReplacePolicyGate(ref);
+  late final DownloadTransfer _transfer = DownloadTransfer(
+    dio: dio,
+    setStatus: _setStatus,
+    reportTotalSize: _recordTotalSize,
+    sourceDeps: () => ref.sourceDeps,
+  );
+  late final DownloadWorkerPool _pool = DownloadWorkerPool(
+    maxConcurrent: 3,
+    canStart: () => _hasDownloadContainer,
+    hasQueued: () => state.any((e) => e.status == DownloadStatus.queued),
+    claim: _claimNextQueuedTask,
+    run: _downloadTrack,
+  );
 
   @override
   build() {
@@ -87,40 +97,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   /// `localTracksProvider` uses — so a large download folder does not open
   /// every handle at once.
   @visibleForTesting
-  Future<void> reconcilePersisted() async {
-    final database = ref.read(databaseProvider);
-    try {
-      await database.transaction(
-        () => markInFlightAsInterrupted(database),
-      );
-
-      final completed = await downloadsIn(
-        database,
-        const {DownloadPersistedStatus.completed},
-      );
-      for (var start = 0;
-          start < completed.length;
-          start += _existenceWaveSize) {
-        final wave = completed.sublist(
-          start,
-          (start + _existenceWaveSize).clamp(0, completed.length),
-        );
-        final vanished = <String>[];
-        await Future.wait(
-          wave.map((row) async {
-            if (!await File(row.filePath).exists()) vanished.add(row.trackId);
-          }),
-        );
-        // Losing the file is reported, never repaired: nothing here deletes or
-        // re-creates an audio file.
-        await markDownloadsMissing(database, vanished);
-      }
-    } catch (e, stack) {
-      AppLogger.reportError(e, stack);
-    }
-  }
-
-  static const int _existenceWaveSize = 32;
+  Future<void> reconcilePersisted() => _writer.reconcilePersisted();
 
   DownloadTask? getTaskByTrackId(String trackId) {
     return state.firstWhereOrNull((element) => element.track.id == trackId);
@@ -198,7 +175,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     String? collectionId,
   }) {
     if (!_enqueue([track], collectionId: collectionId)) return;
-    _pumpDownloadPool(); // No await should be invoked to avoid stuck UI
+    _pool.pump(); // No await should be invoked to avoid stuck UI
   }
 
   void addAllToQueue(
@@ -221,17 +198,9 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     unawaited(
       _prefilterAndStart().catchError((Object error, StackTrace stackTrace) {
         AppLogger.reportError(error, stackTrace);
-      }).whenComplete(_pumpDownloadPool),
+      }).whenComplete(_pool.pump),
     );
   }
-
-  static const _statusByDownloadStatus = {
-    DownloadStatus.queued: DownloadPersistedStatus.queued,
-    DownloadStatus.downloading: DownloadPersistedStatus.downloading,
-    DownloadStatus.completed: DownloadPersistedStatus.completed,
-    DownloadStatus.failed: DownloadPersistedStatus.failed,
-    DownloadStatus.canceled: DownloadPersistedStatus.canceled,
-  };
 
   /// Whether the plugin's download container list is available yet.
   ///
@@ -241,56 +210,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
   bool get _hasDownloadContainer {
     if (_disposed) return false;
     final presets = ref.read(audioSourcePresetsProvider);
-    return presets.presets
-            .elementAtOrNull(presets.selectedDownloadingContainerIndex) !=
-        null;
-  }
-
-  /// Where [task]'s track is going on disk, plus everything the row needs.
-  ///
-  /// Always via [_savePathFor], so the path in the database and the path a
-  /// worker writes to cannot drift, and `baseName` is the same string
-  /// `DownloadedFileIndex` keys on. The `trackData` payload comes from the
-  /// task's cached encode; a task without one falls back to encoding on
-  /// demand, so an ad-hoc construction still works.
-  DownloadRecord _recordFor(
-    DownloadTask task,
-    DownloadPersistedStatus status, {
-    String? error,
-    int? sizeBytes,
-  }) {
-    final track = task.track;
-    final presets = ref.read(audioSourcePresetsProvider);
-    // Presets start empty while the audio plugin loads, and a persisted
-    // index can go stale when the plugin's list shrinks. Direct indexing
-    // threw RangeError here; fail with a meaningful error instead.
-    final container = presets.presets
-        .elementAtOrNull(presets.selectedDownloadingContainerIndex);
-    if (container == null) {
-      throw StateError(
-        'No download container preset at index '
-        '${presets.selectedDownloadingContainerIndex} '
-        '(${presets.presets.length} available)',
-      );
-    }
-    final downloadLocation = ref.read(
-        userPreferencesProvider.select((value) => value.downloadLocation));
-    final savePath = _savePathFor(
-      track,
-      downloadLocation,
-      container,
-      useRetryFilePath: task.useRetryFilePath,
-    );
-
-    return DownloadRecord(
-      trackId: track.id,
-      filePath: savePath,
-      baseName: basenameWithoutExtension(savePath),
-      status: status,
-      trackData: task.trackData ?? jsonEncode(track.toJson()),
-      error: error,
-      sizeBytes: sizeBytes,
-    );
+    return selectedDownloadContainer(presets) != null;
   }
 
   Future<void> _recordQueued(List<DownloadTask> tasks) async {
@@ -298,62 +218,12 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     // extension or destination to record yet; the tasks stay queued in memory
     // and are persisted by their first status write after presets arrive.
     if (_disposed || !_hasDownloadContainer) return;
-    await _writing('queue', () async {
-      await recordQueuedDownloads(
-        ref.read(databaseProvider),
-        [
-          for (final task in tasks)
-            _recordFor(task, DownloadPersistedStatus.queued),
-        ],
-      );
-    });
+    await _writer.recordQueued(tasks);
   }
 
   Future<void> _attachMembership(
       String playlistId, List<String> trackIds) async {
-    await _writing('membership', () async {
-      await attachTracksToPlaylist(
-        ref.read(databaseProvider),
-        playlistId: playlistId,
-        trackIds: trackIds,
-      );
-    });
-  }
-
-  Future<void> _persistStatus(
-    DownloadTask task,
-    DownloadStatus status, {
-    String? error,
-  }) async {
-    await _writing('status', () async {
-      await writeDownloadStatus(
-        ref.read(databaseProvider),
-        _recordFor(
-          task,
-          _statusByDownloadStatus[status]!,
-          sizeBytes: task.totalSizeBytes,
-          // An exception string can carry a whole response body, and it is
-          // stored per row in a database the UI reads on every list build.
-          error: error == null ? null : _take(error, 500),
-        ),
-      );
-    });
-  }
-
-  static String _take(String value, int maxLength) =>
-      value.length <= maxLength ? value : value.substring(0, maxLength);
-
-  /// A database write that fails must not cost the user their download.
-  ///
-  /// The rows are a record of transfers, not a gate on them: if the write is
-  /// lost, the next session's [reconcilePersisted] and the filesystem checks in
-  /// [_prefilterAndStart] still describe reality.
-  Future<void> _writing(String what, Future<void> Function() write) async {
-    try {
-      await write();
-    } catch (e, stack) {
-      AppLogger.reportError('Could not record download $what: $e', stack);
-    }
+    await _writer.attachMembership(playlistId, trackIds);
   }
 
   void retry(
@@ -366,7 +236,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       // Auto-download synchronization re-queues those; it explicitly asks for
       // a unique retry path so a stale partial file is left untouched.
       if (useRetryFilePath && _enqueue([track], useRetryFilePath: true)) {
-        _pumpDownloadPool();
+        _pool.pump();
       }
       return;
     }
@@ -384,7 +254,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
               )
             : e)
         .toList();
-    _pumpDownloadPool(); // No await should be invoked to avoid stuck UI
+    _pool.pump(); // No await should be invoked to avoid stuck UI
   }
 
   void cancel(SpotubeFullTrackObject track) {
@@ -454,13 +324,30 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     }).toList();
 
     if (winner case final DownloadTask task) {
-      unawaited(_persistStatus(task, status, error: error));
+      unawaited(_writer.persistStatus(task, status, error: error));
     }
 
     if (status == DownloadStatus.completed ||
         status == DownloadStatus.failed ||
         status == DownloadStatus.canceled) {
       _pruneTerminalTasks();
+    }
+  }
+
+  void _recordTotalSize(DownloadTask task, int total) {
+    if (state
+            .firstWhereOrNull((e) =>
+                e.track.id == task.track.id &&
+                identical(e.cancelToken, task.cancelToken))
+            ?.totalSizeBytes ==
+        null) {
+      state = state.map((e) {
+        if (e.track.id == task.track.id &&
+            identical(e.cancelToken, task.cancelToken)) {
+          return e.copyWith(totalSizeBytes: total);
+        }
+        return e;
+      }).toList();
     }
   }
 
@@ -503,86 +390,8 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     }
   }
 
-  /// Set while the replace-file dialog is open. Concurrent callers await
-  /// the same [Completer] instead of being answered `false` behind the
-  /// user's back — the decision, once made, is every waiter's answer.
-  Completer<bool>? _replacePolicyDecision;
-
   Future<bool> _shouldReplaceFileOnExist(DownloadTask task) async {
-    return _resolveReplacePolicy(task.track);
-  }
-
-  /// Resolves whether already-downloaded files should be replaced.
-  ///
-  /// Asked at most once per decision: the answer is stored in
-  /// [replaceDownloadedFileState], so the phase-1 prefilter and the
-  /// per-track safety net share a single user decision.
-  Future<bool> _resolveReplacePolicy(SpotubeTrackObject track) async {
-    final replaceAll = ref.read(replaceDownloadedFileState);
-    if (replaceAll != null) return replaceAll;
-    final inFlight = _replacePolicyDecision;
-    if (inFlight != null) return inFlight.future;
-    if (rootNavigatorKey.currentContext == null) {
-      return false;
-    }
-    final completer = _replacePolicyDecision = Completer<bool>();
-    try {
-      final answer = await showDialog<bool>(
-            context: rootNavigatorKey.currentContext!,
-            builder: (context) => ReplaceDownloadedDialog(
-              track: track,
-            ),
-          ) ??
-          false;
-      completer.complete(answer);
-      return answer;
-    } catch (error, stackTrace) {
-      if (!completer.isCompleted) completer.complete(false);
-      Error.throwWithStackTrace(error, stackTrace);
-    } finally {
-      _replacePolicyDecision = null;
-    }
-  }
-
-  /// Runs [operation] with bounded exponential retry for transient
-  /// download failures. Cancellation aborts immediately (no sleep, no
-  /// retry); permanent errors fail fast via [isRetryableDownloadError].
-  /// Returns only on success — failures propagate to [_downloadTrack]'s
-  /// catch, which marks the task failed exactly once.
-  ///
-  /// [beforeAttempt] runs ahead of every attempt (including the first).
-  /// The VPN gate passes a wait-for-connection hook here so a mid-download
-  /// VPN loss pauses instead of retrying over the normal connection. Null
-  /// by default: ungated downloads behave exactly as before.
-  Future<T> _chunkDownloadWithRetry<T>(
-    DownloadTask task,
-    Future<T> Function() operation, {
-    Future<void> Function()? beforeAttempt,
-  }) async {
-    for (var attempt = 0;; attempt++) {
-      if (task.cancelToken.isCancelled) {
-        throw DioException(
-          requestOptions: RequestOptions(path: ''),
-          type: DioExceptionType.cancel,
-        );
-      }
-      try {
-        if (beforeAttempt != null) await beforeAttempt();
-        return await operation();
-      } catch (e) {
-        // VPN protection failures (e.g. proxy conflict, surfaced by Dio
-        // as `unknown` with the VpnException attached) are deterministic:
-        // retrying cannot help and must never transmit, so fail fast.
-        if (isVpnProtectionError(e)) {
-          rethrow;
-        }
-        if (!isRetryableDownloadError(e) ||
-            attempt >= downloadRetryDelays.length) {
-          rethrow;
-        }
-        await Future.delayed(downloadRetryDelays[attempt]);
-      }
-    }
+    return _replacePolicy.resolve(task.track);
   }
 
   Future<void> _downloadTrack(DownloadTask task) async {
@@ -641,8 +450,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       // second identical write per task and could revert a cancel that
       // arrived while the lease was pending.
       final presets = ref.read(audioSourcePresetsProvider);
-      final container = presets.presets
-          .elementAtOrNull(presets.selectedDownloadingContainerIndex);
+      final container = selectedDownloadContainer(presets);
       if (container == null) {
         throw StateError(
           'No download container preset at index '
@@ -658,7 +466,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
 
       await Directory(downloadLocation).create(recursive: true);
 
-      final savePath = _savePathFor(
+      final savePath = downloadSavePath(
         task.track,
         downloadLocation,
         container,
@@ -682,9 +490,9 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       //    preserving the original behavior exactly.
       try {
         final primary = await ref.read(sourcedTrackProvider(task.track).future);
-        final url = _pickDownloadUrl(primary, container, presets, autoQuality);
+        final url = pickDownloadUrl(primary, container, presets, autoQuality);
         if (url != null) {
-          await _chunkDownloadTrack(
+          await _transfer.chunkDownloadTrack(
             task,
             url: url,
             savePath: savePath,
@@ -710,7 +518,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       //    sibling matches, any available quality) until one succeeds.
       //    Extracted verbatim below; [lastError]/[lastStack] carry the
       //    primary attempt's failure so the final rethrow is unchanged.
-      await _downloadWithFallback(
+      await _transfer.downloadWithFallback(
         task,
         savePath: savePath,
         savePathFile: savePathFile,
@@ -755,278 +563,6 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     }
   }
 
-  /// Fallback half of [_downloadTrack], extracted verbatim: walks the source
-  /// cascade (other engines, other plugins, sibling matches, any available
-  /// quality) until one chunked download succeeds. [lastError]/[lastStack]
-  /// carry the primary attempt's failure into the final rethrow, so the
-  /// failure taxonomy the caller's catch handles is unchanged. Cancel
-  /// re-checks, the VPN wait hook and the per-candidate loop all stay as
-  /// they were; every `return` here is a success or cancel exiting the
-  /// attempt, which reaches the caller's `finally` exactly as before.
-  Future<void> _downloadWithFallback(
-    DownloadTask task, {
-    required String savePath,
-    required File savePathFile,
-    required SpotubeAudioSourceContainerPreset container,
-    required AudioSourcePresetsState presets,
-    required bool autoQuality,
-    required Future<void> Function()? vpnWaitHook,
-    required Object? lastError,
-    required StackTrace? lastStack,
-  }) async {
-    final resolver = SourceResolver(ref.sourceDeps);
-    final candidates = await resolver.candidates();
-
-    for (final candidate in candidates) {
-      if (task.cancelToken.isCancelled) {
-        _setStatus(task.track, DownloadStatus.canceled,
-            sourceToken: task.cancelToken);
-        return;
-      }
-
-      try {
-        // Bounded like playback's cascade: a stalled search/manifest must
-        // fall through to the next candidate, never hang the worker. The
-        // chunk download below is deliberately unbounded (files take minutes).
-        final track = await resolver
-            .resolve(candidate, task.track)
-            .timeout(sourceCandidateBudget);
-        final candidatesToTry = [
-          track,
-          for (final sibling in track.siblings)
-            await resolver
-                .resolveMatch(candidate, task.track, sibling)
-                .timeout(sourceCandidateBudget),
-        ];
-
-        for (final resolved in candidatesToTry) {
-          if (task.cancelToken.isCancelled) {
-            _setStatus(task.track, DownloadStatus.canceled,
-                sourceToken: task.cancelToken);
-            return;
-          }
-          final url = _pickDownloadUrl(
-            resolved,
-            container,
-            presets,
-            autoQuality,
-          );
-          if (url == null) continue;
-
-          try {
-            await _chunkDownloadTrack(
-              task,
-              url: url,
-              savePath: savePath,
-              savePathFile: savePathFile,
-              container: container,
-              beforeAttempt: vpnWaitHook,
-            );
-            return;
-          } catch (e, stack) {
-            lastError = e;
-            lastStack = stack;
-          }
-        }
-      } catch (e, stack) {
-        lastError = e;
-        lastStack = stack;
-      }
-    }
-
-    if (lastError case final Object error) {
-      Error.throwWithStackTrace(error, lastStack ?? StackTrace.current);
-    }
-    throw Exception("All download sources failed for ${task.track.name}");
-  }
-
-  /// Selects the download URL for [track]. When [autoQuality] is enabled,
-  /// the selected container/quality is not required — the best available
-  /// stream (any container) is used instead.
-  String? _pickDownloadUrl(
-    SourcedTrack track,
-    SpotubeAudioSourceContainerPreset container,
-    AudioSourcePresetsState presets,
-    bool autoQuality,
-  ) {
-    if (autoQuality) {
-      return track.getStreamOfAnyContainer(container)?.url;
-    }
-    return track.getUrlOfQuality(
-      container,
-      presets.selectedDownloadingQualityIndex,
-    );
-  }
-
-  /// Performs the actual chunked download to [savePath] and writes metadata.
-  /// Throws on failure so the caller can fall back to another source.
-  Future<void> _chunkDownloadTrack(
-    DownloadTask task, {
-    required String url,
-    required String savePath,
-    required File savePathFile,
-    required SpotubeAudioSourceContainerPreset container,
-    Future<void> Function()? beforeAttempt,
-  }) async {
-    var lastProgressEmit = DateTime.fromMillisecondsSinceEpoch(0);
-    final response = await _chunkDownloadWithRetry(
-      task,
-      () => dio.chunkDownload(
-        url,
-        savePath,
-        cancelToken: task.cancelToken,
-        onReceiveProgress: (count, total) {
-          // The captured `task` is a stale snapshot (every _setStatus creates
-          // a new DownloadTask), so check the LIVE state entry instead —
-          // otherwise this rebuilt the whole list on every chunk callback.
-          if (total > 0 &&
-              state
-                      .firstWhereOrNull(
-                        (e) =>
-                            e.track.id == task.track.id &&
-                            identical(e.cancelToken, task.cancelToken),
-                      )
-                      ?.totalSizeBytes ==
-                  null) {
-            state = state.map((e) {
-              if (e.track.id == task.track.id &&
-                  identical(e.cancelToken, task.cancelToken)) {
-                return e.copyWith(totalSizeBytes: total);
-              }
-              return e;
-            }).toList();
-          }
-          // Throttled: chunk callbacks arrive ~100/sec/connection and
-          // each event rebuilds the row. The terminal event always
-          // passes (see [shouldEmitDownloadProgress]).
-          final now = DateTime.now();
-          if (shouldEmitDownloadProgress(
-            count: count,
-            total: total,
-            now: now,
-            lastEmit: lastProgressEmit,
-          )) {
-            lastProgressEmit = now;
-            task.emitDownloadedBytes(count);
-          }
-        },
-        deleteOnError: true,
-      ),
-      beforeAttempt: beforeAttempt,
-    );
-
-    if (response.statusCode != null && response.statusCode! < 400) {
-      if (task.cancelToken.isCancelled) {
-        // Canceled mid-transfer — leave the task in `canceled`.
-        return;
-      }
-      _setStatus(task.track, DownloadStatus.completed,
-          sourceToken: task.cancelToken);
-    } else {
-      throw Exception("Download failed with status ${response.statusCode}");
-    }
-
-    // The file now lives in the library; the playback server's mirrored copy
-    // of the same audio is pure duplicate from here on.
-    await _evictMusicCacheCopies(task.track, container);
-
-    if (container.getFileExtension() == "weba") return;
-
-    // Shared memo with the playback-cache finalizer and palette hook: a track
-    // that was streamed (and mirrored) before being downloaded, or a sibling
-    // from the same album, must not re-fetch the same cover.
-    final imageBytes = await ServiceUtils.artworkBytes(
-      (task.track.album.images).asUrlString(
-        placeholder: ImagePlaceholder.albumArt,
-        index: 1,
-      ),
-    );
-    await MetadataGod.writeMetadata(
-      file: savePath,
-      metadata: task.track.toMetadata(
-        fileLength: await savePathFile.length(),
-        imageBytes: imageBytes,
-      ),
-    );
-  }
-
-  /// Deletes music-cache copies of [track] after its download landed.
-  ///
-  /// The cache file is named `"<name> - <artists> (<source id>).<ext>"` (see
-  /// the playback server); the source id belongs to the streaming resolve and
-  /// is unknown here, so copies are matched by the name+artists prefix the
-  /// server writes and this container's extension. A whole one-level list is
-  /// cheap next to the transfer that just finished, and no match is a no-op
-  /// for a track that was never streamed.
-  Future<void> _evictMusicCacheCopies(
-    SpotubeFullTrackObject track,
-    SpotubeAudioSourceContainerPreset container,
-  ) async {
-    try {
-      final prefix = ServiceUtils.sanitizeFilename(
-        ServiceUtils.trackFileStem(track, spaceAfterComma: false),
-      );
-      final extension = '.${container.getFileExtension()}';
-      final dir = Directory(await UserPreferencesNotifier.getMusicCacheDir());
-      if (!await dir.exists()) return;
-
-      final stale = <File>[];
-      await for (final entity in dir.list(followLinks: false)) {
-        if (entity is! File) continue;
-        final name = basename(entity.path);
-        if (name.startsWith(prefix) &&
-            name.length > prefix.length &&
-            name.endsWith(extension)) {
-          stale.add(entity);
-        }
-      }
-      if (stale.isEmpty) return;
-
-      // Gone from the usage map too, so the eviction ranker never treats a
-      // deleted path as recently served.
-      for (final file in stale) {
-        await file.delete();
-        MusicCacheUsage.forget(file.path);
-      }
-    } catch (e, stack) {
-      // Disk hygiene after a completed download: never fails the download.
-      AppLogger.reportError(e, stack, 'music cache eviction after download');
-    }
-  }
-
-  /// Maximum number of tracks downloaded concurrently.
-  ///
-  /// Note that every track download already fans out to multiple range
-  /// connections internally (see `chunkDownload`), so this limit is
-  /// intentionally conservative.
-  static const int _maxConcurrentDownloads = 3;
-
-  int _activeWorkers = 0;
-
-  /// Computes the on-disk destination of a track for the given settings.
-  ///
-  /// Shared by the phase-1 prefilter and [_downloadTrack] so the checked
-  /// path and the downloaded path can never drift apart.
-  String _savePathFor(
-    SpotubeFullTrackObject track,
-    String downloadLocation,
-    SpotubeAudioSourceContainerPreset container, {
-    bool useRetryFilePath = false,
-  }) {
-    final stem = ServiceUtils.trackFileStem(track, spaceAfterComma: true);
-    // A retry must not reuse or overwrite the failed attempt's file: it may be
-    // truncated, or may belong to a distinct track whose name sanitized to the
-    // same path. The track id makes the retry destination deterministic and
-    // unique without deleting anything.
-    final fileName = useRetryFilePath
-        ? "$stem [${track.id}].${container.getFileExtension()}"
-        : "$stem.${container.getFileExtension()}";
-    return join(
-      downloadLocation,
-      ServiceUtils.sanitizeFilename(fileName),
-    );
-  }
-
   /// Phase 1 of bulk downloads: batch-check which queued tracks already
   /// exist on disk (pure filesystem stats, no network) and resolve what to
   /// do with them before any downloading starts.
@@ -1048,7 +584,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     final queued =
         state.where((e) => e.status == DownloadStatus.queued).toList();
     if (queued.isEmpty) {
-      _pumpDownloadPool();
+      _pool.pump();
       return;
     }
 
@@ -1059,8 +595,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     // pointed past the end of the plugin's current list. The same guard the
     // single-task path uses, so the prefilter degrades to "no container"
     // instead of crashing the download pump.
-    final container = presets.presets
-        .elementAtOrNull(presets.selectedDownloadingContainerIndex);
+    final container = selectedDownloadContainer(presets);
     if (container == null) {
       // Presets are restored asynchronously. Leave the queue intact; the
       // presets listener calls this again once a download container exists.
@@ -1072,7 +607,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     // Group queued tasks by destination path.
     final groups = <String, List<DownloadTask>>{};
     for (final task in queued) {
-      final savePath = _savePathFor(
+      final savePath = downloadSavePath(
         task.track,
         downloadLocation,
         container,
@@ -1084,10 +619,12 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     // Bounded wave of existence checks.
     final existence = <String, bool>{};
     final paths = groups.keys.toList();
-    for (var start = 0; start < paths.length; start += _existenceWaveSize) {
+    for (var start = 0;
+        start < paths.length;
+        start += downloadExistenceWaveSize) {
       final wave = paths.sublist(
         start,
-        (start + _existenceWaveSize).clamp(0, paths.length),
+        (start + downloadExistenceWaveSize).clamp(0, paths.length),
       );
       await Future.wait([
         for (final path in wave)
@@ -1105,7 +642,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
     bool replace = false;
     if (existingNeedingPolicy.isNotEmpty) {
       final firstExisting = existingNeedingPolicy.first.value.first.track;
-      replace = await _resolveReplacePolicy(firstExisting);
+      replace = await _replacePolicy.resolve(firstExisting);
     }
 
     final onDiskTracks = <SpotubeFullTrackObject>[];
@@ -1132,7 +669,7 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
       );
     }
 
-    _pumpDownloadPool();
+    _pool.pump();
   }
 
   /// Flips every still-queued task in [tracks] to completed in one pass.
@@ -1158,40 +695,9 @@ class DownloadManagerNotifier extends Notifier<List<DownloadTask>> {
           e,
     ];
     for (final task in winners) {
-      unawaited(_persistStatus(task, DownloadStatus.completed));
+      unawaited(_writer.persistStatus(task, DownloadStatus.completed));
     }
     _pruneTerminalTasks();
-  }
-
-  /// Phase 2: keep up to [_maxConcurrentDownloads] workers draining the
-  /// queue. Late arrivals are picked up as well, since workers claim
-  /// whatever is queued when they become free.
-  void _pumpDownloadPool() {
-    // Queued work waits for the plugin's presets; the presets listener pumps
-    // it once a destination extension exists.
-    if (!_hasDownloadContainer) return;
-    while (_activeWorkers < _maxConcurrentDownloads) {
-      final hasQueued = state.any((e) => e.status == DownloadStatus.queued);
-      if (!hasQueued) return;
-      _activeWorkers++;
-      _downloadWorker().whenComplete(() {
-        _activeWorkers--;
-        _pumpDownloadPool();
-      });
-    }
-  }
-
-  Future<void> _downloadWorker() async {
-    while (true) {
-      final task = _claimNextQueuedTask();
-      if (task == null) return;
-      try {
-        await _downloadTrack(task);
-      } catch (_) {
-        // [_downloadTrack] reports its own failures via status updates.
-        // Never let a worker die loudly and stall the pool.
-      }
-    }
   }
 
   /// Synchronously marks the next queued task as downloading and hands it
