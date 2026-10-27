@@ -5,6 +5,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/components/button/back_button.dart';
 import 'package:spotube/components/titlebar/titlebar_buttons.dart';
+import 'package:spotube/components/titlebar/titlebar_surface.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/theme_background/real_transparency.dart';
 import 'package:spotube/modules/theme_background/theme_background_image_provider.dart';
@@ -71,7 +72,7 @@ class TitleBar extends HookConsumerWidget implements PreferredSizeWidget {
     final hasLeadingOrCanPop = leading.isNotEmpty || Navigator.canPop(context);
     final lastClicked = useRef<int>(DateTime.now().millisecondsSinceEpoch);
 
-    // shadcn's AppBar fills itself with `card` at the surface opacity, a
+    // The bar surface fills itself with `card` at the surface opacity, a
     // neutral near-black, which reads as a solid band across the top of every
     // page that has a title bar. It cannot just wear the backdrop's veil
     // instead: the ground behind it is already veiled, so a second veil at the
@@ -138,7 +139,7 @@ class TitleBar extends HookConsumerWidget implements PreferredSizeWidget {
                 lastClicked.value = currMills;
               }
             },
-            child: AppBar(
+            child: TitleBarSurface(
               leading: canPop ? [const BackButton()] : leading,
               trailing: [
                 ...trailing,
