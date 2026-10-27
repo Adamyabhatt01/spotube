@@ -1,6 +1,7 @@
 import 'package:media_kit/media_kit.dart' as mk;
 
 import 'package:spotube/services/audio_player/playback_state.dart';
+import 'package:spotube/services/audio_player/player_backend.dart';
 
 /// Playback surface the app depends on.
 ///
@@ -8,17 +9,25 @@ import 'package:spotube/services/audio_player/playback_state.dart';
 /// from another library: tests (and, later, a non-mpv backend) supply their own
 /// implementation instead of reaching for the process-wide player. The
 /// concrete media_kit implementation stays in `audio_player.dart`.
-abstract interface class AudioPlayerPort {
+abstract interface class AudioPlayerPort implements PlayerBackend {
   // Transport
+  @override
   Future<void> pause();
+
+  /// Starts/resumes the queue. [play] is the shared backend-contract name.
   Future<void> resume();
+  @override
+  Future<void> play();
+  @override
   Future<void> stop();
   Future<void> seek(Duration position);
 
   /// Output level as a 0.0–1.0 fraction.
+  @override
   Future<void> setVolume(double volume);
   Future<void> setSpeed(double speed);
   Future<void> setAudioDevice(mk.AudioDevice device);
+  @override
   Future<void> dispose();
 
   // Queue
@@ -72,16 +81,19 @@ abstract interface class AudioPlayerPort {
   Stream<Duration> get positionTickStream;
   Stream<Duration> get bufferedPositionStream;
   Stream<void> get completedStream;
+  @override
   Stream<bool> get playingStream;
   Stream<bool> get shuffledStream;
   Stream<mk.PlaylistMode> get loopModeStream;
   Stream<double> get volumeStream;
+  @override
   Stream<bool> get bufferingStream;
   Stream<AudioPlaybackState> get playerStateStream;
   Stream<int> get currentIndexChangedStream;
   Stream<String> get activeSourceChangedStream;
   Stream<List<mk.AudioDevice>> get devicesStream;
   Stream<mk.AudioDevice> get selectedDeviceStream;
+  @override
   Stream<String> get errorStream;
   Stream<mk.Playlist> get playlistStream;
 }

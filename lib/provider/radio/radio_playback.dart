@@ -7,6 +7,7 @@ import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/radio/radio_station.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/audio_player/audio_player_port.dart';
+import 'package:spotube/provider/radio/playback_handoff.dart';
 import 'package:spotube/provider/radio/state.dart';
 import 'package:spotube/services/audio_player/audio_player_port.dart';
 import 'package:spotube/services/audio_player/radio_audio_player.dart';
@@ -59,6 +60,9 @@ class RadioPlaybackNotifier extends Notifier<RadioPlaybackState> {
   RadioPlayerBackend? _backend;
   final List<StreamSubscription<dynamic>> _subscriptions = [];
 
+  late final PlaybackHandoff _handoff =
+      PlaybackHandoff(ref.read(musicPlaybackDelegateProvider));
+
   /// Monotonic token identifying the newest [play]/[stop] intent.
   ///
   /// [play] is async from its first `await`, and two station taps interleave
@@ -77,8 +81,10 @@ class RadioPlaybackNotifier extends Notifier<RadioPlaybackState> {
     // radio so the two separate mpv players never emit at once. Only music
     // *playing* events trigger this — play() emits a pause before the source
     // flips, so it can never self-cancel.
-    final musicPlaying =
-        ref.read(musicPlaybackDelegateProvider).musicPlayingStream.listen((playing) {
+    final musicPlaying = ref
+        .read(musicPlaybackDelegateProvider)
+        .musicPlayingStream
+        .listen((playing) {
       if (playing && state.isRadio) {
         unawaited(stop());
       }
@@ -95,7 +101,8 @@ class RadioPlaybackNotifier extends Notifier<RadioPlaybackState> {
   /// true`, an unchanged ICY title) does not fan out to every station control.
   /// Requires [RadioPlaybackState.==].
   @override
-  bool updateShouldNotify(RadioPlaybackState previous, RadioPlaybackState next) =>
+  bool updateShouldNotify(
+          RadioPlaybackState previous, RadioPlaybackState next) =>
       previous != next;
 
   Future<void> play(RadioStation station) async {
@@ -121,11 +128,11 @@ class RadioPlaybackNotifier extends Notifier<RadioPlaybackState> {
     // Hand over audio focus: silence music before the station opens so the two
     // players never emit at once, but leave the music queue intact.
     if (state.source == PlaybackSource.music) {
-      await ref.read(musicPlaybackDelegateProvider).pauseMusic();
+      await _handoff.toRadio();
       if (token != _generation) return;
     }
 
-    await _teardown();
+    await _handoff.toMusic(_teardown);
     // A newer intent took over during the teardown and now owns `_backend`;
     // installing a second player here is the leak this guard exists for.
     if (token != _generation) return;
@@ -221,7 +228,7 @@ class RadioPlaybackNotifier extends Notifier<RadioPlaybackState> {
   Future<void> stop() async {
     // A play() in flight must not resurrect a station the user just stopped.
     ++_generation;
-    await _teardown();
+    await _handoff.toMusic(_teardown);
     state = state.copyWith(
       source: PlaybackSource.music,
       clearStation: true,
@@ -259,7 +266,8 @@ class RadioPlaybackNotifier extends Notifier<RadioPlaybackState> {
       }),
       backend.errorStream.listen((message) {
         if (!identical(backend, _backend)) return;
-        AppLogger.reportError(message, StackTrace.current, 'radio stream error');
+        AppLogger.reportError(
+            message, StackTrace.current, 'radio stream error');
         state = state.copyWith(error: message, playing: false);
       }),
     ]);

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:spotube/services/audio_player/custom_player.dart';
+import 'package:spotube/services/audio_player/player_backend.dart';
 
 /// Playback surface a radio station needs from an audio backend.
 ///
@@ -10,27 +11,35 @@ import 'package:spotube/services/audio_player/custom_player.dart';
 /// can be driven by a fake in unit tests without a native mpv, and so a
 /// future platform (web) can supply a different implementation without
 /// touching the notifier.
-abstract interface class RadioPlayerBackend {
+abstract interface class RadioPlayerBackend implements PlayerBackend {
   /// Starts (or replaces) playback of a raw stream URL. No queue, no
   /// `SpotubeTrackObject` — the backend plays the URL exactly as given. The
   /// URL must already be scheme-validated by the caller.
   Future<void> open(String url, {bool play = true});
 
+  @override
   Future<void> play();
+  @override
   Future<void> pause();
+  @override
   Future<void> stop();
 
   /// Output level as a 0.0–1.0 fraction. A fresh backend starts at full volume,
   /// so the caller re-applies the user's level after [open].
+  @override
   Future<void> setVolume(double volume);
 
   /// Current live metadata title (ICY/`media-title`), or empty when the source
   /// reports none. May update many times per station as tracks change.
   Stream<String> get titleStream;
+  @override
   Stream<bool> get playingStream;
+  @override
   Stream<bool> get bufferingStream;
+  @override
   Stream<String> get errorStream;
 
+  @override
   Future<void> dispose();
 }
 
@@ -74,8 +83,8 @@ class MediaKitRadioPlayerBackend implements RadioPlayerBackend {
     if (!_titleObserved) {
       _titleObserved = true;
       try {
-        await _player.nativePlayer
-            .observeProperty('media-title', (value) async {
+        await _player.nativePlayer.observeProperty('media-title',
+            (value) async {
           if (!_title.isClosed) _title.add(value);
         });
       } catch (e) {

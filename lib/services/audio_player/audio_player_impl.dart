@@ -16,6 +16,9 @@ class SpotubeAudioPlayer extends AudioPlayerInterface
   }
 
   @override
+  Future<void> play() => resume();
+
+  @override
   Future<void> stop() async {
     await _mkPlayer.stop();
   }
