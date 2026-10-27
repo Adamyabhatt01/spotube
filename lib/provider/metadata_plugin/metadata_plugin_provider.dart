@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
@@ -7,18 +6,17 @@ import 'package:drift/drift.dart';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/services/theme_definition_cache.dart';
 import 'package:spotube/modules/theme_background/theme_shell_source.dart';
 import 'package:spotube/provider/database/database.dart';
+import 'package:spotube/provider/metadata_plugin/plugin_storage.dart';
 import 'package:spotube/provider/dio/dio_provider.dart';
 import 'package:spotube/provider/youtube_engine/youtube_engine.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/services/metadata/metadata.dart';
-import 'package:spotube/utils/service_utils.dart';
 import 'package:archive/archive.dart';
 // ignore: depend_on_referenced_packages
 import 'package:meta/meta.dart';
@@ -136,6 +134,7 @@ class MetadataPluginState {
 
 class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
   AppDatabase get database => ref.read(databaseProvider);
+  final _storage = PluginStorage();
 
   @override
   build() async {
@@ -206,10 +205,10 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
 
       // A (re)install path evicts this key, so a hit means the files were
       // there the last time they could have changed.
-      final validationKey = _validationKey(pluginConfig);
-      if (!_validatedPlugins.contains(validationKey)) {
-        final pluginExtractionDir = await _getPluginExtractionDir(pluginConfig);
-        await _recoverInterruptedExtraction(pluginExtractionDir);
+      final validationKey = PluginStorage.validationKey(pluginConfig);
+      if (!_storage.validatedPlugins.contains(validationKey)) {
+        final pluginExtractionDir = await _storage.extractionDir(pluginConfig);
+        await _storage.recoverInterruptedExtraction(pluginExtractionDir);
         final pluginJsonFile =
             File(join(pluginExtractionDir.path, "plugin.json"));
         final pluginBinaryFile =
@@ -222,7 +221,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
           await database.pluginsTable.deleteOne(plugin);
           continue;
         }
-        _validatedPlugins.add(validationKey);
+        _storage.validatedPlugins.add(validationKey);
       }
 
       pluginConfigs.add(pluginConfig);
@@ -263,7 +262,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
       // few hundred bytes. Writing the archive out again is what used to sit
       // on the startup path for every launch of an up-to-date install.
       final archive = ZipDecoder().decodeBytes(byteData.buffer.asUint8List());
-      final pluginConfig = readPluginArchiveConfig(archive);
+      final pluginConfig = PluginStorage.readArchiveConfig(archive);
       seedConfigs.add(pluginConfig);
 
       if (!await isBundledPluginUpToDate(
@@ -275,7 +274,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
             ?.size,
         pluginState,
       )) {
-        await extractPluginArchiveFrom(archive);
+        await _storage.extractArchiveFrom(archive);
       }
 
       try {
@@ -374,7 +373,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     );
     if (row == null || row.version != config.version) return false;
 
-    final extractionDir = await _getPluginExtractionDir(config);
+    final extractionDir = await _storage.extractionDir(config);
     if (!await File(join(extractionDir.path, "plugin.json")).exists()) {
       return false;
     }
@@ -445,212 +444,6 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     return downloadUrl;
   }
 
-  /// Root directory where all metadata plugins are stored.
-  ///
-  /// Memoized: every `pluginsTable` watch event re-validates the plugin list,
-  /// and the support directory cannot move within a session.
-  Future<Directory> _getPluginRootDir() async {
-    if (_pluginRootDirPath case final path?) return Directory(path);
-    final root = Directory(
-      join(
-        (await getApplicationSupportDirectory()).path,
-        "metadata-plugins",
-      ),
-    );
-    _pluginRootDirPath = root.path;
-    return root;
-  }
-
-  String? _pluginRootDirPath;
-
-  /// `author::name@version` triples whose extraction directory was validated
-  /// this session. Directories are version-suffixed and immutable once
-  /// extracted, so the three existence checks per plugin do not need to
-  /// re-run on every watch event; install/remove paths below evict stale
-  /// entries.
-  final Set<String> _validatedPlugins = {};
-
-  static String _validationKey(PluginConfiguration plugin) =>
-      '${plugin.author}::${plugin.name}@${plugin.version}';
-
-  static String _validationPrefix(PluginConfiguration plugin) =>
-      '${plugin.author}::${plugin.name}@';
-
-  /// Directory where the plugin will be extracted.
-  /// This is a unique directory for each plugin version.
-  /// It is used to avoid conflicts when multiple versions of the same plugin are installed
-  ///
-  /// `author` and `name` go through [ServiceUtils.sanitizeFilename]; `version`
-  /// used to be interpolated raw. It is free text from the archive's own
-  /// `plugin.json`, so a crafted value decided where every entry of the archive
-  /// landed: `join` does not normalize, so `..` segments survive and the kernel
-  /// resolves them at open(). The entry names themselves are already rejected
-  /// by [isSafePluginEntryPath] before anything is written; the directory they
-  /// land in has to pass the same predicate. Thrown here — the single choke
-  /// point every caller (extraction, bytecode read, logo, validation, removal)
-  /// funnels through — so no path can write outside the plugin root.
-  Future<Directory> _getPluginExtractionDir(PluginConfiguration plugin) async {
-    if (!isSafePluginEntryPath(plugin.version)) {
-      throw MetadataPluginException.invalidPluginConfiguration();
-    }
-    final pluginDir = await _getPluginRootDir();
-    final pluginExtractionDirPath = join(
-      pluginDir.path,
-      "${ServiceUtils.sanitizeFilename(plugin.author)}-${ServiceUtils.sanitizeFilename(plugin.name)}-${plugin.version}",
-    );
-    return Directory(pluginExtractionDirPath);
-  }
-
-  Future<PluginConfiguration> extractPluginArchive(List<int> bytes) async {
-    return extractPluginArchiveFrom(ZipDecoder().decodeBytes(bytes));
-  }
-
-  /// `plugin.json` of an already decoded archive, without touching the disk.
-  static PluginConfiguration readPluginArchiveConfig(Archive archive) {
-    final pluginJson = archive.firstWhereOrNull(
-      (file) => file.isFile && file.name == "plugin.json",
-    );
-    if (pluginJson == null) {
-      throw MetadataPluginException.pluginConfigJsonNotFound();
-    }
-    return PluginConfiguration.fromJson(
-      jsonDecode(
-        utf8.decode(pluginJson.content as List<int>),
-      ) as Map<String, dynamic>,
-    );
-  }
-
-  Future<PluginConfiguration> extractPluginArchiveFrom(Archive archive) async {
-    final pluginConfig = readPluginArchiveConfig(archive);
-
-    // Validate before anything is written to disk: the bytecode file
-    // [getPluginByteCode] will later require must be present, and every
-    // entry path must stay inside the extraction directory. A partially
-    // extracted plugin would otherwise linger on disk even though the
-    // install itself fails.
-    final hasByteCode =
-        archive.any((file) => file.isFile && file.name == "plugin.out");
-    if (!hasByteCode) {
-      throw MetadataPluginException.pluginByteCodeFileNotFound();
-    }
-
-    final pluginDir = await _getPluginRootDir();
-    await pluginDir.create(recursive: true);
-
-    final pluginExtractionDir = await _getPluginExtractionDir(pluginConfig);
-    await _recoverInterruptedExtraction(pluginExtractionDir);
-
-    for (final file in archive) {
-      if (file.isFile && !isSafePluginEntryPath(file.name)) {
-        throw MetadataPluginException.invalidPluginConfiguration();
-      }
-    }
-
-    // Never write over the live plugin directory. A failed extraction must
-    // leave the previous working version byte-for-byte intact, and readers
-    // must never observe a half-written plugin.
-    final stagingDir = Directory(
-      join(pluginDir.path, '.staging-$pid-${_stagingSequence++}'),
-    );
-    try {
-      await stagingDir.create(recursive: true);
-      for (final file in archive) {
-        if (file.isFile) {
-          final extractedFile = File(join(stagingDir.path, file.name));
-          await extractedFile.create(recursive: true);
-          await extractedFile.writeAsBytes(file.content as List<int>);
-        }
-      }
-      await _promoteStagedPlugin(stagingDir, pluginExtractionDir);
-    } catch (_) {
-      // Only the staging directory is ours to remove; the target is either
-      // untouched (failure before promotion) or was restored by promotion.
-      await _deleteDirectoryQuietly(stagingDir);
-      rethrow;
-    }
-
-    return pluginConfig;
-  }
-
-  static int _stagingSequence = 0;
-
-  /// Replaces [target] with [staging] as close to atomically as the
-  /// filesystem allows. The target is moved aside first because a directory
-  /// rename cannot replace a non-empty directory on every platform.
-  Future<void> _promoteStagedPlugin(
-    Directory staging,
-    Directory target,
-  ) async {
-    final backup = Directory('${target.path}.backup');
-
-    if (await backup.exists()) {
-      await _deleteDirectoryQuietly(backup);
-    }
-
-    final hadTarget = await target.exists();
-    if (hadTarget) {
-      await target.rename(backup.path);
-    }
-
-    try {
-      await staging.rename(target.path);
-    } catch (_) {
-      // Put the old version back so a failed promotion is a no-op for the
-      // caller. If this restore also fails, a later startup recovery can
-      // still restore `${target}.backup`.
-      if (hadTarget && !await target.exists() && await backup.exists()) {
-        await backup.rename(target.path);
-      }
-      rethrow;
-    }
-
-    if (hadTarget) {
-      await _deleteDirectoryQuietly(backup);
-    }
-  }
-
-  /// Completes or rolls back a swap interrupted between the two directory
-  /// renames. Called before validation and before the next extraction.
-  Future<void> _recoverInterruptedExtraction(Directory target) async {
-    final backup = Directory('${target.path}.backup');
-    if (!await backup.exists()) return;
-
-    if (await target.exists()) {
-      // The new target was promoted but the backup was not cleaned up.
-      await _deleteDirectoryQuietly(backup);
-      return;
-    }
-
-    // The old target was moved aside but the new one was never promoted.
-    await backup.rename(target.path);
-  }
-
-  Future<void> _deleteDirectoryQuietly(Directory dir) async {
-    try {
-      if (await dir.exists()) await dir.delete(recursive: true);
-    } catch (_) {
-      // Best-effort cleanup; an orphaned staging/backup directory is never
-      // registered and cannot be served as a plugin.
-    }
-  }
-
-  /// True when [name] cannot escape the plugin extraction directory.
-  ///
-  /// Both separator styles are normalized first: a Windows-style
-  /// `..\evil` entry only traverses on Windows, so a substring check
-  /// for `..` alone would miss platform differences, and `a/../../b`
-  /// only escapes after normalization. Drive-letter prefixes are also
-  /// rejected on every platform: a zip built on one OS is extracted on
-  /// whatever OS the installer runs.
-  /// Static and side-effect free so the traversal rules stay unit-testable.
-  static bool isSafePluginEntryPath(String name) {
-    final normalized = normalize(name.replaceAll('\\', '/'));
-    if (isAbsolute(normalized)) return false;
-    if (normalized == '..' || normalized.startsWith('../')) return false;
-    if (RegExp(r'^[a-zA-Z]:').hasMatch(normalized)) return false;
-    return true;
-  }
-
   /// Downloads, extracts & caches the plugin from the given URL and returns the plugin config.
   /// If only a text/html URL is provided, it will try to get the latest release from
   /// the URL for supported websites (github.com, codeberg.org).
@@ -673,7 +466,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     }
 
     // Now let's download, extract and cache the plugin
-    final pluginDir = await _getPluginRootDir();
+    final pluginDir = await _storage.rootDir;
     await pluginDir.create(recursive: true);
 
     final pluginRes = await ref.read(appDioProvider).get(
@@ -689,7 +482,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
       throw MetadataPluginException.pluginDownloadFailed();
     }
 
-    return await extractPluginArchive(pluginRes.data);
+    return await _storage.extractArchive(pluginRes.data);
   }
 
   bool validatePluginApiCompatibility(PluginConfiguration plugin) {
@@ -778,15 +571,15 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     // A (re)installed plugin's bytecode differs from anything cached under
     // the same slug — drop stale VMs so the next resolution recompiles.
     ref.read(pluginCacheProvider).evictPlugin(plugin.slug);
-    _validatedPlugins
-        .removeWhere((key) => key.startsWith(_validationPrefix(plugin)));
+    _storage.validatedPlugins
+        .removeWhere((key) => key.startsWith(PluginStorage.validationPrefix(plugin)));
   }
 
   Future<void> removePlugin(PluginConfiguration plugin) async {
-    final pluginExtractionDir = await _getPluginExtractionDir(plugin);
+    final pluginExtractionDir = await _storage.extractionDir(plugin);
 
     // A previous interrupted swap may have left the real files in the backup.
-    await _deleteDirectoryQuietly(
+    await _storage.deleteDirectoryQuietly(
       Directory('${pluginExtractionDir.path}.backup'),
     );
     if (await pluginExtractionDir.exists()) {
@@ -797,8 +590,8 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
 
     // Cached VMs of a removed plugin must not resolve anymore.
     ref.read(pluginCacheProvider).evictPlugin(plugin.slug);
-    _validatedPlugins
-        .removeWhere((key) => key.startsWith(_validationPrefix(plugin)));
+    _storage.validatedPlugins
+        .removeWhere((key) => key.startsWith(PluginStorage.validationPrefix(plugin)));
 
     // The removed plugin can no longer seed the startup cache. Clear
     // before the promotion blocks below: a promoted replacement
@@ -969,8 +762,8 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     PluginConfiguration oldPlugin,
     PluginConfiguration newPlugin,
   ) async {
-    final oldDir = await _getPluginExtractionDir(oldPlugin);
-    final newDir = await _getPluginExtractionDir(newPlugin);
+    final oldDir = await _storage.extractionDir(oldPlugin);
+    final newDir = await _storage.extractionDir(newPlugin);
     final sameDirectory = oldDir.path == newDir.path;
 
     final PluginsTableData? oldRow;
@@ -979,18 +772,18 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     } catch (_) {
       // The row is still the old one. Only discard files that are not the
       // old installation's directory.
-      if (!sameDirectory) await _deleteDirectoryQuietly(newDir);
+      if (!sameDirectory) await _storage.deleteDirectoryQuietly(newDir);
       rethrow;
     }
 
     if (oldRow == null) {
-      if (!sameDirectory) await _deleteDirectoryQuietly(newDir);
+      if (!sameDirectory) await _storage.deleteDirectoryQuietly(newDir);
       return false;
     }
 
     ref.read(pluginCacheProvider).evictPlugin(newPlugin.slug);
-    _validatedPlugins
-        .removeWhere((key) => key.startsWith(_validationPrefix(newPlugin)));
+    _storage.validatedPlugins
+        .removeWhere((key) => key.startsWith(PluginStorage.validationPrefix(newPlugin)));
 
     if (oldRow.selectedForTheme) {
       await writeThemePluginKey(
@@ -1003,7 +796,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     // The row now points at the new directory. Only now is it safe to remove
     // the old version; a crash before this point leaves an orphan, never a
     // registered plugin with missing files.
-    if (!sameDirectory) await _deleteDirectoryQuietly(oldDir);
+    if (!sameDirectory) await _storage.deleteDirectoryQuietly(oldDir);
     return true;
   }
 
@@ -1011,10 +804,10 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     PluginConfiguration oldPlugin,
     PluginConfiguration newPlugin,
   ) async {
-    final oldDir = await _getPluginExtractionDir(oldPlugin);
-    final newDir = await _getPluginExtractionDir(newPlugin);
+    final oldDir = await _storage.extractionDir(oldPlugin);
+    final newDir = await _storage.extractionDir(newPlugin);
     if (oldDir.path == newDir.path) return;
-    await _deleteDirectoryQuietly(newDir);
+    await _storage.deleteDirectoryQuietly(newDir);
   }
 
   Future<void> updatePlugin(
@@ -1130,7 +923,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
   }
 
   Future<Uint8List> getPluginByteCode(PluginConfiguration plugin) async {
-    final pluginExtractionDirPath = await _getPluginExtractionDir(plugin);
+    final pluginExtractionDirPath = await _storage.extractionDir(plugin);
 
     final libraryFile = File(join(pluginExtractionDirPath.path, "plugin.out"));
 
@@ -1142,7 +935,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
   }
 
   Future<File?> getLogoPath(PluginConfiguration plugin) async {
-    final pluginExtractionDirPath = await _getPluginExtractionDir(plugin);
+    final pluginExtractionDirPath = await _storage.extractionDir(plugin);
 
     final logoFile = File(join(pluginExtractionDirPath.path, "logo.png"));
 
@@ -1159,7 +952,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
   /// still validate each relative path with [isSafePluginEntryPath] before
   /// joining, which is what `ThemeUiAssets` does.
   Future<Directory> getPluginDirectory(PluginConfiguration plugin) =>
-      _getPluginExtractionDir(plugin);
+      _storage.extractionDir(plugin);
 
   /// Re-evaluates the active theme (e.g. after shell scheme changes).
   ///

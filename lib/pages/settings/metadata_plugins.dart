@@ -19,6 +19,7 @@ import 'package:spotube/modules/metadata_plugins/installed_plugin.dart';
 import 'package:spotube/modules/metadata_plugins/plugin_repository.dart';
 import 'package:spotube/provider/metadata_plugin/core/repositories.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+import 'package:spotube/provider/metadata_plugin/plugin_storage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:spotube/provider/metadata_plugin/utils/common.dart';
 import 'package:spotube/services/logger/logger.dart';
@@ -221,7 +222,7 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
                           }
 
                           final pluginConfig =
-                              await pluginsNotifier.extractPluginArchive(bytes);
+                              await PluginStorage().extractArchive(bytes);
                           await pluginsNotifier.addPlugin(pluginConfig);
                         },
                       ),

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+import 'package:spotube/provider/metadata_plugin/plugin_storage.dart';
 import 'package:spotube/services/logger/logger.dart';
 
 /// Resolves a theme's `asset://` paths inside the theme plugin's own,
@@ -27,7 +28,7 @@ class ThemeUiAssets {
     if (relative.isEmpty) return null;
     // Accept the same shapes the archive extractor accepts, but never a path
     // that normalizes back out of the plugin directory.
-    if (!MetadataPluginNotifier.isSafePluginEntryPath(relative)) return null;
+    if (!PluginStorage.isSafePluginEntryPath(relative)) return null;
     final normalized = normalize(relative);
     if (normalized == '..' || normalized.startsWith('../')) return null;
 
