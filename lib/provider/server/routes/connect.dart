@@ -13,9 +13,10 @@ import 'package:spotube/models/metadata/metadata.dart';
 
 import 'package:spotube/provider/history/history.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/audio_player/state.dart';
 import 'package:spotube/provider/volume_provider.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/services/audio_player/audio_player_port.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/utils/perf_counters.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -96,6 +97,7 @@ class ServerConnectRoutes {
 
   AudioPlayerNotifier get audioPlayerNotifier =>
       ref.read(audioPlayerProvider.notifier);
+  AudioPlayerPort get player => ref.read(audioPlayerPortProvider);
   PlaybackHistoryActions get historyNotifier =>
       ref.read(playbackHistoryActionsProvider);
   Stream<String> get connectClientStream =>
@@ -207,53 +209,53 @@ class ServerConnectRoutes {
 
         // AudioPlayer state events don't fire on subscribe.
         connectionResources
-            .addEvent(WebSocketPlayingEvent(audioPlayer.isPlaying));
+            .addEvent(WebSocketPlayingEvent(player.isPlaying));
         connectionResources.addEvent(
-          WebSocketPositionEvent(audioPlayer.position),
+          WebSocketPositionEvent(player.position),
         );
         connectionResources.addEvent(
-          WebSocketDurationEvent(audioPlayer.duration),
+          WebSocketDurationEvent(player.duration),
         );
         connectionResources
-            .addEvent(WebSocketShuffleEvent(audioPlayer.isShuffled));
-        connectionResources.addEvent(WebSocketLoopEvent(audioPlayer.loopMode));
-        connectionResources.addEvent(WebSocketVolumeEvent(audioPlayer.volume));
+            .addEvent(WebSocketShuffleEvent(player.isShuffled));
+        connectionResources.addEvent(WebSocketLoopEvent(player.loopMode));
+        connectionResources.addEvent(WebSocketVolumeEvent(player.volume));
 
         connectionResources.listen(
           // ~1 Hz instead of the raw ~5 Hz, and one less payload to encode per
           // second per client. The host's own progress bar already moves on
           // these ticks, and a seek forces one immediately.
-          audioPlayer.positionTickStream,
+          player.positionTickStream,
           (position) {
             connectionResources.addEvent(WebSocketPositionEvent(position));
           },
         );
         connectionResources.listen(
-          audioPlayer.playingStream,
+          player.playingStream,
           (playing) {
             connectionResources.addEvent(WebSocketPlayingEvent(playing));
           },
         );
         connectionResources.listen(
-          audioPlayer.durationStream,
+          player.durationStream,
           (duration) {
             connectionResources.addEvent(WebSocketDurationEvent(duration));
           },
         );
         connectionResources.listen(
-          audioPlayer.shuffledStream,
+          player.shuffledStream,
           (shuffled) {
             connectionResources.addEvent(WebSocketShuffleEvent(shuffled));
           },
         );
         connectionResources.listen(
-          audioPlayer.loopModeStream,
+          player.loopModeStream,
           (loopMode) {
             connectionResources.addEvent(WebSocketLoopEvent(loopMode));
           },
         );
         connectionResources.listen(
-          audioPlayer.volumeStream,
+          player.volumeStream,
           (volume) {
             connectionResources.addEvent(WebSocketVolumeEvent(volume));
           },
@@ -286,11 +288,11 @@ class ServerConnectRoutes {
               });
 
               event.onPause((event) async {
-                await audioPlayer.pause();
+                await player.pause();
               });
 
               event.onResume((event) async {
-                await audioPlayer.resume();
+                await player.resume();
               });
 
               event.onStop((event) async {
@@ -298,27 +300,27 @@ class ServerConnectRoutes {
               });
 
               event.onNext((event) async {
-                await audioPlayer.skipToNext();
+                await player.skipToNext();
               });
 
               event.onPrevious((event) async {
-                await audioPlayer.skipToPrevious();
+                await player.skipToPrevious();
               });
 
               event.onJump((event) async {
-                await audioPlayer.jumpTo(event.data);
+                await player.jumpTo(event.data);
               });
 
               event.onSeek((event) async {
-                await audioPlayer.seek(event.data);
+                await player.seek(event.data);
               });
 
               event.onShuffle((event) async {
-                await audioPlayer.setShuffle(event.data);
+                await player.setShuffle(event.data);
               });
 
               event.onLoop((event) async {
-                await audioPlayer.setLoopMode(event.data);
+                await player.setLoopMode(event.data);
               });
 
               event.onAddTrack((event) async {

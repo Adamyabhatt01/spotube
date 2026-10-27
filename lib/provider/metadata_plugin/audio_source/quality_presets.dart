@@ -4,8 +4,9 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/services/audio_player/audio_player_port.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/services/metadata/metadata.dart';
@@ -51,6 +52,8 @@ class AudioSourcePresetsState
 
 class AudioSourceAvailableQualityPresetsNotifier
     extends Notifier<AudioSourcePresetsState> {
+  AudioPlayerPort get _player => ref.read(audioPlayerPortProvider);
+
   @override
   build() {
     final audioSourceSnapshot = ref.watch(audioSourcePluginProvider);
@@ -69,9 +72,9 @@ class AudioSourceAvailableQualityPresetsNotifier
               .elementAtOrNull(previous.selectedStreamingContainerIndex)
           is SpotubeAudioSourceContainerPresetLossless;
       if (!isOldLossless && isNewLossless) {
-        audioPlayer.setDemuxerBufferSize(6 * 1024 * 1024); // 6MB
+        _player.setDemuxerBufferSize(6 * 1024 * 1024); // 6MB
       } else if (isOldLossless && !isNewLossless) {
-        audioPlayer.setDemuxerBufferSize(4 * 1024 * 1024); // 4MB
+        _player.setDemuxerBufferSize(4 * 1024 * 1024); // 4MB
       }
     });
 

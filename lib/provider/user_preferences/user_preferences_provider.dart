@@ -10,8 +10,9 @@ import 'package:shadcn_flutter/shadcn_flutter.dart' hide join;
 import 'package:spotube/models/color.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/market.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/database/database.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/services/audio_player/audio_player_port.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/music_cache_policy.dart';
 import 'package:spotube/services/vpn/vpn_mode.dart';
@@ -49,6 +50,8 @@ final userPreferencesStatusProvider =
     StateProvider<AsyncValue<void>>((_) => const AsyncLoading());
 
 class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
+  AudioPlayerPort get _player => ref.read(audioPlayerPortProvider);
+
   /// The in-flight initial load, exposed so consumers that must not act on
   /// pre-load defaults can await it. Null only when [build] has not run (a
   /// test stub overrides it); `await null` is a no-op. The future never
@@ -114,7 +117,7 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
           }
 
           if (effects.audioNormalization) {
-            await audioPlayer.setAudioNormalization(event.normalizeAudio);
+            await _player.setAudioNormalization(event.normalizeAudio);
           }
         } catch (e, stack) {
           AppLogger.reportError(e, stack);
@@ -385,7 +388,7 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
 
   void setNormalizeAudio(bool normalize) {
     setData(PreferencesTableCompanion(normalizeAudio: Value(normalize)));
-    audioPlayer.setAudioNormalization(normalize);
+    _player.setAudioNormalization(normalize);
   }
 
   void setEndlessPlayback(bool endless) {

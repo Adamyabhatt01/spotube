@@ -6,8 +6,8 @@ import 'package:spotube/collections/routes.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/audio_player/state.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotube/models/connect/connect.dart';
@@ -36,16 +36,17 @@ final loopModeProvider = StateProvider<PlaylistMode>(
   (ref) => PlaylistMode.none,
 );
 
-final queueProvider = StateProvider<AudioPlayerState>(
-  (ref) => AudioPlayerState(
-    playing: audioPlayer.isPlaying,
-    loopMode: audioPlayer.loopMode,
-    shuffled: audioPlayer.isShuffled,
+final queueProvider = StateProvider<AudioPlayerState>((ref) {
+  final player = ref.read(audioPlayerPortProvider);
+  return AudioPlayerState(
+    playing: player.isPlaying,
+    loopMode: player.loopMode,
+    shuffled: player.isShuffled,
     tracks: [],
     currentIndex: 0,
     collections: [],
-  ),
-);
+  );
+});
 
 final volumeProvider = StateProvider<double>(
   (ref) => 1.0,

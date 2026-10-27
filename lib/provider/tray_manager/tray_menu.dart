@@ -2,24 +2,25 @@ import 'dart:io';
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:media_kit/media_kit.dart' hide Track;
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
 final audioPlayerLoopMode = StreamProvider<PlaylistMode>((ref) {
-  return audioPlayer.loopModeStream;
+  return ref.read(audioPlayerPortProvider).loopModeStream;
 });
 
 final audioPlayerShuffleMode = StreamProvider<bool>((ref) {
-  return audioPlayer.shuffledStream;
+  return ref.read(audioPlayerPortProvider).shuffledStream;
 });
 final audioPlayerPlaying = StreamProvider<bool>((ref) {
-  return audioPlayer.playingStream;
+  return ref.read(audioPlayerPortProvider).playingStream;
 });
 
 final trayMenuProvider = Provider((ref) {
   final playlistNotifier = ref.watch(audioPlayerProvider.notifier);
+  final player = ref.read(audioPlayerPortProvider);
   final isPlaybackPlaying =
       ref.watch(audioPlayerProvider.select((s) => s.activeTrack != null));
   final isLoopOne =
@@ -45,10 +46,10 @@ final trayMenuProvider = Provider((ref) {
         label: isPlaying ? "Pause" : "Play",
         disabled: !isPlaybackPlaying,
         onClick: (menuItem) async {
-          if (audioPlayer.isPlaying) {
-            await audioPlayer.pause();
+          if (player.isPlaying) {
+            await player.pause();
           } else {
-            await audioPlayer.resume();
+            await player.resume();
           }
         },
       ),
@@ -56,14 +57,14 @@ final trayMenuProvider = Provider((ref) {
         label: "Next",
         disabled: !isPlaybackPlaying,
         onClick: (menuItem) {
-          audioPlayer.skipToNext();
+          player.skipToNext();
         },
       ),
       MenuItem(
         label: "Previous",
         disabled: !isPlaybackPlaying,
         onClick: (menuItem) {
-          audioPlayer.skipToPrevious();
+          player.skipToPrevious();
         },
       ),
       MenuItem.submenu(
@@ -74,7 +75,7 @@ final trayMenuProvider = Provider((ref) {
               label: "Repeat",
               checked: isLoopOne,
               onClick: (menuItem) {
-                audioPlayer.setLoopMode(
+                player.setLoopMode(
                   isLoopOne ? PlaylistMode.none : PlaylistMode.single,
                 );
               },
@@ -83,7 +84,7 @@ final trayMenuProvider = Provider((ref) {
               label: "Shuffle",
               checked: isShuffled,
               onClick: (menuItem) {
-                audioPlayer.setShuffle(!isShuffled);
+                player.setShuffle(!isShuffled);
               },
             ),
             MenuItem.separator(),

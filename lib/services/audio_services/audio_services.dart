@@ -2,7 +2,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/env.dart';
 import 'package:spotube/models/metadata/metadata.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/services/audio_player/audio_player_port.dart';
 import 'package:spotube/services/audio_services/mobile_audio_service.dart';
 import 'package:spotube/services/audio_services/windows_audio_service.dart';
 import 'package:spotube/utils/platform.dart';
@@ -10,19 +10,22 @@ import 'package:spotube/utils/platform.dart';
 class AudioServices with WidgetsBindingObserver {
   final MobileAudioService? mobile;
   final WindowsAudioService? smtc;
+  final AudioPlayerPort player;
 
-  AudioServices(this.mobile, this.smtc) {
+  AudioServices(this.mobile, this.smtc, this.player) {
     WidgetsBinding.instance.addObserver(this);
   }
 
   /// [onStop] clears the queue and stops playback; the providers own that
-  /// state, so the service layer receives it as a callback.
+  /// state, so the service layer receives it as a callback. [player] is the
+  /// same port the providers use, injected instead of read from a global.
   static Future<AudioServices> create(
     Future<void> Function() onStop,
+    AudioPlayerPort player,
   ) async {
     final mobile = kIsMobile || kIsMacOS || kIsLinux
         ? await AudioService.init(
-            builder: () => MobileAudioService(onStop),
+            builder: () => MobileAudioService(onStop, player),
             config: AudioServiceConfig(
               androidNotificationChannelId: switch ((
                 kIsLinux,
@@ -39,9 +42,9 @@ class AudioServices with WidgetsBindingObserver {
             ),
           )
         : null;
-    final smtc = kIsWindows ? WindowsAudioService(onStop) : null;
+    final smtc = kIsWindows ? WindowsAudioService(onStop, player) : null;
 
-    return AudioServices(mobile, smtc);
+    return AudioServices(mobile, smtc, player);
   }
 
   Future<void> addTrack(SpotubeTrackObject track) async {
@@ -72,7 +75,7 @@ class AudioServices with WidgetsBindingObserver {
     switch (state) {
       case AppLifecycleState.detached:
         deactivateSession();
-        audioPlayer.pause();
+        player.pause();
         break;
       default:
         break;

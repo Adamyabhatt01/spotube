@@ -4,9 +4,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:media_kit/media_kit.dart' show PlaylistMode;
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/metadata_plugin/search/all.dart';
 import 'package:spotube/provider/volume_provider.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/control/control_protocol.dart';
 
 /// The commands a running Spotube instance answers over the control
@@ -43,16 +43,17 @@ class ControlCommands {
   static ControlCommandHandler handler(Ref ref) {
     return (request) async {
       final arguments = request.arguments;
+      final player = ref.read(audioPlayerPortProvider);
       switch (request.command) {
         case 'state.get':
           return _state(ref);
 
         case 'playback.play':
-          await audioPlayer.resume();
+          await player.resume();
           return {'playing': true};
 
         case 'playback.pause':
-          await audioPlayer.pause();
+          await player.pause();
           return {'playing': false};
 
         case 'playback.stop':
@@ -60,11 +61,11 @@ class ControlCommands {
           return {'playing': false};
 
         case 'playback.next':
-          await audioPlayer.skipToNext();
+          await player.skipToNext();
           return {'ok': true};
 
         case 'playback.previous':
-          await audioPlayer.skipToPrevious();
+          await player.skipToPrevious();
           return {'ok': true};
 
         case 'playback.seek':
@@ -72,7 +73,7 @@ class ControlCommands {
           if (seconds == null) {
             throw const FormatException('playback.seek needs "seconds"');
           }
-          await audioPlayer
+          await player
               .seek(Duration(milliseconds: (seconds * 1000).round()));
           return {'seconds': seconds};
 
@@ -81,7 +82,7 @@ class ControlCommands {
           if (index == null) {
             throw const FormatException('playback.jump needs "index"');
           }
-          await audioPlayer.jumpTo(index);
+          await player.jumpTo(index);
           return {'index': index};
 
         case 'playback.shuffle':
@@ -89,7 +90,7 @@ class ControlCommands {
           if (value is! bool) {
             throw const FormatException('playback.shuffle needs "enabled"');
           }
-          await audioPlayer.setShuffle(value);
+          await player.setShuffle(value);
           return {'shuffled': value};
 
         case 'playback.loop':
@@ -104,7 +105,7 @@ class ControlCommands {
               '(expected one of ${PlaylistMode.values.map((m) => m.name).join(", ")})',
             ),
           );
-          await audioPlayer.setLoopMode(loopMode);
+          await player.setLoopMode(loopMode);
           return {'mode': loopMode.name};
 
         case 'volume.set':
@@ -153,7 +154,7 @@ class ControlCommands {
           return {'removed': trackId};
 
         case 'queue.clear':
-          await audioPlayer.clearPlaylist();
+          await player.clearPlaylist();
           return {'ok': true};
 
         case 'commands.list':
@@ -173,6 +174,7 @@ class ControlCommands {
   /// The playback state, as a plain map.
   static Map<String, dynamic> _state(Ref ref) {
     final state = ref.read(audioPlayerProvider);
+    final player = ref.read(audioPlayerPortProvider);
     final active = state.activeTrack;
     return {
       'playing': state.playing,
@@ -182,8 +184,8 @@ class ControlCommands {
       'currentIndex': state.currentIndex,
       'queueLength': state.tracks.length,
       'collections': state.collections,
-      'position': audioPlayer.position.inMilliseconds,
-      'duration': audioPlayer.duration.inMilliseconds,
+      'position': player.position.inMilliseconds,
+      'duration': player.duration.inMilliseconds,
       if (active != null)
         'activeTrack': {
           'id': active.id,

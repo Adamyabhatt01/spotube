@@ -6,8 +6,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/radio/radio_station.dart';
 import 'package:spotube/provider/database/database.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/radio/state.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/services/audio_player/audio_player_port.dart';
 import 'package:spotube/services/audio_player/radio_audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 
@@ -23,15 +24,20 @@ abstract interface class MusicPlaybackDelegate {
 }
 
 class AudioPlayerMusicDelegate implements MusicPlaybackDelegate {
-  @override
-  Future<void> pauseMusic() => audioPlayer.pause();
+  final AudioPlayerPort player;
+
+  AudioPlayerMusicDelegate(this.player);
 
   @override
-  Stream<bool> get musicPlayingStream => audioPlayer.playingStream;
+  Future<void> pauseMusic() => player.pause();
+
+  @override
+  Stream<bool> get musicPlayingStream => player.playingStream;
 }
 
-final musicPlaybackDelegateProvider =
-    Provider<MusicPlaybackDelegate>((_) => AudioPlayerMusicDelegate());
+final musicPlaybackDelegateProvider = Provider<MusicPlaybackDelegate>(
+  (ref) => AudioPlayerMusicDelegate(ref.read(audioPlayerPortProvider)),
+);
 
 /// Creates a fresh radio backend per listening session. A factory (not a
 /// cached [Provider]) so the controller can build one on play and fully

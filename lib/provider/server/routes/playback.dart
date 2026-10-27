@@ -9,12 +9,13 @@ import 'package:path/path.dart';
 import 'package:shelf/shelf.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/audio_player/state.dart';
 import 'package:spotube/provider/local_tracks/local_tracks_provider.dart';
 import 'package:spotube/provider/server/playback/playback_files.dart';
 import 'package:spotube/provider/server/playback/playback_stream_service.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/services/audio_player/audio_player_port.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/sourced_track/local_library_lookup.dart';
 import 'package:spotube/services/sourced_track/sourced_track.dart';
@@ -26,6 +27,7 @@ class ServerPlaybackRoutes {
   final Ref ref;
   UserPreferences get userPreferences => ref.read(userPreferencesProvider);
   AudioPlayerState get playlist => ref.read(audioPlayerProvider);
+  AudioPlayerPort get _player => ref.read(audioPlayerPortProvider);
   final PlaybackStreamService service;
 
   ServerPlaybackRoutes(this.ref) : service = PlaybackStreamService(ref);
@@ -234,20 +236,20 @@ class ServerPlaybackRoutes {
   }
 
   Future<Response> togglePlayback(Request request) async {
-    audioPlayer.isPlaying
-        ? await audioPlayer.pause()
-        : await audioPlayer.resume();
+    _player.isPlaying
+        ? await _player.pause()
+        : await _player.resume();
 
     return Response.ok("Playback toggled");
   }
 
   Future<Response> previousTrack(Request request) async {
-    await audioPlayer.skipToPrevious();
+    await _player.skipToPrevious();
     return Response.ok("Previous track");
   }
 
   Future<Response> nextTrack(Request request) async {
-    await audioPlayer.skipToNext();
+    await _player.skipToNext();
     return Response.ok("Next track");
   }
 }

@@ -4,8 +4,9 @@ import 'package:flutter_discord_rpc/flutter_discord_rpc.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/services/audio_player/audio_player_port.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/utils/platform.dart';
 
@@ -19,6 +20,8 @@ const discordRetryDelay = Duration(seconds: 5);
 const discordMaxConnectAttempts = 12;
 
 class DiscordNotifier extends AsyncNotifier<void> {
+  AudioPlayerPort get player => ref.read(audioPlayerPortProvider);
+
   @override
   FutureOr<void> build() async {
     if (!kIsDesktop) return;
@@ -26,7 +29,7 @@ class DiscordNotifier extends AsyncNotifier<void> {
     final enabled = ref.watch(
         userPreferencesProvider.select((s) => s.discordPresence && kIsDesktop));
 
-    var lastPosition = audioPlayer.position;
+    var lastPosition = player.position;
 
     final subscriptions = [
       FlutterDiscordRPC.instance.isConnectedStream.listen((connected) async {
@@ -39,7 +42,7 @@ class DiscordNotifier extends AsyncNotifier<void> {
           AppLogger.reportError(e, stack);
         }
       }),
-      audioPlayer.playerStateStream.listen((state) async {
+      player.playerStateStream.listen((state) async {
         try {
           final playback = ref.read(audioPlayerProvider);
           if (playback.activeTrack == null) return;
@@ -55,7 +58,7 @@ class DiscordNotifier extends AsyncNotifier<void> {
       // slack (a seek), which is the only thing the previous ±500 ms test on
       // consecutive raw events ever matched, since a raw step is ~200 ms.
       // Track changes and play/pause are covered by the two listeners above.
-      audioPlayer.positionTickStream.listen((position) async {
+      player.positionTickStream.listen((position) async {
         try {
           final playback = ref.read(audioPlayerProvider);
           if (playback.activeTrack != null) {
@@ -128,8 +131,8 @@ class DiscordNotifier extends AsyncNotifier<void> {
     if (!kIsDesktop) return;
     if (FlutterDiscordRPC.instance.isConnected == false) return;
     final artistNames = track.artists.asString();
-    final isPlaying = audioPlayer.isPlaying;
-    final position = audioPlayer.position;
+    final isPlaying = player.isPlaying;
+    final position = player.position;
 
     await FlutterDiscordRPC.instance.setActivity(
       activity: RPCActivity(

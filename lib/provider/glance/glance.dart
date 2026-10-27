@@ -7,8 +7,8 @@ import 'package:home_widget/home_widget.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
+import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/server/server.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/utils/foreground_coalescer.dart';
 import 'package:spotube/utils/platform.dart';
@@ -126,6 +126,7 @@ Future<void> _sendActiveTrack(
 
 final glanceProvider = Provider((ref) {
   final server = ref.read(serverProvider);
+  final player = ref.read(audioPlayerPortProvider);
   final activeTrack = ref.read(audioPlayerProvider).activeTrack;
 
   String? serverAddress;
@@ -140,9 +141,9 @@ final glanceProvider = Provider((ref) {
     if (serverAddress != null) {
       await _saveWidgetData("playbackServerAddress", serverAddress);
     }
-    await _saveWidgetData("isPlaying", audioPlayer.isPlaying);
-    await _saveWidgetData("position", audioPlayer.position.inSeconds);
-    await _saveWidgetData("duration", audioPlayer.duration.inSeconds);
+    await _saveWidgetData("isPlaying", player.isPlaying);
+    await _saveWidgetData("position", player.position.inSeconds);
+    await _saveWidgetData("duration", player.duration.inSeconds);
     await _sendActiveTrack(
       ref.read(audioPlayerProvider).activeTrack,
       notify: false,
@@ -190,11 +191,11 @@ final glanceProvider = Provider((ref) {
   );
 
   final subscriptions = [
-    audioPlayer.playingStream.listen((_) => pushes.request()),
+    player.playingStream.listen((_) => pushes.request()),
     // The shared tick stream is already whole-second gated; the widget only
     // renders seconds, so no gate of its own.
-    audioPlayer.positionTickStream.listen((_) => pushes.request()),
-    audioPlayer.durationStream.listen((_) => pushes.request()),
+    player.positionTickStream.listen((_) => pushes.request()),
+    player.durationStream.listen((_) => pushes.request()),
   ];
 
   ref.onDispose(() {

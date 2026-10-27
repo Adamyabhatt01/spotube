@@ -2,30 +2,32 @@ import 'dart:async';
 
 import 'package:smtc_windows/smtc_windows.dart';
 import 'package:spotube/models/metadata/metadata.dart';
-import 'package:spotube/services/audio_player/audio_player.dart';
+import 'package:spotube/services/audio_player/audio_player_port.dart';
 import 'package:spotube/services/audio_player/playback_state.dart';
 
 class WindowsAudioService {
   final SMTCWindows smtc;
   final Future<void> Function() _onStop;
+  final AudioPlayerPort _player;
 
   final subscriptions = <StreamSubscription>[];
 
-  WindowsAudioService(this._onStop) : smtc = SMTCWindows(enabled: false) {
+  WindowsAudioService(this._onStop, this._player)
+      : smtc = SMTCWindows(enabled: false) {
     smtc.setPlaybackStatus(PlaybackStatus.stopped);
     final buttonStream = smtc.buttonPressStream.listen((event) {
       switch (event) {
         case PressedButton.play:
-          audioPlayer.resume();
+          _player.resume();
           break;
         case PressedButton.pause:
-          audioPlayer.pause();
+          _player.pause();
           break;
         case PressedButton.next:
-          audioPlayer.skipToNext();
+          _player.skipToNext();
           break;
         case PressedButton.previous:
-          audioPlayer.skipToPrevious();
+          _player.skipToPrevious();
           break;
         case PressedButton.stop:
           _onStop();
@@ -36,7 +38,7 @@ class WindowsAudioService {
     });
 
     final playerStateStream =
-        audioPlayer.playerStateStream.listen((state) async {
+        _player.playerStateStream.listen((state) async {
       switch (state) {
         case AudioPlaybackState.playing:
           await smtc.setPlaybackStatus(PlaybackStatus.playing);
@@ -55,13 +57,13 @@ class WindowsAudioService {
       }
     });
 
-    final positionStream = audioPlayer.positionTickStream.listen((pos) async {
+    final positionStream = _player.positionTickStream.listen((pos) async {
       // Shared whole-second ticks (see PositionTicker). Playback-status
       // changes bypass this path.
       await smtc.setPosition(pos);
     });
 
-    final durationStream = audioPlayer.durationStream.listen((duration) async {
+    final durationStream = _player.durationStream.listen((duration) async {
       await smtc.setEndTime(duration);
     });
 
