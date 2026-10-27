@@ -10,6 +10,7 @@ import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_screen_stack.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
+import 'package:spotube/provider/download_manager/download_tasks.dart';
 import 'package:spotube/provider/metadata_plugin/library/tracks.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/volume_provider.dart';

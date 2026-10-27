@@ -9,6 +9,7 @@ import 'package:spotube/components/links/artist_link.dart';
 import 'package:spotube/components/ui/button_tile.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
+import 'package:spotube/provider/download_manager/download_tasks.dart';
 
 class DownloadItem extends HookConsumerWidget {
   final DownloadTask task;

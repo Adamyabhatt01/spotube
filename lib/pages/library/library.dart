@@ -12,6 +12,7 @@ import 'package:spotube/extensions/context.dart';
 import 'package:spotube/modules/theme_shell/theme_navigation.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
+import 'package:spotube/provider/download_manager/download_tasks.dart';
 import 'package:spotube/provider/metadata_plugin/library/albums.dart';
 import 'package:spotube/provider/metadata_plugin/library/artists.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';

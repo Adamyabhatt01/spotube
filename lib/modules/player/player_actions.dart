@@ -19,6 +19,7 @@ import 'package:spotube/components/track_presentation/presentation_actions.dart'
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/extensions/duration.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
+import 'package:spotube/provider/download_manager/download_tasks.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/playlist_download_provider.dart';

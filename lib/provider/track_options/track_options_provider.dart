@@ -16,6 +16,7 @@ import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/audio_player/queue_membership.dart';
 import 'package:spotube/provider/blacklist_provider.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
+import 'package:spotube/provider/download_manager/download_tasks.dart';
 import 'package:spotube/provider/local_tracks/local_tracks_provider.dart';
 import 'package:spotube/provider/playlist_download_provider.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';

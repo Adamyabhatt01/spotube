@@ -1,5 +1,5 @@
 import 'package:spotube/models/metadata/metadata.dart';
-import 'package:spotube/provider/download_manager_provider.dart';
+import 'package:spotube/provider/download_manager/download_tasks.dart';
 
 /// Actions whose argument is the item a `list` node is currently drawing.
 ///
