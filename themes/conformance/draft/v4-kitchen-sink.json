@@ -1,0 +1,950 @@
+{
+  "specVersion": 4,
+  "uiKit": "shadcn",
+  "light": {
+    "background": "#f8fafc",
+    "foreground": "#0f172a",
+    "card": "#ffffff",
+    "cardForeground": "#0f172a",
+    "primary": "#2563eb",
+    "primaryForeground": "#f8fafc",
+    "secondary": "#ffffff",
+    "secondaryForeground": "#0f172a",
+    "muted": "#ffffff",
+    "mutedForeground": "#0f172a",
+    "accent": "#2563eb",
+    "accentForeground": "#f8fafc",
+    "destructive": "#dc2626",
+    "destructiveForeground": "#ffffff",
+    "border": "#334155",
+    "input": "#334155",
+    "ring": "#2563eb"
+  },
+  "dark": {
+    "background": "#0f172a",
+    "foreground": "#f8fafc",
+    "card": "#1e293b",
+    "cardForeground": "#f8fafc",
+    "primary": "#60a5fa",
+    "primaryForeground": "#0f172a",
+    "secondary": "#1e293b",
+    "secondaryForeground": "#f8fafc",
+    "muted": "#1e293b",
+    "mutedForeground": "#f8fafc",
+    "accent": "#60a5fa",
+    "accentForeground": "#0f172a",
+    "destructive": "#dc2626",
+    "destructiveForeground": "#ffffff",
+    "border": "#334155",
+    "input": "#334155",
+    "ring": "#60a5fa"
+  },
+  "surfaces": {
+    "opacity": 0.9,
+    "blur": 12
+  },
+  "background": {
+    "source": "asset",
+    "asset": "asset://textures/grain.png",
+    "opacity": 0.4,
+    "tile": true
+  },
+  "radius": {
+    "small": 4,
+    "medium": 8,
+    "large": 16,
+    "pill": 999
+  },
+  "density": 1.0,
+  "tokens": {
+    "cardWidth": 180,
+    "cardHeight": 240,
+    "artistCardWidth": 180,
+    "artistCardHeight": 240,
+    "gutter": 12
+  },
+  "typography": {
+    "family": "Inter",
+    "monoFamily": "JetBrains Mono",
+    "brandFamily": "Inter",
+    "styles": {
+      "h1": {
+        "fontSize": 32,
+        "fontWeight": 700,
+        "height": 1.2
+      },
+      "base": {
+        "fontSize": 14,
+        "fontWeight": 400,
+        "height": 1.4
+      }
+    }
+  },
+  "spacing": {
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "xxl": 32,
+    "page": 24,
+    "section": 32,
+    "cardGap": 12,
+    "pageHorizontal": 24
+  },
+  "motion": {
+    "fast": 120,
+    "normal": 200,
+    "slow": 320,
+    "easing": "easeOutCubic"
+  },
+  "scale": {
+    "size": 1,
+    "text": 1,
+    "radius": 1,
+    "icon": 1,
+    "spacing": 1
+  },
+  "icons": {
+    "sm": 16,
+    "md": 20,
+    "lg": 24,
+    "xl": 32
+  },
+  "components": {
+    "buttons": {
+      "primary": {
+        "radius": 8,
+        "borderWidth": 0
+      },
+      "ghost": {
+        "radius": 8,
+        "borderWidth": 0
+      }
+    },
+    "card": {
+      "radius": 12,
+      "borderWidth": 1,
+      "borderColor": "@border"
+    },
+    "shadcn": {
+      "slider": {
+        "height": 24,
+        "indicatorColor": "@primary"
+      },
+      "textField": {
+        "radius": 8
+      }
+    }
+  },
+  "layout": {
+    "chrome": "inset",
+    "nav": "rail",
+    "progress": "below",
+    "sidebar": "theme",
+    "sidebarWidth": 280,
+    "aside": "theme",
+    "asideWidth": 320,
+    "navItems": [
+      "home",
+      "search",
+      "stats"
+    ],
+    "navbarItems": [
+      "home",
+      "search",
+      "library"
+    ],
+    "libraryItems": [
+      "playlists",
+      "artists",
+      "albums"
+    ],
+    "player": {
+      "dock": "compact",
+      "showVolume": false,
+      "showTrackDetails": true
+    },
+    "home": {
+      "sections": [
+        "recent",
+        "featured"
+      ]
+    },
+    "settings": {
+      "sections": [
+        "appearance",
+        "playback"
+      ]
+    },
+    "titlebar": {
+      "height": 36,
+      "showBack": true
+    },
+    "splash": {
+      "logo": "asset://images/logo.png",
+      "text": "V4"
+    },
+    "responsive": {
+      "compact": {
+        "sidebar": "host",
+        "aside": "none",
+        "player": {
+          "dock": "compact",
+          "showVolume": false
+        },
+        "pages": {
+          "audio": {
+            "visible": false
+          }
+        }
+      },
+      "medium": {
+        "sidebar": "theme",
+        "aside": "none"
+      }
+    }
+  },
+  "branding": {
+    "appName": "V4 Demo",
+    "shortName": "V4",
+    "tagline": "Phase 0 contract fixture",
+    "showHostAttribution": true
+  },
+  "assets": {
+    "images": [
+      {
+        "path": "asset://textures/grain.png",
+        "kind": "image",
+        "role": "background"
+      },
+      {
+        "path": "asset://images/logo.png",
+        "kind": "image",
+        "role": "logo"
+      }
+    ]
+  },
+  "capabilities": [
+    "library.read",
+    "library.write",
+    "player.control",
+    "audio.effects",
+    "ui.pages",
+    "ui.hostWidgets",
+    "settings.write",
+    "clipboard.write"
+  ],
+  "pages": [
+    {
+      "id": "audio",
+      "title": "Audio",
+      "icon": "equalizer",
+      "parent": "library.local",
+      "showBack": true
+    },
+    {
+      "id": "mixer",
+      "title": "Mixer",
+      "icon": "sliders",
+      "parent": "settings",
+      "showBack": true
+    },
+    {
+      "id": "data",
+      "title": "Data",
+      "icon": "list",
+      "parent": "library.local",
+      "showBack": true
+    }
+  ],
+  "ui": {
+    "specVersion": 2,
+    "pages": [
+      {
+        "id": "audio",
+        "title": "Audio",
+        "icon": "equalizer",
+        "parent": "library.local",
+        "showBack": true
+      },
+      {
+        "id": "mixer",
+        "title": "Mixer",
+        "icon": "sliders",
+        "parent": "settings",
+        "showBack": true
+      },
+      {
+        "id": "data",
+        "title": "Data",
+        "icon": "list",
+        "parent": "library.local",
+        "showBack": true
+      }
+    ],
+    "slots": {
+      "sidebar.content": {
+        "children": [
+          {
+            "type": "box",
+            "background": "@card",
+            "radius": 12,
+            "padding": 16,
+            "children": [
+              {
+                "type": "text",
+                "bind": "theme.name",
+                "size": "lg"
+              },
+              {
+                "type": "slider",
+                "bind": "audio.bass",
+                "min": -12,
+                "max": 12,
+                "step": 1,
+                "label": "Bass",
+                "showValue": true,
+                "action": {
+                  "type": "setBass",
+                  "args": {
+                    "value": "$value"
+                  }
+                }
+              },
+              {
+                "type": "switch",
+                "label": "Normalize"
+              },
+              {
+                "type": "textField",
+                "placeholder": "Filter playlists",
+                "clearable": true
+              },
+              {
+                "type": "hostWidget",
+                "id": "library.playlists",
+                "props": {
+                  "compact": true,
+                  "showSearch": false,
+                  "limit": 20
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "aside.content": {
+        "children": [
+          {
+            "type": "tabs",
+            "items": [
+              {
+                "id": "queue",
+                "label": "Queue"
+              },
+              {
+                "id": "lyrics",
+                "label": "Lyrics"
+              }
+            ],
+            "bind": "queue.currentIndex"
+          }
+        ]
+      },
+      "page.audio": {
+        "children": [
+          {
+            "type": "box",
+            "gradient": {
+              "colors": [
+                "@primary",
+                "@background"
+              ],
+              "begin": "topCenter",
+              "end": "bottomCenter",
+              "stops": [
+                0.0,
+                0.9
+              ]
+            },
+            "radius": 16,
+            "padding": 24,
+            "children": [
+              {
+                "type": "grid",
+                "columns": 2,
+                "gap": 12,
+                "children": [
+                  {
+                    "type": "badge",
+                    "text": "DSP"
+                  },
+                  {
+                    "type": "avatar",
+                    "src": "player.artwork",
+                    "size": 48
+                  },
+                  {
+                    "type": "skeleton",
+                    "width": 120,
+                    "height": 12
+                  },
+                  {
+                    "type": "spinner",
+                    "size": 20
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "bind": "palette.dominant",
+                "color": "@primary"
+              },
+              {
+                "type": "safeArea",
+                "edges": [
+                  "top",
+                  "bottom"
+                ],
+                "children": [
+                  {
+                    "type": "aspectRatio",
+                    "ratio": 1.5,
+                    "children": [
+                      {
+                        "type": "kitScope",
+                        "kit": "material",
+                        "children": [
+                          {
+                            "type": "text",
+                            "text": "Kit scope"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "page.data": {
+        "children": [
+          {
+            "type": "row",
+            "gap": 8,
+            "align": "center",
+            "children": [
+              {
+                "type": "badge",
+                "text": "New"
+              },
+              {
+                "type": "chip",
+                "label": "Playing",
+                "selectedBind": "player.playing"
+              },
+              {
+                "type": "avatar",
+                "src": "player.artwork",
+                "fallback": "S",
+                "size": 32
+              },
+              {
+                "type": "spinner",
+                "size": 16,
+                "color": "@primary"
+              }
+            ]
+          },
+          {
+            "type": "skeleton",
+            "width": 180,
+            "height": 12,
+            "radius": 6,
+            "count": 3
+          },
+          {
+            "type": "progress",
+            "style": "wavy",
+            "height": 10
+          },
+          {
+            "type": "list",
+            "bind": "library.playlists",
+            "limit": 20,
+            "gap": 6,
+            "filter": {
+              "bind": "search.query",
+              "fields": [
+                "title"
+              ]
+            },
+            "children": [
+              {
+                "type": "text",
+                "bind": "item.title",
+                "size": "sm"
+              }
+            ]
+          },
+          {
+            "type": "virtualList",
+            "bind": "queue.tracks",
+            "itemTemplate": "kitchenSinkRow",
+            "itemExtent": 44,
+            "overscan": 6,
+            "limit": 10000,
+            "filter": {
+              "bind": "search.query",
+              "fields": [
+                "title",
+                "artist"
+              ]
+            }
+          },
+          {
+            "type": "table",
+            "bind": "queue.tracks",
+            "rowTemplate": "kitchenSinkRow",
+            "stickyHeader": true,
+            "sortable": true,
+            "columns": [
+              {
+                "key": "title",
+                "label": "Title"
+              },
+              {
+                "key": "artist",
+                "label": "Artist",
+                "width": 160
+              },
+              {
+                "key": "duration",
+                "label": "Length",
+                "width": 72,
+                "align": "end"
+              }
+            ]
+          },
+          {
+            "type": "tree",
+            "bind": "library.folders",
+            "labelKey": "name",
+            "childrenKey": "children",
+            "expandedKey": "expanded"
+          },
+          {
+            "type": "accordion",
+            "multiple": true,
+            "items": [
+              {
+                "title": "Playback",
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Gapless transitions"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "collapsible",
+            "title": "Advanced",
+            "openBind": "app.asideOpen",
+            "children": [
+              {
+                "type": "text",
+                "text": "Hidden until opened"
+              }
+            ]
+          },
+          {
+            "type": "carousel",
+            "bind": "library.playlists",
+            "itemTemplate": "kitchenSinkRow",
+            "height": 120,
+            "autoplay": true
+          },
+          {
+            "type": "breadcrumb",
+            "items": [
+              {
+                "label": "Library",
+                "action": {
+                  "type": "navigate",
+                  "args": {
+                    "target": "library"
+                  }
+                }
+              },
+              {
+                "label": "Playlists"
+              }
+            ]
+          },
+          {
+            "type": "pagination",
+            "pageBind": "queue.currentIndex",
+            "pageCount": 12,
+            "action": {
+              "type": "navigate",
+              "args": {
+                "target": "home"
+              }
+            }
+          }
+        ]
+      },
+      "page.mixer": {
+        "children": [
+          {
+            "type": "box",
+            "padding": 24,
+            "children": [
+              {
+                "type": "text",
+                "text": "Mixer",
+                "size": "2xl"
+              },
+              {
+                "type": "segmented",
+                "options": [
+                  "Bass",
+                  "Treble"
+                ]
+              },
+              {
+                "type": "box",
+                "background": "@card",
+                "radius": 12,
+                "padding": 16,
+                "children": [
+                  {
+                    "type": "text",
+                    "text": "Forms",
+                    "size": "xl"
+                  },
+                  {
+                    "type": "checkbox",
+                    "bind": "player.muted",
+                    "label": "Mute"
+                  },
+                  {
+                    "type": "radioGroup",
+                    "bind": "audio.normalization",
+                    "options": [
+                      {
+                        "value": "off",
+                        "label": "Off"
+                      },
+                      {
+                        "value": "track",
+                        "label": "Track"
+                      },
+                      {
+                        "value": "album",
+                        "label": "Album"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "textArea",
+                    "bind": "library.searchQuery",
+                    "placeholder": "Notes",
+                    "minLines": 3,
+                    "maxLines": 6
+                  },
+                  {
+                    "type": "select",
+                    "bind": "audio.crossfade",
+                    "placeholder": "Crossfade",
+                    "options": [
+                      {
+                        "value": "0",
+                        "label": "Off"
+                      },
+                      {
+                        "value": "3",
+                        "label": "3 seconds"
+                      },
+                      {
+                        "value": "6",
+                        "label": "6 seconds"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tabs",
+                    "bind": "queue.currentIndex",
+                    "items": [
+                      {
+                        "id": "details",
+                        "label": "Details"
+                      },
+                      {
+                        "id": "credits",
+                        "label": "Credits"
+                      }
+                    ],
+                    "panels": [
+                      [
+                        {
+                          "type": "text",
+                          "text": "Details panel"
+                        }
+                      ],
+                      [
+                        {
+                          "type": "text",
+                          "text": "Credits panel"
+                        }
+                      ]
+                    ]
+                  },
+                  {
+                    "type": "menu",
+                    "trigger": "More",
+                    "placement": "bottomEnd",
+                    "items": [
+                      {
+                        "label": "Settings",
+                        "icon": "settings",
+                        "action": {
+                          "type": "openSettings"
+                        }
+                      },
+                      {
+                        "label": "Refresh",
+                        "icon": "refresh",
+                        "action": {
+                          "type": "refresh"
+                        }
+                      },
+                      {
+                        "label": "Muted",
+                        "checked": true,
+                        "action": {
+                          "type": "setMuted",
+                          "args": {
+                            "value": "$value"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "contextMenu",
+                    "items": [
+                      {
+                        "label": "Copy",
+                        "action": {
+                          "type": "copy",
+                          "args": {
+                            "text": "$item"
+                          }
+                        }
+                      },
+                      {
+                        "label": "Queue",
+                        "action": {
+                          "type": "openQueue"
+                        }
+                      }
+                    ],
+                    "children": [
+                      {
+                        "type": "text",
+                        "text": "Long-press this row"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "popover",
+                    "trigger": "Details",
+                    "placement": "bottomStart",
+                    "children": [
+                      {
+                        "type": "text",
+                        "text": "Popover body"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "tooltip",
+                    "text": "Helpful hint",
+                    "placement": "top",
+                    "children": [
+                      {
+                        "type": "text",
+                        "text": "Hover me"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "dialog",
+                    "title": "Clear queue?",
+                    "description": "This cannot be undone.",
+                    "openBind": "app.asideOpen",
+                    "actions": [
+                      {
+                        "label": "Cancel",
+                        "action": {
+                          "type": "dismiss"
+                        }
+                      },
+                      {
+                        "label": "Clear",
+                        "action": {
+                          "type": "setQuery",
+                          "args": {
+                            "query": ""
+                          }
+                        }
+                      }
+                    ],
+                    "children": [
+                      {
+                        "type": "text",
+                        "text": "Dialog body"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "sheet",
+                    "side": "right",
+                    "width": 320,
+                    "children": [
+                      {
+                        "type": "text",
+                        "text": "Sheet body"
+                      },
+                      {
+                        "type": "button",
+                        "label": "Close",
+                        "action": {
+                          "type": "dismiss"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "player.controls": {
+        "children": [
+          {
+            "type": "row",
+            "gap": 8,
+            "children": [
+              {
+                "type": "button",
+                "label": "Copy",
+                "action": {
+                  "type": "copy",
+                  "args": {
+                    "text": "$item"
+                  }
+                }
+              },
+              {
+                "type": "button",
+                "label": "Pin",
+                "action": {
+                  "type": "pinItem"
+                }
+              },
+              {
+                "type": "button",
+                "label": "Settings",
+                "action": {
+                  "type": "setSetting",
+                  "args": {
+                    "key": "theme.density",
+                    "value": "compact"
+                  }
+                }
+              },
+              {
+                "type": "button",
+                "label": "Open audio",
+                "action": {
+                  "type": "openPage",
+                  "args": {
+                    "id": "audio"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "templates": {
+      "kitchenSinkSearchItem": {
+        "children": [
+          {
+            "type": "text",
+            "bind": "item.title",
+            "size": "sm"
+          },
+          {
+            "type": "text",
+            "bind": "item.subtitle",
+            "size": "xs"
+          }
+        ]
+      },
+      "kitchenSinkSearchEmpty": {
+        "children": [
+          {
+            "type": "text",
+            "bind": "search.query",
+            "size": "sm"
+          }
+        ]
+      },
+      "kitchenSinkRow": {
+        "children": [
+          {
+            "type": "row",
+            "gap": 8,
+            "align": "center",
+            "children": [
+              {
+                "type": "avatar",
+                "src": "item.artwork",
+                "size": 28
+              },
+              {
+                "type": "text",
+                "bind": "item.title",
+                "size": "sm"
+              },
+              {
+                "type": "badge",
+                "text": "Row"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "renderPoints": {
+      "search.suggestion.item": "kitchenSinkSearchItem",
+      "search.empty": "kitchenSinkSearchEmpty"
+    }
+  },
+  "ext": {
+    "com.example.v4demo": {
+      "phase": 0,
+      "note": "contract fixture"
+    }
+  }
+}

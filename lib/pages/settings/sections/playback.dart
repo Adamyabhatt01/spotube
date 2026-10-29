@@ -274,6 +274,15 @@ class SettingsPlaybackSection extends HookConsumerWidget {
           ),
         ),
         ListTile(
+          leading: const Icon(SpotubeIcons.equalizer),
+          title: Text(context.l10n.equalizer),
+          subtitle: Text(context.l10n.equalizer_description),
+          onTap: () {
+            context.navigateTo(const SettingsEqualizerRoute());
+          },
+          trailing: const Icon(SpotubeIcons.angleRight),
+        ),
+        ListTile(
             leading: const Icon(SpotubeIcons.repeat),
             title: Text(context.l10n.endless_playback),
             trailing: Switch(

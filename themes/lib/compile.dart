@@ -44,7 +44,9 @@ Uint8List compileThemeSource(String source, {required String sourceName}) {
   // build's own output, not the compiler's.
   final hetu = Hetu(config: HetuConfig(printPerformanceStatistics: false));
   hetu.init();
-  final compiled = Uint8List.fromList(hetu.compile(source, sourceName: sourceName));
+  final compiled = Uint8List.fromList(
+    hetu.compile(source, sourceName: sourceName),
+  );
   if (compiled.isEmpty) {
     throw StateError('Hetu produced no bytecode for $sourceName');
   }

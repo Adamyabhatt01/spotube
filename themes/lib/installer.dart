@@ -9,17 +9,17 @@ import 'package:sqlite3/sqlite3.dart';
 ///
 /// The host's own rule: `<app support>/metadata-plugins`, and one directory
 /// per plugin version, named `<author>-<name>-<version>`.
-String pluginRootDir(String profile) =>
-    p.join(profile, '.local', 'share', 'oss.krtirtho.spotube', 'metadata-plugins');
+String pluginRootDir(String profile) => p.join(
+  profile,
+  '.local',
+  'share',
+  'oss.krtirtho.spotube',
+  'metadata-plugins',
+);
 
 /// The database the host keeps its plugin list in.
-String pluginDatabaseFile(String profile) => p.join(
-      profile,
-      '.local',
-      'share',
-      'oss.krtirtho.spotube',
-      'db.sqlite',
-    );
+String pluginDatabaseFile(String profile) =>
+    p.join(profile, '.local', 'share', 'oss.krtirtho.spotube', 'db.sqlite');
 
 /// The host's filename sanitizer, mirrored so the extraction directory name
 /// matches what the host computes.
@@ -29,8 +29,10 @@ String sanitizeFilename(String input) {
       .replaceAll(RegExp(r'[\x00-\x1f\x80-\x9f]'), '')
       .replaceFirst(RegExp(r'^\.+$'), '')
       .replaceFirst(
-        RegExp(r'^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$',
-            caseSensitive: false),
+        RegExp(
+          r'^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$',
+          caseSensitive: false,
+        ),
         '',
       )
       .replaceFirst(RegExp(r'[\. ]+$'), '');
@@ -56,13 +58,13 @@ class PluginArchive {
   String get entryPoint => manifest['entryPoint'] as String;
 
   List<String> get abilities => [
-        for (final ability in (manifest['abilities'] as List? ?? const []))
-          '$ability',
-      ];
+    for (final ability in (manifest['abilities'] as List? ?? const []))
+      '$ability',
+  ];
 
   List<String> get apis => [
-        for (final api in (manifest['apis'] as List? ?? const [])) '$api',
-      ];
+    for (final api in (manifest['apis'] as List? ?? const [])) '$api',
+  ];
 
   /// The directory the host extracts this plugin into.
   String get extractionDirName =>
@@ -75,9 +77,9 @@ class PluginArchive {
       (file) => file.isFile && file.name == 'plugin.json',
       orElse: () => throw StateError('${file.path} has no plugin.json'),
     );
-    final manifest = jsonDecode(
-      utf8.decode(manifestEntry.content as List<int>),
-    ) as Map<String, dynamic>;
+    final manifest =
+        jsonDecode(utf8.decode(manifestEntry.content as List<int>))
+            as Map<String, dynamic>;
 
     return PluginArchive(
       manifest: manifest,
@@ -123,7 +125,8 @@ InstallResult installPlugin({
     return InstallResult(
       extractionDir: target,
       registered: false,
-      message: 'would write ${target.path} and register '
+      message:
+          'would write ${target.path} and register '
           '${archive.name} ${archive.version}',
     );
   }
@@ -139,7 +142,8 @@ InstallResult installPlugin({
     return InstallResult(
       extractionDir: target,
       registered: false,
-      message: 'no database at ${dbFile.path} — the files are in place, but '
+      message:
+          'no database at ${dbFile.path} — the files are in place, but '
           'the app will not list the plugin until it is registered',
     );
   }
@@ -197,7 +201,8 @@ InstallResult installPlugin({
     return InstallResult(
       extractionDir: target,
       registered: true,
-      message: 'installed ${archive.name} ${archive.version} '
+      message:
+          'installed ${archive.name} ${archive.version} '
           '(${archive.author}) → ${target.path}',
     );
   } finally {

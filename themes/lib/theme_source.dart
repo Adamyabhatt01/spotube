@@ -63,9 +63,9 @@ class ThemeSource {
   String get entryPoint => manifest['entryPoint'] as String? ?? 'Theme';
 
   List<String> get abilities => [
-        for (final ability in (manifest['abilities'] as List? ?? const []))
-          '$ability',
-      ];
+    for (final ability in (manifest['abilities'] as List? ?? const []))
+      '$ability',
+  ];
 
   /// The artifact file name, stable across builds so the host's pinned
   /// artifact tests keep pointing at the same file.
@@ -133,8 +133,8 @@ List<ThemeSource> loadThemes(String repoRoot) {
     final sourceFile = File('${entity.path}/theme.ht');
     if (!manifestFile.existsSync() || !sourceFile.existsSync()) continue;
 
-    final manifest = jsonDecode(manifestFile.readAsStringSync())
-        as Map<String, dynamic>;
+    final manifest =
+        jsonDecode(manifestFile.readAsStringSync()) as Map<String, dynamic>;
     final resolved = resolveIncludes(sourceFile.readAsStringSync(), repoRoot);
 
     // `build.json` is build configuration, not part of the plugin: the app
@@ -142,23 +142,25 @@ List<ThemeSource> loadThemes(String repoRoot) {
     String? publishPath;
     final buildFile = File('${entity.path}/build.json');
     if (buildFile.existsSync()) {
-      final build = jsonDecode(buildFile.readAsStringSync())
-          as Map<String, dynamic>;
+      final build =
+          jsonDecode(buildFile.readAsStringSync()) as Map<String, dynamic>;
       final publish = build['publish'];
       if (publish is String && publish.isNotEmpty) {
         publishPath = publish;
       }
     }
 
-    themes.add(ThemeSource(
-      id: entity.path.split(Platform.pathSeparator).last,
-      directory: entity,
-      manifest: manifest,
-      manifestBytes: manifestFile.readAsBytesSync(),
-      source: resolved.source,
-      includes: resolved.includes,
-      publishPath: publishPath,
-    ));
+    themes.add(
+      ThemeSource(
+        id: entity.path.split(Platform.pathSeparator).last,
+        directory: entity,
+        manifest: manifest,
+        manifestBytes: manifestFile.readAsBytesSync(),
+        source: resolved.source,
+        includes: resolved.includes,
+        publishPath: publishPath,
+      ),
+    );
   }
 
   themes.sort((a, b) => a.id.compareTo(b.id));

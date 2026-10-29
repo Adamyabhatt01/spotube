@@ -10,6 +10,7 @@ import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/services/theme_definition_cache.dart';
 import 'package:spotube/modules/theme_background/theme_shell_source.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_screen_stack.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/metadata_plugin/plugin_storage.dart';
 import 'package:spotube/provider/dio/dio_provider.dart';
@@ -446,6 +447,8 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
       if (remainingPlugins.length == 1) {
         await setDefaultThemePlugin(remainingPlugins.first);
       }
+      // No promoted theme means the UI screens have no owner left.
+      _resetThemeUiForIdentityChange();
     }
 
     if (state.valueOrNull?.defaultRadioPluginConfig == plugin) {
@@ -624,6 +627,11 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
 
     // Identity for the startup theme cache (DB-free validation).
     await writeThemePluginKey(themePluginKey(plugin));
+
+    // Screens, overrides and pages belong to the old theme. A theme switch
+    // must not leave a pushed screen pointing at a screen the new payload
+    // does not define.
+    _resetThemeUiForIdentityChange();
   }
 
   Future<void> setDefaultRadioPlugin(PluginConfiguration plugin) async {
@@ -655,7 +663,12 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
   /// Manual v1 refresh path alongside the automatic file-watch signals:
   /// `themeDefinitionProvider` recomputes, `ThemeData` rebuilds.
   void refreshThemeDefinition() {
-    ref.read(themeUiOverrideProvider.notifier).state = null;
+    _resetThemeUiForIdentityChange();
     ref.invalidate(themeDefinitionProvider);
+  }
+
+  void _resetThemeUiForIdentityChange() {
+    ref.read(themeUiOverrideProvider.notifier).state = null;
+    clearThemeUiScreensState(ref);
   }
 }

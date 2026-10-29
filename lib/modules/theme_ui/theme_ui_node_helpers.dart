@@ -132,6 +132,17 @@ extension _ThemeUiNodeHelpers on ThemeUiNodeView {
     if (raw is! String || raw.isEmpty) return fallback;
     if (raw == 'transparent' || raw == 'none') return Colors.transparent;
     final scheme = Theme.of(context).colorScheme;
+    if (raw.startsWith('@palette.')) {
+      final bound = runtime.bindings.raw(raw.substring(1));
+      if (bound is String) {
+        try {
+          return ThemeConverter.parseColor(bound);
+        } catch (_) {
+          return fallback;
+        }
+      }
+      return fallback;
+    }
     if (raw.startsWith('@')) {
       return switch (raw.substring(1)) {
         'primary' => scheme.primary,
@@ -192,10 +203,41 @@ extension _ThemeUiNodeHelpers on ThemeUiNodeView {
     return entry.isEmpty ? null : entry;
   }
 
-  Map<String, dynamic> _buttonStyle(Object? variant) {
-    final buttons = _map(runtime.theme.components['buttons']);
-    final style = _map(buttons[variant is String ? variant : 'primary']);
-    return style;
+  Map<String, dynamic> _buttonStyle(
+    BuildContext context,
+    Object? variant, {
+    Object? nodeKit,
+  }) {
+    final kit = _kit(context, nodeKit: nodeKit);
+    return themeUiComponentStyle(
+      runtime.theme,
+      kit,
+      'buttons',
+      variant: variant is String ? variant : 'primary',
+    );
+  }
+
+  /// The kit a node renders through, without the component fallback rule.
+  ThemeUiKit _kit(BuildContext context, {Object? nodeKit}) {
+    return ThemeUiKitResolver(themeKit: runtime.defaultKit)
+        .resolve(context, nodeKit: nodeKit);
+  }
+
+  /// The kit a specific component renders through, applying the fallback.
+  ThemeUiKit _kitForComponent(
+    BuildContext context, {
+    required String component,
+    required String nodeType,
+    Object? nodeKit,
+    String? variant,
+  }) {
+    return ThemeUiKitResolver(themeKit: runtime.defaultKit).resolveForComponent(
+      context,
+      component: component,
+      nodeType: nodeType,
+      nodeKit: nodeKit,
+      variant: variant,
+    );
   }
 
   Map<String, dynamic> _map(Object? raw) {
@@ -347,6 +389,62 @@ extension _ThemeUiNodeHelpers on ThemeUiNodeView {
         'stats' => SpotubeIcons.chart,
         _ => Icons.circle_outlined,
       };
-
 }
 
+/// The runtime one collection entry renders with.
+///
+/// Shared by every data node so `item.*` bindings and item actions behave the
+/// same in a static list, a virtual list, a table row or a carousel page. The
+/// typed entry travels with item actions, so the dispatcher never re-resolves
+/// an id against a provider that may have moved on.
+ThemeUiRuntime _itemRuntime(
+  ThemeUiRuntime runtime,
+  Object? item,
+  int index,
+  List<Object?> items,
+) {
+  final activeTrackId = runtime.bindings.raw('player.trackId');
+  final merged = ThemeUiBindings({
+    ...runtime.bindings.values,
+    ...themeItemBindings(
+      item,
+      index: index,
+      activeTrackId: activeTrackId is String ? activeTrackId : null,
+    ),
+  });
+  // Nearest artwork scope: the row's own `item.palette` (or its artwork)
+  // overrides the page's and the player's palette. Only wired when the
+  // document actually binds `palette.*`.
+  final bindings = runtime.paletteFor == null
+      ? merged
+      : withArtworkPalette(
+          merged,
+          paletteFor: runtime.paletteFor!,
+          request: runtime.requestPalette,
+        );
+
+  return ThemeUiRuntime(
+    theme: runtime.theme,
+    bindings: bindings,
+    assets: runtime.assets,
+    templates: runtime.templates,
+    renderPoints: runtime.renderPoints,
+    specVersion: runtime.specVersion,
+    paletteFor: runtime.paletteFor,
+    requestPalette: runtime.requestPalette,
+    templateDepth: runtime.templateDepth,
+    templateStack: runtime.templateStack,
+    onAction: (action) {
+      if (itemActionTypes.contains(action.type)) {
+        runtime.onAction(ThemeUiAction(action.type, {
+          ...action.args,
+          'item': item,
+          'index': index,
+          'items': items,
+        }));
+      } else {
+        runtime.onAction(action);
+      }
+    },
+  );
+}

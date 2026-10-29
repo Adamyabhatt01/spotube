@@ -106,8 +106,8 @@ void main() {
   }
 
   group('the spotify-shell payload', () {
-    test('validates with no errors and no warnings', () {
-      final report = validateThemePayload(payload);
+    test('validates with no errors and no warnings for the migration tools', () {
+      final report = validateLegacyThemePayload(payload);
       expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
       expect(
         report.issues.where((issue) => issue.severity == Severity.warning),
@@ -115,6 +115,15 @@ void main() {
         reason:
             'a published theme should be clean, not merely valid:\n'
             '${report.issues.join('\n')}',
+      );
+    });
+
+    test('the v4 host rejects it until Phase 11 migrates it', () {
+      final report = validateThemePayload(payload);
+      expect(report.issues, hasLength(1));
+      expect(
+        report.issues.single.message,
+        'specVersion 3 is not supported; migrate to 4',
       );
     });
 

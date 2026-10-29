@@ -1863,6 +1863,150 @@ abstract class AppLocalizations {
   /// **'Normalize audio'**
   String get normalize_audio;
 
+  /// No description provided for @equalizer.
+  ///
+  /// In en, this message translates to:
+  /// **'Equalizer'**
+  String get equalizer;
+
+  /// No description provided for @audio_settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio settings'**
+  String get audio_settings;
+
+  /// No description provided for @equalizer_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust the balance of bass, midrange and treble.'**
+  String get equalizer_description;
+
+  /// No description provided for @equalizer_enable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable equalizer'**
+  String get equalizer_enable;
+
+  /// No description provided for @equalizer_enable_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Applies to music and radio playback.'**
+  String get equalizer_enable_description;
+
+  /// No description provided for @equalizer_bypassed.
+  ///
+  /// In en, this message translates to:
+  /// **'Bypassed'**
+  String get equalizer_bypassed;
+
+  /// No description provided for @equalizer_drag_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag a band to shape the sound. Double-click a band to reset it.'**
+  String get equalizer_drag_hint;
+
+  /// No description provided for @equalizer_preset.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset'**
+  String get equalizer_preset;
+
+  /// No description provided for @equalizer_preset_flat.
+  ///
+  /// In en, this message translates to:
+  /// **'Flat'**
+  String get equalizer_preset_flat;
+
+  /// No description provided for @equalizer_preset_bass_boost.
+  ///
+  /// In en, this message translates to:
+  /// **'Bass boost'**
+  String get equalizer_preset_bass_boost;
+
+  /// No description provided for @equalizer_preset_treble_boost.
+  ///
+  /// In en, this message translates to:
+  /// **'Treble boost'**
+  String get equalizer_preset_treble_boost;
+
+  /// No description provided for @equalizer_preset_vocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Vocal'**
+  String get equalizer_preset_vocal;
+
+  /// No description provided for @equalizer_preset_rock.
+  ///
+  /// In en, this message translates to:
+  /// **'Rock'**
+  String get equalizer_preset_rock;
+
+  /// No description provided for @equalizer_preset_electronic.
+  ///
+  /// In en, this message translates to:
+  /// **'Electronic'**
+  String get equalizer_preset_electronic;
+
+  /// No description provided for @equalizer_preset_custom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get equalizer_preset_custom;
+
+  /// No description provided for @equalizer_reset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset to flat'**
+  String get equalizer_reset;
+
+  /// No description provided for @equalizer_reset_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Sets every band back to 0 dB.'**
+  String get equalizer_reset_description;
+
+  /// No description provided for @equalizer_volume.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume'**
+  String get equalizer_volume;
+
+  /// No description provided for @equalizer_loudness.
+  ///
+  /// In en, this message translates to:
+  /// **'Loudness'**
+  String get equalizer_loudness;
+
+  /// No description provided for @equalizer_virtual_surround.
+  ///
+  /// In en, this message translates to:
+  /// **'Virtual surround'**
+  String get equalizer_virtual_surround;
+
+  /// No description provided for @equalizer_mono.
+  ///
+  /// In en, this message translates to:
+  /// **'Mono audio'**
+  String get equalizer_mono;
+
+  /// No description provided for @equalizer_visualizer.
+  ///
+  /// In en, this message translates to:
+  /// **'Visualizer'**
+  String get equalizer_visualizer;
+
+  /// No description provided for @equalizer_visualizer_live.
+  ///
+  /// In en, this message translates to:
+  /// **'Live'**
+  String get equalizer_visualizer_live;
+
+  /// No description provided for @equalizer_visualizer_unavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio capture unavailable'**
+  String get equalizer_visualizer_unavailable;
+
   /// No description provided for @change_cover.
   ///
   /// In en, this message translates to:

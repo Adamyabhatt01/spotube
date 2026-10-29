@@ -598,6 +598,34 @@ class $PreferencesTableTable extends PreferencesTable
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("normalize_audio" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _equalizerEnabledMeta =
+      const VerificationMeta('equalizerEnabled');
+  @override
+  late final GeneratedColumn<bool> equalizerEnabled = GeneratedColumn<bool>(
+      'equalizer_enabled', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("equalizer_enabled" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  late final GeneratedColumnWithTypeConverter<EqualizerPreset, String>
+      equalizerPreset = GeneratedColumn<String>(
+              'equalizer_preset', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant("flat"))
+          .withConverter<EqualizerPreset>(
+              $PreferencesTableTable.$converterequalizerPreset);
+  @override
+  late final GeneratedColumnWithTypeConverter<List<double>, String>
+      equalizerGains = GeneratedColumn<String>(
+              'equalizer_gains', aliasedName, false,
+              type: DriftSqlType.string,
+              requiredDuringInsert: false,
+              defaultValue: const Constant(""))
+          .withConverter<List<double>>(
+              $PreferencesTableTable.$converterequalizerGains);
   static const VerificationMeta _showSystemTrayIconMeta =
       const VerificationMeta('showSystemTrayIcon');
   @override
@@ -860,6 +888,26 @@ class $PreferencesTableTable extends PreferencesTable
               defaultValue: const Constant("fullWidth"))
           .withConverter<PlayerDock>(
               $PreferencesTableTable.$converterplayerDock);
+  static const VerificationMeta _sidebarCollapsedMeta =
+      const VerificationMeta('sidebarCollapsed');
+  @override
+  late final GeneratedColumn<bool> sidebarCollapsed = GeneratedColumn<bool>(
+      'sidebar_collapsed', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("sidebar_collapsed" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _asideOpenMeta =
+      const VerificationMeta('asideOpen');
+  @override
+  late final GeneratedColumn<bool> asideOpen = GeneratedColumn<bool>(
+      'aside_open', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("aside_open" IN (0, 1))'),
+      defaultValue: const Constant(true));
   static const VerificationMeta _lastUpdateCheckMsMeta =
       const VerificationMeta('lastUpdateCheckMs');
   @override
@@ -922,6 +970,9 @@ class $PreferencesTableTable extends PreferencesTable
         amoledDarkTheme,
         checkUpdate,
         normalizeAudio,
+        equalizerEnabled,
+        equalizerPreset,
+        equalizerGains,
         showSystemTrayIcon,
         systemTitleBar,
         skipNonMusic,
@@ -952,6 +1003,8 @@ class $PreferencesTableTable extends PreferencesTable
         themeTransitionMs,
         volumeControlMode,
         playerDock,
+        sidebarCollapsed,
+        asideOpen,
         lastUpdateCheckMs,
         vpnMode,
         vpnConnectionUuid,
@@ -997,6 +1050,12 @@ class $PreferencesTableTable extends PreferencesTable
           _normalizeAudioMeta,
           normalizeAudio.isAcceptableOrUnknown(
               data['normalize_audio']!, _normalizeAudioMeta));
+    }
+    if (data.containsKey('equalizer_enabled')) {
+      context.handle(
+          _equalizerEnabledMeta,
+          equalizerEnabled.isAcceptableOrUnknown(
+              data['equalizer_enabled']!, _equalizerEnabledMeta));
     }
     if (data.containsKey('show_system_tray_icon')) {
       context.handle(
@@ -1082,6 +1141,16 @@ class $PreferencesTableTable extends PreferencesTable
           themeTransitionMs.isAcceptableOrUnknown(
               data['theme_transition_ms']!, _themeTransitionMsMeta));
     }
+    if (data.containsKey('sidebar_collapsed')) {
+      context.handle(
+          _sidebarCollapsedMeta,
+          sidebarCollapsed.isAcceptableOrUnknown(
+              data['sidebar_collapsed']!, _sidebarCollapsedMeta));
+    }
+    if (data.containsKey('aside_open')) {
+      context.handle(_asideOpenMeta,
+          asideOpen.isAcceptableOrUnknown(data['aside_open']!, _asideOpenMeta));
+    }
     if (data.containsKey('last_update_check_ms')) {
       context.handle(
           _lastUpdateCheckMsMeta,
@@ -1137,6 +1206,14 @@ class $PreferencesTableTable extends PreferencesTable
           .read(DriftSqlType.bool, data['${effectivePrefix}check_update'])!,
       normalizeAudio: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}normalize_audio'])!,
+      equalizerEnabled: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}equalizer_enabled'])!,
+      equalizerPreset: $PreferencesTableTable.$converterequalizerPreset.fromSql(
+          attachedDatabase.typeMapping.read(DriftSqlType.string,
+              data['${effectivePrefix}equalizer_preset'])!),
+      equalizerGains: $PreferencesTableTable.$converterequalizerGains.fromSql(
+          attachedDatabase.typeMapping.read(
+              DriftSqlType.string, data['${effectivePrefix}equalizer_gains'])!),
       showSystemTrayIcon: attachedDatabase.typeMapping.read(
           DriftSqlType.bool, data['${effectivePrefix}show_system_tray_icon'])!,
       systemTitleBar: attachedDatabase.typeMapping
@@ -1214,6 +1291,10 @@ class $PreferencesTableTable extends PreferencesTable
       playerDock: $PreferencesTableTable.$converterplayerDock.fromSql(
           attachedDatabase.typeMapping.read(
               DriftSqlType.string, data['${effectivePrefix}player_dock'])!),
+      sidebarCollapsed: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}sidebar_collapsed'])!,
+      asideOpen: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}aside_open'])!,
       lastUpdateCheckMs: attachedDatabase.typeMapping.read(
           DriftSqlType.int, data['${effectivePrefix}last_update_check_ms'])!,
       vpnMode: $PreferencesTableTable.$convertervpnMode.fromSql(attachedDatabase
@@ -1237,6 +1318,11 @@ class $PreferencesTableTable extends PreferencesTable
     return $PreferencesTableTable(attachedDatabase, alias);
   }
 
+  static JsonTypeConverter2<EqualizerPreset, String, String>
+      $converterequalizerPreset =
+      const EnumNameConverter<EqualizerPreset>(EqualizerPreset.values);
+  static TypeConverter<List<double>, String> $converterequalizerGains =
+      const DoubleListConverter();
   static JsonTypeConverter2<CloseBehavior, String, String>
       $convertercloseBehavior =
       const EnumNameConverter<CloseBehavior>(CloseBehavior.values);
@@ -1285,6 +1371,9 @@ class PreferencesTableData extends DataClass
   final bool amoledDarkTheme;
   final bool checkUpdate;
   final bool normalizeAudio;
+  final bool equalizerEnabled;
+  final EqualizerPreset equalizerPreset;
+  final List<double> equalizerGains;
   final bool showSystemTrayIcon;
   final bool systemTitleBar;
   final bool skipNonMusic;
@@ -1326,6 +1415,14 @@ class PreferencesTableData extends DataClass
   final int themeTransitionMs;
   final VolumeControlMode volumeControlMode;
   final PlayerDock playerDock;
+
+  /// User's collapse toggle for the sidebar. Binds `app.sidebarCollapsed`;
+  /// `toggleSidebar` flips it.
+  final bool sidebarCollapsed;
+
+  /// Whether the theme-declared right-hand aside is open. Defaults to open so
+  /// a theme that asks for an aside shows it immediately; a close persists.
+  final bool asideOpen;
   final int lastUpdateCheckMs;
   final VpnMode vpnMode;
   final String? vpnConnectionUuid;
@@ -1339,6 +1436,9 @@ class PreferencesTableData extends DataClass
       required this.amoledDarkTheme,
       required this.checkUpdate,
       required this.normalizeAudio,
+      required this.equalizerEnabled,
+      required this.equalizerPreset,
+      required this.equalizerGains,
       required this.showSystemTrayIcon,
       required this.systemTitleBar,
       required this.skipNonMusic,
@@ -1369,6 +1469,8 @@ class PreferencesTableData extends DataClass
       required this.themeTransitionMs,
       required this.volumeControlMode,
       required this.playerDock,
+      required this.sidebarCollapsed,
+      required this.asideOpen,
       required this.lastUpdateCheckMs,
       required this.vpnMode,
       this.vpnConnectionUuid,
@@ -1384,6 +1486,17 @@ class PreferencesTableData extends DataClass
     map['amoled_dark_theme'] = Variable<bool>(amoledDarkTheme);
     map['check_update'] = Variable<bool>(checkUpdate);
     map['normalize_audio'] = Variable<bool>(normalizeAudio);
+    map['equalizer_enabled'] = Variable<bool>(equalizerEnabled);
+    {
+      map['equalizer_preset'] = Variable<String>($PreferencesTableTable
+          .$converterequalizerPreset
+          .toSql(equalizerPreset));
+    }
+    {
+      map['equalizer_gains'] = Variable<String>($PreferencesTableTable
+          .$converterequalizerGains
+          .toSql(equalizerGains));
+    }
     map['show_system_tray_icon'] = Variable<bool>(showSystemTrayIcon);
     map['system_title_bar'] = Variable<bool>(systemTitleBar);
     map['skip_non_music'] = Variable<bool>(skipNonMusic);
@@ -1473,6 +1586,8 @@ class PreferencesTableData extends DataClass
       map['player_dock'] = Variable<String>(
           $PreferencesTableTable.$converterplayerDock.toSql(playerDock));
     }
+    map['sidebar_collapsed'] = Variable<bool>(sidebarCollapsed);
+    map['aside_open'] = Variable<bool>(asideOpen);
     map['last_update_check_ms'] = Variable<int>(lastUpdateCheckMs);
     {
       map['vpn_mode'] = Variable<String>(
@@ -1497,6 +1612,9 @@ class PreferencesTableData extends DataClass
       amoledDarkTheme: Value(amoledDarkTheme),
       checkUpdate: Value(checkUpdate),
       normalizeAudio: Value(normalizeAudio),
+      equalizerEnabled: Value(equalizerEnabled),
+      equalizerPreset: Value(equalizerPreset),
+      equalizerGains: Value(equalizerGains),
       showSystemTrayIcon: Value(showSystemTrayIcon),
       systemTitleBar: Value(systemTitleBar),
       skipNonMusic: Value(skipNonMusic),
@@ -1531,6 +1649,8 @@ class PreferencesTableData extends DataClass
       themeTransitionMs: Value(themeTransitionMs),
       volumeControlMode: Value(volumeControlMode),
       playerDock: Value(playerDock),
+      sidebarCollapsed: Value(sidebarCollapsed),
+      asideOpen: Value(asideOpen),
       lastUpdateCheckMs: Value(lastUpdateCheckMs),
       vpnMode: Value(vpnMode),
       vpnConnectionUuid: vpnConnectionUuid == null && nullToAbsent
@@ -1554,6 +1674,10 @@ class PreferencesTableData extends DataClass
       amoledDarkTheme: serializer.fromJson<bool>(json['amoledDarkTheme']),
       checkUpdate: serializer.fromJson<bool>(json['checkUpdate']),
       normalizeAudio: serializer.fromJson<bool>(json['normalizeAudio']),
+      equalizerEnabled: serializer.fromJson<bool>(json['equalizerEnabled']),
+      equalizerPreset: $PreferencesTableTable.$converterequalizerPreset
+          .fromJson(serializer.fromJson<String>(json['equalizerPreset'])),
+      equalizerGains: serializer.fromJson<List<double>>(json['equalizerGains']),
       showSystemTrayIcon: serializer.fromJson<bool>(json['showSystemTrayIcon']),
       systemTitleBar: serializer.fromJson<bool>(json['systemTitleBar']),
       skipNonMusic: serializer.fromJson<bool>(json['skipNonMusic']),
@@ -1599,6 +1723,8 @@ class PreferencesTableData extends DataClass
           .fromJson(serializer.fromJson<String>(json['volumeControlMode'])),
       playerDock: $PreferencesTableTable.$converterplayerDock
           .fromJson(serializer.fromJson<String>(json['playerDock'])),
+      sidebarCollapsed: serializer.fromJson<bool>(json['sidebarCollapsed']),
+      asideOpen: serializer.fromJson<bool>(json['asideOpen']),
       lastUpdateCheckMs: serializer.fromJson<int>(json['lastUpdateCheckMs']),
       vpnMode: $PreferencesTableTable.$convertervpnMode
           .fromJson(serializer.fromJson<String>(json['vpnMode'])),
@@ -1619,6 +1745,11 @@ class PreferencesTableData extends DataClass
       'amoledDarkTheme': serializer.toJson<bool>(amoledDarkTheme),
       'checkUpdate': serializer.toJson<bool>(checkUpdate),
       'normalizeAudio': serializer.toJson<bool>(normalizeAudio),
+      'equalizerEnabled': serializer.toJson<bool>(equalizerEnabled),
+      'equalizerPreset': serializer.toJson<String>($PreferencesTableTable
+          .$converterequalizerPreset
+          .toJson(equalizerPreset)),
+      'equalizerGains': serializer.toJson<List<double>>(equalizerGains),
       'showSystemTrayIcon': serializer.toJson<bool>(showSystemTrayIcon),
       'systemTitleBar': serializer.toJson<bool>(systemTitleBar),
       'skipNonMusic': serializer.toJson<bool>(skipNonMusic),
@@ -1661,6 +1792,8 @@ class PreferencesTableData extends DataClass
           .toJson(volumeControlMode)),
       'playerDock': serializer.toJson<String>(
           $PreferencesTableTable.$converterplayerDock.toJson(playerDock)),
+      'sidebarCollapsed': serializer.toJson<bool>(sidebarCollapsed),
+      'asideOpen': serializer.toJson<bool>(asideOpen),
       'lastUpdateCheckMs': serializer.toJson<int>(lastUpdateCheckMs),
       'vpnMode': serializer.toJson<String>(
           $PreferencesTableTable.$convertervpnMode.toJson(vpnMode)),
@@ -1678,6 +1811,9 @@ class PreferencesTableData extends DataClass
           bool? amoledDarkTheme,
           bool? checkUpdate,
           bool? normalizeAudio,
+          bool? equalizerEnabled,
+          EqualizerPreset? equalizerPreset,
+          List<double>? equalizerGains,
           bool? showSystemTrayIcon,
           bool? systemTitleBar,
           bool? skipNonMusic,
@@ -1708,6 +1844,8 @@ class PreferencesTableData extends DataClass
           int? themeTransitionMs,
           VolumeControlMode? volumeControlMode,
           PlayerDock? playerDock,
+          bool? sidebarCollapsed,
+          bool? asideOpen,
           int? lastUpdateCheckMs,
           VpnMode? vpnMode,
           Value<String?> vpnConnectionUuid = const Value.absent(),
@@ -1721,6 +1859,9 @@ class PreferencesTableData extends DataClass
         amoledDarkTheme: amoledDarkTheme ?? this.amoledDarkTheme,
         checkUpdate: checkUpdate ?? this.checkUpdate,
         normalizeAudio: normalizeAudio ?? this.normalizeAudio,
+        equalizerEnabled: equalizerEnabled ?? this.equalizerEnabled,
+        equalizerPreset: equalizerPreset ?? this.equalizerPreset,
+        equalizerGains: equalizerGains ?? this.equalizerGains,
         showSystemTrayIcon: showSystemTrayIcon ?? this.showSystemTrayIcon,
         systemTitleBar: systemTitleBar ?? this.systemTitleBar,
         skipNonMusic: skipNonMusic ?? this.skipNonMusic,
@@ -1754,6 +1895,8 @@ class PreferencesTableData extends DataClass
         themeTransitionMs: themeTransitionMs ?? this.themeTransitionMs,
         volumeControlMode: volumeControlMode ?? this.volumeControlMode,
         playerDock: playerDock ?? this.playerDock,
+        sidebarCollapsed: sidebarCollapsed ?? this.sidebarCollapsed,
+        asideOpen: asideOpen ?? this.asideOpen,
         lastUpdateCheckMs: lastUpdateCheckMs ?? this.lastUpdateCheckMs,
         vpnMode: vpnMode ?? this.vpnMode,
         vpnConnectionUuid: vpnConnectionUuid.present
@@ -1779,6 +1922,15 @@ class PreferencesTableData extends DataClass
       normalizeAudio: data.normalizeAudio.present
           ? data.normalizeAudio.value
           : this.normalizeAudio,
+      equalizerEnabled: data.equalizerEnabled.present
+          ? data.equalizerEnabled.value
+          : this.equalizerEnabled,
+      equalizerPreset: data.equalizerPreset.present
+          ? data.equalizerPreset.value
+          : this.equalizerPreset,
+      equalizerGains: data.equalizerGains.present
+          ? data.equalizerGains.value
+          : this.equalizerGains,
       showSystemTrayIcon: data.showSystemTrayIcon.present
           ? data.showSystemTrayIcon.value
           : this.showSystemTrayIcon,
@@ -1858,6 +2010,10 @@ class PreferencesTableData extends DataClass
           : this.volumeControlMode,
       playerDock:
           data.playerDock.present ? data.playerDock.value : this.playerDock,
+      sidebarCollapsed: data.sidebarCollapsed.present
+          ? data.sidebarCollapsed.value
+          : this.sidebarCollapsed,
+      asideOpen: data.asideOpen.present ? data.asideOpen.value : this.asideOpen,
       lastUpdateCheckMs: data.lastUpdateCheckMs.present
           ? data.lastUpdateCheckMs.value
           : this.lastUpdateCheckMs,
@@ -1888,6 +2044,9 @@ class PreferencesTableData extends DataClass
           ..write('amoledDarkTheme: $amoledDarkTheme, ')
           ..write('checkUpdate: $checkUpdate, ')
           ..write('normalizeAudio: $normalizeAudio, ')
+          ..write('equalizerEnabled: $equalizerEnabled, ')
+          ..write('equalizerPreset: $equalizerPreset, ')
+          ..write('equalizerGains: $equalizerGains, ')
           ..write('showSystemTrayIcon: $showSystemTrayIcon, ')
           ..write('systemTitleBar: $systemTitleBar, ')
           ..write('skipNonMusic: $skipNonMusic, ')
@@ -1918,6 +2077,8 @@ class PreferencesTableData extends DataClass
           ..write('themeTransitionMs: $themeTransitionMs, ')
           ..write('volumeControlMode: $volumeControlMode, ')
           ..write('playerDock: $playerDock, ')
+          ..write('sidebarCollapsed: $sidebarCollapsed, ')
+          ..write('asideOpen: $asideOpen, ')
           ..write('lastUpdateCheckMs: $lastUpdateCheckMs, ')
           ..write('vpnMode: $vpnMode, ')
           ..write('vpnConnectionUuid: $vpnConnectionUuid, ')
@@ -1936,6 +2097,9 @@ class PreferencesTableData extends DataClass
         amoledDarkTheme,
         checkUpdate,
         normalizeAudio,
+        equalizerEnabled,
+        equalizerPreset,
+        equalizerGains,
         showSystemTrayIcon,
         systemTitleBar,
         skipNonMusic,
@@ -1966,6 +2130,8 @@ class PreferencesTableData extends DataClass
         themeTransitionMs,
         volumeControlMode,
         playerDock,
+        sidebarCollapsed,
+        asideOpen,
         lastUpdateCheckMs,
         vpnMode,
         vpnConnectionUuid,
@@ -1983,6 +2149,9 @@ class PreferencesTableData extends DataClass
           other.amoledDarkTheme == this.amoledDarkTheme &&
           other.checkUpdate == this.checkUpdate &&
           other.normalizeAudio == this.normalizeAudio &&
+          other.equalizerEnabled == this.equalizerEnabled &&
+          other.equalizerPreset == this.equalizerPreset &&
+          other.equalizerGains == this.equalizerGains &&
           other.showSystemTrayIcon == this.showSystemTrayIcon &&
           other.systemTitleBar == this.systemTitleBar &&
           other.skipNonMusic == this.skipNonMusic &&
@@ -2013,6 +2182,8 @@ class PreferencesTableData extends DataClass
           other.themeTransitionMs == this.themeTransitionMs &&
           other.volumeControlMode == this.volumeControlMode &&
           other.playerDock == this.playerDock &&
+          other.sidebarCollapsed == this.sidebarCollapsed &&
+          other.asideOpen == this.asideOpen &&
           other.lastUpdateCheckMs == this.lastUpdateCheckMs &&
           other.vpnMode == this.vpnMode &&
           other.vpnConnectionUuid == this.vpnConnectionUuid &&
@@ -2028,6 +2199,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
   final Value<bool> amoledDarkTheme;
   final Value<bool> checkUpdate;
   final Value<bool> normalizeAudio;
+  final Value<bool> equalizerEnabled;
+  final Value<EqualizerPreset> equalizerPreset;
+  final Value<List<double>> equalizerGains;
   final Value<bool> showSystemTrayIcon;
   final Value<bool> systemTitleBar;
   final Value<bool> skipNonMusic;
@@ -2058,6 +2232,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
   final Value<int> themeTransitionMs;
   final Value<VolumeControlMode> volumeControlMode;
   final Value<PlayerDock> playerDock;
+  final Value<bool> sidebarCollapsed;
+  final Value<bool> asideOpen;
   final Value<int> lastUpdateCheckMs;
   final Value<VpnMode> vpnMode;
   final Value<String?> vpnConnectionUuid;
@@ -2071,6 +2247,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.amoledDarkTheme = const Value.absent(),
     this.checkUpdate = const Value.absent(),
     this.normalizeAudio = const Value.absent(),
+    this.equalizerEnabled = const Value.absent(),
+    this.equalizerPreset = const Value.absent(),
+    this.equalizerGains = const Value.absent(),
     this.showSystemTrayIcon = const Value.absent(),
     this.systemTitleBar = const Value.absent(),
     this.skipNonMusic = const Value.absent(),
@@ -2101,6 +2280,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.themeTransitionMs = const Value.absent(),
     this.volumeControlMode = const Value.absent(),
     this.playerDock = const Value.absent(),
+    this.sidebarCollapsed = const Value.absent(),
+    this.asideOpen = const Value.absent(),
     this.lastUpdateCheckMs = const Value.absent(),
     this.vpnMode = const Value.absent(),
     this.vpnConnectionUuid = const Value.absent(),
@@ -2115,6 +2296,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.amoledDarkTheme = const Value.absent(),
     this.checkUpdate = const Value.absent(),
     this.normalizeAudio = const Value.absent(),
+    this.equalizerEnabled = const Value.absent(),
+    this.equalizerPreset = const Value.absent(),
+    this.equalizerGains = const Value.absent(),
     this.showSystemTrayIcon = const Value.absent(),
     this.systemTitleBar = const Value.absent(),
     this.skipNonMusic = const Value.absent(),
@@ -2145,6 +2329,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     this.themeTransitionMs = const Value.absent(),
     this.volumeControlMode = const Value.absent(),
     this.playerDock = const Value.absent(),
+    this.sidebarCollapsed = const Value.absent(),
+    this.asideOpen = const Value.absent(),
     this.lastUpdateCheckMs = const Value.absent(),
     this.vpnMode = const Value.absent(),
     this.vpnConnectionUuid = const Value.absent(),
@@ -2159,6 +2345,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     Expression<bool>? amoledDarkTheme,
     Expression<bool>? checkUpdate,
     Expression<bool>? normalizeAudio,
+    Expression<bool>? equalizerEnabled,
+    Expression<String>? equalizerPreset,
+    Expression<String>? equalizerGains,
     Expression<bool>? showSystemTrayIcon,
     Expression<bool>? systemTitleBar,
     Expression<bool>? skipNonMusic,
@@ -2189,6 +2378,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     Expression<int>? themeTransitionMs,
     Expression<String>? volumeControlMode,
     Expression<String>? playerDock,
+    Expression<bool>? sidebarCollapsed,
+    Expression<bool>? asideOpen,
     Expression<int>? lastUpdateCheckMs,
     Expression<String>? vpnMode,
     Expression<String>? vpnConnectionUuid,
@@ -2203,6 +2394,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       if (amoledDarkTheme != null) 'amoled_dark_theme': amoledDarkTheme,
       if (checkUpdate != null) 'check_update': checkUpdate,
       if (normalizeAudio != null) 'normalize_audio': normalizeAudio,
+      if (equalizerEnabled != null) 'equalizer_enabled': equalizerEnabled,
+      if (equalizerPreset != null) 'equalizer_preset': equalizerPreset,
+      if (equalizerGains != null) 'equalizer_gains': equalizerGains,
       if (showSystemTrayIcon != null)
         'show_system_tray_icon': showSystemTrayIcon,
       if (systemTitleBar != null) 'system_title_bar': systemTitleBar,
@@ -2238,6 +2432,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       if (themeTransitionMs != null) 'theme_transition_ms': themeTransitionMs,
       if (volumeControlMode != null) 'volume_control_mode': volumeControlMode,
       if (playerDock != null) 'player_dock': playerDock,
+      if (sidebarCollapsed != null) 'sidebar_collapsed': sidebarCollapsed,
+      if (asideOpen != null) 'aside_open': asideOpen,
       if (lastUpdateCheckMs != null) 'last_update_check_ms': lastUpdateCheckMs,
       if (vpnMode != null) 'vpn_mode': vpnMode,
       if (vpnConnectionUuid != null) 'vpn_connection_uuid': vpnConnectionUuid,
@@ -2254,6 +2450,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       Value<bool>? amoledDarkTheme,
       Value<bool>? checkUpdate,
       Value<bool>? normalizeAudio,
+      Value<bool>? equalizerEnabled,
+      Value<EqualizerPreset>? equalizerPreset,
+      Value<List<double>>? equalizerGains,
       Value<bool>? showSystemTrayIcon,
       Value<bool>? systemTitleBar,
       Value<bool>? skipNonMusic,
@@ -2284,6 +2483,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       Value<int>? themeTransitionMs,
       Value<VolumeControlMode>? volumeControlMode,
       Value<PlayerDock>? playerDock,
+      Value<bool>? sidebarCollapsed,
+      Value<bool>? asideOpen,
       Value<int>? lastUpdateCheckMs,
       Value<VpnMode>? vpnMode,
       Value<String?>? vpnConnectionUuid,
@@ -2297,6 +2498,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       amoledDarkTheme: amoledDarkTheme ?? this.amoledDarkTheme,
       checkUpdate: checkUpdate ?? this.checkUpdate,
       normalizeAudio: normalizeAudio ?? this.normalizeAudio,
+      equalizerEnabled: equalizerEnabled ?? this.equalizerEnabled,
+      equalizerPreset: equalizerPreset ?? this.equalizerPreset,
+      equalizerGains: equalizerGains ?? this.equalizerGains,
       showSystemTrayIcon: showSystemTrayIcon ?? this.showSystemTrayIcon,
       systemTitleBar: systemTitleBar ?? this.systemTitleBar,
       skipNonMusic: skipNonMusic ?? this.skipNonMusic,
@@ -2327,6 +2531,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       themeTransitionMs: themeTransitionMs ?? this.themeTransitionMs,
       volumeControlMode: volumeControlMode ?? this.volumeControlMode,
       playerDock: playerDock ?? this.playerDock,
+      sidebarCollapsed: sidebarCollapsed ?? this.sidebarCollapsed,
+      asideOpen: asideOpen ?? this.asideOpen,
       lastUpdateCheckMs: lastUpdateCheckMs ?? this.lastUpdateCheckMs,
       vpnMode: vpnMode ?? this.vpnMode,
       vpnConnectionUuid: vpnConnectionUuid ?? this.vpnConnectionUuid,
@@ -2354,6 +2560,19 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
     }
     if (normalizeAudio.present) {
       map['normalize_audio'] = Variable<bool>(normalizeAudio.value);
+    }
+    if (equalizerEnabled.present) {
+      map['equalizer_enabled'] = Variable<bool>(equalizerEnabled.value);
+    }
+    if (equalizerPreset.present) {
+      map['equalizer_preset'] = Variable<String>($PreferencesTableTable
+          .$converterequalizerPreset
+          .toSql(equalizerPreset.value));
+    }
+    if (equalizerGains.present) {
+      map['equalizer_gains'] = Variable<String>($PreferencesTableTable
+          .$converterequalizerGains
+          .toSql(equalizerGains.value));
     }
     if (showSystemTrayIcon.present) {
       map['show_system_tray_icon'] = Variable<bool>(showSystemTrayIcon.value);
@@ -2471,6 +2690,12 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
       map['player_dock'] = Variable<String>(
           $PreferencesTableTable.$converterplayerDock.toSql(playerDock.value));
     }
+    if (sidebarCollapsed.present) {
+      map['sidebar_collapsed'] = Variable<bool>(sidebarCollapsed.value);
+    }
+    if (asideOpen.present) {
+      map['aside_open'] = Variable<bool>(asideOpen.value);
+    }
     if (lastUpdateCheckMs.present) {
       map['last_update_check_ms'] = Variable<int>(lastUpdateCheckMs.value);
     }
@@ -2504,6 +2729,9 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           ..write('amoledDarkTheme: $amoledDarkTheme, ')
           ..write('checkUpdate: $checkUpdate, ')
           ..write('normalizeAudio: $normalizeAudio, ')
+          ..write('equalizerEnabled: $equalizerEnabled, ')
+          ..write('equalizerPreset: $equalizerPreset, ')
+          ..write('equalizerGains: $equalizerGains, ')
           ..write('showSystemTrayIcon: $showSystemTrayIcon, ')
           ..write('systemTitleBar: $systemTitleBar, ')
           ..write('skipNonMusic: $skipNonMusic, ')
@@ -2534,6 +2762,8 @@ class PreferencesTableCompanion extends UpdateCompanion<PreferencesTableData> {
           ..write('themeTransitionMs: $themeTransitionMs, ')
           ..write('volumeControlMode: $volumeControlMode, ')
           ..write('playerDock: $playerDock, ')
+          ..write('sidebarCollapsed: $sidebarCollapsed, ')
+          ..write('asideOpen: $asideOpen, ')
           ..write('lastUpdateCheckMs: $lastUpdateCheckMs, ')
           ..write('vpnMode: $vpnMode, ')
           ..write('vpnConnectionUuid: $vpnConnectionUuid, ')
@@ -7399,6 +7629,9 @@ typedef $$PreferencesTableTableCreateCompanionBuilder
   Value<bool> amoledDarkTheme,
   Value<bool> checkUpdate,
   Value<bool> normalizeAudio,
+  Value<bool> equalizerEnabled,
+  Value<EqualizerPreset> equalizerPreset,
+  Value<List<double>> equalizerGains,
   Value<bool> showSystemTrayIcon,
   Value<bool> systemTitleBar,
   Value<bool> skipNonMusic,
@@ -7429,6 +7662,8 @@ typedef $$PreferencesTableTableCreateCompanionBuilder
   Value<int> themeTransitionMs,
   Value<VolumeControlMode> volumeControlMode,
   Value<PlayerDock> playerDock,
+  Value<bool> sidebarCollapsed,
+  Value<bool> asideOpen,
   Value<int> lastUpdateCheckMs,
   Value<VpnMode> vpnMode,
   Value<String?> vpnConnectionUuid,
@@ -7444,6 +7679,9 @@ typedef $$PreferencesTableTableUpdateCompanionBuilder
   Value<bool> amoledDarkTheme,
   Value<bool> checkUpdate,
   Value<bool> normalizeAudio,
+  Value<bool> equalizerEnabled,
+  Value<EqualizerPreset> equalizerPreset,
+  Value<List<double>> equalizerGains,
   Value<bool> showSystemTrayIcon,
   Value<bool> systemTitleBar,
   Value<bool> skipNonMusic,
@@ -7474,6 +7712,8 @@ typedef $$PreferencesTableTableUpdateCompanionBuilder
   Value<int> themeTransitionMs,
   Value<VolumeControlMode> volumeControlMode,
   Value<PlayerDock> playerDock,
+  Value<bool> sidebarCollapsed,
+  Value<bool> asideOpen,
   Value<int> lastUpdateCheckMs,
   Value<VpnMode> vpnMode,
   Value<String?> vpnConnectionUuid,
@@ -7509,6 +7749,20 @@ class $$PreferencesTableTableFilterComposer
   ColumnFilters<bool> get normalizeAudio => $composableBuilder(
       column: $table.normalizeAudio,
       builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get equalizerEnabled => $composableBuilder(
+      column: $table.equalizerEnabled,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<EqualizerPreset, EqualizerPreset, String>
+      get equalizerPreset => $composableBuilder(
+          column: $table.equalizerPreset,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnWithTypeConverterFilters<List<double>, List<double>, String>
+      get equalizerGains => $composableBuilder(
+          column: $table.equalizerGains,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
 
   ColumnFilters<bool> get showSystemTrayIcon => $composableBuilder(
       column: $table.showSystemTrayIcon,
@@ -7642,6 +7896,13 @@ class $$PreferencesTableTableFilterComposer
           column: $table.playerDock,
           builder: (column) => ColumnWithTypeConverterFilters(column));
 
+  ColumnFilters<bool> get sidebarCollapsed => $composableBuilder(
+      column: $table.sidebarCollapsed,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get asideOpen => $composableBuilder(
+      column: $table.asideOpen, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<int> get lastUpdateCheckMs => $composableBuilder(
       column: $table.lastUpdateCheckMs,
       builder: (column) => ColumnFilters(column));
@@ -7696,6 +7957,18 @@ class $$PreferencesTableTableOrderingComposer
 
   ColumnOrderings<bool> get normalizeAudio => $composableBuilder(
       column: $table.normalizeAudio,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get equalizerEnabled => $composableBuilder(
+      column: $table.equalizerEnabled,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get equalizerPreset => $composableBuilder(
+      column: $table.equalizerPreset,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get equalizerGains => $composableBuilder(
+      column: $table.equalizerGains,
       builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get showSystemTrayIcon => $composableBuilder(
@@ -7810,6 +8083,13 @@ class $$PreferencesTableTableOrderingComposer
   ColumnOrderings<String> get playerDock => $composableBuilder(
       column: $table.playerDock, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<bool> get sidebarCollapsed => $composableBuilder(
+      column: $table.sidebarCollapsed,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get asideOpen => $composableBuilder(
+      column: $table.asideOpen, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get lastUpdateCheckMs => $composableBuilder(
       column: $table.lastUpdateCheckMs,
       builder: (column) => ColumnOrderings(column));
@@ -7861,6 +8141,17 @@ class $$PreferencesTableTableAnnotationComposer
 
   GeneratedColumn<bool> get normalizeAudio => $composableBuilder(
       column: $table.normalizeAudio, builder: (column) => column);
+
+  GeneratedColumn<bool> get equalizerEnabled => $composableBuilder(
+      column: $table.equalizerEnabled, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<EqualizerPreset, String>
+      get equalizerPreset => $composableBuilder(
+          column: $table.equalizerPreset, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<List<double>, String> get equalizerGains =>
+      $composableBuilder(
+          column: $table.equalizerGains, builder: (column) => column);
 
   GeneratedColumn<bool> get showSystemTrayIcon => $composableBuilder(
       column: $table.showSystemTrayIcon, builder: (column) => column);
@@ -7965,6 +8256,12 @@ class $$PreferencesTableTableAnnotationComposer
       $composableBuilder(
           column: $table.playerDock, builder: (column) => column);
 
+  GeneratedColumn<bool> get sidebarCollapsed => $composableBuilder(
+      column: $table.sidebarCollapsed, builder: (column) => column);
+
+  GeneratedColumn<bool> get asideOpen =>
+      $composableBuilder(column: $table.asideOpen, builder: (column) => column);
+
   GeneratedColumn<int> get lastUpdateCheckMs => $composableBuilder(
       column: $table.lastUpdateCheckMs, builder: (column) => column);
 
@@ -8020,6 +8317,9 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<bool> amoledDarkTheme = const Value.absent(),
             Value<bool> checkUpdate = const Value.absent(),
             Value<bool> normalizeAudio = const Value.absent(),
+            Value<bool> equalizerEnabled = const Value.absent(),
+            Value<EqualizerPreset> equalizerPreset = const Value.absent(),
+            Value<List<double>> equalizerGains = const Value.absent(),
             Value<bool> showSystemTrayIcon = const Value.absent(),
             Value<bool> systemTitleBar = const Value.absent(),
             Value<bool> skipNonMusic = const Value.absent(),
@@ -8051,6 +8351,8 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<int> themeTransitionMs = const Value.absent(),
             Value<VolumeControlMode> volumeControlMode = const Value.absent(),
             Value<PlayerDock> playerDock = const Value.absent(),
+            Value<bool> sidebarCollapsed = const Value.absent(),
+            Value<bool> asideOpen = const Value.absent(),
             Value<int> lastUpdateCheckMs = const Value.absent(),
             Value<VpnMode> vpnMode = const Value.absent(),
             Value<String?> vpnConnectionUuid = const Value.absent(),
@@ -8065,6 +8367,9 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             amoledDarkTheme: amoledDarkTheme,
             checkUpdate: checkUpdate,
             normalizeAudio: normalizeAudio,
+            equalizerEnabled: equalizerEnabled,
+            equalizerPreset: equalizerPreset,
+            equalizerGains: equalizerGains,
             showSystemTrayIcon: showSystemTrayIcon,
             systemTitleBar: systemTitleBar,
             skipNonMusic: skipNonMusic,
@@ -8095,6 +8400,8 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             themeTransitionMs: themeTransitionMs,
             volumeControlMode: volumeControlMode,
             playerDock: playerDock,
+            sidebarCollapsed: sidebarCollapsed,
+            asideOpen: asideOpen,
             lastUpdateCheckMs: lastUpdateCheckMs,
             vpnMode: vpnMode,
             vpnConnectionUuid: vpnConnectionUuid,
@@ -8109,6 +8416,9 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<bool> amoledDarkTheme = const Value.absent(),
             Value<bool> checkUpdate = const Value.absent(),
             Value<bool> normalizeAudio = const Value.absent(),
+            Value<bool> equalizerEnabled = const Value.absent(),
+            Value<EqualizerPreset> equalizerPreset = const Value.absent(),
+            Value<List<double>> equalizerGains = const Value.absent(),
             Value<bool> showSystemTrayIcon = const Value.absent(),
             Value<bool> systemTitleBar = const Value.absent(),
             Value<bool> skipNonMusic = const Value.absent(),
@@ -8140,6 +8450,8 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             Value<int> themeTransitionMs = const Value.absent(),
             Value<VolumeControlMode> volumeControlMode = const Value.absent(),
             Value<PlayerDock> playerDock = const Value.absent(),
+            Value<bool> sidebarCollapsed = const Value.absent(),
+            Value<bool> asideOpen = const Value.absent(),
             Value<int> lastUpdateCheckMs = const Value.absent(),
             Value<VpnMode> vpnMode = const Value.absent(),
             Value<String?> vpnConnectionUuid = const Value.absent(),
@@ -8154,6 +8466,9 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             amoledDarkTheme: amoledDarkTheme,
             checkUpdate: checkUpdate,
             normalizeAudio: normalizeAudio,
+            equalizerEnabled: equalizerEnabled,
+            equalizerPreset: equalizerPreset,
+            equalizerGains: equalizerGains,
             showSystemTrayIcon: showSystemTrayIcon,
             systemTitleBar: systemTitleBar,
             skipNonMusic: skipNonMusic,
@@ -8184,6 +8499,8 @@ class $$PreferencesTableTableTableManager extends RootTableManager<
             themeTransitionMs: themeTransitionMs,
             volumeControlMode: volumeControlMode,
             playerDock: playerDock,
+            sidebarCollapsed: sidebarCollapsed,
+            asideOpen: asideOpen,
             lastUpdateCheckMs: lastUpdateCheckMs,
             vpnMode: vpnMode,
             vpnConnectionUuid: vpnConnectionUuid,

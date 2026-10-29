@@ -1,9 +1,12 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 
+import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/collections/spotube_icons.dart';
+import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/player/radio/radio_player_actions.dart';
@@ -171,6 +174,16 @@ class RadioPlayerPanel extends HookConsumerWidget {
             overflow: TextOverflow.ellipsis,
             style: theme.typography.small
                 .copyWith(color: theme.colorScheme.mutedForeground),
+          ),
+          const Gap(12),
+          Center(
+            child: Button.secondary(
+              leading: const Icon(SpotubeIcons.equalizer),
+              onPressed: () => context.navigateTo(
+                const SettingsEqualizerRoute(),
+              ),
+              child: Text(context.l10n.equalizer),
+            ),
           ),
           const Gap(20),
           const Center(child: RadioPlayerControls()),

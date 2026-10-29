@@ -622,6 +622,7 @@ Map<String, dynamic> _$$MetadataPluginRepositoryImplToJson(
 _$ThemeDefinitionImpl _$$ThemeDefinitionImplFromJson(Map json) =>
     _$ThemeDefinitionImpl(
       specVersion: (json['specVersion'] as num?)?.toInt() ?? 2,
+      uiKit: json['uiKit'] as String? ?? 'shadcn',
       light:
           ThemeColors.fromJson(Map<String, dynamic>.from(json['light'] as Map)),
       dark:
@@ -690,6 +691,7 @@ Map<String, dynamic> _$$ThemeDefinitionImplToJson(
         _$ThemeDefinitionImpl instance) =>
     <String, dynamic>{
       'specVersion': instance.specVersion,
+      'uiKit': instance.uiKit,
       'light': instance.light.toJson(),
       'dark': instance.dark.toJson(),
       'surfaces': instance.surfaces.toJson(),
@@ -720,6 +722,14 @@ _$ThemeLayoutImpl _$$ThemeLayoutImplFromJson(Map json) => _$ThemeLayoutImpl(
       progress: $enumDecodeNullable(_$ThemeProgressEnumMap, json['progress'],
               unknownValue: ThemeProgress.inlinePlacement) ??
           ThemeProgress.inlinePlacement,
+      sidebar: $enumDecodeNullable(_$ThemeSidebarEnumMap, json['sidebar'],
+              unknownValue: ThemeSidebar.host) ??
+          ThemeSidebar.host,
+      sidebarWidth: (json['sidebarWidth'] as num?)?.toDouble(),
+      aside: $enumDecodeNullable(_$ThemeAsideEnumMap, json['aside'],
+              unknownValue: ThemeAside.none) ??
+          ThemeAside.none,
+      asideWidth: (json['asideWidth'] as num?)?.toDouble(),
       player: json['player'] == null
           ? const ThemePlayerLayout()
           : ThemePlayerLayout.fromJson(
@@ -767,6 +777,10 @@ Map<String, dynamic> _$$ThemeLayoutImplToJson(_$ThemeLayoutImpl instance) =>
       'chrome': _$ThemeChromeEnumMap[instance.chrome]!,
       'nav': _$ThemeNavEnumMap[instance.nav]!,
       'progress': _$ThemeProgressEnumMap[instance.progress]!,
+      'sidebar': _$ThemeSidebarEnumMap[instance.sidebar]!,
+      'sidebarWidth': instance.sidebarWidth,
+      'aside': _$ThemeAsideEnumMap[instance.aside]!,
+      'asideWidth': instance.asideWidth,
       'player': instance.player.toJson(),
       'enforce': instance.enforce,
       'navItems': instance.navItems,
@@ -792,6 +806,16 @@ const _$ThemeNavEnumMap = {
 const _$ThemeProgressEnumMap = {
   ThemeProgress.inlinePlacement: 'inline',
   ThemeProgress.below: 'below',
+};
+
+const _$ThemeSidebarEnumMap = {
+  ThemeSidebar.host: 'host',
+  ThemeSidebar.theme: 'theme',
+};
+
+const _$ThemeAsideEnumMap = {
+  ThemeAside.none: 'none',
+  ThemeAside.theme: 'theme',
 };
 
 _$ThemePlayerLayoutImpl _$$ThemePlayerLayoutImplFromJson(Map json) =>
@@ -1055,6 +1079,10 @@ _$ThemeUiDocumentImpl _$$ThemeUiDocumentImplFromJson(Map json) =>
                 ThemeUiTemplate.fromJson(Map<String, dynamic>.from(e as Map))),
           ) ??
           const <String, ThemeUiTemplate>{},
+      renderPoints: (json['renderPoints'] as Map?)?.map(
+            (k, e) => MapEntry(k as String, e as String),
+          ) ??
+          const <String, String>{},
     );
 
 Map<String, dynamic> _$$ThemeUiDocumentImplToJson(
@@ -1064,6 +1092,7 @@ Map<String, dynamic> _$$ThemeUiDocumentImplToJson(
       'slots': instance.slots.map((k, e) => MapEntry(k, e.toJson())),
       'screens': instance.screens.map((k, e) => MapEntry(k, e.toJson())),
       'templates': instance.templates.map((k, e) => MapEntry(k, e.toJson())),
+      'renderPoints': instance.renderPoints,
     };
 
 _$ThemeUiSlotImpl _$$ThemeUiSlotImplFromJson(Map json) => _$ThemeUiSlotImpl(

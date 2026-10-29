@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -222,12 +224,34 @@ class Sidebar extends HookConsumerWidget {
 
     if (!sidebarVisibleOf(context, layoutMode)) return child;
 
-    final showLabels = mediaQuery.lgAndUp && !context.iconOnlyNav;
+    final scaling = Theme.of(context).scaling;
+    final collapsed = ref.watch(
+      userPreferencesProvider.select((s) => s.sidebarCollapsed),
+    );
+    final showLabels = mediaQuery.lgAndUp && !context.iconOnlyNav && !collapsed;
     // A labelled sidebar is a fixed-width rail. Without this bound the
     // enclosing Row hands the column unbounded width; shadcn's
     // NavigationSidebar caps itself at 200, but a theme header that fills
     // the available width would then try to lay out at infinity.
-    final labelSidebarWidth = 200.0 * Theme.of(context).scaling;
+    final labelSidebarWidth = context.sidebarWidth;
+    // A theme-owned sidebar draws its own body; the host keeps the width,
+    // divider, clearance and the docked player around it.
+    final hasThemeSidebar =
+        context.sidebarOwned && themeUiSlotExists(ref, 'sidebar.content');
+    final hasThemeLibrary = themeUiSlotExists(ref, 'sidebar.library');
+    // User collapse narrows even a theme-drawn sidebar, to the rail width
+    // the host already uses for icon-only navigation.
+    final leftPaneWidth = hasThemeSidebar
+        ? (collapsed
+            ? math.min(72 * scaling, labelSidebarWidth)
+            : labelSidebarWidth)
+        : (showLabels ? labelSidebarWidth : null);
+    final bottomClearance = sidebarBottomClearanceOf(
+      context,
+      playerVisible: bottomPlayerVisibleOf(context, layoutMode),
+      dock: playerDock,
+      playerHeight: measuredPlayerHeight,
+    );
     final hasThemeHeader = themeUiSlotExists(ref, 'sidebar.header');
     final hasThemeNavBefore = themeUiSlotExists(ref, 'sidebar.nav.before');
     final hasThemeNavAfter = themeUiSlotExists(ref, 'sidebar.nav.after');
@@ -303,67 +327,75 @@ class Sidebar extends HookConsumerWidget {
       const NavigationDivider(),
       if (showLabels && hasThemeLibraryBefore)
         const _ThemeSlotNavigationItem('sidebar.library.before')
-      else if (showLabels)
+      else if (showLabels && !hasThemeLibrary)
         NavigationLabel(child: Text(context.l10n.library)),
-      for (final tile in visibleLibraryTiles)
-        SidebarReorderableItem(
-          key: ValueKey('lib:${tile.id}'),
-          group: SidebarReorderGroup.library,
-          id: tile.id,
-          onAcceptInGroup: (draggedId, targetId, {required bool after}) {
-            final visible = [for (final t in visibleLibraryTiles) t.id];
-            final drop = resolveSidebarDrop(
-              visible,
-              draggedId,
-              targetId,
-              after: after,
-            );
-            if (drop == null) return;
-            ref.read(userPreferencesProvider.notifier).setSidebarLibraryOrder(
-                  moveSidebarEntry(visible, drop.from, drop.to),
-                );
-          },
-          feedback: _sidebarDragGhost(
-            context: context,
-            leading: Icon(tile.icon),
-            title: tile.title,
-          ),
-          row: NavigationButton(
-            // Explicit style/alignment: the reorderable wrapper re-scopes
-            // the sidebar container data for its subtree (see
-            // SidebarReorderableItem), so these carry what the sidebar
-            // container would otherwise compute. In the rail the real
-            // container data still applies, so nothing is passed there.
-            style: router.currentPath.startsWith(tile.pathPrefix)
-                ? const ButtonStyle.secondary()
-                : (showLabels ? const ButtonStyle.ghost() : null),
-            alignment: showLabels ? AlignmentDirectional.centerStart : null,
-            label: showLabels ? Text(tile.title) : null,
-            overflow: NavigationOverflow.ellipsis,
-            onPressed: () {
-              openSideBarTile(context, ref, tile);
+      // A theme-drawn library group replaces the label, the tiles and the
+      // trailing drop zone in one go; the before/after slots and the pins
+      // below stay host-owned. Ignored in the rail, which cannot label rows.
+      if (showLabels && hasThemeLibrary)
+        const _ThemeSlotNavigationItem('sidebar.library')
+      else ...[
+        for (final tile in visibleLibraryTiles)
+          SidebarReorderableItem(
+            key: ValueKey('lib:${tile.id}'),
+            group: SidebarReorderGroup.library,
+            id: tile.id,
+            onAcceptInGroup: (draggedId, targetId, {required bool after}) {
+              final visible = [for (final t in visibleLibraryTiles) t.id];
+              final drop = resolveSidebarDrop(
+                visible,
+                draggedId,
+                targetId,
+                after: after,
+              );
+              if (drop == null) return;
+              ref.read(userPreferencesProvider.notifier).setSidebarLibraryOrder(
+                    moveSidebarEntry(visible, drop.from, drop.to),
+                  );
             },
-            child: Tooltip(
-              tooltip: TooltipContainer(child: Text(tile.title)).call,
-              child: Icon(tile.icon),
+            feedback: _sidebarDragGhost(
+              context: context,
+              leading: Icon(tile.icon),
+              title: tile.title,
+            ),
+            row: NavigationButton(
+              // Explicit style/alignment: the reorderable wrapper re-scopes
+              // the sidebar container data for its subtree (see
+              // SidebarReorderableItem), so these carry what the sidebar
+              // container would otherwise compute. In the rail the real
+              // container data still applies, so nothing is passed there.
+              style: router.currentPath.startsWith(tile.pathPrefix)
+                  ? const ButtonStyle.secondary()
+                  : (showLabels ? const ButtonStyle.ghost() : null),
+              alignment: showLabels ? AlignmentDirectional.centerStart : null,
+              label: showLabels ? Text(tile.title) : null,
+              overflow: NavigationOverflow.ellipsis,
+              onPressed: () {
+                openSideBarTile(context, ref, tile);
+              },
+              child: Tooltip(
+                tooltip: TooltipContainer(child: Text(tile.title)).call,
+                child: Icon(tile.icon),
+              ),
             ),
           ),
+        // Drop zone below the last library tile: dropping onto a row can
+        // only move up to that row's index, so the very bottom needs its own
+        // target.
+        SidebarTrailingDropZone(
+          key: const ValueKey('lib-end'),
+          group: SidebarReorderGroup.library,
+          visibleIds: [for (final t in visibleLibraryTiles) t.id],
+          onAccept: (draggedId) {
+            final visible = [for (final t in visibleLibraryTiles) t.id];
+            final from = visible.indexOf(draggedId);
+            if (from == -1) return;
+            ref.read(userPreferencesProvider.notifier).setSidebarLibraryOrder(
+                  moveSidebarEntry(visible, from, visible.length - 1),
+                );
+          },
         ),
-      // Drop zone below the last library tile: dropping onto a row can only
-      // move up to that row's index, so the very bottom needs its own target.
-      SidebarTrailingDropZone(
-        key: const ValueKey('lib-end'),
-        group: SidebarReorderGroup.library,
-        visibleIds: [for (final t in visibleLibraryTiles) t.id],
-        onAccept: (draggedId) {
-          final visible = [for (final t in visibleLibraryTiles) t.id];
-          final from = visible.indexOf(draggedId);
-          if (from == -1) return;
-          ref.read(userPreferencesProvider.notifier).setSidebarLibraryOrder(
-                moveSidebarEntry(visible, from, visible.length - 1),
-              );
-        },
-      ),
+      ],
       if (showLabels && hasThemeLibraryAfter)
         const _ThemeSlotNavigationItem('sidebar.library.after'),
       if (showLabels && hasThemePinsBefore)
@@ -526,80 +558,87 @@ class Sidebar extends HookConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: showLabels ? labelSidebarWidth : null,
-          child: Column(
-            children: [
-              if (showLabels && hasThemeHeader)
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 14, 16, 2),
-                  child: ThemeSlot(
-                    'sidebar.header',
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                  ),
-                ),
-              if (showLabels && hasThemeNavBefore)
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
-                  child: ThemeSlot(
-                    'sidebar.nav.before',
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                  ),
-                ),
-              Expanded(
-                child: showLabels
-                    // shadcn's pinned sidebar labels (NavigationLabel's
-                    // SliverPersistentHeader delegate) paint
-                    // `colorScheme.background` behind themselves, which is opaque
-                    // and punches a solid band across the backdrop at every group
-                    // heading. Transparent in this subtree only, and only while
-                    // a backdrop is actually being painted: with no shell glass
-                    // underneath, that band is the heading's real background.
-                    // The header still hides rows scrolled under it because it is
-                    // pinned over the backdrop layer, not over app content.
-                    ? transparentGround
-                        ? Theme(
-                            data: Theme.of(context).copyWith(
-                              colorScheme: () => colorScheme.copyWith(
-                                background: () => Colors.transparent,
-                              ),
-                            ),
-                            child: navigationSidebar,
-                          )
-                        : navigationSidebar
-                    : NavigationRail(
-                        // Opaque `background` by default (shadcn fills
-                        // `colorScheme.background`); transparent with the
-                        // ground, same as the label band above.
-                        backgroundColor:
-                            transparentGround ? Colors.transparent : null,
-                        alignment: NavigationRailAlignment.start,
-                        index: selectedIndex,
-                        onSelected: (index) {
-                          openSideBarTile(context, ref, tileList[index]);
-                        },
-                        children: navigationButtons,
+          width: leftPaneWidth,
+          child: hasThemeSidebar
+              // The theme owns the body; the host keeps the width box, the
+              // divider, the bottom clearance and the docked player.
+              ? Column(
+                  children: [
+                    const Expanded(
+                      child: ThemeSlot(
+                        'sidebar.content',
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                       ),
-              ),
-              if (showLabels && hasThemeFooter)
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(12, 0, 12, 4),
-                  child: ThemeSlot(
-                    'sidebar.footer',
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                  ),
+                    ),
+                    Gap(bottomClearance),
+                  ],
                 )
-              else
-                SidebarFooter(compact: !showLabels),
-              Gap(
-                sidebarBottomClearanceOf(
-                  context,
-                  playerVisible: bottomPlayerVisibleOf(context, layoutMode),
-                  dock: playerDock,
-                  playerHeight: measuredPlayerHeight,
+              : Column(
+                  children: [
+                    if (showLabels && hasThemeHeader)
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(16, 14, 16, 2),
+                        child: ThemeSlot(
+                          'sidebar.header',
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                        ),
+                      ),
+                    if (showLabels && hasThemeNavBefore)
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
+                        child: ThemeSlot(
+                          'sidebar.nav.before',
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                        ),
+                      ),
+                    Expanded(
+                      child: showLabels
+                          // shadcn's pinned sidebar labels (NavigationLabel's
+                          // SliverPersistentHeader delegate) paint
+                          // `colorScheme.background` behind themselves, which is opaque
+                          // and punches a solid band across the backdrop at every group
+                          // heading. Transparent in this subtree only, and only while
+                          // a backdrop is actually being painted: with no shell glass
+                          // underneath, that band is the heading's real background.
+                          // The header still hides rows scrolled under it because it is
+                          // pinned over the backdrop layer, not over app content.
+                          ? transparentGround
+                              ? Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: () => colorScheme.copyWith(
+                                      background: () => Colors.transparent,
+                                    ),
+                                  ),
+                                  child: navigationSidebar,
+                                )
+                              : navigationSidebar
+                          : NavigationRail(
+                              // Opaque `background` by default (shadcn fills
+                              // `colorScheme.background`); transparent with the
+                              // ground, same as the label band above.
+                              backgroundColor:
+                                  transparentGround ? Colors.transparent : null,
+                              alignment: NavigationRailAlignment.start,
+                              index: selectedIndex,
+                              onSelected: (index) {
+                                openSideBarTile(context, ref, tileList[index]);
+                              },
+                              children: navigationButtons,
+                            ),
+                    ),
+                    if (showLabels && hasThemeFooter)
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(12, 0, 12, 4),
+                        child: ThemeSlot(
+                          'sidebar.footer',
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                        ),
+                      )
+                    else
+                      SidebarFooter(compact: !showLabels),
+                    Gap(bottomClearance),
+                  ],
                 ),
-              ),
-            ],
-          ),
         ),
         const VerticalDivider(),
         Expanded(

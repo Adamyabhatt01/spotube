@@ -40,6 +40,10 @@ ThemeDefinition sanitizeThemeDefinition(ThemeDefinition definition) {
       pill: _px(radius.pill, max: 9999, fallback: 999),
     ),
     density: _density(definition.density),
+    layout: definition.layout.copyWith(
+      sidebarWidth: _optionalPx(definition.layout.sidebarWidth, max: 1000),
+      asideWidth: _optionalPx(definition.layout.asideWidth, max: 1000),
+    ),
     tokens: tokens.copyWith(
       cardWidth: _between(tokens.cardWidth, min: 80, max: 400, fallback: 150),
       cardHeight:
@@ -78,6 +82,13 @@ double _density(double value) {
 /// A non-negative pixel count capped at [max].
 double _px(double value, {required double max, double fallback = 0}) =>
     _between(value, min: 0, max: max, fallback: fallback);
+
+/// An optional pixel count: null stays null ("host default") and a non-finite
+/// value falls back to that default rather than poisoning a constraint.
+double? _optionalPx(double? value, {required double max}) {
+  if (value == null || !value.isFinite) return null;
+  return value.clamp(0.0, max).toDouble();
+}
 
 double _between(
   double value, {

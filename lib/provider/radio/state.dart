@@ -56,7 +56,8 @@ class RadioPlaybackState {
   }) {
     return RadioPlaybackState(
       source: source ?? this.source,
-      activeStation: clearStation ? null : (activeStation ?? this.activeStation),
+      activeStation:
+          clearStation ? null : (activeStation ?? this.activeStation),
       playing: playing ?? this.playing,
       buffering: buffering ?? this.buffering,
       liveTitle: clearTitle ? null : (liveTitle ?? this.liveTitle),

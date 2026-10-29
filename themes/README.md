@@ -86,7 +86,7 @@ tools/preview.dart   render a payload and its assets to one standalone HTML file
 dist/                built artifacts (committed)
 dist/legacy/         artifacts that predate the toolchain, kept as-is
 conformance/         golden payloads used by the tests
-schemas/             the payload contract: v2 (frozen) and v3
+schemas/             the payload contract: v2 (frozen), v3 and v4
 .github/workflows/   the build, the tests and the goldens on every push
 ```
 
@@ -154,22 +154,24 @@ reference renderer (`fvm flutter run -d linux` with the theme selected).
 
 ## The payload
 
-`getTheme()` returns a map. `specVersion: 3` is the current contract; the
-fields the app reads:
+`getTheme()` returns a map. `specVersion: 4` is the approved contract; a
+payload with no `specVersion` is v2. `specVersion: 3` is rejected by the v4
+host and must be migrated (see below). The fields the contract defines:
 
 | Field | Meaning |
 |---|---|
-| `specVersion` | `3` for the current payload, `2` when omitted |
+| `specVersion` | `4` for the v4 payload, `2` when omitted; `3` is rejected with a migration message |
 | `light`, `dark` | 17 required color roles each: `background`, `foreground`, `card`, `cardForeground`, `primary`, `primaryForeground`, `secondary`, `secondaryForeground`, `muted`, `mutedForeground`, `accent`, `accentForeground`, `destructive`, `destructiveForeground`, `border`, `input`, `ring`; plus the optional v3 roles (sidebar, popover, chart, status) |
 | `surfaces` | `opacity` (0..1), `blur` (0..100), `tint` (`#RRGGBB` / `#AARRGGBB`) |
 | `background` | `source` (`none` / `albumArt` / `shell` / `asset`), `opacity`, `blur`, `asset`, `tile`, `scale`, `overlay`, `transparent` |
 | `radius` | `small`, `medium`, `large`, `pill` |
 | `density` | 0.7..1.5 — one number for the whole UI's size |
 | `tokens` | `cardWidth`, `cardHeight`, `artistCardWidth`, `artistCardHeight`, `gutter`, `fontFamily` |
-| `layout` | `chrome`, `nav`, `progress`, `player`, `enforce`, `navItems`, `navbarItems`, `libraryItems`, `home`, `settings`, `titlebar`, `splash`, `responsive` |
+| `layout` | `chrome`, `nav`, `progress`, `player`, `enforce`, `navItems`, `navbarItems`, `libraryItems`, `home`, `settings`, `titlebar`, `splash`, `sidebar`, `sidebarWidth`, `aside`, `asideWidth`, `responsive` |
 | `typography`, `spacing`, `motion`, `scale`, `icons` | The v3 presentation blocks the host applies: font ladder and role colours, page padding and card gaps, animation durations and curves, scale multipliers, icon sizes |
 | `components`, `branding`, `assets` | The host draws the `player` component group and the `card`/`buttons` overrides used by UI nodes; branding drives the window title, wordmark and about text; assets resolve theme-shipped images |
-| `ui` | The theme's own UI tree: `specVersion`, `slots`, `screens`, `templates` |
+| `ui` | The theme's own UI tree: `specVersion`, `slots`, `screens`, `templates`, `renderPoints` |
+| `ext` | Theme-owned extension data; the host ignores it |
 
 Rules that are not obvious:
 
@@ -186,9 +188,12 @@ Rules that are not obvious:
   `background.source` (`none` / `albumArt` / `shell` / `asset`). The validator
   still accepts the legacy key, but nothing in the host reads it.
 
-`schemas/theme.v3.schema.json` is the contract in full; `schemas/theme.v2.schema.json`
-is frozen for the older payload, and `conformance/` holds the payloads that
-have to keep working. `AUTHORING.md` covers the v3 blocks in detail.
+`schemas/theme.v4.schema.json` is the current contract;
+`schemas/theme.v3.schema.json` is kept for the migration tool;
+`schemas/theme.v2.schema.json` is frozen and remains supported. `conformance/`
+holds the payloads used by the tests. The full v4 specification is
+`/home/adamya/.opencode/plan/v4-theme-contract.md`; `AUTHORING.md` documents
+the blocks that exist in the tree.
 
 ## Authoring a theme
 
@@ -251,4 +256,63 @@ schemes, shipped OFL fonts and pixel icons, a tiled background, a stage dock
 and a record that turns with the track.
 
 A v2 host ignores all of it, which is what lets a v3 theme ship to an older
-app. `AUTHORING.md` is the full reference.
+app. The **v4 host does not read v3**: it rejects `specVersion: 3` with a
+migration message. `AUTHORING.md` is the full reference.
+
+## v4
+
+**v4 is a breaking contract.** It is specified by
+`/home/adamya/.opencode/plan/v4-theme-contract.md`; read that file before
+authoring a v4 theme. The short version:
+
+- `specVersion: 4` is required. `specVersion: 3` is rejected with
+  `specVersion 3 is not supported; migrate to 4`; `themes/tools/migrate_v3.dart`
+  produces a best-effort v4 payload and a report. There is no runtime v3
+  compatibility layer. v2 payloads (no `specVersion`) remain supported.
+- `uiKit` selects the default kit: `shadcn` (default), `material` or
+  `cupertino`. A node or `kitScope` may override it. Phases 0–2 ship the
+  resolver, the `box`/`grid`/`safeArea`/`aspectRatio`/`kitScope` nodes, and the
+  input/overlay set (`slider`, `switch`, `checkbox`, `radioGroup`, `textField`,
+  `textArea`, `select`, `segmented`, `tabs`, `menu`, `contextMenu`, `popover`,
+  `tooltip`, `dialog`, `sheet`). Material and Cupertino render `button`,
+  `progress` and `slider` natively and fall back to shadcn for everything else.
+- `capabilities` declares what the theme may use (`library.read`,
+  `player.control`, `theme.assets` are defaults; `library.write`,
+  `audio.effects`, `ui.pages`, `ui.hostWidgets`, `settings.write`,
+  `clipboard.write` are opt-in). Unknown capabilities are errors, and a node
+  or action that needs an undeclared capability is an error.
+- `layout` gains `sidebar` (`host`/`theme`), `aside` (`none`/`theme`) and
+  their widths, plus the `shell` descriptor for rearranging regions. A
+  theme-owned sidebar draws through `sidebar.content` and can replace the
+  library group with `sidebar.library`; `aside.content` fills the right panel.
+  Both regions respond to `toggleSidebar`/`toggleAside` (Ctrl/Cmd+B and
+  Ctrl/Cmd+Shift+B) and publish `app.sidebarCollapsed`/`app.asideOpen`.
+  `library.local.content` replaces the local-library body and publishes
+  `library.folders`/`library.counts`.
+- `pages` declares routed theme pages under host sections; `ui.screens` stays
+  for overlays.
+- `ui.renderPoints` replaces the pixels of a host surface without taking its
+  behaviour: the closed v4.0 catalogue covers search (field, dropdown, rows,
+  groups, empty/loading/recent) and `contextMenu.item` today; the rest of the
+  catalogue is validated and wired when its host surface ships. A point names
+  a template; `hostWidget` is forbidden inside one, expansion stops at eight
+  levels, and a missing or malformed template falls back to the host default
+  with a single diagnostic. See `AUTHORING.md` for the catalogue and the
+  `search.*` / `menu.*` / `item.*` / `group.*` context bindings.
+- The semantic node set is the plan's full vocabulary (layout, content,
+  input, navigation, overlay, data and logic nodes), not the abandoned
+  `video`/`group` draft. See plan §4.3.
+- Bindings, actions, slots and the closed `hostWidget` registry are the plan's
+  lists (§4.5, §4.6, §4.7, §4.9).
+
+The v4 host is at **Phase 5** (runtime core, kits, layout nodes, inputs,
+overlays, render points, data display, bindings/palette, and layout regions).
+`themes/lib/v4_validator.dart`, `theme.v4.schema.json`, `conformance/draft/v4-kitchen-sink.json` and
+`test/v4_*_test.dart` are the current contract and its suite. Inputs read
+`bind` and fire `action`/`actions` with `$value`; dialogs and sheets follow
+`openBind` and close locally through `dismiss`. `virtualList` and a sticky
+`table` virtualize host-side, `list`/`virtualList` can filter a typed binding
+without a rebuild per keystroke, and `tree`, `accordion`, `collapsible` and
+`carousel` keep their open/page state in the host. `resizable` splits its two
+panes and persists the drag size through `storageKey`. The acceptance test for
+the finished contract is `themes/spotify-shell-v4`.

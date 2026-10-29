@@ -24,7 +24,9 @@ Future<void> main(List<String> arguments) async {
     final byteCode = compileThemeSource(theme.source, sourceName: '${theme.id}_theme');
     final compiled = await evaluateTheme(byteCode, entryPoint: theme.entryPoint);
 
-    final report = validateThemePayload(compiled.payload);
+    final report = compiled.payload['specVersion'] == 3
+        ? validateLegacyThemePayload(compiled.payload)
+        : validateThemePayload(compiled.payload);
     if (report.hasErrors) {
       stderr.writeln('${theme.id}: the payload does not validate');
       for (final issue in report.issues) {

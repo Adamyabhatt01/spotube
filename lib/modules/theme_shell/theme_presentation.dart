@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart' as cupertino;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' as material;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 
@@ -388,6 +390,11 @@ Color? _roleColor(String raw, ColorScheme scheme) {
     'muted' => scheme.muted,
     'mutedForeground' => scheme.mutedForeground,
     'destructive' => scheme.destructive,
+    // shadcn still stores destructiveForeground but marks the getter
+    // deprecated. v3 kept it as a colour role, so the presentation bridge must
+    // resolve it exactly rather than dropping the text colour.
+    // ignore: deprecated_member_use
+    'destructiveForeground' => scheme.destructiveForeground,
     'background' => scheme.background,
     'foreground' => scheme.foreground,
     'card' => scheme.card,
@@ -509,6 +516,107 @@ Map<String, double> _custom(Object? raw, {required double max}) {
 Map<String, dynamic> _map(Object? raw) {
   if (raw is! Map) return const {};
   return raw.cast<String, dynamic>();
+}
+
+// ---------------------------------------------------------------------------
+// kit theme bridges
+
+/// Derives a Material theme from the same palette and typography the shadcn
+/// theme uses.
+///
+/// The kit runtime renders Material buttons and sliders inside the app's
+/// Material subtree, so they pick this up through `material.Theme.of`. Colours
+/// come from the plugin palette rather than `ColorScheme.fromSeed`, which is
+/// what makes a Material kit still look like the active theme.
+material.ThemeData buildMaterialKitTheme({
+  required ColorScheme scheme,
+  required Typography typography,
+  required Brightness brightness,
+}) {
+  return material.ThemeData(
+    brightness: brightness,
+    colorScheme: material.ColorScheme(
+      brightness: brightness,
+      primary: scheme.primary,
+      onPrimary: scheme.primaryForeground,
+      secondary: scheme.secondary,
+      onSecondary: scheme.secondaryForeground,
+      tertiary: scheme.accent,
+      onTertiary: scheme.accentForeground,
+      error: scheme.destructive,
+      // The shadcn role is deprecated in the package but still the exact
+      // colour a v3/v4 theme declares.
+      // ignore: deprecated_member_use
+      onError: scheme.destructiveForeground,
+      surface: scheme.background,
+      onSurface: scheme.foreground,
+      surfaceContainerHighest: scheme.card,
+      onSurfaceVariant: scheme.mutedForeground,
+      outline: scheme.border,
+      outlineVariant: scheme.input,
+      inverseSurface: scheme.foreground,
+      onInverseSurface: scheme.background,
+      inversePrimary: scheme.primaryForeground,
+      shadow: Colors.black,
+      scrim: Colors.black,
+    ),
+    textTheme: _materialTextTheme(typography),
+    splashFactory: material.NoSplash.splashFactory,
+    appBarTheme: const material.AppBarTheme(
+      surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
+      shadowColor: Colors.transparent,
+      elevation: 0,
+    ),
+  );
+}
+
+/// Derives a Cupertino theme from the same palette and typography.
+cupertino.CupertinoThemeData buildCupertinoKitTheme({
+  required ColorScheme scheme,
+  required Typography typography,
+  required Brightness brightness,
+}) {
+  return cupertino.CupertinoThemeData(
+    brightness: brightness,
+    primaryColor: scheme.primary,
+    primaryContrastingColor: scheme.primaryForeground,
+    barBackgroundColor: scheme.accent,
+    scaffoldBackgroundColor: scheme.background,
+    applyThemeToAll: true,
+    textTheme: cupertino.CupertinoTextThemeData(
+      primaryColor: scheme.primary,
+      textStyle: typography.base,
+      actionTextStyle: typography.textLarge,
+      actionSmallTextStyle: typography.textSmall,
+      tabLabelTextStyle: typography.textSmall,
+      navTitleTextStyle: typography.h4,
+      navLargeTitleTextStyle: typography.h2,
+      navActionTextStyle: typography.textSmall,
+      pickerTextStyle: typography.base,
+    ),
+  );
+}
+
+/// The shadcn type ladder mapped onto Material's fifteen roles.
+material.TextTheme _materialTextTheme(Typography typography) {
+  return material.TextTheme(
+    displayLarge: typography.h1,
+    displayMedium: typography.h2,
+    displaySmall: typography.h3,
+    headlineLarge: typography.h4,
+    headlineMedium: typography.textLarge,
+    headlineSmall: typography.xLarge,
+    titleLarge: typography.xLarge,
+    titleMedium: typography.large,
+    titleSmall: typography.base,
+    bodyLarge: typography.base,
+    bodyMedium: typography.p,
+    bodySmall: typography.small,
+    labelLarge: typography.textLarge,
+    labelMedium: typography.textSmall,
+    labelSmall: typography.xSmall,
+  );
 }
 
 final _fontFamilyPattern = RegExp(r'^[A-Za-z0-9][A-Za-z0-9 ._-]*$');

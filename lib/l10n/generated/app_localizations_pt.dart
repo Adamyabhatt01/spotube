@@ -936,6 +936,81 @@ class AppLocalizationsPt extends AppLocalizations {
   String get normalize_audio => 'Normalizar áudio';
 
   @override
+  String get equalizer => 'Equalizer';
+
+  @override
+  String get audio_settings => 'Audio settings';
+
+  @override
+  String get equalizer_description =>
+      'Adjust the balance of bass, midrange and treble.';
+
+  @override
+  String get equalizer_enable => 'Enable equalizer';
+
+  @override
+  String get equalizer_enable_description =>
+      'Applies to music and radio playback.';
+
+  @override
+  String get equalizer_bypassed => 'Bypassed';
+
+  @override
+  String get equalizer_drag_hint =>
+      'Drag a band to shape the sound. Double-click a band to reset it.';
+
+  @override
+  String get equalizer_preset => 'Preset';
+
+  @override
+  String get equalizer_preset_flat => 'Flat';
+
+  @override
+  String get equalizer_preset_bass_boost => 'Bass boost';
+
+  @override
+  String get equalizer_preset_treble_boost => 'Treble boost';
+
+  @override
+  String get equalizer_preset_vocal => 'Vocal';
+
+  @override
+  String get equalizer_preset_rock => 'Rock';
+
+  @override
+  String get equalizer_preset_electronic => 'Electronic';
+
+  @override
+  String get equalizer_preset_custom => 'Custom';
+
+  @override
+  String get equalizer_reset => 'Reset to flat';
+
+  @override
+  String get equalizer_reset_description => 'Sets every band back to 0 dB.';
+
+  @override
+  String get equalizer_volume => 'Volume';
+
+  @override
+  String get equalizer_loudness => 'Loudness';
+
+  @override
+  String get equalizer_virtual_surround => 'Virtual surround';
+
+  @override
+  String get equalizer_mono => 'Mono audio';
+
+  @override
+  String get equalizer_visualizer => 'Visualizer';
+
+  @override
+  String get equalizer_visualizer_live => 'Live';
+
+  @override
+  String get equalizer_visualizer_unavailable => 'Audio capture unavailable';
+
+  @override
   String get change_cover => 'Alterar capa';
 
   @override

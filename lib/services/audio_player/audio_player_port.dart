@@ -54,7 +54,6 @@ abstract interface class AudioPlayerPort implements PlayerBackend {
   // Modes and effects
   Future<void> setShuffle(bool shuffle);
   Future<void> setLoopMode(mk.PlaylistMode loop);
-  Future<void> setAudioNormalization(bool normalize);
   Future<void> setDemuxerBufferSize(int sizeInBytes);
 
   // Snapshot state

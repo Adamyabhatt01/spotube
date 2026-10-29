@@ -96,8 +96,7 @@ extension AppLayoutX on BuildContext {
   ThemeLayout get layout => _layout;
 
   /// The footer shape resolved once by the app root.
-  PlayerDock get playerDock =>
-      _appLayout?.playerDock ?? PlayerDock.fullWidth;
+  PlayerDock get playerDock => _appLayout?.playerDock ?? PlayerDock.fullWidth;
 
   /// The theme's volume-control override, if it declared one.
   bool? get volumeOverride => _appLayout?.volumeOverride;
@@ -106,16 +105,14 @@ extension AppLayoutX on BuildContext {
       _appLayout?.semanticColors ?? const ThemeSemanticColors();
 
   /// The success colour: a checkmark, a healthy state.
-  Color get successColor =>
-      ThemeConverter.parseColor(_semanticColors.success);
+  Color get successColor => ThemeConverter.parseColor(_semanticColors.success);
 
   /// Text on [successColor].
   Color get successForegroundColor =>
       ThemeConverter.parseColor(_semanticColors.successForeground);
 
   /// The warning colour: something the user should look at.
-  Color get warningColor =>
-      ThemeConverter.parseColor(_semanticColors.warning);
+  Color get warningColor => ThemeConverter.parseColor(_semanticColors.warning);
 
   /// Text on [warningColor].
   Color get warningForegroundColor =>
@@ -207,6 +204,19 @@ extension AppLayoutX on BuildContext {
   /// instead of docking above them.
   bool get progressBelow => _layout.progress == ThemeProgress.below;
 
+  /// Whether the theme draws the sidebar body instead of the host's column.
+  bool get sidebarOwned => _layout.sidebar == ThemeSidebar.theme;
+
+  /// Whether the theme asked for a right-hand aside.
+  bool get asideEnabled => _layout.aside == ThemeAside.theme;
+
+  /// The sidebar's width in logical pixels at the current scaling.
+  double get sidebarWidth =>
+      (_layout.sidebarWidth ?? _defaultSidebarWidth) * _scale;
+
+  /// The aside's width in logical pixels at the current scaling.
+  double get asideWidth => (_layout.asideWidth ?? _defaultAsideWidth) * _scale;
+
   /// Gap an [insetChrome] panel leaves to the window edge.
   double get chromeInsetGap => 8 * _scale;
 
@@ -223,6 +233,13 @@ extension AppLayoutX on BuildContext {
         theme.colorScheme.background, const Color(0xFF000000), depth)!;
   }
 }
+
+/// The host's sidebar width, in logical px at scaling 1: the widest the
+/// labelled sidebar has always been.
+const _defaultSidebarWidth = 200.0;
+
+/// The host's aside width, in logical px at scaling 1.
+const _defaultAsideWidth = 320.0;
 
 /// Height a card row or grid cell needs, padding included.
 ///

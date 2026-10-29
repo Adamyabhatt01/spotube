@@ -10,6 +10,7 @@ import '../lib/compile.dart';
 import '../lib/packager.dart';
 import '../lib/theme_source.dart';
 import '../lib/v3_validator.dart';
+import '../lib/v4_validator.dart';
 import '../lib/validator.dart';
 
 /// Builds the theme plugins.
@@ -263,14 +264,27 @@ Future<_BuildResult> _buildTheme({
 
   ValidationReport? report;
   if (!skipValidate) {
-    report = validateThemePayload(compiled.payload);
+    report = compiled.payload['specVersion'] == 3
+        ? validateLegacyThemePayload(compiled.payload)
+        : validateThemePayload(compiled.payload);
   }
 
   // A theme may answer `getUi()` with its own UI specification instead of
-  // carrying it in the payload. Same document, same rules.
+  // carrying it in the payload. Same document, same rules — but which rule
+  // set applies depends on the payload version the theme declared.
   if (compiled.uiSpec != null) {
-    for (final issue in validateUiSpec(compiled.uiSpec!)) {
-      (report ??= validateThemePayload(compiled.payload)).issues.add(issue);
+    final version = compiled.payload['specVersion'];
+    final vocabulary =
+        version is num && version >= 4 ? v4UiVocabulary : v3UiVocabulary;
+    for (final issue in validateUiSpec(
+      compiled.uiSpec!,
+      vocabulary: vocabulary,
+    )) {
+      (report ??= compiled.payload['specVersion'] == 3
+              ? validateLegacyThemePayload(compiled.payload)
+              : validateThemePayload(compiled.payload))
+          .issues
+          .add(issue);
     }
   }
 

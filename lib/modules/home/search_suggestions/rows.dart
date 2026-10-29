@@ -123,6 +123,8 @@ class _TrackRow extends StatelessWidget {
   final void Function(SpotubeSimpleAlbumObject album)? onOpenAlbum;
   final void Function(SpotubeSimpleArtistObject artist)? onOpenArtist;
   final bool selected;
+  final ThemeUiRuntime? runtime;
+  final Map<String, Object?>? item;
 
   const _TrackRow({
     required this.query,
@@ -133,11 +135,15 @@ class _TrackRow extends StatelessWidget {
     this.onOpenAlbum,
     this.onOpenArtist,
     this.selected = false,
+    this.runtime,
+    this.item,
   });
 
   @override
   Widget build(BuildContext context) {
     return _SuggestionRow(
+      runtime: runtime,
+      item: item,
       selected: selected,
       leading: _CoverArt(
         onTap: onPlayOnly,
@@ -277,22 +283,65 @@ class _SectionHeader extends StatelessWidget {
   final IconData icon;
   final String title;
   final Widget? trailing;
+  final ThemeUiRuntime? runtime;
+  final String renderPoint;
+  final String? preferredRenderPoint;
+  final Map<String, Object?> bindings;
 
   const _SectionHeader({
     required this.icon,
     required this.title,
     this.trailing,
+    this.runtime,
+    this.renderPoint = 'search.suggestion.group',
+    this.preferredRenderPoint,
+    this.bindings = const {},
   });
 
   @override
   Widget build(BuildContext context) {
+    final fallback = Row(
+      spacing: 8,
+      children: [
+        Icon(icon, size: 14),
+        Expanded(child: Text(title).small().muted()),
+      ],
+    );
+
+    Widget content = fallback;
+    final runtime = this.runtime;
+    if (runtime != null) {
+      final preferred = preferredRenderPoint == null
+          ? null
+          : resolveThemeUiRenderPoint(
+              renderPoints: runtime.renderPoints,
+              templates: runtime.templates,
+              renderPoint: preferredRenderPoint!,
+            );
+      if (preferred != null) reportThemeUiRenderPointFallback(preferred);
+      final usePreferred = preferred?.hasTemplate == true;
+      final resolution = usePreferred
+          ? preferred
+          : resolveThemeUiRenderPoint(
+              renderPoints: runtime.renderPoints,
+              templates: runtime.templates,
+              renderPoint: renderPoint,
+            );
+      content = ThemeUiTemplateHost(
+        runtime: runtime,
+        renderPoint: usePreferred ? preferredRenderPoint! : renderPoint,
+        resolution: resolution,
+        bindings: bindings,
+        fallback: fallback,
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 2),
       child: Row(
         spacing: 8,
         children: [
-          Icon(icon, size: 14),
-          Expanded(child: Text(title).small().muted()),
+          Expanded(child: content),
           if (trailing != null) trailing!,
         ],
       ),
@@ -325,6 +374,11 @@ class _SuggestionRow extends StatefulWidget {
   /// The keyboard-highlighted row.
   final bool selected;
 
+  /// Render-point runtime and the row's read-only context, when the host is
+  /// rendering inside a themed search bar.
+  final ThemeUiRuntime? runtime;
+  final Map<String, Object?>? item;
+
   const _SuggestionRow({
     required this.leading,
     required this.title,
@@ -332,6 +386,8 @@ class _SuggestionRow extends StatefulWidget {
     this.subtitle,
     this.trailing,
     this.selected = false,
+    this.runtime,
+    this.item,
   });
 
   @override
@@ -366,6 +422,52 @@ class _SuggestionRowState extends State<_SuggestionRow> {
 
   @override
   Widget build(BuildContext context) {
+    final fallback = Row(
+      spacing: 10,
+      children: [
+        // Covers and plain icons share one slot, or the titles of groups
+        // that mix them start at different columns.
+        SizedBox(
+          width: _leadingSlot,
+          child: Center(child: widget.leading),
+        ),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              DefaultTextStyle(
+                style: DefaultTextStyle.of(context).style,
+                child: widget.title,
+              ),
+              if (widget.subtitle != null)
+                DefaultTextStyle(
+                  style: DefaultTextStyle.of(context).style.copyWith(
+                        fontSize: 12,
+                      ),
+                  child: widget.subtitle!,
+                ).muted(),
+            ],
+          ),
+        ),
+        if (widget.trailing != null) widget.trailing!,
+      ],
+    );
+
+    Widget content = fallback;
+    final runtime = widget.runtime;
+    final item = widget.item;
+    if (runtime != null && item != null) {
+      // The host keeps the tap target, hover and keyboard highlight around
+      // the template; only the inside of the row is theme-owned.
+      content = ThemeUiTemplateHost(
+        runtime: runtime,
+        renderPoint: 'search.suggestion.item',
+        bindings: item,
+        fallback: fallback,
+      );
+    }
+
     return Padding(
       // Inset, so the keyboard highlight reads as a row inside the panel
       // rather than a band painted edge to edge over the card.
@@ -383,37 +485,7 @@ class _SuggestionRowState extends State<_SuggestionRow> {
         child: GhostButton(
           density: ButtonDensity.compact,
           onPressed: widget.onTap,
-          child: Row(
-            spacing: 10,
-            children: [
-              // Covers and plain icons share one slot, or the titles of
-              // groups that mix them start at different columns.
-              SizedBox(
-                width: _leadingSlot,
-                child: Center(child: widget.leading),
-              ),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    DefaultTextStyle(
-                      style: DefaultTextStyle.of(context).style,
-                      child: widget.title,
-                    ),
-                    if (widget.subtitle != null)
-                      DefaultTextStyle(
-                        style: DefaultTextStyle.of(context)
-                            .style
-                            .copyWith(fontSize: 12),
-                        child: widget.subtitle!,
-                      ).muted(),
-                  ],
-                ),
-              ),
-              if (widget.trailing != null) widget.trailing!,
-            ],
-          ),
+          child: content,
         ),
       ),
     );

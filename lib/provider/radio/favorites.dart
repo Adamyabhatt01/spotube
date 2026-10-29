@@ -12,7 +12,8 @@ import 'package:spotube/services/logger/logger.dart';
 /// The list is served from the [RadioFavoritesTable] snapshot so it renders
 /// offline; the actual stream URL is re-resolved through the directory at play
 /// time by whoever consumes this list.
-class RadioFavoritesNotifier extends AutoDisposeAsyncNotifier<List<RadioStation>> {
+class RadioFavoritesNotifier
+    extends AutoDisposeAsyncNotifier<List<RadioStation>> {
   @override
   FutureOr<List<RadioStation>> build() async {
     final db = ref.watch(databaseProvider);
@@ -68,8 +69,8 @@ class RadioFavoritesNotifier extends AutoDisposeAsyncNotifier<List<RadioStation>
   }
 }
 
-final radioFavoritesProvider =
-    AutoDisposeAsyncNotifierProvider<RadioFavoritesNotifier, List<RadioStation>>(
+final radioFavoritesProvider = AutoDisposeAsyncNotifierProvider<
+    RadioFavoritesNotifier, List<RadioStation>>(
   RadioFavoritesNotifier.new,
 );
 

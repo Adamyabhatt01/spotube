@@ -54,7 +54,9 @@ Future<void> main(List<String> arguments) async {
 
     stdout.writeln('$path — ${manifest['name']} ${manifest['version']}');
     if (options['validate'] as bool) {
-      final report = validateThemePayload(compiled.payload);
+      final report = compiled.payload['specVersion'] == 3
+          ? validateLegacyThemePayload(compiled.payload)
+          : validateThemePayload(compiled.payload);
       for (final issue in report.issues) {
         stdout.writeln('  $issue');
       }

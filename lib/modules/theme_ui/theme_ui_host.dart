@@ -7,12 +7,15 @@ import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_action_dispatcher.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_assets.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_binding_demand.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_debug_overlay.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_fonts.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_node.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_screen_stack.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
+import 'package:spotube/services/theme_ui/artwork_palette_provider.dart';
 
 /// The live tree and the contract document, assembled once per build.
 typedef _LiveUi = ({ThemeUiRuntime runtime, ThemeUiDocument ui});
@@ -32,16 +35,31 @@ _LiveUi? _liveUi(
 
   final assets =
       ref.watch(themeUiAssetsProvider).asData?.value ?? const ThemeUiAssets();
+  // One scan per document, shared by every slot. Builds the provider set the
+  // document actually references; an unused scope costs no subscription.
+  final demand = ref.watch(themeUiBindingDemandProvider);
   final base = bindings ??
       buildThemeUiBindings(
         ref,
         brightness: Theme.of(context).brightness,
         themeMode: ref.watch(userPreferencesProvider).themeMode.name,
+        demand: demand,
       );
   final page = ThemeUiPageBindings.of(context);
-  final resolvedBindings = page == null || page.isEmpty
+  var resolvedBindings = page == null || page.isEmpty
       ? base
       : ThemeUiBindings({...base.values, ...page});
+
+  final wantsPalette = demand.wantsNamespace('palette');
+  final paletteCache =
+      wantsPalette ? ref.watch(themeUiPaletteCacheProvider) : null;
+  if (paletteCache != null) {
+    resolvedBindings = withArtworkPalette(
+      resolvedBindings,
+      paletteFor: (url) => paletteCache[url],
+      request: (url) => unawaited(paletteCache.load(url)),
+    );
+  }
 
   return (
     runtime: ThemeUiRuntime(
@@ -49,13 +67,85 @@ _LiveUi? _liveUi(
       bindings: resolvedBindings,
       assets: assets,
       templates: ui.templates,
+      renderPoints: ui.renderPoints,
       specVersion: ui.specVersion,
+      paletteFor: paletteCache == null ? null : (url) => paletteCache[url],
+      requestPalette: paletteCache == null
+          ? null
+          : (url) => unawaited(paletteCache.load(url)),
       onAction: (action) {
         unawaited(dispatchThemeUiAction(context, ref, action));
       },
     ),
     ui: ui,
   );
+}
+
+/// Installs a runtime for host widgets that are not mounted inside a slot.
+///
+/// Slots and screens build their own runtime because they also carry page
+/// bindings. Host-owned surfaces such as the search bar have no slot to hang
+/// from, so the app root publishes this lighter runtime once; render-point
+/// templates then receive their surface context (`search.*`, `item.*`) from
+/// the widget that owns the point.
+///
+/// The runtime deliberately does not carry player position or duration: a
+/// host surface that needs those supplies them as render-point bindings, and
+/// the search bar must not rebuild once a second just because a song plays.
+class ThemeUiRuntimeScopeHost extends ConsumerWidget {
+  final Widget child;
+
+  const ThemeUiRuntimeScopeHost({required this.child, super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final debug = ref.watch(themeUiDebugOverlayProvider);
+    final definition = ref.watch(themeDefinitionProvider).asData?.value;
+    final ui = ref.watch(themeUiProvider).asData?.value;
+    if (definition == null || ui == null) {
+      return debug ? _withDebugOverlay(child) : child;
+    }
+
+    final assets =
+        ref.watch(themeUiAssetsProvider).asData?.value ?? const ThemeUiAssets();
+    final themeMode = ref.watch(userPreferencesProvider).themeMode.name;
+    final runtime = ThemeUiRuntime(
+      theme: definition,
+      bindings: buildThemeUiBindings(
+        ref,
+        brightness: Theme.of(context).brightness,
+        themeMode: themeMode,
+        // A host surface that is not inside a slot has no page bindings;
+        // only the cheap app facts are published here.
+        demand: ThemeUiBindingDemand(
+          const ['app.version', 'app.brightness', 'app.themeMode'],
+        ),
+      ),
+      assets: assets,
+      templates: ui.templates,
+      renderPoints: ui.renderPoints,
+      specVersion: ui.specVersion,
+      onAction: (action) {
+        unawaited(dispatchThemeUiAction(context, ref, action));
+      },
+    );
+
+    final scoped = ThemeUiRuntimeScope(runtime: runtime, child: child);
+    return debug ? _withDebugOverlay(scoped) : scoped;
+  }
+
+  Widget _withDebugOverlay(Widget child) {
+    return Stack(
+      children: [
+        child,
+        const Positioned(
+          right: 12,
+          bottom: 12,
+          child: ThemeUiBindingDebugOverlay(),
+        ),
+      ],
+    );
+  }
 }
 
 /// True when the active theme filled [name].

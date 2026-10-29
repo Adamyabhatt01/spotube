@@ -18,6 +18,8 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/home/home_search_suggestions.dart';
 import 'package:spotube/modules/search/recent_searches.dart';
 import 'package:spotube/modules/search/search_term.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_node.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_render_points.dart';
 import 'package:spotube/provider/metadata_plugin/search/all.dart';
 
 /// Search field pinned to the top of Browse: autocomplete, recent searches,
@@ -49,10 +51,18 @@ class HomeSearchBar extends HookConsumerWidget {
   /// default.
   final String? placeholder;
 
+  /// A runtime for render-point templates.
+  ///
+  /// Production leaves this null and inherits the app root's
+  /// [ThemeUiRuntimeScope]; a theme node that mounts the search bar passes its
+  /// own runtime, and tests can pass a recording runtime directly.
+  final ThemeUiRuntime? runtime;
+
   const HomeSearchBar({
     super.key,
     this.compact = false,
     this.placeholder,
+    this.runtime,
   });
 
   @override
@@ -60,6 +70,7 @@ class HomeSearchBar extends HookConsumerWidget {
     final controller = useShadcnTextEditingController();
     final focusNode = useFocusNode();
 
+    final themeRuntime = runtime ?? ThemeUiRuntimeScope.maybeOf(context);
     final searchTerm = ref.watch(searchTermStateProvider);
 
     useEffect(() {
@@ -348,6 +359,7 @@ class HomeSearchBar extends HookConsumerWidget {
                   child: SizedBox(
                     width: width,
                     child: HomeSearchSuggestionsPanel(
+                      runtime: themeRuntime,
                       maxHeight: suggestionPanelMaxHeight(
                         overlayContext,
                         fieldKey,
@@ -427,7 +439,19 @@ class HomeSearchBar extends HookConsumerWidget {
             child: ListenableBuilder(
               listenable: controller,
               builder: (context, _) {
-                return TextField(
+                final fieldResolution = themeRuntime == null
+                    ? null
+                    : resolveThemeUiRenderPoint(
+                        renderPoints: themeRuntime.renderPoints,
+                        templates: themeRuntime.templates,
+                        renderPoint: 'search.field',
+                      );
+                if (fieldResolution != null) {
+                  reportThemeUiRenderPointFallback(fieldResolution);
+                }
+                final hasFieldChrome = fieldResolution?.hasTemplate ?? false;
+
+                Widget field = TextField(
                   controller: controller,
                   focusNode: focusNode,
                   padding: compact
@@ -436,13 +460,13 @@ class HomeSearchBar extends HookConsumerWidget {
                           horizontal: 16 * scale,
                           vertical: 12 * scale,
                         ),
-                  borderRadius: compact
+                  borderRadius: compact || hasFieldChrome
                       ? BorderRadius.circular(999)
                       : context.theme.borderRadiusXxl,
-                  filled: !compact,
-                  // A chrome card owns the pill fill and its hover hue; the
-                  // field itself stays transparent so that fill is visible.
-                  decoration: compact
+                  // A render-point template owns the fill; the real field
+                  // stays transparent and keeps every input behaviour.
+                  filled: !compact && !hasFieldChrome,
+                  decoration: compact || hasFieldChrome
                       ? BoxDecoration(
                           color: Colors.transparent,
                           borderRadius: BorderRadius.circular(999),
@@ -477,6 +501,30 @@ class HomeSearchBar extends HookConsumerWidget {
                   placeholder: Text(placeholder ?? context.l10n.search),
                   onSubmitted: onSubmitted,
                 );
+
+                if (hasFieldChrome) {
+                  field = Stack(
+                    children: [
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: ThemeUiTemplateHost(
+                            runtime: themeRuntime!,
+                            renderPoint: 'search.field',
+                            resolution: fieldResolution,
+                            bindings: {
+                              'search.query': fieldText.value,
+                              'search.loading': liveLoading,
+                              'search.hasQuery': !fieldEmpty,
+                            },
+                            fallback: const SizedBox.shrink(),
+                          ),
+                        ),
+                      ),
+                      field,
+                    ],
+                  );
+                }
+                return field;
               },
             ),
           ),

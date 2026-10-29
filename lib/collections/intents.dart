@@ -9,6 +9,7 @@ import 'package:spotube/modules/player/player_controls.dart';
 import 'package:spotube/modules/search/search_term.dart';
 import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/audio_player/querying_track_info.dart';
+import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/utils/platform.dart';
 
 class PlayPauseIntent extends Intent {
@@ -133,6 +134,36 @@ class SeekAction extends Action<SeekIntent> {
         seconds: intent.forward ? position + 5 : position - 5,
       ),
     );
+    return null;
+  }
+}
+
+class ToggleSidebarIntent extends Intent {
+  final WidgetRef ref;
+  const ToggleSidebarIntent(this.ref);
+}
+
+class ToggleSidebarAction extends Action<ToggleSidebarIntent> {
+  @override
+  invoke(ToggleSidebarIntent intent) {
+    final notifier = intent.ref.read(userPreferencesProvider.notifier);
+    final collapsed = intent.ref.read(userPreferencesProvider).sidebarCollapsed;
+    notifier.setSidebarCollapsed(!collapsed);
+    return null;
+  }
+}
+
+class ToggleAsideIntent extends Intent {
+  final WidgetRef ref;
+  const ToggleAsideIntent(this.ref);
+}
+
+class ToggleAsideAction extends Action<ToggleAsideIntent> {
+  @override
+  invoke(ToggleAsideIntent intent) {
+    final notifier = intent.ref.read(userPreferencesProvider.notifier);
+    final open = intent.ref.read(userPreferencesProvider).asideOpen;
+    notifier.setAsideOpen(!open);
     return null;
   }
 }

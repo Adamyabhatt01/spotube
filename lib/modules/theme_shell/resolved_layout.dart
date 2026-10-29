@@ -44,6 +44,20 @@ class ResolvedLayout {
 
   /// Whether the theme named the bottom navigation bar.
   bool get navbarItemsDeclared => layout.navbarItems.isNotEmpty;
+
+  /// Whether the theme draws the sidebar body instead of the host.
+  bool get sidebarOwned => layout.sidebar == ThemeSidebar.theme;
+
+  /// Whether the theme asked for a right-hand aside.
+  bool get asideEnabled => layout.aside == ThemeAside.theme;
+
+  /// The theme's sidebar width in logical px at scaling 1, or null for the
+  /// host default.
+  double? get sidebarWidth => layout.sidebarWidth;
+
+  /// The theme's aside width in logical px at scaling 1, or null for the host
+  /// default.
+  double? get asideWidth => layout.asideWidth;
 }
 
 /// Resolves a theme's layout for the current window and user choices.

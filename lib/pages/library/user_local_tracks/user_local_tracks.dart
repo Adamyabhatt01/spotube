@@ -12,6 +12,8 @@ import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/modules/library/local_folder/local_folder_item.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/provider/database/database.dart';
@@ -203,51 +205,64 @@ class UserLocalLibraryPage extends HookConsumerWidget {
       ...preferences.localLibraryLocation,
     ];
 
-    return LayoutBuilder(
+    // The grid is the host's fallback: a theme that fills
+    // `library.local.content` owns the body, but the add/delete controls stay
+    // host-owned (the slot is read-only in this phase), so they remain in the
+    // fallback rather than disappearing with it.
+    return ThemePageContent(
+      slot: 'library.local.content',
+      scroll: false,
+      bindings: {
+        'library.folders': themeLibraryFolders(locations),
+        'library.counts': {'folders': locations.length},
+      },
+      fallback: LayoutBuilder(
         builder: (context, constrains) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0),
-              child: Column(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+          child: Column(
+            children: [
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
-                  Wrap(
-                    alignment: WrapAlignment.end,
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      Button.destructive(
-                        leading: const Icon(SpotubeIcons.trash),
-                        onPressed: wiping.value ? null : deleteLocalLibrary,
-                        child: Text(context.l10n.delete_local_library),
-                      ),
-                      Button.secondary(
-                        leading: const Icon(SpotubeIcons.folderAdd),
-                        onPressed: addLocalLibraryLocation,
-                        child: Text(context.l10n.add_library_location),
-                      ),
-                    ],
+                  Button.destructive(
+                    leading: const Icon(SpotubeIcons.trash),
+                    onPressed: wiping.value ? null : deleteLocalLibrary,
+                    child: Text(context.l10n.delete_local_library),
                   ),
-                  const Gap(8),
-                  Expanded(
-                    child: GridView.builder(
-                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 200,
-                        mainAxisExtent: constrains.isXs
-                            ? 230 * context.theme.scaling
-                            : constrains.mdAndDown
-                                ? 280 * context.theme.scaling
-                                : 250 * context.theme.scaling,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                      ),
-                      itemCount: locations.length,
-                      itemBuilder: (context, index) {
-                        return LocalFolderItem(
-                          folder: locations[index],
-                        );
-                      },
-                    ),
+                  Button.secondary(
+                    leading: const Icon(SpotubeIcons.folderAdd),
+                    onPressed: addLocalLibraryLocation,
+                    child: Text(context.l10n.add_library_location),
                   ),
                 ],
               ),
-            ));
+              const Gap(8),
+              Expanded(
+                child: GridView.builder(
+                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 200,
+                    mainAxisExtent: constrains.isXs
+                        ? 230 * context.theme.scaling
+                        : constrains.mdAndDown
+                            ? 280 * context.theme.scaling
+                            : 250 * context.theme.scaling,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                  ),
+                  itemCount: locations.length,
+                  itemBuilder: (context, index) {
+                    return LocalFolderItem(
+                      folder: locations[index],
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

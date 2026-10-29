@@ -5,14 +5,23 @@ class ThemeDefinition with _$ThemeDefinition {
   const factory ThemeDefinition({
     /// The payload version this theme was written against.
     ///
-    /// 2 is the contract the app read until the v3 blocks arrived; 3 adds
-    /// the extra colour roles, the tokens, the component styles, the shell's
-    /// composition, branding and the UI tree.
+    /// 2 is the original palette-only contract. 3 added the extra colour
+    /// roles, tokens, component styles, shell composition, branding and the
+    /// UI tree. 4 is the current contract and adds kits, capabilities, pages
+    /// and the expanded semantic node vocabulary.
     ///
-    /// The version describes the *payload*, not what the app can do: a host
-    /// reads the fields it knows and ignores the rest, so a v3 theme still
-    /// works on a v2 host (it draws as its two colour schemes there).
+    /// The host accepts 2 and 4. A 3 payload is rejected with a migration
+    /// message; `themes/tools/migrate_v3.dart` rewrites it. The field stays a
+    /// plain int at this layer so an unknown version still decodes and the
+    /// validator can report on it instead of failing during JSON parsing.
     @Default(2) int specVersion,
+
+    /// The UI kit semantic nodes render through by default.
+    ///
+    /// One of `shadcn`, `material` or `cupertino`. The value stays a string at
+    /// this layer: an unknown kit is a theme authored for a newer host, and the
+    /// runtime falls back to `shadcn` instead of failing to parse the palette.
+    @Default('shadcn') String uiKit,
     required ThemeColors light,
     required ThemeColors dark,
     @Default(ThemeSurfaces()) ThemeSurfaces surfaces,
@@ -81,6 +90,27 @@ class ThemeLayout with _$ThemeLayout {
     @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
     @Default(ThemeProgress.inlinePlacement)
     ThemeProgress progress,
+
+    /// `theme` hands the sidebar body to `sidebar.content`, letting a theme
+    /// draw its own navigation. The host still owns visibility, width, the
+    /// divider, the bottom clearance and the docked player.
+    @JsonKey(unknownEnumValue: ThemeSidebar.host)
+    @Default(ThemeSidebar.host)
+    ThemeSidebar sidebar,
+
+    /// Sidebar width in logical px at scaling 1. Null keeps the host width.
+    /// The validator clamps 0–1000.
+    double? sidebarWidth,
+
+    /// `theme` shows a right-hand panel fed by `aside.content`. It only
+    /// mounts while the user has the aside open and the window is wide enough.
+    @JsonKey(unknownEnumValue: ThemeAside.none)
+    @Default(ThemeAside.none)
+    ThemeAside aside,
+
+    /// Aside width in logical px at scaling 1. Null keeps the host width.
+    /// The validator clamps 0–1000.
+    double? asideWidth,
 
     /// The player's own shape. `stage` makes the player the centre of the
     /// app (the theme fills `stage.center`/`stage.below`); the other values
@@ -163,6 +193,16 @@ enum ThemeProgress {
   @JsonValue('inline')
   inlinePlacement,
   below,
+}
+
+enum ThemeSidebar {
+  host,
+  theme,
+}
+
+enum ThemeAside {
+  none,
+  theme,
 }
 
 /// Plugin-controlled geometry for the parts of the UI a theme is allowed to
@@ -410,6 +450,12 @@ class ThemeUiDocument with _$ThemeUiDocument {
     @Default({}) Map<String, ThemeUiScreen> screens,
     @Default(<String, ThemeUiTemplate>{})
     Map<String, ThemeUiTemplate> templates,
+
+    /// Render point id → template name. The host keeps the behaviour of the
+    /// surface (positioning, focus, keyboard, dispatch) and the template
+    /// replaces its pixels. Only ids in the closed v4 catalogue are honoured;
+    /// an unknown id is ignored at runtime.
+    @Default(<String, String>{}) Map<String, String> renderPoints,
   }) = _ThemeUiDocument;
 
   factory ThemeUiDocument.fromJson(Map<String, dynamic> json) =>

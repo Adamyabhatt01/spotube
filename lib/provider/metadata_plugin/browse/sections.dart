@@ -32,8 +32,7 @@ class MetadataPluginBrowseSectionsNotifier
   }
 }
 
-final metadataPluginBrowseSectionsProvider =
-    AutoDisposeAsyncNotifierProvider<
+final metadataPluginBrowseSectionsProvider = AutoDisposeAsyncNotifierProvider<
     MetadataPluginBrowseSectionsNotifier,
     SpotubePaginationResponseObject<SpotubeBrowseSectionObject<Object>>>(
   () => MetadataPluginBrowseSectionsNotifier(),

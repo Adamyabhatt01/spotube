@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:desktop_webview_window/desktop_webview_window.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart';
 import 'package:flutter_discord_rpc/flutter_discord_rpc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -41,8 +40,10 @@ import 'package:spotube/modules/theme_shell/resolved_layout.dart';
 import 'package:spotube/modules/splash/splash_screen.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_assets.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_fonts.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 import 'package:spotube/modules/splash/splash_prefs.dart';
 import 'package:spotube/modules/theme_surfaces/theme_surfaces_scope.dart';
+import 'package:spotube/provider/audio_player/audio_effects.dart';
 import 'package:spotube/provider/audio_player/audio_player_streams.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/glance/glance.dart';
@@ -662,6 +663,9 @@ class Spotube extends HookConsumerWidget {
       }
 
       final player = ref.read(audioPlayerPortProvider);
+      // Applies the persisted equalizer/normalization chain to the music
+      // player and keeps it in sync for the app's lifetime.
+      ref.read(audioEffectsProvider);
 
       return () {
         /// For enabling hot reload for audio player
@@ -795,18 +799,33 @@ class Spotube extends HookConsumerWidget {
       ThemeMode.dark => Brightness.dark,
     };
 
+    final materialScheme = materialBrightness == Brightness.dark
+        ? darkColorScheme
+        : lightColorScheme;
+    final materialPresentation = materialBrightness == Brightness.dark
+        ? darkPresentation
+        : lightPresentation;
+
+    // The kit bridges derive Material and Cupertino from the same palette and
+    // type ladder the shadcn theme uses, instead of the package's seed-colour
+    // fallback. A node that asks for `kit: "material"` therefore still paints
+    // in the active theme.
     final materialTheme = useMemoized(
-      () => material.ThemeData(
+      () => buildMaterialKitTheme(
+        scheme: materialScheme,
+        typography: materialPresentation.typography,
         brightness: materialBrightness,
-        splashFactory: material.NoSplash.splashFactory,
-        appBarTheme: const material.AppBarTheme(
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0,
-          shadowColor: Colors.transparent,
-          elevation: 0,
-        ),
       ),
-      [materialBrightness],
+      [materialScheme, materialPresentation, materialBrightness],
+    );
+
+    final cupertinoTheme = useMemoized(
+      () => buildCupertinoKitTheme(
+        scheme: materialScheme,
+        typography: materialPresentation.typography,
+        brightness: materialBrightness,
+      ),
+      [materialScheme, materialPresentation, materialBrightness],
     );
 
     final themeAssets = ref.watch(themeUiAssetsProvider).asData?.value;
@@ -932,8 +951,8 @@ class Spotube extends HookConsumerWidget {
                         lightPresentation.radiusScale,
                     large: pluginTheme.radius.large *
                         lightPresentation.radiusScale,
-                    pill: pluginTheme.radius.pill *
-                        lightPresentation.radiusScale,
+                    pill:
+                        pluginTheme.radius.pill * lightPresentation.radiusScale,
                   ),
             spacing: lightPresentation.spacing,
             motion: lightPresentation.motion,
@@ -947,9 +966,11 @@ class Spotube extends HookConsumerWidget {
             semanticColors: materialBrightness == Brightness.dark
                 ? darkSemanticColors
                 : lightSemanticColors,
-            child: ScrollMotionScope(
-              child: ThemeBackgroundScope(
-                child: ThemeSurfacesScope(child: child),
+            child: ThemeUiRuntimeScopeHost(
+              child: ScrollMotionScope(
+                child: ThemeBackgroundScope(
+                  child: ThemeSurfacesScope(child: child),
+                ),
               ),
             ),
           ),
@@ -959,6 +980,7 @@ class Spotube extends HookConsumerWidget {
       theme: appTheme,
       darkTheme: appDarkTheme,
       materialTheme: materialTheme,
+      cupertinoTheme: cupertinoTheme,
       themeMode: themeMode,
       shortcuts: {
         ...WidgetsApp.defaultShortcuts.map((key, value) {
@@ -970,6 +992,22 @@ class Spotube extends HookConsumerWidget {
         LogicalKeySet(LogicalKeyboardKey.space): PlayPauseIntent(ref),
         LogicalKeySet(LogicalKeyboardKey.comma, LogicalKeyboardKey.control):
             NavigationIntent(router, "/settings"),
+        // Cmd on macOS, Ctrl everywhere else; both are registered so a
+        // theme's own sidebar chrome works the same on every desktop.
+        LogicalKeySet(LogicalKeyboardKey.keyB, LogicalKeyboardKey.control):
+            ToggleSidebarIntent(ref),
+        LogicalKeySet(LogicalKeyboardKey.keyB, LogicalKeyboardKey.meta):
+            ToggleSidebarIntent(ref),
+        LogicalKeySet(
+          LogicalKeyboardKey.keyB,
+          LogicalKeyboardKey.control,
+          LogicalKeyboardKey.shift,
+        ): ToggleAsideIntent(ref),
+        LogicalKeySet(
+          LogicalKeyboardKey.keyB,
+          LogicalKeyboardKey.meta,
+          LogicalKeyboardKey.shift,
+        ): ToggleAsideIntent(ref),
         LogicalKeySet(
           LogicalKeyboardKey.digit1,
           LogicalKeyboardKey.control,
@@ -1021,6 +1059,8 @@ class Spotube extends HookConsumerWidget {
         PlayPauseIntent: PlayPauseAction(),
         NavigationIntent: NavigationAction(),
         HomeTabIntent: HomeTabAction(),
+        ToggleSidebarIntent: ToggleSidebarAction(),
+        ToggleAsideIntent: ToggleAsideAction(),
         CloseAppIntent: CloseAppAction(),
       },
     );

@@ -90,6 +90,31 @@ abstract class KVStoreService {
   static Future<void> setVolume(double value) async =>
       await sharedPreferences.setDouble('volume', value);
 
+  /// Last dragged size of a theme's `resizable` node, keyed by its
+  /// `storageKey`. A non-finite stored value reads as absent rather than
+  /// poisoning a constraint.
+  static double resizableSize(String key, double fallback) {
+    final value = sharedPreferences.getDouble('resizable.$key');
+    if (value == null || !value.isFinite) return fallback;
+    return value;
+  }
+
+  static Future<void> setResizableSize(String key, double value) async {
+    if (!value.isFinite) return;
+    await sharedPreferences.setDouble('resizable.$key', value);
+  }
+
+  /// Stereo widening used by the "Virtual surround" equalizer tile.
+  static bool get spatialAudio =>
+      sharedPreferences.getBool('spatialAudio') ?? false;
+  static Future<void> setSpatialAudio(bool value) async =>
+      await sharedPreferences.setBool('spatialAudio', value);
+
+  /// Mono downmix used by the "Mono audio" equalizer tile.
+  static bool get monoAudio => sharedPreferences.getBool('monoAudio') ?? false;
+  static Future<void> setMonoAudio(bool value) async =>
+      await sharedPreferences.setBool('monoAudio', value);
+
   static bool get hasMigratedToDrift =>
       sharedPreferences.getBool('hasMigratedToDrift') ?? false;
   static Future<void> setHasMigratedToDrift(bool value) async =>

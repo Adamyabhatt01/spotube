@@ -78,16 +78,14 @@ final pinnedStationProvider =
     final stationId = favoriteKey.substring(sep + 1);
     if (providerId.isEmpty || stationId.isEmpty) return null;
 
-    final favorites =
-        ref.watch(radioFavoritesProvider).asData?.value ??
-            const <RadioStation>[];
+    final favorites = ref.watch(radioFavoritesProvider).asData?.value ??
+        const <RadioStation>[];
     for (final station in favorites) {
       if (station.favoriteKey == favoriteKey) return station;
     }
 
     final history =
-        ref.watch(radioHistoryProvider).asData?.value ??
-            const <RadioStation>[];
+        ref.watch(radioHistoryProvider).asData?.value ?? const <RadioStation>[];
     for (final station in history) {
       if (station.favoriteKey == favoriteKey) return station;
     }

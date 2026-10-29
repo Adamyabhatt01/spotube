@@ -133,6 +133,10 @@ class AppRouter extends RootStackRouter {
               path: "settings/blacklist",
               page: BlackListRoute.page,
             ),
+            AutoRoute(
+              path: "settings/equalizer",
+              page: SettingsEqualizerRoute.page,
+            ),
             if (!kIsWeb)
               AutoRoute(
                 path: "settings/logs",

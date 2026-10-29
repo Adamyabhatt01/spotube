@@ -70,7 +70,18 @@ Future<void> main(List<String> arguments) async {
     }
 
     final report = validateThemePayload(payload);
-    stdout.writeln('$path — ${report.errorCount} errors, ${report.warningCount} warnings');
+    final version = payload['specVersion'];
+    final versionLabel = version is num ? 'v${version.toInt()}' : 'v2';
+    stdout.writeln(
+      '$path — $versionLabel, ${report.errorCount} errors, '
+      '${report.warningCount} warnings',
+    );
+    if (version == 4) {
+      final capabilities = payload['capabilities'];
+      stdout.writeln(
+        '  capabilities: ${capabilities is List ? capabilities.join(', ') : 'default'}',
+      );
+    }
     for (final issue in report.issues) {
       stdout.writeln('  $issue');
     }

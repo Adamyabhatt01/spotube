@@ -1,0 +1,6239 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/Adamyabhatt01/spotube/blob/master/themes/schemas/theme.v4.schema.json",
+  "title": "Spotube theme payload, v4",
+  "description": "The full v3 payload: everything a theme may decide about the app's appearance, its components, its shell and the content it puts in them. A v2 host ignores the v3 blocks and draws the two colour schemes, which is what lets a v3 theme ship to an older app.",
+  "type": "object",
+  "required": [
+    "specVersion",
+    "light",
+    "dark"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "screenEntry": {
+      "type": "string",
+      "pattern": "^screen:[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$"
+    },
+    "color": {
+      "type": "string",
+      "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+    },
+    "role": {
+      "type": "string",
+      "pattern": "^@(primary|secondary|accent|muted|destructive|background|foreground|card|cardForeground|border|input|ring|success|warning|info|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
+    },
+    "colorOrRole": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        {
+          "type": "string",
+          "pattern": "^@(primary|primaryForeground|secondary|secondaryForeground|accent|accentForeground|muted|mutedForeground|destructive|destructiveForeground|background|foreground|card|cardForeground|border|input|ring|success|successForeground|warning|warningForeground|info|infoForeground|popover|popoverForeground|sidebar|sidebarForeground|sidebarPrimary|sidebarPrimaryForeground|sidebarAccent|sidebarAccentForeground|sidebarBorder|sidebarRing|chart1|chart2|chart3|chart4|chart5|chart6)$"
+        }
+      ]
+    },
+    "palette": {
+      "type": "object",
+      "required": [
+        "background",
+        "foreground",
+        "card",
+        "cardForeground",
+        "primary",
+        "primaryForeground",
+        "secondary",
+        "secondaryForeground",
+        "muted",
+        "mutedForeground",
+        "accent",
+        "accentForeground",
+        "destructive",
+        "destructiveForeground",
+        "border",
+        "input",
+        "ring"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "background": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "foreground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "card": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "cardForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "primary": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "primaryForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "secondary": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "secondaryForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "muted": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "mutedForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "accent": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "accentForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "destructive": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "destructiveForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "border": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "input": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "ring": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "popover": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "popoverForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebar": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebarForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebarPrimary": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebarPrimaryForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebarAccent": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebarAccentForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebarBorder": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "sidebarRing": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "success": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "successForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "warning": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "warningForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "info": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "infoForeground": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "chart1": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "chart2": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "chart3": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "chart4": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "chart5": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "chart6": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        }
+      }
+    },
+    "uiBinding": {
+      "description": "A host-supplied value. item.* and the page scopes are open-ended and resolve only where the host publishes them.",
+      "anyOf": [
+        {
+          "enum": [
+            "player.trackId",
+            "player.title",
+            "player.artist",
+            "player.album",
+            "player.artwork",
+            "player.playing",
+            "player.loop",
+            "player.shuffled",
+            "player.position",
+            "player.duration",
+            "player.volume",
+            "user.name",
+            "user.avatar",
+            "app.version",
+            "app.brightness",
+            "app.themeMode",
+            "app.greeting",
+            "clock.now",
+            "player.speed",
+            "player.muted",
+            "app.sidebarCollapsed",
+            "app.asideOpen",
+            "library.pinTargets",
+            "library.playlists",
+            "library.pins",
+            "library.albums",
+            "library.artists",
+            "library.folders",
+            "library.counts",
+            "queue.tracks",
+            "queue.currentIndex",
+            "queue.next",
+            "queue.count",
+            "palette.dominant",
+            "palette.vibrant",
+            "palette.muted",
+            "palette.darkMuted",
+            "palette.lightMuted",
+            "palette.onDominant",
+            "audio.bass",
+            "audio.treble",
+            "audio.normalization",
+            "audio.crossfade",
+            "audio.sleepTimer",
+            "audio.speed",
+            "theme.id",
+            "theme.name",
+            "theme.version"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^(item|home|collection|artist|search|library|queue|downloads|stats)\\.[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*){0,4}$"
+        },
+        {
+          "type": "string",
+          "pattern": "^app\\.region\\.[A-Za-z][A-Za-z0-9_-]{0,31}\\.(collapsed|size)$"
+        }
+      ]
+    },
+    "uiNode": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "row"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "gap": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "align": {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ]
+            },
+            "justify": {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "spaceBetween",
+                "spaceAround",
+                "spaceEvenly"
+              ]
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "column"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "gap": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "align": {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ]
+            },
+            "justify": {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "spaceBetween",
+                "spaceAround",
+                "spaceEvenly"
+              ]
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "stack"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "align": {
+              "enum": [
+                "topLeft",
+                "topCenter",
+                "topRight",
+                "centerLeft",
+                "center",
+                "centerRight",
+                "bottomLeft",
+                "bottomCenter",
+                "bottomRight"
+              ]
+            },
+            "fit": {
+              "enum": [
+                "loose",
+                "expand"
+              ]
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "wrap"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "gap": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "runGap": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "align": {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ]
+            },
+            "justify": {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "spaceBetween",
+                "spaceAround",
+                "spaceEvenly"
+              ]
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "padding"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "all": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "horizontal": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "vertical": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "top": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "right": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "bottom": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "left": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "align"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "align": {
+              "enum": [
+                "topLeft",
+                "topCenter",
+                "topRight",
+                "centerLeft",
+                "center",
+                "centerRight",
+                "bottomLeft",
+                "bottomCenter",
+                "bottomRight"
+              ]
+            },
+            "widthFactor": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 4
+            },
+            "heightFactor": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 4
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "expanded"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "flex": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "scroll"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "direction": {
+              "enum": [
+                "horizontal",
+                "vertical"
+              ]
+            },
+            "padding": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "text"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "size": {
+              "enum": [
+                "xs",
+                "small",
+                "sm",
+                "md",
+                "lg",
+                "xl",
+                "2xl",
+                "3xl",
+                "4xl",
+                "5xl",
+                "6xl"
+              ]
+            },
+            "weight": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 100,
+                  "maximum": 900
+                },
+                {
+                  "enum": [
+                    "thin",
+                    "light",
+                    "normal",
+                    "medium",
+                    "semibold",
+                    "bold",
+                    "black"
+                  ]
+                }
+              ]
+            },
+            "color": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "maxLines": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            },
+            "align": {
+              "enum": [
+                "left",
+                "center",
+                "right"
+              ]
+            },
+            "overflow": {
+              "enum": [
+                "clip",
+                "ellipsis",
+                "fade"
+              ]
+            },
+            "family": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "letterSpacing": {
+              "type": "number",
+              "minimum": -2,
+              "maximum": 8
+            },
+            "uppercase": {
+              "type": "boolean"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "icon"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "icon": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "size": {
+              "type": "number",
+              "minimum": 8,
+              "maximum": 96
+            },
+            "color": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "image"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "src": {
+              "oneOf": [
+                {
+                  "const": "albumArt"
+                },
+                {
+                  "$ref": "#/definitions/uiBinding"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^asset://"
+                }
+              ]
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "radius": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 999
+            },
+            "shape": {
+              "enum": [
+                "square",
+                "circle"
+              ]
+            },
+            "fit": {
+              "enum": [
+                "cover",
+                "contain",
+                "fill",
+                "none"
+              ]
+            },
+            "filter": {
+              "enum": [
+                "linear",
+                "nearest"
+              ]
+            },
+            "tile": {
+              "type": "boolean"
+            },
+            "opacity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "button"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "icon": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "variant": {
+              "enum": [
+                "primary",
+                "secondary",
+                "outline",
+                "ghost",
+                "destructive",
+                "link",
+                "fixed",
+                "muted"
+              ]
+            },
+            "size": {
+              "enum": [
+                "small",
+                "md",
+                "lg"
+              ]
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "card"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "padding": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "radius": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 999
+            },
+            "background": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "hoverBackground": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "borderColor": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "borderWidth": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "opacity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "search"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "placeholder": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "divider"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "orientation": {
+              "enum": [
+                "horizontal",
+                "vertical"
+              ]
+            },
+            "thickness": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 8
+            },
+            "color": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "spacer"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "flex": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "gap"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "size": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "conditional"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "equals": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "invert": {
+              "type": "boolean"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "template"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "args": {
+              "type": "object"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "animate"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "kind": {
+              "enum": [
+                "rotate",
+                "pulse",
+                "float",
+                "fade"
+              ]
+            },
+            "duration": {
+              "type": "number",
+              "minimum": 100,
+              "maximum": 120000
+            },
+            "curve": {
+              "enum": [
+                "linear",
+                "ease",
+                "easeIn",
+                "easeOut",
+                "easeInOut",
+                "easeOutCubic",
+                "easeInOutCubic"
+              ]
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "reverse": {
+              "type": "boolean"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "progress"
+            },
+            "props": {
+              "type": "object"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "maxBind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "hitHeight": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "radius": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 999
+            },
+            "borderWidth": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "borderColor": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "color": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "trackColor": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "thumbColor": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "thumbSize": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "interactive": {
+              "type": "boolean"
+            },
+            "style": {
+              "enum": [
+                "linear",
+                "wavy"
+              ]
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "list"
+            },
+            "children": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "gap": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            },
+            "filter": {
+              "$ref": "#/definitions/uiFilter"
+            },
+            "align": {
+              "enum": [
+                "start",
+                "center",
+                "end",
+                "stretch"
+              ]
+            },
+            "direction": {
+              "enum": [
+                "horizontal",
+                "vertical"
+              ]
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "box"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "background": {
+              "$ref": "#/definitions/colorOrRole"
+            },
+            "gradient": {
+              "$ref": "#/definitions/uiGradient"
+            },
+            "border": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/colorOrRole"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "color": {
+                      "$ref": "#/definitions/colorOrRole"
+                    },
+                    "width": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 8
+                    }
+                  }
+                }
+              ]
+            },
+            "radius": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 999
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "clip": {
+              "type": "boolean"
+            },
+            "padding": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            },
+            "opacity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "grid"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "columns": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            },
+            "gap": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 96
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "resizable"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 2,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "direction": {
+              "enum": [
+                "horizontal",
+                "vertical"
+              ]
+            },
+            "initial": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            },
+            "min": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            },
+            "max": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            },
+            "storageKey": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "safeArea"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "edges": {
+              "type": "array",
+              "maxItems": 4,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "top",
+                  "right",
+                  "bottom",
+                  "left"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "aspectRatio"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "ratio": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 10
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "kitScope"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "badge"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 500
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "chip"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "selectedBind": {
+              "$ref": "#/definitions/uiBinding"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "avatar"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "src": {
+              "oneOf": [
+                {
+                  "const": "albumArt"
+                },
+                {
+                  "$ref": "#/definitions/uiBinding"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^asset://"
+                }
+              ]
+            },
+            "fallback": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "size": {
+              "type": "number",
+              "minimum": 8,
+              "maximum": 256
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "skeleton"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "props": {
+              "type": "object"
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "height": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "radius": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 999
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "spinner"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "props": {
+              "type": "object"
+            },
+            "size": {
+              "type": "number",
+              "minimum": 8,
+              "maximum": 256
+            },
+            "color": {
+              "$ref": "#/definitions/colorOrRole"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "slider"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "min": {
+              "type": "number",
+              "minimum": -100000,
+              "maximum": 100000
+            },
+            "max": {
+              "type": "number",
+              "minimum": -100000,
+              "maximum": 100000
+            },
+            "step": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "showValue": {
+              "type": "boolean"
+            },
+            "orientation": {
+              "enum": [
+                "horizontal",
+                "vertical"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "switch"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 500
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "checkbox"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "label": {
+              "type": "string",
+              "maxLength": 500
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "radioGroup"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "options": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 64,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "icon": {
+                    "type": "string",
+                    "maxLength": 64
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "textField"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "placeholder": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "debounceMs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 5000
+            },
+            "clearable": {
+              "type": "boolean"
+            },
+            "icon": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "textArea"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "placeholder": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "debounceMs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 5000
+            },
+            "clearable": {
+              "type": "boolean"
+            },
+            "icon": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "minLines": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            },
+            "maxLines": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "select"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "options": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 64,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "icon": {
+                    "type": "string",
+                    "maxLength": 64
+                  }
+                }
+              }
+            },
+            "placeholder": {
+              "type": "string",
+              "maxLength": 500
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "segmented"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "options": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 64,
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "value": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 128
+                      },
+                      "label": {
+                        "type": "string",
+                        "maxLength": 500
+                      },
+                      "icon": {
+                        "type": "string",
+                        "maxLength": 64
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "valueBind": {
+              "$ref": "#/definitions/uiBinding"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "tabs"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 16,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "icon": {
+                    "type": "string",
+                    "maxLength": 64
+                  }
+                }
+              }
+            },
+            "panels": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "type": "array",
+                "maxItems": 200,
+                "items": {
+                  "$ref": "#/definitions/uiNode"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "menu"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 32,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "id": {
+                    "type": "string",
+                    "maxLength": 128
+                  },
+                  "icon": {
+                    "type": "string",
+                    "maxLength": 64
+                  },
+                  "checked": {
+                    "type": "boolean"
+                  },
+                  "disabled": {
+                    "type": "boolean"
+                  },
+                  "action": {
+                    "$ref": "#/definitions/uiAction"
+                  },
+                  "actions": {
+                    "type": "array",
+                    "maxItems": 4,
+                    "items": {
+                      "$ref": "#/definitions/uiAction"
+                    }
+                  }
+                }
+              }
+            },
+            "trigger": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "$ref": "#/definitions/uiNode"
+                }
+              ]
+            },
+            "placement": {
+              "enum": [
+                "top",
+                "bottom",
+                "left",
+                "right",
+                "start",
+                "end",
+                "topStart",
+                "topEnd",
+                "bottomStart",
+                "bottomEnd",
+                "topCenter",
+                "bottomCenter",
+                "centerLeft",
+                "centerRight"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "contextMenu"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 32,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "maxLength": 500
+                  },
+                  "id": {
+                    "type": "string",
+                    "maxLength": 128
+                  },
+                  "icon": {
+                    "type": "string",
+                    "maxLength": 64
+                  },
+                  "checked": {
+                    "type": "boolean"
+                  },
+                  "disabled": {
+                    "type": "boolean"
+                  },
+                  "action": {
+                    "$ref": "#/definitions/uiAction"
+                  },
+                  "actions": {
+                    "type": "array",
+                    "maxItems": 4,
+                    "items": {
+                      "$ref": "#/definitions/uiAction"
+                    }
+                  }
+                }
+              }
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "breadcrumb"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 16,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "anyOf": [
+                  {
+                    "required": [
+                      "label"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "id"
+                    ]
+                  }
+                ],
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "action": {
+                    "$ref": "#/definitions/uiAction"
+                  },
+                  "actions": {
+                    "type": "array",
+                    "maxItems": 4,
+                    "items": {
+                      "$ref": "#/definitions/uiAction"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "pagination"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "pageBind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "pageCount": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "dialog"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "label"
+                ],
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "action": {
+                    "$ref": "#/definitions/uiAction"
+                  },
+                  "actions": {
+                    "type": "array",
+                    "maxItems": 4,
+                    "items": {
+                      "$ref": "#/definitions/uiAction"
+                    }
+                  }
+                }
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "description": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "openBind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "sheet"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "side": {
+              "enum": [
+                "bottom",
+                "top",
+                "left",
+                "right",
+                "start",
+                "end"
+              ]
+            },
+            "width": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2000
+            },
+            "openBind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "popover"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "placement": {
+              "enum": [
+                "top",
+                "bottom",
+                "left",
+                "right",
+                "start",
+                "end",
+                "topStart",
+                "topEnd",
+                "bottomStart",
+                "bottomEnd",
+                "topCenter",
+                "bottomCenter",
+                "centerLeft",
+                "centerRight"
+              ]
+            },
+            "trigger": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "$ref": "#/definitions/uiNode"
+                }
+              ]
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "tooltip"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "placement": {
+              "enum": [
+                "top",
+                "bottom",
+                "left",
+                "right",
+                "start",
+                "end",
+                "topStart",
+                "topEnd",
+                "bottomStart",
+                "bottomEnd",
+                "topCenter",
+                "bottomCenter",
+                "centerLeft",
+                "centerRight"
+              ]
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "virtualList"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "itemTemplate": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "itemExtent": {
+              "type": "number",
+              "minimum": 8,
+              "maximum": 400
+            },
+            "overscan": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 64
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "filter": {
+              "$ref": "#/definitions/uiFilter"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "table"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "columns": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 32,
+              "items": {
+                "$ref": "#/definitions/uiTableColumn"
+              }
+            },
+            "rowTemplate": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "stickyHeader": {
+              "type": "boolean"
+            },
+            "sortable": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "tree"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "labelKey": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"
+            },
+            "childrenKey": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"
+            },
+            "expandedKey": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "accordion"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 32,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "title"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "children": {
+                    "type": "array",
+                    "maxItems": 200,
+                    "items": {
+                      "$ref": "#/definitions/uiNode"
+                    }
+                  },
+                  "action": {
+                    "$ref": "#/definitions/uiAction"
+                  },
+                  "actions": {
+                    "type": "array",
+                    "maxItems": 4,
+                    "items": {
+                      "$ref": "#/definitions/uiAction"
+                    }
+                  }
+                }
+              }
+            },
+            "multiple": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "collapsible"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 500
+            },
+            "openBind": {
+              "$ref": "#/definitions/uiBinding"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "carousel"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "children": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "$ref": "#/definitions/uiNode"
+              }
+            },
+            "action": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "actions": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "$ref": "#/definitions/uiAction"
+              }
+            },
+            "props": {
+              "type": "object"
+            },
+            "itemTemplate": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "height": {
+              "type": "number",
+              "minimum": 40,
+              "maximum": 800
+            },
+            "autoplay": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": true,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "const": "hostWidget"
+            },
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "disabledWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "hiddenWhen": {
+              "$ref": "#/definitions/uiCondition"
+            },
+            "kit": {
+              "enum": [
+                "shadcn",
+                "material",
+                "cupertino"
+              ]
+            },
+            "animate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 120000
+            },
+            "variant": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            }
+          }
+        }
+      ]
+    },
+    "componentStyle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "padding": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "margin": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "gap": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 999
+        },
+        "borderWidth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 400
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 400
+        },
+        "background": {
+          "$ref": "#/definitions/colorOrRole"
+        },
+        "foreground": {
+          "$ref": "#/definitions/colorOrRole"
+        },
+        "borderColor": {
+          "$ref": "#/definitions/colorOrRole"
+        },
+        "surfaceOpacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "surfaceBlur": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "fontFamily": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "fontSize": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 48
+        },
+        "fontWeight": {
+          "type": "number",
+          "minimum": 100,
+          "maximum": 900
+        },
+        "fontStyle": {
+          "enum": [
+            "normal",
+            "italic"
+          ]
+        },
+        "letterSpacing": {
+          "type": "number",
+          "minimum": -2,
+          "maximum": 8
+        },
+        "iconSize": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 64
+        },
+        "indicatorColor": {
+          "$ref": "#/definitions/colorOrRole"
+        },
+        "thumbColor": {
+          "$ref": "#/definitions/colorOrRole"
+        },
+        "trackColor": {
+          "$ref": "#/definitions/colorOrRole"
+        },
+        "borderStyle": {
+          "enum": [
+            "solid",
+            "pixel"
+          ]
+        }
+      }
+    },
+    "uiFilter": {
+      "description": "A host-side row filter. Matching folds case and Latin diacritics.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bind"
+      ],
+      "properties": {
+        "bind": {
+          "$ref": "#/definitions/uiBinding"
+        },
+        "fields": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"
+          }
+        }
+      }
+    },
+    "uiTableColumn": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2000
+        },
+        "align": {
+          "enum": [
+            "start",
+            "center",
+            "end"
+          ]
+        }
+      }
+    },
+    "uiAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "navigate",
+            "playPause",
+            "next",
+            "previous",
+            "seek",
+            "setVolume",
+            "setShuffle",
+            "setLoopMode",
+            "like",
+            "download",
+            "openSettings",
+            "openLyrics",
+            "openQueue",
+            "openDownloads",
+            "toast",
+            "plugin",
+            "playItem",
+            "playCollection",
+            "openItem",
+            "likeItem",
+            "downloadItem",
+            "setBass",
+            "setTreble",
+            "setNormalization",
+            "setCrossfade",
+            "setSleepTimer",
+            "setSpeed",
+            "setMuted",
+            "pinItem",
+            "unpinItem",
+            "createPlaylist",
+            "renamePlaylist",
+            "deletePlaylist",
+            "addToPlaylist",
+            "setQuery",
+            "clearQuery",
+            "setSetting",
+            "toggleSetting",
+            "openPage",
+            "closePage",
+            "toggleSidebar",
+            "toggleRegion",
+            "toggleAside",
+            "copy",
+            "refresh",
+            "scrollTo",
+            "dismiss"
+          ]
+        },
+        "args": {
+          "type": "object"
+        }
+      }
+    },
+    "uiCondition": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/uiBinding"
+        },
+        {
+          "type": "string",
+          "pattern": "^![A-Za-z][A-Za-z0-9_.]{0,79}$"
+        }
+      ]
+    },
+    "themePage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]{0,31}$"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "icon": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "parent": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "showBack": {
+          "type": "boolean"
+        },
+        "visible": {
+          "type": "boolean"
+        }
+      }
+    },
+    "kitComponents": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "uiGradient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "colors"
+      ],
+      "properties": {
+        "colors": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/definitions/colorOrRole"
+          }
+        },
+        "begin": {
+          "enum": [
+            "topLeft",
+            "topCenter",
+            "centerTop",
+            "topRight",
+            "centerLeft",
+            "start",
+            "center",
+            "centerRight",
+            "end",
+            "bottomLeft",
+            "bottomCenter",
+            "centerBottom",
+            "bottomRight"
+          ]
+        },
+        "end": {
+          "enum": [
+            "topLeft",
+            "topCenter",
+            "centerTop",
+            "topRight",
+            "centerLeft",
+            "start",
+            "center",
+            "centerRight",
+            "end",
+            "bottomLeft",
+            "bottomCenter",
+            "centerBottom",
+            "bottomRight"
+          ]
+        },
+        "stops": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "specVersion": {
+      "const": 4
+    },
+    "light": {
+      "$ref": "#/definitions/palette"
+    },
+    "dark": {
+      "$ref": "#/definitions/palette"
+    },
+    "surfaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "blur": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "tint": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        }
+      }
+    },
+    "background": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "enum": [
+            "none",
+            "albumArt",
+            "shell",
+            "asset"
+          ]
+        },
+        "asset": {
+          "type": "string",
+          "pattern": "^asset://"
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "blur": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "overlay": {
+          "type": "string",
+          "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+        },
+        "transparent": {
+          "type": "boolean"
+        },
+        "tile": {
+          "type": "boolean"
+        },
+        "scale": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        }
+      }
+    },
+    "radius": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "small": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "medium": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 48
+        },
+        "large": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "pill": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 9999
+        }
+      }
+    },
+    "density": {
+      "type": "number",
+      "minimum": 0.7,
+      "maximum": 1.5
+    },
+    "tokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cardWidth": {
+          "type": "number",
+          "minimum": 80,
+          "maximum": 400
+        },
+        "cardHeight": {
+          "type": "number",
+          "minimum": 120,
+          "maximum": 600
+        },
+        "artistCardWidth": {
+          "type": "number",
+          "minimum": 80,
+          "maximum": 480
+        },
+        "artistCardHeight": {
+          "type": "number",
+          "minimum": 120,
+          "maximum": 640
+        },
+        "gutter": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 40
+        },
+        "fontFamily": {
+          "type": "string",
+          "maxLength": 64
+        }
+      }
+    },
+    "typography": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "monoFamily": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "brandFamily": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "styles": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "fontSize": {
+                "type": "number",
+                "minimum": 8,
+                "maximum": 96
+              },
+              "fontWeight": {
+                "type": "number",
+                "minimum": 100,
+                "maximum": 900
+              },
+              "height": {
+                "type": "number",
+                "minimum": 0.8,
+                "maximum": 2.4
+              },
+              "letterSpacing": {
+                "type": "number",
+                "minimum": -2,
+                "maximum": 8
+              },
+              "color": {
+                "$ref": "#/definitions/colorOrRole"
+              },
+              "fontFamily": {
+                "type": "string",
+                "maxLength": 64
+              },
+              "fontStyle": {
+                "enum": [
+                  "normal",
+                  "italic"
+                ]
+              }
+            }
+          }
+        },
+        "fonts": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "family": {
+                "type": "string",
+                "maxLength": 64
+              },
+              "asset": {
+                "type": "string",
+                "pattern": "^asset://"
+              },
+              "weight": {
+                "type": "number",
+                "minimum": 100,
+                "maximum": 900
+              },
+              "style": {
+                "enum": [
+                  "normal",
+                  "italic"
+                ]
+              }
+            },
+            "required": [
+              "family",
+              "asset"
+            ]
+          }
+        }
+      }
+    },
+    "spacing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "xs": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "sm": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "md": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "lg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "xl": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "xxl": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "page": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "section": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "cardGap": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "pageHorizontal": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 96
+        },
+        "custom": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000
+          }
+        }
+      }
+    },
+    "motion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fast": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "normal": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "slow": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "pageTransition": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "sheet": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "easing": {
+          "enum": [
+            "linear",
+            "ease",
+            "easeIn",
+            "easeOut",
+            "easeInOut",
+            "easeOutCubic",
+            "easeInOutCubic"
+          ]
+        },
+        "custom": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000
+          }
+        }
+      }
+    },
+    "scale": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "size": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2
+        },
+        "text": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2
+        },
+        "icon": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2
+        },
+        "spacing": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2
+        }
+      }
+    },
+    "icons": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sm": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 64
+        },
+        "md": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 64
+        },
+        "lg": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 64
+        },
+        "xl": {
+          "type": "number",
+          "minimum": 8,
+          "maximum": 64
+        },
+        "overrides": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "asset": {
+                "type": "string",
+                "pattern": "^asset://"
+              },
+              "size": {
+                "type": "number",
+                "minimum": 8,
+                "maximum": 64
+              }
+            }
+          }
+        },
+        "custom": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000
+          }
+        }
+      }
+    },
+    "components": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "buttons": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "primary": {
+              "$ref": "#/definitions/componentStyle"
+            },
+            "secondary": {
+              "$ref": "#/definitions/componentStyle"
+            },
+            "outline": {
+              "$ref": "#/definitions/componentStyle"
+            },
+            "ghost": {
+              "$ref": "#/definitions/componentStyle"
+            },
+            "destructive": {
+              "$ref": "#/definitions/componentStyle"
+            },
+            "link": {
+              "$ref": "#/definitions/componentStyle"
+            },
+            "fixed": {
+              "$ref": "#/definitions/componentStyle"
+            },
+            "muted": {
+              "$ref": "#/definitions/componentStyle"
+            }
+          }
+        },
+        "card": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "player": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "input": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "tabs": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "nav": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "tooltip": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "badge": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "select": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "switch": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "slider": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "scrollbar": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "avatar": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "skeleton": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "progress": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "divider": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "menu": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "dropdown": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "modal": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "dialog": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "sheet": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "table": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "checkbox": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "radio": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "toggle": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "toggleGroup": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "accordion": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "alert": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "breadcrumb": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "carousel": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "collapsible": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "command": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "contextMenu": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "drawer": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "hoverCard": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "pagination": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "popover": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "resizable": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "sidebar": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "stepper": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "toast": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "tree": {
+          "$ref": "#/definitions/componentStyle"
+        },
+        "shadcn": {
+          "$ref": "#/definitions/kitComponents"
+        },
+        "material": {
+          "$ref": "#/definitions/kitComponents"
+        },
+        "cupertino": {
+          "$ref": "#/definitions/kitComponents"
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "chrome": {
+          "enum": [
+            "flat",
+            "inset"
+          ]
+        },
+        "nav": {
+          "enum": [
+            "labels",
+            "rail"
+          ]
+        },
+        "progress": {
+          "enum": [
+            "inline",
+            "below"
+          ]
+        },
+        "navItems": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "anyOf": [
+              {
+                "enum": [
+                  "home",
+                  "radio",
+                  "stats",
+                  "search"
+                ]
+              },
+              {
+                "$ref": "#/definitions/screenEntry"
+              }
+            ]
+          }
+        },
+        "navbarItems": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "anyOf": [
+              {
+                "enum": [
+                  "home",
+                  "search",
+                  "radio",
+                  "library",
+                  "stats"
+                ]
+              },
+              {
+                "$ref": "#/definitions/screenEntry"
+              }
+            ]
+          }
+        },
+        "libraryItems": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "anyOf": [
+              {
+                "enum": [
+                  "playlists",
+                  "artists",
+                  "albums",
+                  "stations",
+                  "local_library"
+                ]
+              },
+              {
+                "$ref": "#/definitions/screenEntry"
+              }
+            ]
+          }
+        },
+        "player": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "dock": {
+              "enum": [
+                "full",
+                "compact",
+                "stage"
+              ]
+            },
+            "showTrackDetails": {
+              "type": "boolean"
+            },
+            "showActions": {
+              "type": "boolean"
+            },
+            "showVolume": {
+              "type": "boolean"
+            },
+            "showLyrics": {
+              "type": "boolean"
+            },
+            "showProgress": {
+              "type": "boolean"
+            }
+          }
+        },
+        "home": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sections": {
+              "type": "array",
+              "maxItems": 20,
+              "items": {
+                "enum": [
+                  "recent",
+                  "featured",
+                  "new_releases",
+                  "browse"
+                ]
+              }
+            }
+          }
+        },
+        "settings": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sections": {
+              "type": "array",
+              "maxItems": 20,
+              "items": {
+                "enum": [
+                  "accounts",
+                  "language_region",
+                  "appearance",
+                  "sidebar",
+                  "playback",
+                  "downloads",
+                  "desktop",
+                  "developers",
+                  "about"
+                ]
+              }
+            }
+          }
+        },
+        "titlebar": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "height": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 200
+            },
+            "padding": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 48
+            },
+            "showBack": {
+              "type": "boolean"
+            }
+          }
+        },
+        "splash": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "logo": {
+              "type": "string",
+              "pattern": "^asset://"
+            },
+            "background": {
+              "type": "string",
+              "pattern": "^asset://"
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 80
+            }
+          }
+        },
+        "responsive": {
+          "type": "object",
+          "maxProperties": 3,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "chrome": {
+                "enum": [
+                  "flat",
+                  "inset"
+                ]
+              },
+              "progress": {
+                "enum": [
+                  "inline",
+                  "below"
+                ]
+              },
+              "nav": {
+                "enum": [
+                  "labels",
+                  "rail"
+                ]
+              },
+              "navItems": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "home",
+                        "radio",
+                        "stats",
+                        "search"
+                      ]
+                    },
+                    {
+                      "$ref": "#/definitions/screenEntry"
+                    }
+                  ]
+                }
+              },
+              "navbarItems": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "home",
+                        "search",
+                        "radio",
+                        "library",
+                        "stats"
+                      ]
+                    },
+                    {
+                      "$ref": "#/definitions/screenEntry"
+                    }
+                  ]
+                }
+              },
+              "libraryItems": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "playlists",
+                        "artists",
+                        "albums",
+                        "stations",
+                        "local_library"
+                      ]
+                    },
+                    {
+                      "$ref": "#/definitions/screenEntry"
+                    }
+                  ]
+                }
+              },
+              "player": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "dock": {
+                    "enum": [
+                      "full",
+                      "compact",
+                      "stage"
+                    ]
+                  },
+                  "showTrackDetails": {
+                    "type": "boolean"
+                  },
+                  "showActions": {
+                    "type": "boolean"
+                  },
+                  "showVolume": {
+                    "type": "boolean"
+                  },
+                  "showLyrics": {
+                    "type": "boolean"
+                  },
+                  "showProgress": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "home": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "sections": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "items": {
+                      "enum": [
+                        "recent",
+                        "featured",
+                        "new_releases",
+                        "browse"
+                      ]
+                    }
+                  }
+                }
+              },
+              "settings": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "sections": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "items": {
+                      "enum": [
+                        "accounts",
+                        "language_region",
+                        "appearance",
+                        "sidebar",
+                        "playback",
+                        "downloads",
+                        "desktop",
+                        "developers",
+                        "about"
+                      ]
+                    }
+                  }
+                }
+              },
+              "titlebar": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "height": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 200
+                  },
+                  "padding": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 48
+                  },
+                  "showBack": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "splash": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "logo": {
+                    "type": "string",
+                    "pattern": "^asset://"
+                  },
+                  "background": {
+                    "type": "string",
+                    "pattern": "^asset://"
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 80
+                  }
+                }
+              },
+              "sidebar": {
+                "enum": [
+                  "host",
+                  "theme"
+                ]
+              },
+              "sidebarWidth": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000
+              },
+              "aside": {
+                "enum": [
+                  "none",
+                  "theme"
+                ]
+              },
+              "asideWidth": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1000
+              },
+              "pages": {
+                "type": "object",
+                "maxProperties": 32,
+                "additionalProperties": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "visible": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "propertyNames": {
+            "enum": [
+              "compact",
+              "medium",
+              "expanded"
+            ]
+          }
+        },
+        "sidebar": {
+          "enum": [
+            "host",
+            "theme"
+          ]
+        },
+        "sidebarWidth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "aside": {
+          "enum": [
+            "none",
+            "theme"
+          ]
+        },
+        "asideWidth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "branding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "appName": {
+          "type": "string",
+          "maxLength": 48
+        },
+        "shortName": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "tagline": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "wordmark": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "type": "string",
+              "maxLength": 48
+            },
+            "fontFamily": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "asset": {
+              "type": "string",
+              "pattern": "^asset://"
+            }
+          }
+        },
+        "logo": {
+          "type": "string",
+          "pattern": "^asset://"
+        },
+        "titlebarTitle": {
+          "type": "string",
+          "maxLength": 48
+        },
+        "windowTitle": {
+          "type": "string",
+          "maxLength": 48
+        },
+        "aboutName": {
+          "type": "string",
+          "maxLength": 48
+        },
+        "notificationName": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "showHostAttribution": {
+          "type": "boolean"
+        }
+      }
+    },
+    "assets": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "maxItems": 64,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^asset://"
+            },
+            "kind": {
+              "enum": [
+                "image",
+                "font",
+                "icon",
+                "other"
+              ]
+            },
+            "role": {
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          "required": [
+            "path"
+          ]
+        }
+      }
+    },
+    "ui": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "specVersion": {
+          "enum": [
+            1,
+            2
+          ]
+        },
+        "slots": {
+          "type": "object",
+          "maxProperties": 48,
+          "propertyNames": {
+            "anyOf": [
+              {
+                "enum": [
+                  "sidebar.header",
+                  "sidebar.footer",
+                  "sidebar.nav.before",
+                  "sidebar.nav.after",
+                  "sidebar.library.before",
+                  "sidebar.library.after",
+                  "sidebar.pins.before",
+                  "sidebar.pins.after",
+                  "player.leading",
+                  "player.controls",
+                  "player.trailing",
+                  "player.progress",
+                  "stage.center",
+                  "stage.below",
+                  "app.overlay",
+                  "shell.before",
+                  "shell.after",
+                  "home.before_sections",
+                  "home.after_sections",
+                  "home.content",
+                  "lyrics.header",
+                  "lyrics.after_tabs",
+                  "settings.before",
+                  "settings.after",
+                  "collection.content",
+                  "collection.header",
+                  "collection.before_tracks",
+                  "collection.after_tracks",
+                  "artist.content",
+                  "artist.header",
+                  "search.content",
+                  "library.content",
+                  "queue.content",
+                  "downloads.content",
+                  "stats.content",
+                  "sidebar.content",
+                  "sidebar.library",
+                  "aside.content",
+                  "library.local.content"
+                ]
+              },
+              {
+                "type": "string",
+                "pattern": "^page\\.[a-z][a-z0-9_-]{0,31}$"
+              }
+            ]
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "children": {
+                "type": "array",
+                "maxItems": 200,
+                "items": {
+                  "$ref": "#/definitions/uiNode"
+                }
+              },
+              "refreshSeconds": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 3600
+              }
+            }
+          }
+        },
+        "screens": {
+          "type": "object",
+          "maxProperties": 16,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "title": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "showBack": {
+                "type": "boolean"
+              },
+              "children": {
+                "type": "array",
+                "maxItems": 500,
+                "items": {
+                  "$ref": "#/definitions/uiNode"
+                }
+              }
+            }
+          }
+        },
+        "templates": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "params": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "children": {
+                "type": "array",
+                "maxItems": 200,
+                "items": {
+                  "$ref": "#/definitions/uiNode"
+                }
+              }
+            }
+          }
+        },
+        "renderPoints": {
+          "type": "object",
+          "maxProperties": 19,
+          "propertyNames": {
+            "enum": [
+              "search.field",
+              "search.suggestions",
+              "search.suggestion.item",
+              "search.suggestion.group",
+              "search.empty",
+              "search.loading",
+              "search.recent",
+              "contextMenu.container",
+              "contextMenu.item",
+              "contextMenu.separator",
+              "contextMenu.submenu",
+              "library.playlist.item",
+              "library.playlist.group",
+              "library.playlist.empty",
+              "queue.item",
+              "table.header",
+              "table.row",
+              "player.trackDetails",
+              "toast.item"
+            ]
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "pages": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/definitions/themePage"
+          }
+        }
+      }
+    },
+    "ext": {
+      "type": "object"
+    },
+    "uiKit": {
+      "enum": [
+        "shadcn",
+        "material",
+        "cupertino"
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "library.read",
+          "library.write",
+          "player.control",
+          "audio.effects",
+          "ui.pages",
+          "ui.hostWidgets",
+          "settings.write",
+          "clipboard.write",
+          "theme.assets"
+        ]
+      }
+    },
+    "pages": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/definitions/themePage"
+      }
+    }
+  }
+}

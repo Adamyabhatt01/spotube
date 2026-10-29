@@ -160,8 +160,8 @@ class SpotubeAudioPlayer extends AudioPlayerInterface
   }
 
   @override
-  Future<void> setAudioNormalization(bool normalize) async {
-    await _mkPlayer.setAudioNormalization(normalize);
+  Future<void> setAudioFilterChain(String chain) async {
+    await _mkPlayer.setAudioFilterChain(chain);
   }
 
   @override

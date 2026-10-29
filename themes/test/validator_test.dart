@@ -178,19 +178,21 @@ void main() {
       },
     );
 
-    test('a declared v3 payload knows the v3 blocks', () {
+    test('a declared v3 payload is rejected with the migration message', () {
       final payload = validPayload();
       payload['specVersion'] = 3;
       payload['typography'] = {'family': 'Inter'};
       payload['branding'] = {'appName': 'Aurora'};
       final report = validateThemePayload(payload);
-      expect(report.hasErrors, isFalse);
-      expect(pathsOf(report, Severity.warning), isNot(contains('specVersion')));
-      expect(pathsOf(report, Severity.warning), isNot(contains('typography')));
-      expect(pathsOf(report, Severity.warning), isNot(contains('branding')));
+      expect(report.hasErrors, isTrue);
+      expect(report.issues, hasLength(1));
+      expect(
+        report.issues.single.message,
+        'specVersion 3 is not supported; migrate to 4',
+      );
     });
 
-    test('a v3 block that breaks its own rules is an error', () {
+    test('a v3 block that breaks its own rules is an error for the tooling', () {
       final payload = validPayload();
       payload['specVersion'] = 3;
       payload['typography'] = {
@@ -199,7 +201,7 @@ void main() {
           'h1': {'fontSize': 400},
         },
       };
-      final report = validateThemePayload(payload);
+      final report = validateLegacyThemePayload(payload);
       expect(report.hasErrors, isFalse);
       expect(
         pathsOf(report, Severity.warning),
@@ -311,7 +313,7 @@ void main() {
       Map<String, dynamic> extra = const {},
     }) {
       final payload = validPayload();
-      payload['specVersion'] = 3;
+      payload['specVersion'] = 4;
       payload['ui'] = ui;
       payload.addAll(extra);
       return payload;
@@ -440,7 +442,7 @@ void main() {
 
     test('the stage is a dock and has slots', () {
       final payload = validPayload();
-      payload['specVersion'] = 3;
+      payload['specVersion'] = 4;
       payload['layout'] = {
         'player': {'dock': 'stage'},
       };
@@ -508,7 +510,7 @@ void main() {
 
     test('a tiled background keeps whole-number magnification', () {
       final payload = validPayload();
-      payload['specVersion'] = 3;
+      payload['specVersion'] = 4;
       payload['background'] = {
         'source': 'asset',
         'asset': 'asset://textures/obsidian.png',

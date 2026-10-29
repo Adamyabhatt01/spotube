@@ -6,6 +6,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/adaptive/adaptive_pop_sheet_list.dart';
+import 'package:spotube/extensions/context.dart';
 import 'package:spotube/provider/radio/favorites.dart';
 import 'package:spotube/provider/radio/radio_playback.dart';
 
@@ -49,6 +50,11 @@ class RadioPlayerActions extends ConsumerWidget {
           leading: const Icon(SpotubeIcons.radio),
           onPressed: (_) => context.navigateTo(const RadioRoute()),
           child: const Text('Open Radio'),
+        ),
+        AdaptiveMenuButton<String>(
+          leading: const Icon(SpotubeIcons.equalizer),
+          onPressed: (_) => context.navigateTo(const SettingsEqualizerRoute()),
+          child: Text(context.l10n.equalizer),
         ),
         if (detail.isNotEmpty)
           AdaptiveMenuButton<String>(

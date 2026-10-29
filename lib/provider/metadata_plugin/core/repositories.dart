@@ -49,7 +49,9 @@ class MetadataPluginRepositoriesNotifier
     extends PaginatedAsyncNotifier<MetadataPluginRepository> {
   /// [dio] is the test seam: a directly constructed notifier has no container
   /// to read from, so tests pass their stubbed client explicitly.
-  MetadataPluginRepositoriesNotifier({Dio? dio}) : _dio = dio, super();
+  MetadataPluginRepositoriesNotifier({Dio? dio})
+      : _dio = dio,
+        super();
 
   final Dio? _dio;
 

@@ -92,6 +92,9 @@ abstract class SpotubeIcons {
   static const eye = FeatherIcons.eye;
   static const noEye = FeatherIcons.eyeOff;
   static const normalize = FeatherIcons.barChart2;
+  static const equalizer = Icons.equalizer_rounded;
+  static const surround = Icons.surround_sound_rounded;
+  static const mono = Icons.speaker_rounded;
   static const wikipedia = SimpleIcons.wikipedia;
   static const discord = SimpleIcons.discord;
   static const youtube = SimpleIcons.youtube;

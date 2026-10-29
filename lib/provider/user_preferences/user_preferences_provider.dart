@@ -9,10 +9,9 @@ import 'package:path_provider/path_provider.dart' as paths;
 import 'package:shadcn_flutter/shadcn_flutter.dart' hide join;
 import 'package:spotube/models/color.dart';
 import 'package:spotube/models/database/database.dart';
+import 'package:spotube/models/equalizer/equalizer.dart';
 import 'package:spotube/models/metadata/market.dart';
-import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/database/database.dart';
-import 'package:spotube/services/audio_player/audio_player_port.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/music_cache_policy.dart';
 import 'package:spotube/services/vpn/vpn_mode.dart';
@@ -27,17 +26,14 @@ typedef UserPreferences = PreferencesTableData;
 /// for testability: the `watchSingle` listener below applies it, so
 /// unrelated preference writes (accent, language, …) no longer trigger
 /// native calls on every change.
-({
-  bool titleBarStyle,
-  bool audioNormalization,
-}) preferencesSideEffects({
+///
+/// Audio filters are not applied here: `audio_effects.dart` owns the mpv `af`
+/// chain so it can compose the equalizer and normalization in one write.
+({bool titleBarStyle}) preferencesSideEffects({
   required PreferencesTableData previous,
   required PreferencesTableData next,
 }) {
-  return (
-    titleBarStyle: next.systemTitleBar != previous.systemTitleBar,
-    audioNormalization: next.normalizeAudio != previous.normalizeAudio,
-  );
+  return (titleBarStyle: next.systemTitleBar != previous.systemTitleBar,);
 }
 
 /// Initialization status of [userPreferencesProvider]. The provider keeps
@@ -50,8 +46,6 @@ final userPreferencesStatusProvider =
     StateProvider<AsyncValue<void>>((_) => const AsyncLoading());
 
 class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
-  AudioPlayerPort get _player => ref.read(audioPlayerPortProvider);
-
   /// The in-flight initial load, exposed so consumers that must not act on
   /// pre-load defaults can await it. Null only when [build] has not run (a
   /// test stub overrides it); `await null` is a no-op. The future never
@@ -114,10 +108,6 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
                   ? TitleBarStyle.normal
                   : TitleBarStyle.hidden,
             );
-          }
-
-          if (effects.audioNormalization) {
-            await _player.setAudioNormalization(event.normalizeAudio);
           }
         } catch (e, stack) {
           AppLogger.reportError(e, stack);
@@ -271,6 +261,14 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
     setData(PreferencesTableCompanion(transparentWindow: Value(enabled)));
   }
 
+  void setSidebarCollapsed(bool collapsed) {
+    setData(PreferencesTableCompanion(sidebarCollapsed: Value(collapsed)));
+  }
+
+  void setAsideOpen(bool open) {
+    setData(PreferencesTableCompanion(asideOpen: Value(open)));
+  }
+
   void setLastUpdateCheckMs(int atMs) {
     setData(PreferencesTableCompanion(lastUpdateCheckMs: Value(atMs)));
   }
@@ -388,7 +386,49 @@ class UserPreferencesNotifier extends Notifier<PreferencesTableData> {
 
   void setNormalizeAudio(bool normalize) {
     setData(PreferencesTableCompanion(normalizeAudio: Value(normalize)));
-    _player.setAudioNormalization(normalize);
+  }
+
+  void setEqualizerEnabled(bool enabled) {
+    setData(PreferencesTableCompanion(equalizerEnabled: Value(enabled)));
+  }
+
+  /// Selects a preset and stores its gains in the same write so the effects
+  /// listener applies one chain instead of an intermediate one. Selecting
+  /// [EqualizerPreset.custom] keeps the current gains.
+  void setEqualizerPreset(EqualizerPreset preset) {
+    final gains = equalizerGainsForPreset(
+      preset,
+      current: state.equalizerGains,
+    );
+    setData(
+      PreferencesTableCompanion(
+        equalizerPreset: Value(preset),
+        equalizerGains: Value(EqualizerSettings.normalizeGains(gains)),
+      ),
+    );
+  }
+
+  /// Persists one band move and marks the preset custom. The page calls this
+  /// on drag end, not on every slider tick.
+  void setEqualizerGain(int index, double gain) {
+    if (index < 0 || index >= kEqualizerBandCount) return;
+    final gains = EqualizerSettings.normalizeGains(state.equalizerGains);
+    gains[index] = gain;
+    setEqualizerGains(gains);
+  }
+
+  /// Persists a complete band set and marks the preset custom in one write.
+  ///
+  /// The page owns a live draft while a fader is dragged; committing all ten
+  /// bands at once keeps that draft, the database and the mpv `af` chain in
+  /// sync with a single rebuild instead of one write per tick.
+  void setEqualizerGains(List<double> gains) {
+    setData(
+      PreferencesTableCompanion(
+        equalizerGains: Value(EqualizerSettings.normalizeGains(gains)),
+        equalizerPreset: const Value(EqualizerPreset.custom),
+      ),
+    );
   }
 
   void setEndlessPlayback(bool endless) {

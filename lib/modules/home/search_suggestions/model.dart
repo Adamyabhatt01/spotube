@@ -152,3 +152,107 @@ List<HomeSearchSuggestion> suggestionRowsInPaintOrder(
       ...options.library,
       if (seeAllTerm != null) SeeAllSearchSuggestion(seeAllTerm),
     ];
+
+/// The `item.*` and `search.selectedIndex` context a render-point template
+/// receives for one suggestion row.
+///
+/// The map is read-only data. The host keeps activation and keyboard focus
+/// around the template, so a template that ignores every binding still
+/// behaves like the shipped row.
+Map<String, Object?> searchSuggestionContext(
+  HomeSearchSuggestion option, {
+  int? selectedIndex,
+  bool selected = false,
+}) {
+  final values = <String, Object?>{
+    'search.selectedIndex': selectedIndex ?? -1,
+    'item.selected': selected,
+    'item.isActive': false,
+  };
+
+  void put({
+    required String id,
+    required String type,
+    required String title,
+    String subtitle = '',
+    String artwork = '',
+    int duration = 0,
+  }) {
+    values
+      ..['item.id'] = id
+      ..['item.type'] = type
+      ..['item.title'] = title
+      ..['item.subtitle'] = subtitle
+      ..['item.artwork'] = artwork
+      ..['item.duration'] = duration;
+  }
+
+  switch (option) {
+    case RecentSearchSuggestion(:final term):
+      put(id: term, type: 'recent', title: term);
+    case SeeAllSearchSuggestion(:final term):
+      put(id: term, type: 'seeAll', title: term);
+    case LiveTrackSearchSuggestion(:final track):
+      put(
+        id: track.id,
+        type: 'track',
+        title: track.name,
+        subtitle: '${track.artists.asString()} · ${track.album.name}',
+        artwork: track.album.images.from200PxTo300PxOrSmallestImage(
+          ImagePlaceholder.albumArt,
+        ),
+        duration: (track.durationMs / 1000).round(),
+      );
+      values
+        ..['item.live'] = true
+        ..['item.artist'] = track.artists.asString()
+        ..['item.album'] = track.album.name;
+    case TrackSearchSuggestion(:final track):
+      put(
+        id: track.id,
+        type: 'track',
+        title: track.name,
+        subtitle: '${track.artists.asString()} · ${track.album.name}',
+        artwork: track.album.images.from200PxTo300PxOrSmallestImage(
+          ImagePlaceholder.albumArt,
+        ),
+        duration: (track.durationMs / 1000).round(),
+      );
+      values
+        ..['item.artist'] = track.artists.asString()
+        ..['item.album'] = track.album.name;
+    case PlaylistSearchSuggestion(:final playlist):
+      put(
+        id: playlist.id,
+        type: 'playlist',
+        title: playlist.name,
+        subtitle: 'Playlist',
+        artwork: playlist.images.from200PxTo300PxOrSmallestImage(
+          ImagePlaceholder.collection,
+        ),
+      );
+    case AlbumSearchSuggestion(:final album):
+      put(
+        id: album.id,
+        type: 'album',
+        title: album.name,
+        subtitle: album.artists.asString(),
+        artwork: album.images.from200PxTo300PxOrSmallestImage(
+          ImagePlaceholder.albumArt,
+        ),
+      );
+      values['item.artist'] = album.artists.asString();
+    case ArtistSearchSuggestion(:final artist):
+      put(
+        id: artist.id,
+        type: 'artist',
+        title: artist.name,
+        subtitle: 'Artist',
+        artwork: artist.images.from200PxTo300PxOrSmallestImage(
+          ImagePlaceholder.artist,
+        ),
+      );
+  }
+
+  return values;
+}

@@ -1,5 +1,15 @@
 # Authoring a theme
 
+> **v4 status:** the authoritative contract is
+> `/home/adamya/.opencode/plan/v4-theme-contract.md`; Phases 0–5 are
+> implemented (spec foundation, kits, layout nodes, inputs and overlays,
+> render points, bindings/palette, and layout regions). v4 is breaking: v2
+> payloads remain, `specVersion: 3` is rejected with
+> `specVersion 3 is not supported; migrate to 4`, and
+> `themes/tools/migrate_v3.dart` is the migration path. This document
+> describes the v3 blocks where noted and the v4 nodes that exist today; the
+> full v4 rewrite is Phase 11.
+
 ## A theme is a plugin
 
 Spotube loads a theme the same way it loads a metadata plugin: a `.smplug`
@@ -247,6 +257,10 @@ Each style may set `padding`, `margin`, `gap`, `radius`, `borderWidth`,
   "chrome": "inset",
   "nav": "labels",
   "progress": "inline",
+  "sidebar": "theme",
+  "sidebarWidth": 240,
+  "aside": "none",
+  "asideWidth": 320,
   "navItems": ["home", "radio", "stats", "search"],
   "navbarItems": ["home", "search", "radio", "library", "stats"],
   "libraryItems": ["playlists", "artists", "albums", "stations", "local_library"],
@@ -298,6 +312,18 @@ name selects the window tier: `compact` (with `xs`/`sm` aliases, up to
 820 px), `medium` (`md`, up to 1024 px) and `expanded` (`lg`/`xl`/`2xl`).
 Variants merge over the base layout, so a variant may override just
 `player.showVolume` without restating anything else.
+
+**Regions (v4).** `sidebar` is `host` (the default) or `theme`; `theme` hands
+the sidebar body to the `sidebar.content` slot, while the host keeps the width
+box, divider, bottom clearance and docked player. `sidebarWidth` is 0–1000
+logical px (default 200) and rides the active scaling. A user who collapses the
+sidebar narrows the theme body to the host rail width instead of hiding it, so
+the theme can read `app.sidebarCollapsed` and draw a rail. `aside` is `none`
+(default) or `theme`; a theme panel mounts only while the user has it open,
+the window is wider than the compact tier (820 px), and `aside.content` is
+filled. Its width is `asideWidth` (default 320). The host draws the close
+control; `toggleAside`, the shortcut, and `app.asideOpen` share the persisted
+state. Both keys and widths can be overridden per breakpoint in `responsive`.
 
 ### 5. Branding
 
@@ -372,16 +398,101 @@ into the flat one, but every theme in this repository writes the flat form.)
 | `conditional` | `bind`, `equals`, `invert` |
 | `template` | `name`, `args` |
 | `animate` | `kind`, `duration`, `curve`, `bind`, `reverse` |
-| `progress` | `bind`, `maxBind`, `width`, `height`, `hitHeight`, `radius`, `borderWidth`, `borderColor`, `color`, `trackColor`, `thumbColor`, `thumbSize`, `interactive` |
-| `list` | `bind`, `gap`, `limit`, `align`, `direction`, plus `children` (the row template) |
+| `progress` | `bind`, `maxBind`, `width`, `height`, `hitHeight`, `radius`, `borderWidth`, `borderColor`, `color`, `trackColor`, `thumbColor`, `thumbSize`, `interactive`, `style` (`linear`/`wavy`) |
+| `list` | `bind`, `gap`, `limit`, `align`, `direction`, `filter`, plus `children` (the row template) |
+| `virtualList` | `bind`, `itemTemplate` (or `children`), `itemExtent` (8..400), `overscan` (0..64), `limit` (1..10000), `filter` |
+| `table` | `bind`, `columns: [{key, label, width, align}]` (1..32), `rowTemplate` (or `children`), `stickyHeader`, `sortable` |
+| `tree` | `bind`, `labelKey`, `childrenKey`, `expandedKey` |
+| `accordion` | `items: [{title, children}]` (max 32), `multiple` |
+| `collapsible` | `title`, `openBind`, plus `children` |
+| `carousel` | `bind`, `itemTemplate` (or `children`), `height` (40..800), `autoplay` |
+| `badge` | `text`, `variant` |
+| `chip` | `label`, `selectedBind` |
+| `avatar` | `src`, `fallback`, `size` (8..256) |
+| `skeleton` | `width`, `height`, `radius`, `count` (1..50) |
+| `spinner` | `size` (8..256), `color` |
+| `breadcrumb` | `items: [{label, id, action}]` (max 16) |
+| `pagination` | `pageBind`, `pageCount` (1..1000), plus `action`/`actions` |
+| `box` | `background`, `gradient`, `border`, `radius`, `width`, `height`, `clip`, `padding`, `opacity`, plus `children` |
+| `grid` | `columns` (1..12), `gap`, plus `children` |
+| `resizable` | `direction` (`horizontal`/`vertical`), `initial`, `min`, `max` (0..4000), `storageKey`, plus exactly two panes |
+| `safeArea` | `edges` (`top`/`right`/`bottom`/`left`; omit for all four), plus `children` |
+| `aspectRatio` | `ratio`, plus `children` |
+| `kitScope` | no props of its own; sets `kit` for its subtree |
+| `slider` | `min`, `max`, `step`, `label`, `showValue`, `orientation` (`horizontal`/`vertical`) |
+| `switch`, `checkbox` | `label` |
+| `radioGroup` | `options: [{value, label, icon}]` |
+| `textField` | `placeholder`, `debounceMs` (0..5000), `clearable`, `icon` |
+| `textArea` | the `textField` props plus `minLines`/`maxLines` (1..8) |
+| `select` | `options: [{value, label, icon}]`, `placeholder` |
+| `segmented` | `options` (a bare string or `{value, label, icon}`), `valueBind` |
+| `tabs` | `items: [{id, label, icon}]`, `panels` (one node list per item) |
+| `menu` | `items: [{label, icon, checked, disabled, action/actions}]` (max 32), `trigger`, `placement` |
+| `contextMenu` | the `menu` item list; wraps its `children` |
+| `popover` | `trigger`, `placement`, plus `children` |
+| `tooltip` | `text`, `placement`, plus `children` |
+| `dialog` | `title`, `description`, `openBind`, `actions: [{label, action/actions}]` (max 4), plus `children` |
+| `sheet` | `side` (`bottom`/`top`/`left`/`right`/`start`/`end`), `width`, `openBind`, plus `children` |
 
 An unknown prop is an error, not a silent no-op: the build fails rather than
 shipping a theme that does not do what you wrote.
 
+**Kits (v4).** Every node also accepts `kit` (`shadcn`, `material`,
+`cupertino`) and `variant`. Resolution runs node `kit` → nearest `kitScope` →
+theme `uiKit` → `shadcn`. The theme's `uiKit` only sets the default: a
+`kitScope` or a node can override it, and an unknown name falls through to the
+enclosing choice. A kit that does not implement a component falls back to the
+theme kit and then `shadcn`; in a debug build `ThemeUiDiagnostics` logs each
+fallback once per node/variant/kit. Today Material and Cupertino implement
+`button`, `progress` and `slider`; those three get native controls, everything
+else draws the shadcn node. Material/Cupertino colours and type come from the
+plugin palette and typography, not from a separate theme block.
+
+**Forms.** Inputs read their current value from `bind` and never write it:
+the host's binding is the source of truth, and a control fires the node's
+`action`/`actions` with `$value` replaced by the value the user chose. A slider
+uses its local drag position until release and then fires once, so seeking does
+not spam the host. A `textField`/`textArea` debounces typing by `debounceMs`
+(0 fires on every edit), flushes immediately on submit, and a `clearable` field
+adds a clear button that fires the empty value. `radioGroup`, `select` and
+`segmented` take an option list; `switch`/`checkbox` fire a boolean. `tabs`
+keeps its own selected item: `bind` may hold either the item id or an index,
+its change action receives the item id as `$value`, and `panels` (when supplied)
+must have one node list per item.
+
+**Menus and overlays.** `menu` opens `items` from a text or node `trigger` and
+closes after an item fires. `contextMenu` wraps its children and opens on
+right-click (desktop) or long-press (touch). `popover` and `tooltip` wrap their
+children too. An overlay's content is drawn in the kit that opened it, not the
+kit at the root of the page. `dialog` and `sheet` open on mount when they have
+no `openBind`; with `openBind` they follow that binding, close when it goes
+false, and reopen only on a false→true edge. The host cannot write a binding
+back, so dismissing a dialog or sheet is local: it stays closed until the
+binding cycles. `dialog.actions` are footer buttons, not node actions — each is
+`{label, action|actions}` and lacking a label is skipped.
+
+**Boxes and grids.** `box.border` is a colour (`"@border"`, one logical pixel)
+or `{"color": "@border", "width": 2}` (0..8). `box.gradient` is
+`{"colors": [..2..8], "begin": "topCenter", "end": "bottomCenter", "stops":
+[0.0, 1.0]}`; stops are optional and must not decrease. `grid` is a
+fixed-column `Wrap`: cells take the width the columns leave and keep their
+intrinsic height, so rows can differ in height. `aspectRatio` sizes its child
+from the incoming width and `ratio`.
+
+**Splits.** `resizable` takes exactly two children: a fixed first pane and a
+second pane that takes the rest. `direction` defaults to `horizontal` (the
+first pane's width is dragged) and `vertical` drags its height. `initial`
+defaults to 240, `min` to 120 and `max` to 480, all in logical px; the second
+pane keeps at least 120 px so a drag cannot hide it. `storageKey` is namespaced
+by the host and persists the dragged size across launches; without one the
+size lasts for the session.
+
 **Seeking.** `progress` draws the current playhead from `player.position` /
 `player.duration`; with `interactive: true` it is draggable and tappable. A
 drag previews locally and commits on release; both paths dispatch `seek` with
-a clamped `fraction`.
+a clamped `fraction`. `style: "wavy"` draws the filled part as an animated
+sine ribbon (the flat bar stays the default); it keeps the same hit area,
+seek gesture and thumb.
 `width` fixes the bar's logical width when it sits in a footer that Flutter
 measures intrinsically (put it inside `expanded` when the row should flex
 instead); `hitHeight` controls the touch target independently of the painted
@@ -411,9 +522,24 @@ still, which is a graceful fallback rather than an error.
 
 **Bindings:** `player.trackId`, `player.title`, `player.artist`,
 `player.album`, `player.artwork`, `player.playing`, `player.loop`,
-`player.shuffled`, `player.position`, `player.duration`, `player.volume`,
-`user.name`, `user.avatar`, `app.version`, `app.brightness`,
-`app.themeMode`, `app.greeting`, `clock.now`.
+`player.shuffled`, `player.speed`, `player.position`, `player.duration`,
+`player.volume`, `player.muted`, `user.name`, `user.avatar`, `app.version`,
+`app.brightness`, `app.themeMode`, `app.greeting`, `app.sidebarCollapsed`,
+`app.asideOpen`, `clock.now`,
+`theme.id`, `theme.name`, `theme.version`, `queue.tracks`, `queue.count`,
+`queue.currentIndex`, `queue.next`, `library.playlists`, `library.pins`,
+`library.albums`, `library.artists`, `library.folders`, `library.counts`,
+`audio.bass`, `audio.treble`, `audio.normalization`, `audio.crossfade`,
+`audio.sleepTimer`, `audio.speed`, `search.query`, `search.hasQuery`, and
+`setting.<key>` for a theme's own toggle. A document only subscribes to the
+sources its bindings name, so a theme that never draws the library does not
+open the user's saved lists.
+
+**Palette bindings:** `palette.dominant`, `palette.vibrant`, `palette.muted`,
+`palette.darkMuted`, `palette.lightMuted` and `palette.onDominant` hold the
+colours of the nearest artwork — the item or page palette a slot supplied, then
+the collection cover, then the playing track. Write `@palette.dominant` as a
+`color` value to tint a node from the cover.
 
 **Repeating collections.** `list` draws its single child (or its children as
 a column) once per entry of a bound collection. `direction: "horizontal"`
@@ -475,6 +601,38 @@ entry's page, `likeItem` toggles a track's favourite, and `downloadItem`
 queues it for download. The host injects `item`, `index` and `items` into the
 action's args; a theme does not write them.
 
+**Filtering a collection.** `list` and `virtualList` take a `filter` spec:
+`{"bind": "search.query", "fields": ["title", "artist"]}`. The host filters
+rows itself — a case- and diacritic-insensitive substring match over the named
+`item.*` fields; omit `fields` to match every display field. The query is
+debounced by 150 ms, so a text field bound to the same value does not rebuild
+the list on every keystroke. `limit` applies after filtering.
+
+**Data display (v4).** `virtualList` is `list` with a lazy viewport: it takes
+`itemExtent` (the fixed row height, so it measures without laying out every
+row) and mounts `overscan` extra rows beyond the edge. Up to 10 000 rows are
+addressable and only the visible window is built, so a long queue costs the
+same as a short one. `table` draws `columns` from item fields (`title`,
+`artist`, `duration`, …) unless a `rowTemplate` takes over the row;
+`stickyHeader` pins the header inside the table's own scroll view and
+`sortable` sorts host-side on a column key — one click ascending, the next
+descending. `tree` reads nested entries from a binding through
+`labelKey`/`childrenKey` and keeps its expand state in the host, seeded by
+`expandedKey`. `accordion` holds titled sections (single-open unless
+`multiple`), `collapsible` is one titled section that may follow `openBind`,
+and `carousel` pages through a bound collection with dot indicators and
+optional 5-second `autoplay`. All of them reuse the same `item.*` bindings and
+item actions as `list`.
+
+**Small displays (v4).** `badge` is a compact label whose `variant` picks
+primary, secondary, outline or destructive; `chip` is a selectable pill filled
+while `selectedBind` is truthy; `avatar` shows `src` or a `fallback` initial
+at `size`. `skeleton` pulses `count` placeholder blocks, `spinner` turns a
+ring, and both hold still when the platform asks for reduced motion.
+`breadcrumb` draws `label` items separated by chevrons and fires each item's
+`action`; `pagination` renders prev/next and nearby numbers around `pageBind`,
+firing the node's actions with `$value` replaced by the chosen page.
+
 **Page bindings.** The content slots below replace a page's body and publish
 that page's data. These names are open-ended, like `item.*`, and resolve only
 where the host publishes them:
@@ -486,6 +644,7 @@ where the host publishes them:
 | `artist.content`, `artist.header` | `artist.id`, `name`, `artwork`, `followers`, `genres`, `topTracks`, `albums`, `related` |
 | `search.content` | `search.query`, `tracks`, `albums`, `artists`, `playlists` |
 | `library.content` | `library.playlists`, `albums`, `artists` |
+| `library.local.content` | `library.folders` (`{path, name, type}`), `library.counts` (`folders`) |
 | `queue.content` | `queue.tracks`, `currentIndex`, `count` |
 | `downloads.content` | `downloads.items`, `count` |
 | `stats.content` | `stats.period`, `minutes`, `tracks`, `artists`, `albums`, `playlists`, `fees`, `topTracks`, `topAlbums`, `topPlaylists` |
@@ -497,8 +656,8 @@ the host keeps its titlebar and back button. `collection.header`,
 for use alongside the host's body. `home.content` replaces the whole home
 body (including the host's own search row), so a theme that fills it draws
 its own top bar and links into search with `navigate`. `search.content`
-replaces the result area only — the host keeps the search field and scope
-chips, because a theme has no input node.
+replaces the result area only — the host keeps its scope chips, and a theme
+that fills it can draw its own `textField` and `button` above the results.
 
 **Image sources:** `player.artwork`, `user.avatar`, `albumArt` (the original
 spelling, kept as an alias), an `asset://` path, or any binding that holds an
@@ -507,23 +666,50 @@ image URL (`item.artwork`, `collection.artwork`, `artist.artwork`, …).
 **Actions:** `navigate`, `playPause`, `next`, `previous`, `seek`,
 `setVolume`, `setShuffle`, `setLoopMode`, `like`, `download`, `openSettings`,
 `openLyrics`, `openQueue`, `openDownloads`, `toast`, `plugin`, `playItem`,
-`playCollection`, `openItem`, `likeItem`, `downloadItem`. A node may carry one
-`action` or a list under `actions` (up to four, in order). `playCollection`
-plays the page's own track list (`collection.tracks` or `artist.topTracks`),
-which is how a theme's content slot keeps a working play button.
+`playCollection`, `openItem`, `likeItem`, `downloadItem`, `setQuery`,
+`clearQuery`, `setSetting`, `toggleSetting`, `copy`, `refresh`,
+`toggleSidebar`, `toggleAside`, `toggleRegion`, and the UI-local `dismiss`.
+`toggleSidebar` flips `app.sidebarCollapsed` (Ctrl/Cmd+B); `toggleAside` flips
+`app.asideOpen` (Ctrl/Cmd+Shift+B); `toggleRegion` takes `{id: "sidebar" |
+"aside"}` and routes to the same two preferences so a theme's own chrome does
+not need to know which region the user means. A node may carry one `action` or
+a list under `actions` (up to four,
+in order). `playCollection` plays the page's own track list
+(`collection.tracks` or `artist.topTracks`), which is how a theme's content slot
+keeps a working play button. `dismiss` closes the nearest dialog, sheet or
+popover and never reaches the host; outside an overlay it is forwarded like any
+other action, so a theme that relies on it should only place it inside one.
 
-**Slots** (the only names a theme may use): `sidebar.header`,
-`sidebar.footer`, `sidebar.nav.before`, `sidebar.nav.after`,
-`sidebar.library.before`, `sidebar.library.after`, `sidebar.pins.before`,
-`sidebar.pins.after`, `player.leading`, `player.controls`, `player.trailing`,
+`setQuery`/`clearQuery` write a search scope (`{scope, value}`; the scope
+defaults to `default`) published as `search.query` and `search.<scope>.query`,
+so a theme can own its own search field and read it back with `bind`.
+`setSetting`/`toggleSetting` write `{key, value}` and publish it as
+`setting.<key>`, letting a theme keep a toggle across the rebuild its action
+causes. `copy` puts `{text}` on the clipboard. `refresh` takes
+`{scope: "library" | "theme" | "all"}` and re-reads the saved library or the
+theme definition.
+
+**Slots** (the only names a theme may use): `sidebar.content`,
+`sidebar.library`, `sidebar.header`, `sidebar.footer`, `sidebar.nav.before`,
+`sidebar.nav.after`, `sidebar.library.before`, `sidebar.library.after`,
+`sidebar.pins.before`, `sidebar.pins.after`, `aside.content`,
+`player.leading`, `player.controls`, `player.trailing`,
 `player.progress`, `stage.center`, `stage.below`, `app.overlay`,
 `shell.before`, `shell.after`, `home.before_sections`, `home.after_sections`,
 `home.content`,
 `lyrics.header`, `lyrics.after_tabs`, `settings.before`, `settings.after`,
 `collection.content`, `collection.header`, `collection.before_tracks`,
 `collection.after_tracks`, `artist.content`, `artist.header`,
-`search.content`, `library.content`, `queue.content`, `downloads.content`,
+`search.content`, `library.content`, `library.local.content`,
+`queue.content`, `downloads.content`,
 `stats.content`.
+`sidebar.content` replaces the whole sidebar body (host keeps the width,
+divider, clearance and docked player) when `layout.sidebar` is `theme`;
+`sidebar.library` replaces the label, tiles and trailing drop zone of the
+library group while the before/after slots and pins stay host-owned. Both are
+ignored in the icon-only rail. `aside.content` fills the host right panel.
+`library.local.content` replaces the local-library body and its add/delete
+controls, so a theme that fills it draws its own folder list.
 The two `stage.*` slots are where a `dock: "stage"` player puts its content.
 
 ### 7. A theme's own UI
@@ -549,6 +735,112 @@ class MyThemeApi {
 theme answers a button that carries a `plugin` action: the host hands over an
 id and a payload, and the theme answers with a new UI specification or with
 nothing.
+
+#### Previewing a slot (v4)
+
+A slot can be built outside the running app, with a fixed binding snapshot, so
+the UI can be checked without the player, database or plugin stack:
+
+```dart
+ThemeSlot(
+  'sidebar.content',
+  bindings: const ThemeUiBindings({
+    'theme.name': 'My Theme',
+    'player.title': 'Sample track',
+  }),
+  fallback: const Text('Host sidebar'),
+)
+```
+
+`ThemePageContent` takes the same snapshot through `liveBindings:` and still
+merges the page's own bindings over it, which is how the per-page fixtures
+(`test/user_local_library_slot_test.dart`, `test/theme_ui_phase5_test.dart`)
+render a slot without the host page. The host renders live providers when the
+snapshot is omitted. `conformance/draft/v4-layout-regions.json` is the
+end-to-end fixture: it fills all three regions and the local library body, and
+is validated by `themes/test/v4_layout_regions_test.dart`.
+
+#### Render points (v4)
+
+A slot replaces host chrome that has a name. A **render point** replaces the
+pixels of a host widget that keeps its own behaviour — the search field,
+dropdown rows, context-menu rows, and (as those surfaces ship) queue and table
+rows. Map the point to a template in `ui.renderPoints`:
+
+```json
+{
+  "ui": {
+    "templates": {
+      "searchRowTpl": {
+        "children": [
+          {"type": "image", "src": "item.artwork", "width": 32, "height": 32, "radius": 6},
+          {"type": "text", "bind": "item.title", "size": "sm"}
+        ]
+      }
+    },
+    "renderPoints": {
+      "search.suggestion.item": "searchRowTpl"
+    }
+  }
+}
+```
+
+The host wraps the template in its own gesture, focus and keyboard handling.
+A template is **visual only**: it cannot change what a row does, and it cannot
+write the context bindings. `components.*` styles still apply underneath, so a
+theme can restyle without replacing the row.
+
+The v4.0 catalogue is closed:
+
+| Render point | Context bindings | Host keeps |
+|---|---|---|
+| `search.field` | `search.query`, `search.loading`, `search.hasQuery` | controller, debounce, focus |
+| `search.suggestions` | `search.suggestions`, `search.selectedIndex`, `search.loading` | anchor, width clamp, dismissal |
+| `search.suggestion.item` | `item.*`, `search.selectedIndex` | activation, keyboard |
+| `search.suggestion.group` | `group.*` | ordering |
+| `search.empty` | `search.query` | — |
+| `search.loading` | `search.query` | — |
+| `search.recent` | `search.recent` | persistence |
+| `contextMenu.container` | `menu.count` | position, dismissal |
+| `contextMenu.item` | `menu.*` | activation, keyboard, submenu |
+| `contextMenu.separator` | — | — |
+| `contextMenu.submenu` | `menu.*` | position |
+| `library.playlist.item` | `item.*` | activation, drag |
+| `library.playlist.group` | `group.*` | grouping |
+| `library.playlist.empty` | — | — |
+| `queue.item` | `item.*` | reorder, activation |
+| `table.header` | `column.*` | sort |
+| `table.row` | `item.*`, `row.index` | selection |
+| `player.trackDetails` | `player.*`, `palette.*` | — |
+| `toast.item` | `toast.*` | lifetime |
+
+Points whose host surface does not exist in this tree yet (`library.*`,
+`queue.*`, `table.*`, `player.trackDetails`, `toast.item`, and the remaining
+`contextMenu.*` points) are accepted and validated, but wiring lands with the
+surface in a later phase.
+
+Rules the host enforces:
+
+1. The catalogue is closed and versioned. An id outside it is a validator
+   warning and is ignored at runtime.
+2. A render point names a template in `ui.templates`. A missing template warns
+   and the host default is used.
+3. A template the host cannot render — a reference cycle, nesting deeper than
+   8 expansions, or a `hostWidget` anywhere inside — is an error in the build
+   and falls back to the host default at runtime, logged once per point.
+4. A template with zero children means "draw nothing"; it does **not** fall
+   back. Use an empty template to remove a group header or an empty state.
+5. Context bindings are read-only and supplied per point; the field, row and
+   group stay host-owned.
+
+For search specifically: `search.field` and `search.suggestions` are painted
+as background chrome behind the real `TextField` and host rows, so typing and
+pointer handling stay intact. `search.suggestion.item` replaces only the row
+content inside the host button; the highlight, tap and keyboard selection
+remain. `search.recent` is the recent-group header; the host keeps its
+"Clear all" button and recent-query persistence. `search.empty` has no host
+default (the see-all footer is separate), and `search.loading` falls back to
+the host spinner when no template is set.
 
 ### 8. Assets
 
@@ -594,7 +886,11 @@ a different theme than the one it wrote. The build reports every clamp:
   a font file
 - `background.source`: `none`, `albumArt` or `shell`
 - `layout.chrome`: `flat` or `inset`, `layout.nav`: `labels` or `rail`,
-  `layout.progress`: `inline` or `below`
+  `layout.progress`: `inline` or `below`, `layout.sidebar`: `host` or `theme`,
+  `layout.aside`: `none` or `theme`
+- `sidebarWidth` / `asideWidth`: 0..1000 logical px, theme width only
+- `resizable` panes: `initial`, `min`, `max` 0..4000; `storageKey` must match
+  `^[a-z][a-z0-9_.-]{0,63}$`
 - `background.transparent`: a boolean, and it is tri-state — `true` asks for
   the compositor, `false` vetoes it, absent leaves it to the host setting
 - component `radius`: 0..999 (999 means "fully round", the host clamps it to
@@ -607,8 +903,11 @@ a different theme than the one it wrote. The build reports every clamp:
 - spacing and motion tokens: 0..96 and 0..1000
 - `scale`: 0.5..2
 - icon sizes: 8..64
-- a UI tree: 12 levels deep, 200 nodes per slot, 1000 in total, 4 actions per
-  node, 500 characters of text; `list.limit`: 1..500 (200 when absent)
+- a UI tree: 16 levels deep, 200 nodes per slot, 1000 in total, 4 actions per
+  node, 500 characters of text; `list.limit`: 1..500 (200 when absent),
+  `virtualList.limit`: 1..10000, table rows: 500 static / 10000 sticky,
+  table columns: 32, tree nodes: 500, accordion items: 32, carousel items: 50,
+  breadcrumb items: 16, skeleton blocks: 50
 - up to 48 slots (a theme only names the ones it fills)
 
 ## What a theme cannot do
@@ -617,7 +916,10 @@ a different theme than the one it wrote. The build reports every clamp:
   either. `asset://` paths are resolved by the app, inside the plugin's own
   directory.
 - It cannot change the app's package id, launcher name or icon.
-- It cannot collect text. There is no input in a theme's UI.
+- It cannot collect text silently. `textField`/`textArea` exist, but every
+  value leaves through an action the theme declares; the host never hands the
+  field's contents to the theme as a stream, and the theme cannot read files or
+  reach the network.
 - It cannot force the volume control back on after the user hid it, and a
   `full`/`floating` dock never overrides a docked preference; only `compact`
   asks for the docked shape.

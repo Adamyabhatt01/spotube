@@ -4,8 +4,9 @@ import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/utils/common.dart';
 import 'package:spotube/provider/metadata_plugin/utils/family_paginated.dart';
 
-class MetadataPluginArtistAlbumNotifier extends AutoDisposeFamilyPaginatedAsyncNotifier<
-    SpotubeSimpleAlbumObject, String> {
+class MetadataPluginArtistAlbumNotifier
+    extends AutoDisposeFamilyPaginatedAsyncNotifier<SpotubeSimpleAlbumObject,
+        String> {
   @override
   Future<SpotubePaginationResponseObject<SpotubeSimpleAlbumObject>> fetch(
     int offset,
@@ -33,9 +34,7 @@ class MetadataPluginArtistAlbumNotifier extends AutoDisposeFamilyPaginatedAsyncN
 }
 
 final metadataPluginArtistAlbumsProvider =
-    AutoDisposeAsyncNotifierProviderFamily<
-    MetadataPluginArtistAlbumNotifier,
-    SpotubePaginationResponseObject<SpotubeSimpleAlbumObject>,
-    String>(
+    AutoDisposeAsyncNotifierProviderFamily<MetadataPluginArtistAlbumNotifier,
+        SpotubePaginationResponseObject<SpotubeSimpleAlbumObject>, String>(
   () => MetadataPluginArtistAlbumNotifier(),
 );

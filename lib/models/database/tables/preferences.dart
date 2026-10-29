@@ -75,6 +75,15 @@ class PreferencesTable extends Table {
   BoolColumn get checkUpdate => boolean().withDefault(const Constant(true))();
   BoolColumn get normalizeAudio =>
       boolean().withDefault(const Constant(false))();
+  BoolColumn get equalizerEnabled =>
+      boolean().withDefault(const Constant(false))();
+  // Enum default is a string literal on purpose (see the note on
+  // closeBehavior below).
+  TextColumn get equalizerPreset =>
+      textEnum<EqualizerPreset>().withDefault(const Constant("flat"))();
+  // Empty means flat: the model fills missing bands with 0 dB.
+  TextColumn get equalizerGains =>
+      text().withDefault(const Constant("")).map(const DoubleListConverter())();
   BoolColumn get showSystemTrayIcon =>
       boolean().withDefault(const Constant(false))();
   BoolColumn get systemTitleBar =>
@@ -149,6 +158,15 @@ class PreferencesTable extends Table {
       textEnum<VolumeControlMode>().withDefault(const Constant("always"))();
   TextColumn get playerDock =>
       textEnum<PlayerDock>().withDefault(const Constant("fullWidth"))();
+
+  /// User's collapse toggle for the sidebar. Binds `app.sidebarCollapsed`;
+  /// `toggleSidebar` flips it.
+  BoolColumn get sidebarCollapsed =>
+      boolean().withDefault(const Constant(false))();
+
+  /// Whether the theme-declared right-hand aside is open. Defaults to open so
+  /// a theme that asks for an aside shows it immediately; a close persists.
+  BoolColumn get asideOpen => boolean().withDefault(const Constant(true))();
   IntColumn get lastUpdateCheckMs => integer().withDefault(const Constant(0))();
   // Automatic VPN (user-owned system connection, opt-in). Disabled by
   // default: zero behavioral change unless the user selects a mode AND a
@@ -183,6 +201,9 @@ class PreferencesTable extends Table {
       amoledDarkTheme: false,
       checkUpdate: true,
       normalizeAudio: false,
+      equalizerEnabled: false,
+      equalizerPreset: EqualizerPreset.flat,
+      equalizerGains: const [],
       showSystemTrayIcon: false,
       systemTitleBar: false,
       skipNonMusic: false,
@@ -215,6 +236,8 @@ class PreferencesTable extends Table {
       themeTransitionMs: 250,
       volumeControlMode: VolumeControlMode.always,
       playerDock: PlayerDock.fullWidth,
+      sidebarCollapsed: false,
+      asideOpen: true,
       lastUpdateCheckMs: 0,
       vpnMode: VpnMode.disabled,
       vpnConnectionUuid: null,

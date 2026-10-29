@@ -116,8 +116,8 @@ class MetadataAccountNotifier extends Notifier<bool> {
   }
 }
 
-final metadataAccountProvider =
-    NotifierProvider<MetadataAccountNotifier, bool>(MetadataAccountNotifier.new);
+final metadataAccountProvider = NotifierProvider<MetadataAccountNotifier, bool>(
+    MetadataAccountNotifier.new);
 
 class AudioSourcePluginAuthenticatedNotifier extends AsyncNotifier<bool> {
   @override

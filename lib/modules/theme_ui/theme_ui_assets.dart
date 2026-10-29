@@ -35,12 +35,13 @@ class ThemeUiAssets {
     // Theme archives keep their declared assets below `assets/`, while the
     // contract (and every `asset://` path a theme writes) is relative to that
     // root. Prefer the canonical location, then fall back to the plugin root
-    // for archives built before the convention was enforced.
+    // for archives built before the convention was enforced. A file that is
+    // not there is null, never a `File` the caller will try to open.
     final canonical = File(join(directory, 'assets', normalized));
     if (canonical.existsSync()) return canonical;
     final legacy = File(join(directory, normalized));
     if (legacy.existsSync()) return legacy;
-    return canonical;
+    return null;
   }
 }
 

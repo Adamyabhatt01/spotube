@@ -12,6 +12,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' show ThemeMode, Colors;
 import 'package:spotube/models/database/database.steps.dart';
+import 'package:spotube/models/equalizer/equalizer.dart';
 import 'package:spotube/models/lyrics.dart';
 import 'package:spotube/models/metadata/market.dart';
 import 'package:spotube/models/metadata/metadata.dart';
@@ -51,6 +52,7 @@ part 'tables/radio_favorites.dart';
 part 'typeconverters/color.dart';
 part 'typeconverters/locale.dart';
 part 'typeconverters/string_list.dart';
+part 'typeconverters/double_list.dart';
 part 'typeconverters/encrypted_text.dart';
 part 'typeconverters/map.dart';
 part 'typeconverters/map_list.dart';
@@ -87,7 +89,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 28;
+  int get schemaVersion => 30;
 
   /// Raw DDL for the quarantine table, kept as a constant so the v11->v12
   /// step can create it idempotently (`IF NOT EXISTS`) without depending
@@ -927,6 +929,57 @@ class AppDatabase extends _$AppDatabase {
               'SET main_playlist_order = pinned_playlist_ids '
               'WHERE main_playlist_order IS NULL',
             );
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from28To29: (m, schema) async {
+          try {
+            // Equalizer. Additive, defaulted off; the gains column is an
+            // empty string, which the converter reads as a flat 10-band list.
+            final columns = await _tableColumns('preferences_table');
+            if (!columns.contains('equalizer_enabled')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.equalizerEnabled,
+              );
+            }
+            if (!columns.contains('equalizer_preset')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.equalizerPreset,
+              );
+            }
+            if (!columns.contains('equalizer_gains')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.equalizerGains,
+              );
+            }
+          } catch (e, stack) {
+            AppLogger.reportError(e, stack);
+            rethrow;
+          }
+        },
+        from29To30: (m, schema) async {
+          try {
+            // Theme v4 shell regions: the user's sidebar collapse toggle and
+            // the theme-declared aside's open state. Additive and defaulted;
+            // the aside defaults open so a theme that asks for one shows it.
+            final columns = await _tableColumns('preferences_table');
+            if (!columns.contains('sidebar_collapsed')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.sidebarCollapsed,
+              );
+            }
+            if (!columns.contains('aside_open')) {
+              await m.addColumn(
+                schema.preferencesTable,
+                schema.preferencesTable.asideOpen,
+              );
+            }
           } catch (e, stack) {
             AppLogger.reportError(e, stack);
             rethrow;

@@ -167,7 +167,11 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
   Widget _search(BuildContext context, Map<String, dynamic> props) {
     final placeholder =
         props['placeholder'] is String ? props['placeholder'] as String : null;
-    return HomeSearchBar(compact: true, placeholder: placeholder);
+    return HomeSearchBar(
+      compact: true,
+      placeholder: placeholder,
+      runtime: runtime,
+    );
   }
 
   Widget _button(
@@ -176,7 +180,6 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
     Map<String, dynamic> node,
     List<Map<String, dynamic>> children,
   ) {
-    final style = _buttonStyle(props['variant']);
     final size = switch (props['size']) {
       'small' => 0.85,
       'lg' => 1.2,
@@ -185,6 +188,51 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
     final disabled = props['disabledWhen'] is String &&
         runtime.bindings.isTruthy(props['disabledWhen'] as String?);
     final actions = ThemeUiAction.fromNode(node);
+    final label = props['label'] is String ? props['label'] as String : null;
+    var iconName = props['icon'] is String ? props['icon'] as String : null;
+
+    // A theme names the stable verb ("play"), the host chooses the glyph
+    // that matches the live state. Without this a playing theme would keep
+    // showing a play triangle until the author duplicated every control.
+    if (iconName == 'play' &&
+        actions.any((action) => action.type == 'playPause') &&
+        runtime.bindings.isTruthy('player.playing')) {
+      iconName = 'pause';
+    }
+
+    final variant =
+        props['variant'] is String ? props['variant'] as String : null;
+    final kit = _kitForComponent(
+      context,
+      component: 'button',
+      nodeType: 'button',
+      nodeKit: node['kit'],
+      variant: variant,
+    );
+    if (kit == ThemeUiKit.material) {
+      return _materialButton(
+        context,
+        label: label,
+        iconName: iconName,
+        actions: actions,
+        disabled: disabled,
+        size: size,
+        variant: variant,
+      );
+    }
+    if (kit == ThemeUiKit.cupertino) {
+      return _cupertinoButton(
+        context,
+        label: label,
+        iconName: iconName,
+        actions: actions,
+        disabled: disabled,
+        size: size,
+        variant: variant,
+      );
+    }
+
+    final style = _buttonStyle(context, props['variant'], nodeKit: node['kit']);
     final foreground = _color(
       context,
       style['foreground'] ?? '@primaryForeground',
@@ -212,17 +260,6 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
     final gap = _px(context, style['gap'], fallback: 8) * size;
     final fontFamily = _family(style['fontFamily']) ??
         _family(runtime.theme.typography['family']);
-    final label = props['label'] is String ? props['label'] as String : null;
-    var iconName = props['icon'] is String ? props['icon'] as String : null;
-
-    // A theme names the stable verb ("play"), the host chooses the glyph
-    // that matches the live state. Without this a playing theme would keep
-    // showing a play triangle until the author duplicated every control.
-    if (iconName == 'play' &&
-        actions.any((action) => action.type == 'playPause') &&
-        runtime.bindings.isTruthy('player.playing')) {
-      iconName = 'pause';
-    }
 
     final iconSize = _px(
           context,
@@ -278,15 +315,13 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
 
     final button = Opacity(
       opacity: disabled ? 0.45 : 1,
-      child: Material(
+      child: material.Material(
         color: Colors.transparent,
-        child: InkWell(
+        child: material.InkWell(
           onTap: disabled
               ? null
               : () {
-                  for (final action in actions) {
-                    runtime.onAction(action);
-                  }
+                  _fire(context, actions);
                 },
           borderRadius: BorderRadius.circular(radius),
           child: Container(
@@ -305,6 +340,145 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
       ),
     );
     return disabled ? IgnorePointer(child: button) : button;
+  }
+
+  /// A Material button for a theme that chose the Material kit.
+  ///
+  /// The button inherits the Material theme `ShadcnApp` derived from the
+  /// plugin palette, so no colours are hardcoded here; only the variant
+  /// mapping is the contract's.
+  Widget _materialButton(
+    BuildContext context, {
+    required String? label,
+    required String? iconName,
+    required List<ThemeUiAction> actions,
+    required bool disabled,
+    required double size,
+    required String? variant,
+  }) {
+    final scheme = material.Theme.of(context).colorScheme;
+    final style = variant ?? 'primary';
+    final destructive = style == 'destructive';
+    final tonal = style == 'secondary';
+    final flat = style == 'ghost' || style == 'outline';
+    final foreground = destructive
+        ? scheme.onError
+        : tonal
+            ? scheme.onSecondaryContainer
+            : flat
+                ? scheme.primary
+                : scheme.onPrimary;
+
+    final onPressed = disabled
+        ? null
+        : () {
+            _fire(context, actions);
+          };
+    final child = _kitButtonContent(
+      context,
+      label: label,
+      iconName: iconName,
+      foreground: foreground,
+      size: size,
+    );
+
+    if (style == 'ghost') {
+      return material.TextButton(onPressed: onPressed, child: child);
+    }
+    if (style == 'outline') {
+      return material.OutlinedButton(onPressed: onPressed, child: child);
+    }
+    if (tonal) {
+      return material.FilledButton.tonal(onPressed: onPressed, child: child);
+    }
+    return material.FilledButton(
+      onPressed: onPressed,
+      style: destructive
+          ? material.FilledButton.styleFrom(
+              backgroundColor: scheme.error,
+              foregroundColor: scheme.onError,
+            )
+          : null,
+      child: child,
+    );
+  }
+
+  /// A Cupertino button for a theme that chose the Cupertino kit.
+  Widget _cupertinoButton(
+    BuildContext context, {
+    required String? label,
+    required String? iconName,
+    required List<ThemeUiAction> actions,
+    required bool disabled,
+    required double size,
+    required String? variant,
+  }) {
+    final theme = cupertino.CupertinoTheme.of(context);
+    final style = variant ?? 'primary';
+    final destructive = style == 'destructive';
+    final filled = style != 'ghost' && style != 'outline';
+    final foreground = filled
+        ? theme.primaryContrastingColor
+        : destructive
+            ? cupertino.CupertinoColors.systemRed.resolveFrom(context)
+            : theme.primaryColor;
+
+    final onPressed = disabled
+        ? null
+        : () {
+            _fire(context, actions);
+          };
+    final child = _kitButtonContent(
+      context,
+      label: label,
+      iconName: iconName,
+      foreground: foreground,
+      size: size,
+    );
+
+    return cupertino.CupertinoButton(
+      color: destructive ? cupertino.CupertinoColors.systemRed : null,
+      foregroundColor: foreground,
+      padding: EdgeInsets.symmetric(
+        horizontal: 14 * size,
+        vertical: 8 * size,
+      ),
+      borderRadius: BorderRadius.circular(8 * size),
+      onPressed: onPressed,
+      child: child,
+    );
+  }
+
+  /// The label/icon row shared by the kit-native buttons.
+  Widget _kitButtonContent(
+    BuildContext context, {
+    required String? label,
+    required String? iconName,
+    required Color foreground,
+    required double size,
+  }) {
+    final gap = 8 * size;
+    final content = <Widget>[];
+    if (iconName != null && iconName.isNotEmpty) {
+      content.add(_buttonIcon(context, iconName, 20 * size, foreground));
+    }
+    if (iconName != null && label != null && label.isNotEmpty) {
+      content.add(SizedBox(width: gap));
+    }
+    if (label != null && label.isNotEmpty) {
+      content.add(Text(
+        label.length > 200 ? label.substring(0, 200) : label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: foreground,
+          fontSize: 14 * size,
+          fontWeight: FontWeight.w600,
+        ),
+      ));
+    }
+    if (content.isEmpty) content.add(const SizedBox.shrink());
+    return Row(mainAxisSize: MainAxisSize.min, children: content);
   }
 
   Widget _buttonIcon(
@@ -339,7 +513,11 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
     Map<String, dynamic> props,
     List<Map<String, dynamic>> children,
   ) {
-    final component = _map(runtime.theme.components['card']);
+    final component = themeUiComponentStyle(
+      runtime.theme,
+      _kit(context, nodeKit: props['kit']),
+      'card',
+    );
     final radius = _px(
       context,
       props['radius'] ?? component['radius'],
@@ -381,7 +559,7 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
     return _ThemeUiHoverBuilder(
       hoverColor: hoverBackground,
       builder: (context, hovered) {
-        final card = AnimatedContainer(
+        final card = material.AnimatedContainer(
           duration: motion.fastDuration,
           curve: motion.curve,
           width: width,
@@ -441,13 +619,34 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
     List<Map<String, dynamic>> children,
   ) {
     final name = props['name'];
-    if (name is! String) return const SizedBox.shrink();
-    final template = runtime.templates[name];
-    if (template == null) return const SizedBox.shrink();
+    if (name is! String || !runtime.canExpandTemplate(name)) {
+      return const SizedBox.shrink();
+    }
+    final template = runtime.templates[name]!;
     final args = _map(props['args']);
     final expanded =
         template.children.map((child) => _substitute(child, args)).toList();
-    return _columnOf(context, expanded);
+    if (expanded.isEmpty) return const SizedBox.shrink();
+
+    // A template's children render with the descended runtime so a template
+    // that refers back to itself stops after the contract's eight levels
+    // instead of expanding forever.
+    final scoped = runtime.descendTemplate(name);
+    if (expanded.length == 1) {
+      return ThemeUiNodeView(
+        node: expanded.first,
+        runtime: scoped,
+        depth: depth + 1,
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final child in expanded)
+          ThemeUiNodeView(node: child, runtime: scoped, depth: depth + 1),
+      ],
+    );
   }
 
   Widget _animate(
@@ -461,5 +660,4 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
       child: _columnOf(context, children),
     );
   }
-
 }

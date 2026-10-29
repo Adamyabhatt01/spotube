@@ -6,6 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/radio/radio_station.dart';
 import 'package:spotube/provider/database/database.dart';
+import 'package:spotube/provider/audio_player/audio_effects.dart';
 import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/radio/playback_handoff.dart';
 import 'package:spotube/provider/radio/state.dart';
@@ -93,6 +94,13 @@ class RadioPlaybackNotifier extends Notifier<RadioPlaybackState> {
       musicPlaying.cancel();
       _teardown();
     });
+    // The equalizer/normalization chain is app-wide; mirror changes onto a
+    // live station backend so settings take effect without a restart.
+    ref.listen<String>(audioFilterChainProvider, (previous, next) {
+      if (previous == next) return;
+      final backend = _backend;
+      if (backend != null) unawaited(_applyFilters(backend, next));
+    });
     return const RadioPlaybackState();
   }
 
@@ -151,6 +159,11 @@ class RadioPlaybackNotifier extends Notifier<RadioPlaybackState> {
     );
 
     try {
+      // Same chain as the music player, applied before the stream opens so the
+      // first seconds are not unfiltered. Best-effort: a bad filter must never
+      // stop the station.
+      await _applyFilters(backend, ref.read(audioFilterChainProvider));
+      if (token != _generation) return;
       await backend.open(station.streamUrl, play: true);
       // Superseded mid-open: this backend is already torn down, so it is not a
       // listen and its outcome belongs to nobody.
@@ -208,6 +221,14 @@ class RadioPlaybackNotifier extends Notifier<RadioPlaybackState> {
 
   Future<void> pause() async {
     await _backend?.pause();
+  }
+
+  Future<void> _applyFilters(RadioPlayerBackend backend, String chain) async {
+    try {
+      await backend.setAudioFilterChain(chain);
+    } catch (e, stack) {
+      AppLogger.reportError(e, stack, 'radio audio filters');
+    }
   }
 
   Future<void> resume() async {

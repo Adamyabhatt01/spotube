@@ -7,6 +7,7 @@ import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/hooks/configurators/use_check_yt_dlp_installed.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
+import 'package:spotube/modules/root/aside/aside_region.dart';
 import 'package:spotube/modules/root/bottom_player.dart';
 import 'package:spotube/modules/root/sidebar/sidebar.dart';
 import 'package:spotube/modules/root/spotube_navigation_bar.dart';
@@ -86,9 +87,37 @@ class RootAppPage extends HookConsumerWidget {
       ),
       child: const AutoRouter(),
     );
+    // A theme aside only mounts when the theme asked for one, the user has it
+    // open, the window is wide enough for a third column, and the theme
+    // actually filled the slot. It rides inside Sidebar's child so the
+    // sidebar's own visibility rules hide it too, and the docked player spans
+    // content plus aside.
+    final asideOpen =
+        ref.watch(userPreferencesProvider.select((s) => s.asideOpen));
+    final hasAside = themeAsideVisible(
+          themeAsks: context.asideEnabled,
+          userOpen: asideOpen,
+          windowWidth: MediaQuery.sizeOf(context).width,
+        ) &&
+        themeUiSlotExists(ref, 'aside.content');
+    // The wrapper stays put whether or not the aside is mounted: adding a
+    // parent above the keyed router subtree reparents `AutoRouter`, which
+    // Flutter reports as a duplicate GlobalKey while the old parent still
+    // holds it (same failure `appRouterSlotKey` documents below).
     final content = Sidebar(
       contentFooter: isDocked ? const BottomPlayer() : null,
-      child: routerSlot,
+      child: Row(
+        children: [
+          Expanded(child: routerSlot),
+          if (hasAside) ...[
+            const VerticalDivider(),
+            SizedBox(
+              width: context.asideWidth,
+              child: const AsideRegion(),
+            ),
+          ],
+        ],
+      ),
     );
 
     // `chrome: inset` floats the shell in a rounded panel over a darkened
@@ -106,8 +135,7 @@ class RootAppPage extends HookConsumerWidget {
       top: false,
       child: Scaffold(
         footers: [
-          if (!isDocked)
-            const MeasuredBottomPlayer(child: BottomPlayer()),
+          if (!isDocked) const MeasuredBottomPlayer(child: BottomPlayer()),
           const SpotubeNavigationBar(),
         ],
         floatingFooter: true,

@@ -152,12 +152,13 @@ class CustomPlayer extends Player {
     }
   }
 
-  Future<void> setAudioNormalization(bool normalize) async {
-    if (normalize) {
-      await nativePlayer.setProperty('af', 'dynaudnorm=g=5:f=250:r=0.9:p=0.5');
-    } else {
-      await nativePlayer.setProperty('af', '');
-    }
+  /// Replaces mpv's single `af` chain.
+  ///
+  /// media_kit also writes `af` for pitch-shifting, but only when
+  /// `PlayerConfiguration.pitch` is true; Spotube leaves it at the default
+  /// (false), so this property belongs to the app's effects layer.
+  Future<void> setAudioFilterChain(String chain) async {
+    await nativePlayer.setProperty('af', chain);
   }
 
   Future<void> setDemuxerBufferSize(int sizeInBytes) async {

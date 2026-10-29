@@ -1,4 +1,5 @@
 import 'package:auto_route/auto_route.dart';
+import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:media_kit/media_kit.dart' show PlaylistMode;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
@@ -12,8 +13,10 @@ import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
 import 'package:spotube/provider/download_manager/download_tasks.dart';
+import 'package:spotube/provider/metadata_plugin/library/library_refresh.dart';
 import 'package:spotube/provider/metadata_plugin/library/tracks.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/provider/volume_provider.dart';
 import 'package:spotube/services/logger/logger.dart';
 
@@ -29,10 +32,10 @@ Future<void> dispatchThemeUiAction(
   ThemeUiAction action,
 ) async {
   try {
-    final player = ref.read(audioPlayerPortProvider);
     switch (action.type) {
       case 'playPause':
         if (ref.read(audioPlayerProvider).activeTrack == null) return;
+        final player = ref.read(audioPlayerPortProvider);
         if (player.isPlaying) {
           await player.pause();
         } else {
@@ -40,10 +43,10 @@ Future<void> dispatchThemeUiAction(
         }
       case 'next':
         if (ref.read(audioPlayerProvider).activeTrack == null) return;
-        await player.skipToNext();
+        await ref.read(audioPlayerPortProvider).skipToNext();
       case 'previous':
         if (ref.read(audioPlayerProvider).activeTrack == null) return;
-        await player.skipToPrevious();
+        await ref.read(audioPlayerPortProvider).skipToPrevious();
       case 'seek':
         await _seek(ref, action.args);
       case 'setVolume':
@@ -80,6 +83,24 @@ Future<void> dispatchThemeUiAction(
         await _likeItem(ref, action.args);
       case 'downloadItem':
         _downloadItem(ref, action.args);
+      case 'setQuery':
+        _setQuery(ref, action.args);
+      case 'clearQuery':
+        _clearQuery(ref, action.args);
+      case 'setSetting':
+        _setSetting(ref, action.args);
+      case 'toggleSetting':
+        _toggleSetting(ref, action.args);
+      case 'copy':
+        await _copy(action.args);
+      case 'refresh':
+        await _refresh(ref, action.args);
+      case 'toggleSidebar':
+        _toggleSidebar(ref);
+      case 'toggleAside':
+        _toggleAside(ref);
+      case 'toggleRegion':
+        _toggleRegion(ref, action.args);
     }
   } catch (e, stack) {
     AppLogger.reportError(e, stack, 'themeUiAction:${action.type}');
@@ -344,5 +365,111 @@ Future<void> _askPlugin(WidgetRef ref, Map<String, dynamic> args) async {
           ));
   if (result != null) {
     ref.read(themeUiOverrideProvider.notifier).state = result;
+  }
+}
+
+final _queryScopePattern = RegExp(r'^[A-Za-z0-9_-]{1,32}$');
+final _settingKeyPattern = RegExp(r'^[A-Za-z][A-Za-z0-9_.-]{0,63}$');
+
+/// Writes one search field's text.
+///
+/// The scope is the surface the field belongs to (`sidebar`, a region id);
+/// omitted means the default field. A malformed scope or a non-string value
+/// drops the action instead of guessing.
+void _setQuery(WidgetRef ref, Map<String, dynamic> args) {
+  final value = args['value'];
+  if (value is! String) return;
+  final scope = args['scope'];
+  if (scope != null &&
+      (scope is! String || !_queryScopePattern.hasMatch(scope))) {
+    return;
+  }
+  ref.read(themeUiQueryProvider.notifier).set(
+        scope is String ? scope : '',
+        value.length > 512 ? value.substring(0, 512) : value,
+      );
+}
+
+void _clearQuery(WidgetRef ref, Map<String, dynamic> args) {
+  final scope = args['scope'];
+  if (scope != null &&
+      (scope is! String || !_queryScopePattern.hasMatch(scope))) {
+    return;
+  }
+  ref.read(themeUiQueryProvider.notifier).clear(scope is String ? scope : '');
+}
+
+/// Writes a theme-owned setting. Only scalar values are accepted; a theme
+/// cannot smuggle a nested object into the binding map through an action.
+void _setSetting(WidgetRef ref, Map<String, dynamic> args) {
+  final key = args['key'];
+  if (key is! String || !_settingKeyPattern.hasMatch(key)) return;
+  final value = args['value'];
+  if (value is String) {
+    ref.read(themeUiSettingsProvider.notifier).set(
+          key,
+          value.length > 1024 ? value.substring(0, 1024) : value,
+        );
+    return;
+  }
+  if (value is num || value is bool || value == null) {
+    ref.read(themeUiSettingsProvider.notifier).set(key, value);
+  }
+}
+
+void _toggleSetting(WidgetRef ref, Map<String, dynamic> args) {
+  final key = args['key'];
+  if (key is! String || !_settingKeyPattern.hasMatch(key)) return;
+  ref.read(themeUiSettingsProvider.notifier).toggle(key);
+}
+
+void _toggleSidebar(WidgetRef ref) {
+  final collapsed = ref.read(userPreferencesProvider).sidebarCollapsed;
+  ref.read(userPreferencesProvider.notifier).setSidebarCollapsed(!collapsed);
+}
+
+void _toggleAside(WidgetRef ref) {
+  final open = ref.read(userPreferencesProvider).asideOpen;
+  ref.read(userPreferencesProvider.notifier).setAsideOpen(!open);
+}
+
+/// `toggleRegion` names a shell region instead of a specific control, so a
+/// theme's own chrome can wire both toggles through one verb. Unknown ids are
+/// ignored rather than guessed at.
+void _toggleRegion(WidgetRef ref, Map<String, dynamic> args) {
+  switch (args['id']) {
+    case 'sidebar':
+      _toggleSidebar(ref);
+    case 'aside':
+      _toggleAside(ref);
+  }
+}
+
+Future<void> _copy(Map<String, dynamic> args) async {
+  final text = args['text'];
+  if (text is! String || text.isEmpty) return;
+  await Clipboard.setData(
+    ClipboardData(
+      text: text.length > 8192 ? text.substring(0, 8192) : text,
+    ),
+  );
+}
+
+/// Re-reads the lists a page owns.
+///
+/// `library` goes through the saved-library refresher, which owns the
+/// signed-in/network guards and the rate-limit budget. `theme` re-resolves
+/// the theme payload. Any other scope is a no-op: a theme cannot use a
+/// refresh action to invalidate an arbitrary provider.
+Future<void> _refresh(WidgetRef ref, Map<String, dynamic> args) async {
+  final scope = args['scope'];
+  final target = scope is String && scope.isNotEmpty ? scope : 'library';
+  switch (target) {
+    case 'library':
+    case 'all':
+      await ref.read(savedLibraryRefreshProvider).refreshAll();
+    case 'theme':
+      ref.invalidate(themeDefinitionProvider);
+      ref.invalidate(themeUiProvider);
   }
 }

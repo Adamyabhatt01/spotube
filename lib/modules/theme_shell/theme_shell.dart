@@ -41,6 +41,12 @@ ThemeLayout applyResponsiveLayout(ThemeLayout base, double width) {
     chrome: _chrome(variant['chrome']) ?? base.chrome,
     nav: _nav(variant['nav']) ?? base.nav,
     progress: _progress(variant['progress']) ?? base.progress,
+    sidebar: _sidebar(variant['sidebar']) ?? base.sidebar,
+    sidebarWidth: _number(variant['sidebarWidth'], min: 0, max: 1000) ??
+        base.sidebarWidth,
+    aside: _aside(variant['aside']) ?? base.aside,
+    asideWidth:
+        _number(variant['asideWidth'], min: 0, max: 1000) ?? base.asideWidth,
     player: _player(base.player, variant['player']),
     navItems: _strings(variant['navItems']) ?? base.navItems,
     navbarItems: _strings(variant['navbarItems']) ?? base.navbarItems,
@@ -124,8 +130,7 @@ ThemePlayerLayout _player(ThemePlayerLayout base, Object? raw) {
   final map = raw.cast<String, dynamic>();
   return base.copyWith(
     dock: _dock(map['dock']) ?? base.dock,
-    showTrackDetails:
-        _bool(map['showTrackDetails']) ?? base.showTrackDetails,
+    showTrackDetails: _bool(map['showTrackDetails']) ?? base.showTrackDetails,
     showActions: _bool(map['showActions']) ?? base.showActions,
     showVolume: _bool(map['showVolume']) ?? base.showVolume,
     showLyrics: _bool(map['showLyrics']) ?? base.showLyrics,
@@ -143,7 +148,10 @@ Map<String, dynamic> _mapMerge(
 
 List<String>? _strings(Object? raw) {
   if (raw is! List) return null;
-  return [for (final value in raw) if (value is String) value];
+  return [
+    for (final value in raw)
+      if (value is String) value
+  ];
 }
 
 bool? _bool(Object? raw) => raw is bool ? raw : null;
@@ -163,6 +171,18 @@ ThemeNav? _nav(Object? raw) => switch (raw) {
 ThemeProgress? _progress(Object? raw) => switch (raw) {
       'inline' => ThemeProgress.inlinePlacement,
       'below' => ThemeProgress.below,
+      _ => null,
+    };
+
+ThemeSidebar? _sidebar(Object? raw) => switch (raw) {
+      'host' => ThemeSidebar.host,
+      'theme' => ThemeSidebar.theme,
+      _ => null,
+    };
+
+ThemeAside? _aside(Object? raw) => switch (raw) {
+      'none' => ThemeAside.none,
+      'theme' => ThemeAside.theme,
       _ => null,
     };
 

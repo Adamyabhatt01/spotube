@@ -6781,14 +6781,23 @@ ThemeDefinition _$ThemeDefinitionFromJson(Map<String, dynamic> json) {
 mixin _$ThemeDefinition {
   /// The payload version this theme was written against.
   ///
-  /// 2 is the contract the app read until the v3 blocks arrived; 3 adds
-  /// the extra colour roles, the tokens, the component styles, the shell's
-  /// composition, branding and the UI tree.
+  /// 2 is the original palette-only contract. 3 added the extra colour
+  /// roles, tokens, component styles, shell composition, branding and the
+  /// UI tree. 4 is the current contract and adds kits, capabilities, pages
+  /// and the expanded semantic node vocabulary.
   ///
-  /// The version describes the *payload*, not what the app can do: a host
-  /// reads the fields it knows and ignores the rest, so a v3 theme still
-  /// works on a v2 host (it draws as its two colour schemes there).
+  /// The host accepts 2 and 4. A 3 payload is rejected with a migration
+  /// message; `themes/tools/migrate_v3.dart` rewrites it. The field stays a
+  /// plain int at this layer so an unknown version still decodes and the
+  /// validator can report on it instead of failing during JSON parsing.
   int get specVersion => throw _privateConstructorUsedError;
+
+  /// The UI kit semantic nodes render through by default.
+  ///
+  /// One of `shadcn`, `material` or `cupertino`. The value stays a string at
+  /// this layer: an unknown kit is a theme authored for a newer host, and the
+  /// runtime falls back to `shadcn` instead of failing to parse the palette.
+  String get uiKit => throw _privateConstructorUsedError;
   ThemeColors get light => throw _privateConstructorUsedError;
   ThemeColors get dark => throw _privateConstructorUsedError;
   ThemeSurfaces get surfaces => throw _privateConstructorUsedError;
@@ -6840,6 +6849,7 @@ abstract class $ThemeDefinitionCopyWith<$Res> {
   @useResult
   $Res call(
       {int specVersion,
+      String uiKit,
       ThemeColors light,
       ThemeColors dark,
       ThemeSurfaces surfaces,
@@ -6886,6 +6896,7 @@ class _$ThemeDefinitionCopyWithImpl<$Res, $Val extends ThemeDefinition>
   @override
   $Res call({
     Object? specVersion = null,
+    Object? uiKit = null,
     Object? light = null,
     Object? dark = null,
     Object? surfaces = null,
@@ -6910,6 +6921,10 @@ class _$ThemeDefinitionCopyWithImpl<$Res, $Val extends ThemeDefinition>
           ? _value.specVersion
           : specVersion // ignore: cast_nullable_to_non_nullable
               as int,
+      uiKit: null == uiKit
+          ? _value.uiKit
+          : uiKit // ignore: cast_nullable_to_non_nullable
+              as String,
       light: null == light
           ? _value.light
           : light // ignore: cast_nullable_to_non_nullable
@@ -7094,6 +7109,7 @@ abstract class _$$ThemeDefinitionImplCopyWith<$Res>
   @useResult
   $Res call(
       {int specVersion,
+      String uiKit,
       ThemeColors light,
       ThemeColors dark,
       ThemeSurfaces surfaces,
@@ -7147,6 +7163,7 @@ class __$$ThemeDefinitionImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? specVersion = null,
+    Object? uiKit = null,
     Object? light = null,
     Object? dark = null,
     Object? surfaces = null,
@@ -7171,6 +7188,10 @@ class __$$ThemeDefinitionImplCopyWithImpl<$Res>
           ? _value.specVersion
           : specVersion // ignore: cast_nullable_to_non_nullable
               as int,
+      uiKit: null == uiKit
+          ? _value.uiKit
+          : uiKit // ignore: cast_nullable_to_non_nullable
+              as String,
       light: null == light
           ? _value.light
           : light // ignore: cast_nullable_to_non_nullable
@@ -7252,6 +7273,7 @@ class __$$ThemeDefinitionImplCopyWithImpl<$Res>
 class _$ThemeDefinitionImpl implements _ThemeDefinition {
   const _$ThemeDefinitionImpl(
       {this.specVersion = 2,
+      this.uiKit = 'shadcn',
       required this.light,
       required this.dark,
       this.surfaces = const ThemeSurfaces(),
@@ -7284,16 +7306,27 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
 
   /// The payload version this theme was written against.
   ///
-  /// 2 is the contract the app read until the v3 blocks arrived; 3 adds
-  /// the extra colour roles, the tokens, the component styles, the shell's
-  /// composition, branding and the UI tree.
+  /// 2 is the original palette-only contract. 3 added the extra colour
+  /// roles, tokens, component styles, shell composition, branding and the
+  /// UI tree. 4 is the current contract and adds kits, capabilities, pages
+  /// and the expanded semantic node vocabulary.
   ///
-  /// The version describes the *payload*, not what the app can do: a host
-  /// reads the fields it knows and ignores the rest, so a v3 theme still
-  /// works on a v2 host (it draws as its two colour schemes there).
+  /// The host accepts 2 and 4. A 3 payload is rejected with a migration
+  /// message; `themes/tools/migrate_v3.dart` rewrites it. The field stays a
+  /// plain int at this layer so an unknown version still decodes and the
+  /// validator can report on it instead of failing during JSON parsing.
   @override
   @JsonKey()
   final int specVersion;
+
+  /// The UI kit semantic nodes render through by default.
+  ///
+  /// One of `shadcn`, `material` or `cupertino`. The value stays a string at
+  /// this layer: an unknown kit is a theme authored for a newer host, and the
+  /// runtime falls back to `shadcn` instead of failing to parse the palette.
+  @override
+  @JsonKey()
+  final String uiKit;
   @override
   final ThemeColors light;
   @override
@@ -7413,7 +7446,7 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
 
   @override
   String toString() {
-    return 'ThemeDefinition(specVersion: $specVersion, light: $light, dark: $dark, surfaces: $surfaces, background: $background, radius: $radius, density: $density, tokens: $tokens, layout: $layout, dynamicTheme: $dynamicTheme, typography: $typography, spacing: $spacing, motion: $motion, scale: $scale, icons: $icons, components: $components, branding: $branding, assets: $assets, ui: $ui)';
+    return 'ThemeDefinition(specVersion: $specVersion, uiKit: $uiKit, light: $light, dark: $dark, surfaces: $surfaces, background: $background, radius: $radius, density: $density, tokens: $tokens, layout: $layout, dynamicTheme: $dynamicTheme, typography: $typography, spacing: $spacing, motion: $motion, scale: $scale, icons: $icons, components: $components, branding: $branding, assets: $assets, ui: $ui)';
   }
 
   @override
@@ -7423,6 +7456,7 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
             other is _$ThemeDefinitionImpl &&
             (identical(other.specVersion, specVersion) ||
                 other.specVersion == specVersion) &&
+            (identical(other.uiKit, uiKit) || other.uiKit == uiKit) &&
             (identical(other.light, light) || other.light == light) &&
             (identical(other.dark, dark) || other.dark == dark) &&
             (identical(other.surfaces, surfaces) ||
@@ -7453,6 +7487,7 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
   int get hashCode => Object.hashAll([
         runtimeType,
         specVersion,
+        uiKit,
         light,
         dark,
         surfaces,
@@ -7493,6 +7528,7 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
 abstract class _ThemeDefinition implements ThemeDefinition {
   const factory _ThemeDefinition(
           {final int specVersion,
+          final String uiKit,
           required final ThemeColors light,
           required final ThemeColors dark,
           final ThemeSurfaces surfaces,
@@ -7518,15 +7554,25 @@ abstract class _ThemeDefinition implements ThemeDefinition {
 
   /// The payload version this theme was written against.
   ///
-  /// 2 is the contract the app read until the v3 blocks arrived; 3 adds
-  /// the extra colour roles, the tokens, the component styles, the shell's
-  /// composition, branding and the UI tree.
+  /// 2 is the original palette-only contract. 3 added the extra colour
+  /// roles, tokens, component styles, shell composition, branding and the
+  /// UI tree. 4 is the current contract and adds kits, capabilities, pages
+  /// and the expanded semantic node vocabulary.
   ///
-  /// The version describes the *payload*, not what the app can do: a host
-  /// reads the fields it knows and ignores the rest, so a v3 theme still
-  /// works on a v2 host (it draws as its two colour schemes there).
+  /// The host accepts 2 and 4. A 3 payload is rejected with a migration
+  /// message; `themes/tools/migrate_v3.dart` rewrites it. The field stays a
+  /// plain int at this layer so an unknown version still decodes and the
+  /// validator can report on it instead of failing during JSON parsing.
   @override
   int get specVersion;
+
+  /// The UI kit semantic nodes render through by default.
+  ///
+  /// One of `shadcn`, `material` or `cupertino`. The value stays a string at
+  /// this layer: an unknown kit is a theme authored for a newer host, and the
+  /// runtime falls back to `shadcn` instead of failing to parse the palette.
+  @override
+  String get uiKit;
   @override
   ThemeColors get light;
   @override
@@ -7607,13 +7653,36 @@ mixin _$ThemeLayout {
   @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
   ThemeProgress get progress => throw _privateConstructorUsedError;
 
+  /// `theme` hands the sidebar body to `sidebar.content`, letting a theme
+  /// draw its own navigation. The host still owns visibility, width, the
+  /// divider, the bottom clearance and the docked player.
+  @JsonKey(unknownEnumValue: ThemeSidebar.host)
+  ThemeSidebar get sidebar => throw _privateConstructorUsedError;
+
+  /// Sidebar width in logical px at scaling 1. Null keeps the host width.
+  /// The validator clamps 0–1000.
+  double? get sidebarWidth => throw _privateConstructorUsedError;
+
+  /// `theme` shows a right-hand panel fed by `aside.content`. It only
+  /// mounts while the user has the aside open and the window is wide enough.
+  @JsonKey(unknownEnumValue: ThemeAside.none)
+  ThemeAside get aside => throw _privateConstructorUsedError;
+
+  /// Aside width in logical px at scaling 1. Null keeps the host width.
+  /// The validator clamps 0–1000.
+  double? get asideWidth => throw _privateConstructorUsedError;
+
   /// The player's own shape. `stage` makes the player the centre of the
   /// app (the theme fills `stage.center`/`stage.below`); the other values
   /// keep the host's footer player.
   ThemePlayerLayout get player => throw _privateConstructorUsedError;
 
-  /// Layout fields the theme takes over even when the user chose otherwise.
-  /// The host only acts on fields it understands.
+  /// Deprecated v3 opt-in, retained so v3 payloads still parse.
+  ///
+  /// The host no longer reads it. A layout field takes effect when the
+  /// theme sends a meaningful value: a non-empty entry/section list, a
+  /// `compact` dock, or `showVolume: false`. A v3 host still gates on this
+  /// list, so a payload shipped to both hosts keeps it.
   List<String> get enforce => throw _privateConstructorUsedError;
 
   /// The navigation entries and library entries the theme wants the host
@@ -7662,6 +7731,10 @@ abstract class $ThemeLayoutCopyWith<$Res> {
       @JsonKey(unknownEnumValue: ThemeNav.labels) ThemeNav nav,
       @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
       ThemeProgress progress,
+      @JsonKey(unknownEnumValue: ThemeSidebar.host) ThemeSidebar sidebar,
+      double? sidebarWidth,
+      @JsonKey(unknownEnumValue: ThemeAside.none) ThemeAside aside,
+      double? asideWidth,
       ThemePlayerLayout player,
       List<String> enforce,
       List<String> navItems,
@@ -7694,6 +7767,10 @@ class _$ThemeLayoutCopyWithImpl<$Res, $Val extends ThemeLayout>
     Object? chrome = null,
     Object? nav = null,
     Object? progress = null,
+    Object? sidebar = null,
+    Object? sidebarWidth = freezed,
+    Object? aside = null,
+    Object? asideWidth = freezed,
     Object? player = null,
     Object? enforce = null,
     Object? navItems = null,
@@ -7718,6 +7795,22 @@ class _$ThemeLayoutCopyWithImpl<$Res, $Val extends ThemeLayout>
           ? _value.progress
           : progress // ignore: cast_nullable_to_non_nullable
               as ThemeProgress,
+      sidebar: null == sidebar
+          ? _value.sidebar
+          : sidebar // ignore: cast_nullable_to_non_nullable
+              as ThemeSidebar,
+      sidebarWidth: freezed == sidebarWidth
+          ? _value.sidebarWidth
+          : sidebarWidth // ignore: cast_nullable_to_non_nullable
+              as double?,
+      aside: null == aside
+          ? _value.aside
+          : aside // ignore: cast_nullable_to_non_nullable
+              as ThemeAside,
+      asideWidth: freezed == asideWidth
+          ? _value.asideWidth
+          : asideWidth // ignore: cast_nullable_to_non_nullable
+              as double?,
       player: null == player
           ? _value.player
           : player // ignore: cast_nullable_to_non_nullable
@@ -7785,6 +7878,10 @@ abstract class _$$ThemeLayoutImplCopyWith<$Res>
       @JsonKey(unknownEnumValue: ThemeNav.labels) ThemeNav nav,
       @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
       ThemeProgress progress,
+      @JsonKey(unknownEnumValue: ThemeSidebar.host) ThemeSidebar sidebar,
+      double? sidebarWidth,
+      @JsonKey(unknownEnumValue: ThemeAside.none) ThemeAside aside,
+      double? asideWidth,
       ThemePlayerLayout player,
       List<String> enforce,
       List<String> navItems,
@@ -7816,6 +7913,10 @@ class __$$ThemeLayoutImplCopyWithImpl<$Res>
     Object? chrome = null,
     Object? nav = null,
     Object? progress = null,
+    Object? sidebar = null,
+    Object? sidebarWidth = freezed,
+    Object? aside = null,
+    Object? asideWidth = freezed,
     Object? player = null,
     Object? enforce = null,
     Object? navItems = null,
@@ -7840,6 +7941,22 @@ class __$$ThemeLayoutImplCopyWithImpl<$Res>
           ? _value.progress
           : progress // ignore: cast_nullable_to_non_nullable
               as ThemeProgress,
+      sidebar: null == sidebar
+          ? _value.sidebar
+          : sidebar // ignore: cast_nullable_to_non_nullable
+              as ThemeSidebar,
+      sidebarWidth: freezed == sidebarWidth
+          ? _value.sidebarWidth
+          : sidebarWidth // ignore: cast_nullable_to_non_nullable
+              as double?,
+      aside: null == aside
+          ? _value.aside
+          : aside // ignore: cast_nullable_to_non_nullable
+              as ThemeAside,
+      asideWidth: freezed == asideWidth
+          ? _value.asideWidth
+          : asideWidth // ignore: cast_nullable_to_non_nullable
+              as double?,
       player: null == player
           ? _value.player
           : player // ignore: cast_nullable_to_non_nullable
@@ -7893,6 +8010,11 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
       @JsonKey(unknownEnumValue: ThemeNav.labels) this.nav = ThemeNav.labels,
       @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
       this.progress = ThemeProgress.inlinePlacement,
+      @JsonKey(unknownEnumValue: ThemeSidebar.host)
+      this.sidebar = ThemeSidebar.host,
+      this.sidebarWidth,
+      @JsonKey(unknownEnumValue: ThemeAside.none) this.aside = ThemeAside.none,
+      this.asideWidth,
       this.player = const ThemePlayerLayout(),
       final List<String> enforce = const [],
       final List<String> navItems = const [],
@@ -7934,6 +8056,29 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
   @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
   final ThemeProgress progress;
 
+  /// `theme` hands the sidebar body to `sidebar.content`, letting a theme
+  /// draw its own navigation. The host still owns visibility, width, the
+  /// divider, the bottom clearance and the docked player.
+  @override
+  @JsonKey(unknownEnumValue: ThemeSidebar.host)
+  final ThemeSidebar sidebar;
+
+  /// Sidebar width in logical px at scaling 1. Null keeps the host width.
+  /// The validator clamps 0–1000.
+  @override
+  final double? sidebarWidth;
+
+  /// `theme` shows a right-hand panel fed by `aside.content`. It only
+  /// mounts while the user has the aside open and the window is wide enough.
+  @override
+  @JsonKey(unknownEnumValue: ThemeAside.none)
+  final ThemeAside aside;
+
+  /// Aside width in logical px at scaling 1. Null keeps the host width.
+  /// The validator clamps 0–1000.
+  @override
+  final double? asideWidth;
+
   /// The player's own shape. `stage` makes the player the centre of the
   /// app (the theme fills `stage.center`/`stage.below`); the other values
   /// keep the host's footer player.
@@ -7941,12 +8086,20 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
   @JsonKey()
   final ThemePlayerLayout player;
 
-  /// Layout fields the theme takes over even when the user chose otherwise.
-  /// The host only acts on fields it understands.
+  /// Deprecated v3 opt-in, retained so v3 payloads still parse.
+  ///
+  /// The host no longer reads it. A layout field takes effect when the
+  /// theme sends a meaningful value: a non-empty entry/section list, a
+  /// `compact` dock, or `showVolume: false`. A v3 host still gates on this
+  /// list, so a payload shipped to both hosts keeps it.
   final List<String> _enforce;
 
-  /// Layout fields the theme takes over even when the user chose otherwise.
-  /// The host only acts on fields it understands.
+  /// Deprecated v3 opt-in, retained so v3 payloads still parse.
+  ///
+  /// The host no longer reads it. A layout field takes effect when the
+  /// theme sends a meaningful value: a non-empty entry/section list, a
+  /// `compact` dock, or `showVolume: false`. A v3 host still gates on this
+  /// list, so a payload shipped to both hosts keeps it.
   @override
   @JsonKey()
   List<String> get enforce {
@@ -8058,7 +8211,7 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
 
   @override
   String toString() {
-    return 'ThemeLayout(chrome: $chrome, nav: $nav, progress: $progress, player: $player, enforce: $enforce, navItems: $navItems, navbarItems: $navbarItems, libraryItems: $libraryItems, home: $home, settings: $settings, titlebar: $titlebar, splash: $splash, responsive: $responsive)';
+    return 'ThemeLayout(chrome: $chrome, nav: $nav, progress: $progress, sidebar: $sidebar, sidebarWidth: $sidebarWidth, aside: $aside, asideWidth: $asideWidth, player: $player, enforce: $enforce, navItems: $navItems, navbarItems: $navbarItems, libraryItems: $libraryItems, home: $home, settings: $settings, titlebar: $titlebar, splash: $splash, responsive: $responsive)';
   }
 
   @override
@@ -8070,6 +8223,12 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
             (identical(other.nav, nav) || other.nav == nav) &&
             (identical(other.progress, progress) ||
                 other.progress == progress) &&
+            (identical(other.sidebar, sidebar) || other.sidebar == sidebar) &&
+            (identical(other.sidebarWidth, sidebarWidth) ||
+                other.sidebarWidth == sidebarWidth) &&
+            (identical(other.aside, aside) || other.aside == aside) &&
+            (identical(other.asideWidth, asideWidth) ||
+                other.asideWidth == asideWidth) &&
             (identical(other.player, player) || other.player == player) &&
             const DeepCollectionEquality().equals(other._enforce, _enforce) &&
             const DeepCollectionEquality().equals(other._navItems, _navItems) &&
@@ -8092,6 +8251,10 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
       chrome,
       nav,
       progress,
+      sidebar,
+      sidebarWidth,
+      aside,
+      asideWidth,
       player,
       const DeepCollectionEquality().hash(_enforce),
       const DeepCollectionEquality().hash(_navItems),
@@ -8125,6 +8288,10 @@ abstract class _ThemeLayout implements ThemeLayout {
       @JsonKey(unknownEnumValue: ThemeNav.labels) final ThemeNav nav,
       @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
       final ThemeProgress progress,
+      @JsonKey(unknownEnumValue: ThemeSidebar.host) final ThemeSidebar sidebar,
+      final double? sidebarWidth,
+      @JsonKey(unknownEnumValue: ThemeAside.none) final ThemeAside aside,
+      final double? asideWidth,
       final ThemePlayerLayout player,
       final List<String> enforce,
       final List<String> navItems,
@@ -8157,14 +8324,41 @@ abstract class _ThemeLayout implements ThemeLayout {
   @JsonKey(unknownEnumValue: ThemeProgress.inlinePlacement)
   ThemeProgress get progress;
 
+  /// `theme` hands the sidebar body to `sidebar.content`, letting a theme
+  /// draw its own navigation. The host still owns visibility, width, the
+  /// divider, the bottom clearance and the docked player.
+  @override
+  @JsonKey(unknownEnumValue: ThemeSidebar.host)
+  ThemeSidebar get sidebar;
+
+  /// Sidebar width in logical px at scaling 1. Null keeps the host width.
+  /// The validator clamps 0–1000.
+  @override
+  double? get sidebarWidth;
+
+  /// `theme` shows a right-hand panel fed by `aside.content`. It only
+  /// mounts while the user has the aside open and the window is wide enough.
+  @override
+  @JsonKey(unknownEnumValue: ThemeAside.none)
+  ThemeAside get aside;
+
+  /// Aside width in logical px at scaling 1. Null keeps the host width.
+  /// The validator clamps 0–1000.
+  @override
+  double? get asideWidth;
+
   /// The player's own shape. `stage` makes the player the centre of the
   /// app (the theme fills `stage.center`/`stage.below`); the other values
   /// keep the host's footer player.
   @override
   ThemePlayerLayout get player;
 
-  /// Layout fields the theme takes over even when the user chose otherwise.
-  /// The host only acts on fields it understands.
+  /// Deprecated v3 opt-in, retained so v3 payloads still parse.
+  ///
+  /// The host no longer reads it. A layout field takes effect when the
+  /// theme sends a meaningful value: a non-empty entry/section list, a
+  /// `compact` dock, or `showVolume: false`. A v3 host still gates on this
+  /// list, so a payload shipped to both hosts keeps it.
   @override
   List<String> get enforce;
 
@@ -11070,6 +11264,12 @@ mixin _$ThemeUiDocument {
   Map<String, ThemeUiTemplate> get templates =>
       throw _privateConstructorUsedError;
 
+  /// Render point id → template name. The host keeps the behaviour of the
+  /// surface (positioning, focus, keyboard, dispatch) and the template
+  /// replaces its pixels. Only ids in the closed v4 catalogue are honoured;
+  /// an unknown id is ignored at runtime.
+  Map<String, String> get renderPoints => throw _privateConstructorUsedError;
+
   /// Serializes this ThemeUiDocument to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -11090,7 +11290,8 @@ abstract class $ThemeUiDocumentCopyWith<$Res> {
       {int specVersion,
       Map<String, ThemeUiSlot> slots,
       Map<String, ThemeUiScreen> screens,
-      Map<String, ThemeUiTemplate> templates});
+      Map<String, ThemeUiTemplate> templates,
+      Map<String, String> renderPoints});
 }
 
 /// @nodoc
@@ -11112,6 +11313,7 @@ class _$ThemeUiDocumentCopyWithImpl<$Res, $Val extends ThemeUiDocument>
     Object? slots = null,
     Object? screens = null,
     Object? templates = null,
+    Object? renderPoints = null,
   }) {
     return _then(_value.copyWith(
       specVersion: null == specVersion
@@ -11130,6 +11332,10 @@ class _$ThemeUiDocumentCopyWithImpl<$Res, $Val extends ThemeUiDocument>
           ? _value.templates
           : templates // ignore: cast_nullable_to_non_nullable
               as Map<String, ThemeUiTemplate>,
+      renderPoints: null == renderPoints
+          ? _value.renderPoints
+          : renderPoints // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
     ) as $Val);
   }
 }
@@ -11146,7 +11352,8 @@ abstract class _$$ThemeUiDocumentImplCopyWith<$Res>
       {int specVersion,
       Map<String, ThemeUiSlot> slots,
       Map<String, ThemeUiScreen> screens,
-      Map<String, ThemeUiTemplate> templates});
+      Map<String, ThemeUiTemplate> templates,
+      Map<String, String> renderPoints});
 }
 
 /// @nodoc
@@ -11166,6 +11373,7 @@ class __$$ThemeUiDocumentImplCopyWithImpl<$Res>
     Object? slots = null,
     Object? screens = null,
     Object? templates = null,
+    Object? renderPoints = null,
   }) {
     return _then(_$ThemeUiDocumentImpl(
       specVersion: null == specVersion
@@ -11184,6 +11392,10 @@ class __$$ThemeUiDocumentImplCopyWithImpl<$Res>
           ? _value._templates
           : templates // ignore: cast_nullable_to_non_nullable
               as Map<String, ThemeUiTemplate>,
+      renderPoints: null == renderPoints
+          ? _value._renderPoints
+          : renderPoints // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
     ));
   }
 }
@@ -11196,10 +11408,12 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
       final Map<String, ThemeUiSlot> slots = const {},
       final Map<String, ThemeUiScreen> screens = const {},
       final Map<String, ThemeUiTemplate> templates =
-          const <String, ThemeUiTemplate>{}})
+          const <String, ThemeUiTemplate>{},
+      final Map<String, String> renderPoints = const <String, String>{}})
       : _slots = slots,
         _screens = screens,
-        _templates = templates;
+        _templates = templates,
+        _renderPoints = renderPoints;
 
   factory _$ThemeUiDocumentImpl.fromJson(Map<String, dynamic> json) =>
       _$$ThemeUiDocumentImplFromJson(json);
@@ -11234,9 +11448,27 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
     return EqualUnmodifiableMapView(_templates);
   }
 
+  /// Render point id → template name. The host keeps the behaviour of the
+  /// surface (positioning, focus, keyboard, dispatch) and the template
+  /// replaces its pixels. Only ids in the closed v4 catalogue are honoured;
+  /// an unknown id is ignored at runtime.
+  final Map<String, String> _renderPoints;
+
+  /// Render point id → template name. The host keeps the behaviour of the
+  /// surface (positioning, focus, keyboard, dispatch) and the template
+  /// replaces its pixels. Only ids in the closed v4 catalogue are honoured;
+  /// an unknown id is ignored at runtime.
+  @override
+  @JsonKey()
+  Map<String, String> get renderPoints {
+    if (_renderPoints is EqualUnmodifiableMapView) return _renderPoints;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_renderPoints);
+  }
+
   @override
   String toString() {
-    return 'ThemeUiDocument(specVersion: $specVersion, slots: $slots, screens: $screens, templates: $templates)';
+    return 'ThemeUiDocument(specVersion: $specVersion, slots: $slots, screens: $screens, templates: $templates, renderPoints: $renderPoints)';
   }
 
   @override
@@ -11249,7 +11481,9 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
             const DeepCollectionEquality().equals(other._slots, _slots) &&
             const DeepCollectionEquality().equals(other._screens, _screens) &&
             const DeepCollectionEquality()
-                .equals(other._templates, _templates));
+                .equals(other._templates, _templates) &&
+            const DeepCollectionEquality()
+                .equals(other._renderPoints, _renderPoints));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -11259,7 +11493,8 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
       specVersion,
       const DeepCollectionEquality().hash(_slots),
       const DeepCollectionEquality().hash(_screens),
-      const DeepCollectionEquality().hash(_templates));
+      const DeepCollectionEquality().hash(_templates),
+      const DeepCollectionEquality().hash(_renderPoints));
 
   /// Create a copy of ThemeUiDocument
   /// with the given fields replaced by the non-null parameter values.
@@ -11283,7 +11518,8 @@ abstract class _ThemeUiDocument implements ThemeUiDocument {
       {final int specVersion,
       final Map<String, ThemeUiSlot> slots,
       final Map<String, ThemeUiScreen> screens,
-      final Map<String, ThemeUiTemplate> templates}) = _$ThemeUiDocumentImpl;
+      final Map<String, ThemeUiTemplate> templates,
+      final Map<String, String> renderPoints}) = _$ThemeUiDocumentImpl;
 
   factory _ThemeUiDocument.fromJson(Map<String, dynamic> json) =
       _$ThemeUiDocumentImpl.fromJson;
@@ -11296,6 +11532,13 @@ abstract class _ThemeUiDocument implements ThemeUiDocument {
   Map<String, ThemeUiScreen> get screens;
   @override
   Map<String, ThemeUiTemplate> get templates;
+
+  /// Render point id → template name. The host keeps the behaviour of the
+  /// surface (positioning, focus, keyboard, dispatch) and the template
+  /// replaces its pixels. Only ids in the closed v4 catalogue are honoured;
+  /// an unknown id is ignored at runtime.
+  @override
+  Map<String, String> get renderPoints;
 
   /// Create a copy of ThemeUiDocument
   /// with the given fields replaced by the non-null parameter values.

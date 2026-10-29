@@ -28,12 +28,46 @@ class ThemeUiAction {
     'openItem',
     'likeItem',
     'downloadItem',
+    'dismiss',
+    'setQuery',
+    'clearQuery',
+    'setSetting',
+    'toggleSetting',
+    'copy',
+    'refresh',
+    'toggleSidebar',
+    'toggleAside',
+    'toggleRegion',
   };
 
   final String type;
   final Map<String, dynamic> args;
 
   const ThemeUiAction(this.type, [this.args = const {}]);
+
+  /// A copy whose arguments have `$value` replaced by [value].
+  ///
+  /// An argument that is exactly `$value` keeps the value's type (a slider
+  /// hands `setBass` a number, not the string "3"); a `$value` inside a longer
+  /// string is interpolated. Lists and maps are walked so a future action with
+  /// a nested arg bag works without another helper.
+  ThemeUiAction withValue(Object? value) {
+    Object? replace(Object? raw) {
+      if (raw == r'$value') return value;
+      if (raw is String) return raw.replaceAll(r'$value', '$value');
+      if (raw is Map) {
+        return {
+          for (final entry in raw.entries) entry.key: replace(entry.value),
+        };
+      }
+      if (raw is List) return raw.map(replace).toList();
+      return raw;
+    }
+
+    return ThemeUiAction(type, {
+      for (final entry in args.entries) entry.key: replace(entry.value),
+    });
+  }
 
   static ThemeUiAction? tryParse(Object? raw) {
     if (raw is! Map) return null;

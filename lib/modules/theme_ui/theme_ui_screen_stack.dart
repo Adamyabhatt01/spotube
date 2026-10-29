@@ -30,3 +30,11 @@ void popThemeUiScreen(WidgetRef ref) {
 void clearThemeUiScreens(WidgetRef ref) {
   ref.read(themeUiScreenStackProvider.notifier).state = const [];
 }
+
+/// Clears the stack from a provider notifier, where only a [Ref] is available.
+///
+/// `WidgetRef` and `Ref` are unrelated types, so this cannot delegate to
+/// [clearThemeUiScreens]; it is the same one-line reset against the other ref.
+void clearThemeUiScreensState(Ref ref) {
+  ref.read(themeUiScreenStackProvider.notifier).state = const [];
+}

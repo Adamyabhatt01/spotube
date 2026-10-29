@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart' show Badge;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -9,11 +11,23 @@ import 'package:spotube/components/image/universal_image.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/connect/connect_device.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
 import 'package:spotube/provider/download_manager/download_tasks.dart';
 import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
+
+/// Width of the labelled footer row: the sidebar's width minus its own inset,
+/// never narrower than the labels need. Pure so the floor and the theme width
+/// can be checked without the router and profile providers this widget reads.
+double sidebarFooterWidth(BuildContext context) {
+  final scaling = Theme.of(context).scaling;
+  return math.max(
+    120 * scaling,
+    context.sidebarWidth - 20 * scaling,
+  );
+}
 
 class SidebarFooter extends HookConsumerWidget {
   /// Forces the icon-only form, for a sidebar whose navigation collapsed into a
@@ -55,6 +69,13 @@ class SidebarFooter extends HookConsumerWidget {
         mainAxisSize: MainAxisSize.min,
         spacing: 10,
         children: [
+          IconButton(
+            variance: router.topRoute.name == SettingsEqualizerRoute.name
+                ? ButtonVariance.secondary
+                : ButtonVariance.ghost,
+            icon: const Icon(SpotubeIcons.equalizer),
+            onPressed: () => context.navigateTo(const SettingsEqualizerRoute()),
+          ),
           Badge(
             isLabelVisible: downloadCount > 0,
             label: Text(downloadCount.toString()),
@@ -78,13 +99,26 @@ class SidebarFooter extends HookConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.only(left: 12),
-      // Unscaled, this is the width that clips "Downloads" and "Connect device"
-      // mid-word once the theme's scaling is past 1.
-      width: 180 * theme.scaling,
+      // Follows the sidebar's width (theme-overridable) minus this row's own
+      // inset, with a floor so the labels never clip mid-word.
+      width: sidebarFooterWidth(context),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         spacing: 10,
         children: [
+          SizedBox(
+            width: double.infinity,
+            child: Button(
+              style: router.topRoute.name == SettingsEqualizerRoute.name
+                  ? ButtonVariance.secondary
+                  : ButtonVariance.outline,
+              onPressed: () {
+                context.navigateTo(const SettingsEqualizerRoute());
+              },
+              leading: const Icon(SpotubeIcons.equalizer),
+              child: Text(context.l10n.equalizer),
+            ),
+          ),
           SizedBox(
             width: double.infinity,
             child: Button(

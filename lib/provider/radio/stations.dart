@@ -18,14 +18,14 @@ import 'package:spotube/services/radio/radio_directory_provider.dart';
 Future<MetadataPlugin> _radioPluginVm(Ref ref, PluginConfiguration config) {
   final youtubeEngine = ref.read(youtubeEngineProvider);
   return ref.read(pluginCacheProvider).getOrCreate(
-        '${config.slug}@${config.version}:radio',
-        () async {
-          final byteCode = await ref
-              .read(metadataPluginsProvider.notifier)
-              .getPluginByteCode(config);
-          return MetadataPlugin.create(youtubeEngine, config, byteCode);
-        },
-      );
+    '${config.slug}@${config.version}:radio',
+    () async {
+      final byteCode = await ref
+          .read(metadataPluginsProvider.notifier)
+          .getPluginByteCode(config);
+      return MetadataPlugin.create(youtubeEngine, config, byteCode);
+    },
+  );
 }
 
 /// Radio directories derived from the installed plugins, default first and then
@@ -183,11 +183,8 @@ const _radioCacheFor = Duration(minutes: 5);
 /// [MetadataPluginMixin] (Spotify rate-limit gate, plugin resolution, snapshot
 /// persistence) which has no meaning for a keyless public directory. The paging
 /// contract is small enough to keep here without inheriting that coupling.
-class RadioStationsNotifier
-    extends
-        AutoDisposeFamilyAsyncNotifier<
-            SpotubePaginationResponseObject<RadioStation>,
-            RadioStationsQuery> {
+class RadioStationsNotifier extends AutoDisposeFamilyAsyncNotifier<
+    SpotubePaginationResponseObject<RadioStation>, RadioStationsQuery> {
   bool _isFetchingMore = false;
 
   @override
@@ -249,8 +246,10 @@ class RadioStationsNotifier
   }
 }
 
-final radioStationsProvider = AsyncNotifierProvider.autoDispose
-    .family<RadioStationsNotifier, SpotubePaginationResponseObject<RadioStation>, RadioStationsQuery>(
+final radioStationsProvider = AsyncNotifierProvider.autoDispose.family<
+    RadioStationsNotifier,
+    SpotubePaginationResponseObject<RadioStation>,
+    RadioStationsQuery>(
   RadioStationsNotifier.new,
 );
 

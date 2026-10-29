@@ -104,6 +104,10 @@ Map<String, Object?> themeItemBindings(
       for (final entry in map.entries) {
         values['item.${entry.key}'] = entry.value;
       }
+    case final String text:
+      values['item.value'] = text;
+      values['item.title'] = text;
+      values['item.kind'] = 'text';
   }
 
   return values;

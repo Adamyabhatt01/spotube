@@ -49,7 +49,12 @@ void main() {
           entryPoint: theme.entryPoint,
         );
 
-        final report = validateThemePayload(compiled.payload);
+        // The bundled themes are v3 until Phase 11 migrates them. The build
+        // tooling reads them through the legacy validator; the host rejects
+        // them, which `v4_validator_test` covers.
+        final report = compiled.payload['specVersion'] == 3
+            ? validateLegacyThemePayload(compiled.payload)
+            : validateThemePayload(compiled.payload);
         expect(report.hasErrors, isFalse, reason: theme.id);
         expect(report.warningCount, 0, reason: theme.id);
       }

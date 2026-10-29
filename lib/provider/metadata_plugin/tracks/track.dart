@@ -8,9 +8,8 @@ import 'package:spotube/services/metadata/errors/exceptions.dart';
 /// Auto-disposed with a keep-alive window like every other single-item
 /// provider: previously the one family that retained every visited track id
 /// for the whole session.
-final metadataPluginTrackProvider =
-    FutureProvider.autoDispose.family<SpotubeFullTrackObject, String>(
-        (ref, trackId) async {
+final metadataPluginTrackProvider = FutureProvider.autoDispose
+    .family<SpotubeFullTrackObject, String>((ref, trackId) async {
   ref.cacheFor();
 
   final metadataPlugin = await ref.watch(metadataPluginProvider.future);

@@ -49,7 +49,13 @@ void main() {
     test('they are payloads the app accepts', () {
       for (final file in Directory('$repoRoot/conformance').listSync()) {
         if (file is! File || !file.path.endsWith('.json')) continue;
-        final report = validateThemePayload(readJson(file.path));
+        final payload = readJson(file.path);
+        // The bundled themes are still v3 until Phase 11 migrates them. The
+        // host rejects v3, so the tooling validates them through the legacy
+        // path; a v4 payload goes through the host's own entry point.
+        final report = payload['specVersion'] == 3
+            ? validateLegacyThemePayload(payload)
+            : validateThemePayload(payload);
         expect(report.hasErrors, isFalse, reason: file.path);
         expect(report.warningCount, 0, reason: file.path);
       }
@@ -84,8 +90,9 @@ void main() {
     test('the brand demo is inert on a v2 host and complete on a v3 one', () {
       final payload = readJson('$repoRoot/conformance/brand-demo.json');
 
-      // As a v3 payload: complete, and every rule satisfied.
-      final v3 = validateThemePayload(payload);
+      // As a v3 payload: complete, and every rule satisfied. The legacy entry
+      // point exists for the migration tools; the host itself rejects v3.
+      final v3 = validateLegacyThemePayload(payload);
       expect(v3.hasErrors, isFalse);
       expect(v3.warningCount, 0);
 
@@ -102,11 +109,23 @@ void main() {
       };
       expect(unknown, containsAll(['branding', 'ui', 'typography', 'components']));
     });
+
+    test('the host rejects them until they are migrated', () {
+      final report = validateThemePayload(
+        readJson('$repoRoot/conformance/brand-demo.json'),
+      );
+      expect(report.hasErrors, isTrue);
+      expect(report.issues, hasLength(1));
+      expect(
+        report.issues.single.message,
+        'specVersion 3 is not supported; migrate to 4',
+      );
+    });
   });
 
   group('the v3 draft', () {
-    test('is a valid v3 payload', () {
-      final report = validateThemePayload(
+    test('is a valid v3 payload for the legacy tooling', () {
+      final report = validateLegacyThemePayload(
         readJson('$repoRoot/conformance/draft/v3-kitchen-sink.json'),
       );
       expect(report.hasErrors, isFalse);
@@ -142,6 +161,16 @@ void main() {
           'ui',
         ]),
       );
+    });
+  });
+
+  group('the v4 draft', () {
+    test('is a clean v4 payload', () {
+      final report = validateThemePayload(
+        readJson('$repoRoot/conformance/draft/v4-kitchen-sink.json'),
+      );
+      expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
+      expect(report.warningCount, 0, reason: report.issues.join('\n'));
     });
   });
 }

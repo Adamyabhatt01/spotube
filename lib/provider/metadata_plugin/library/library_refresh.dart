@@ -129,7 +129,8 @@ final savedLibraryRefreshProvider = Provider<SavedLibraryRefresher>((ref) {
       // thousands of rows, and a newly liked track arrives at its head.
       SavedLibraryList.tracks: () => _syncList(
             ref,
-            ensureBuilt: () => ref.read(metadataPluginSavedTracksProvider.future),
+            ensureBuilt: () =>
+                ref.read(metadataPluginSavedTracksProvider.future),
             refresh: () =>
                 ref.read(metadataPluginSavedTracksProvider.notifier).refresh(),
             wasDiscarded: () => ref
@@ -139,7 +140,8 @@ final savedLibraryRefreshProvider = Provider<SavedLibraryRefresher>((ref) {
 
       SavedLibraryList.albums: () => _syncList(
             ref,
-            ensureBuilt: () => ref.read(metadataPluginSavedAlbumsProvider.future),
+            ensureBuilt: () =>
+                ref.read(metadataPluginSavedAlbumsProvider.future),
             refresh: () =>
                 ref.read(metadataPluginSavedAlbumsProvider.notifier).refresh(),
             wasDiscarded: () => ref

@@ -12,7 +12,8 @@ import 'package:spotube/provider/database/database.dart';
 /// Reads the existing [HistoryTable] filtered to `type = 'radio'` and deduped
 /// with a window function — the same pattern as the home-screen recently-played
 /// list — so listening history costs no new table or migration.
-class RadioHistoryNotifier extends AutoDisposeAsyncNotifier<List<RadioStation>> {
+class RadioHistoryNotifier
+    extends AutoDisposeAsyncNotifier<List<RadioStation>> {
   static const _limit = 20;
 
   static const _sql = '''
@@ -31,12 +32,10 @@ class RadioHistoryNotifier extends AutoDisposeAsyncNotifier<List<RadioStation>> 
   @override
   FutureOr<List<RadioStation>> build() async {
     final db = ref.watch(databaseProvider);
-    final query = db
-        .customSelect(
+    final query = db.customSelect(
       _sql,
       readsFrom: {db.historyTable},
-    )
-        .map((row) {
+    ).map((row) {
       return _stationFromRow(row);
     });
 

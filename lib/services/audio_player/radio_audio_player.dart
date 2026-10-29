@@ -109,6 +109,10 @@ class MediaKitRadioPlayerBackend implements RadioPlayerBackend {
   @override
   Future<void> setVolume(double volume) => _player.setVolume(volume * 100);
 
+  @override
+  Future<void> setAudioFilterChain(String chain) =>
+      _player.setAudioFilterChain(chain);
+
   /// Live ICY/`media-title` updates for the open stream; empty until the
   /// observer fires its first value. May update many times per station as
   /// tracks change, so the notifier treats the latest value as now-playing.
