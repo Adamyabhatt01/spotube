@@ -730,6 +730,10 @@ _$ThemeLayoutImpl _$$ThemeLayoutImplFromJson(Map json) => _$ThemeLayoutImpl(
               unknownValue: ThemeAside.none) ??
           ThemeAside.none,
       asideWidth: (json['asideWidth'] as num?)?.toDouble(),
+      shell: _themeShellFromJson(json['shell']),
+      pinTargets: json['pinTargets'] == null
+          ? const []
+          : _themePinTargetsFromJson(json['pinTargets']),
       player: json['player'] == null
           ? const ThemePlayerLayout()
           : ThemePlayerLayout.fromJson(
@@ -781,6 +785,8 @@ Map<String, dynamic> _$$ThemeLayoutImplToJson(_$ThemeLayoutImpl instance) =>
       'sidebarWidth': instance.sidebarWidth,
       'aside': _$ThemeAsideEnumMap[instance.aside]!,
       'asideWidth': instance.asideWidth,
+      'shell': _themeShellToJson(instance.shell),
+      'pinTargets': instance.pinTargets.map((e) => e.toJson()).toList(),
       'player': instance.player.toJson(),
       'enforce': instance.enforce,
       'navItems': instance.navItems,

@@ -317,6 +317,57 @@ final v4UiVocabulary = UiVocabulary(
   buttonVariants: v4ButtonVariants,
 );
 
+/// The v4 vocabulary with the slot names this payload's shell declares.
+///
+/// A custom region invents its slot (`bar.bottom`), so the closed built-in list
+/// grows by exactly the names the shell tree targets — not by a wildcard.
+UiVocabulary v4UiVocabularyFor(Iterable<String> shellSlots) {
+  final declared = shellSlots.toSet();
+  if (declared.isEmpty) return v4UiVocabulary;
+  return UiVocabulary(
+    maxSpecVersion: 2,
+    nodeTypes: v4UiNodeTypes,
+    nodeProps: v4UiNodeProps,
+    isBinding: isV4UiBinding,
+    actionTypes: v4UiActionTypes,
+    isSlot: (name) => isV4UiSlot(name) || declared.contains(name),
+    components: v4ComponentGroups,
+    buttonVariants: v4ButtonVariants,
+  );
+}
+
+/// Every slot a shell tree (or one of its responsive variants) names.
+Set<String> _shellSlotNames(Object? layout) {
+  final names = <String>{};
+
+  void walk(Object? raw) {
+    if (raw is! Map) return;
+    final slot = raw['slot'];
+    // `content` keeps the router outlet and ignores a slot, so a name that
+    // only appears there is not a slot the host will render.
+    if (raw['region'] != 'content' && slot is String && slot.isNotEmpty) {
+      names.add(slot);
+    }
+    final children = raw['children'];
+    if (children is List) {
+      for (final child in children) {
+        walk(child);
+      }
+    }
+  }
+
+  if (layout is Map) {
+    walk(layout['shell']);
+    final responsive = layout['responsive'];
+    if (responsive is Map) {
+      for (final variant in responsive.values) {
+        if (variant is Map) walk(variant['shell']);
+      }
+    }
+  }
+  return names;
+}
+
 const _layoutKeys = <String>{
   'chrome',
   'nav',
@@ -333,6 +384,8 @@ const _layoutKeys = <String>{
   'settings',
   'titlebar',
   'splash',
+  'shell',
+  'pinTargets',
   'responsive',
 };
 
@@ -350,6 +403,60 @@ const _splashKeys = <String>{'logo', 'background', 'text'};
 const _homeKeys = <String>{'sections'};
 const _settingsKeys = <String>{'sections'};
 
+/// The props a shell node may carry, whether it is a container or a leaf.
+const _shellNodeKeys = <String>{
+  'type',
+  'region',
+  'id',
+  'slot',
+  'label',
+  'width',
+  'height',
+  'flex',
+  'minWidth',
+  'maxWidth',
+  'minHeight',
+  'maxHeight',
+  'resizable',
+  'collapsible',
+  'collapsedSize',
+  'overflow',
+  'hiddenWhen',
+  'safeArea',
+  'zIndex',
+  'focusOrder',
+  'storageKey',
+  'children',
+};
+
+const _shellTypes = <String>{'row', 'column', 'stack', 'grid'};
+const _shellRegions = <String>{
+  'content',
+  'sidebar',
+  'aside',
+  'player',
+  'titlebar',
+  'navbar',
+  'custom',
+};
+
+/// Host regions a shell may declare at most once. `custom` is repeatable.
+const _shellSingles = <String>{
+  'sidebar',
+  'aside',
+  'player',
+  'titlebar',
+  'navbar',
+};
+
+const _shellOverflowModes = <String>{'clip', 'scroll', 'wrap', 'menu'};
+const _shellSafeAreas = <String>{'top', 'right', 'bottom', 'left'};
+const _shellResizeEdges = <String>{'start', 'end', 'top', 'bottom'};
+const _shellStorageKeyPattern = r'^[a-z][a-z0-9_.-]{0,63}$';
+const _shellPercentPattern = r'^(?:100(?:\.0+)?|[0-9]{1,2}(?:\.[0-9]+)?)%$';
+const _shellMaxDepth = 8;
+const _shellMaxLeaves = 24;
+
 const _responsiveKeys = <String>{
   'chrome',
   'nav',
@@ -366,6 +473,7 @@ const _responsiveKeys = <String>{
   'settings',
   'titlebar',
   'splash',
+  'shell',
   'pages',
 };
 
@@ -535,7 +643,7 @@ List<Issue> validateV4Blocks(Map<String, dynamic> payload) {
   issues.addAll(
     validateV3Blocks(
       payload,
-      vocabulary: v4UiVocabulary,
+      vocabulary: v4UiVocabularyFor(_shellSlotNames(payload['layout'])),
       allowComponentStates: false,
       allowKits: true,
     ),
@@ -945,6 +1053,8 @@ void _layoutV4(Object? raw, List<Issue> issues) {
   _enum(layout, 'layout.aside', const {'none', 'theme'}, issues);
   _size(layout, 'layout.sidebarWidth', issues);
   _size(layout, 'layout.asideWidth', issues);
+  _shell(layout['shell'], 'layout.shell', issues);
+  _pinTargets(layout['pinTargets'], 'layout.pinTargets', issues);
 
   final player = layout['player'];
   if (player is Map) {
@@ -989,6 +1099,7 @@ void _layoutV4(Object? raw, List<Issue> issues) {
     _enum(variant, '$path.aside', const {'none', 'theme'}, issues);
     _size(variant, '$path.sidebarWidth', issues);
     _size(variant, '$path.asideWidth', issues);
+    _shell(variant['shell'], '$path.shell', issues);
 
     final player = variant['player'];
     if (player is Map) {
@@ -1012,6 +1123,525 @@ void _layoutV4(Object? raw, List<Issue> issues) {
     final splash = variant['splash'];
     if (splash is Map) _sweep(splash, '$path.splash', _splashKeys, issues);
     _pageVisibility(variant['pages'], '$path.pages', issues);
+  }
+}
+
+/// Validates `layout.shell`.
+///
+/// The host parser fails closed: any invalid child throws away the whole shell
+/// and the legacy layout returns. This mirrors those structural rules and adds
+/// the type checks the parser silently coerces, so an author sees the broken
+/// path instead of a layout that quietly disappeared.
+void _shell(Object? raw, String path, List<Issue> issues) {
+  if (raw == null) return;
+  if (raw is! Map) {
+    issues.add(Issue(Severity.error, path, 'must be a shell node object'));
+    return;
+  }
+
+  final state = _ShellState();
+  _shellNode(raw.cast<String, dynamic>(), path, 0, state, issues);
+
+  if (state.contents == 0) {
+    issues.add(
+      Issue(
+        Severity.error,
+        path,
+        'shell must contain exactly one content region',
+      ),
+    );
+  }
+}
+
+class _ShellState {
+  int contents = 0;
+  int leaves = 0;
+  bool reportedLeaves = false;
+  final singlePaths = <String, String>{};
+  final idPaths = <String, String>{};
+  final slotPaths = <String, String>{};
+}
+
+void _shellNode(
+  Map<String, dynamic> node,
+  String path,
+  int depth,
+  _ShellState state,
+  List<Issue> issues,
+) {
+  if (depth > _shellMaxDepth) {
+    issues.add(
+      Issue(
+        Severity.error,
+        path,
+        'shell nests deeper than $_shellMaxDepth containers',
+      ),
+    );
+    return;
+  }
+
+  _sweep(node, path, _shellNodeKeys, issues);
+
+  final region = node['region'];
+  final type = node['type'];
+  if (region != null && type != null) {
+    issues.add(
+      Issue(
+        Severity.error,
+        path,
+        'a node is either a region leaf or a container, not both',
+      ),
+    );
+    return;
+  }
+  if (region == null && type == null) {
+    issues.add(
+      Issue(Severity.error, path, 'must declare either region or type'),
+    );
+    return;
+  }
+
+  if (region != null) {
+    _shellRegion(node, path, state, issues);
+    return;
+  }
+  _shellContainer(node, path, depth, state, issues);
+}
+
+void _shellContainer(
+  Map<String, dynamic> node,
+  String path,
+  int depth,
+  _ShellState state,
+  List<Issue> issues,
+) {
+  final type = node['type'];
+  if (type is! String || !_shellTypes.contains(type)) {
+    issues.add(
+      Issue(
+        Severity.error,
+        '$path.type',
+        'must be one of ${_shellTypes.join(', ')}',
+      ),
+    );
+    return;
+  }
+
+  final children = node['children'];
+  if (children is! List) {
+    issues.add(
+      Issue(Severity.error, '$path.children', 'must be a list of nodes'),
+    );
+    return;
+  }
+  if (children.isEmpty) {
+    issues.add(
+      Issue(Severity.error, '$path.children', 'must contain at least one node'),
+    );
+    return;
+  }
+  if (children.length > _shellMaxLeaves) {
+    issues.add(
+      Issue(
+        Severity.error,
+        '$path.children',
+        'more than $_shellMaxLeaves children — the host drops the extras',
+      ),
+    );
+  }
+
+  for (var i = 0; i < children.length; i++) {
+    final child = children[i];
+    final childPath = '$path.children[$i]';
+    if (child is! Map) {
+      issues.add(
+        Issue(Severity.error, childPath, 'must be a shell node object'),
+      );
+      continue;
+    }
+    _shellNode(
+      child.cast<String, dynamic>(),
+      childPath,
+      depth + 1,
+      state,
+      issues,
+    );
+  }
+}
+
+void _shellRegion(
+  Map<String, dynamic> node,
+  String path,
+  _ShellState state,
+  List<Issue> issues,
+) {
+  final region = node['region'];
+  if (region is! String || !_shellRegions.contains(region)) {
+    issues.add(
+      Issue(
+        Severity.error,
+        '$path.region',
+        'must be one of ${_shellRegions.join(', ')}',
+      ),
+    );
+    return;
+  }
+
+  state.leaves++;
+  if (state.leaves > _shellMaxLeaves && !state.reportedLeaves) {
+    state.reportedLeaves = true;
+    issues.add(
+      Issue(
+        Severity.error,
+        path,
+        'shell has more than $_shellMaxLeaves region leaves',
+      ),
+    );
+  }
+
+  String? id;
+  final idRaw = node['id'];
+  if (idRaw != null) {
+    if (idRaw is! String || idRaw.trim().isEmpty || idRaw.length > 64) {
+      issues.add(
+        Issue(
+          Severity.error,
+          '$path.id',
+          'must be a non-empty string of at most 64 characters',
+        ),
+      );
+    } else {
+      id = idRaw;
+    }
+  }
+
+  final slotRaw = node['slot'];
+  String? slot;
+  if (slotRaw != null) {
+    if (slotRaw is! String || slotRaw.trim().isEmpty || slotRaw.length > 64) {
+      issues.add(
+        Issue(
+          Severity.error,
+          '$path.slot',
+          'must be a non-empty string of at most 64 characters',
+        ),
+      );
+    } else {
+      slot = slotRaw;
+    }
+  }
+
+  if (region == 'custom') {
+    if (id == null) {
+      issues.add(
+        Issue(Severity.error, '$path.id', 'custom regions require an id'),
+      );
+    }
+    if (slot == null) {
+      issues.add(
+        Issue(Severity.error, '$path.slot', 'custom regions require a slot'),
+      );
+    }
+    if (node['label'] == null) {
+      issues.add(
+        Issue(
+          Severity.warning,
+          path,
+          'custom regions need a label for screen readers',
+        ),
+      );
+    }
+  }
+
+  final effectiveId = id ?? (region == 'custom' ? null : region);
+  if (effectiveId != null) {
+    final prior = state.idPaths[effectiveId];
+    if (prior != null) {
+      issues.add(
+        Issue(
+          Severity.error,
+          '$path.id',
+          'duplicate region id "$effectiveId" (already used at $prior)',
+        ),
+      );
+    } else {
+      state.idPaths[effectiveId] = path;
+    }
+  }
+
+  if (region == 'content') {
+    state.contents++;
+    if (state.contents > 1) {
+      issues.add(
+        Issue(
+          Severity.error,
+          path,
+          'duplicate content region — a shell has exactly one',
+        ),
+      );
+    }
+  } else if (_shellSingles.contains(region)) {
+    final prior = state.singlePaths[region];
+    if (prior != null) {
+      issues.add(
+        Issue(
+          Severity.error,
+          path,
+          'duplicate $region region (already declared at $prior)',
+        ),
+      );
+    } else {
+      state.singlePaths[region] = path;
+    }
+  }
+
+  if (slot != null) {
+    final prior = state.slotPaths[slot];
+    if (prior != null) {
+      issues.add(
+        Issue(
+          Severity.warning,
+          '$path.slot',
+          'slot "$slot" is also drawn at $prior',
+        ),
+      );
+    } else {
+      state.slotPaths[slot] = path;
+    }
+  }
+
+  _shellSize(node['width'], '$path.width', issues);
+  _shellSize(node['height'], '$path.height', issues);
+  _shellInteger(node['flex'], '$path.flex', 0, 1000, issues);
+  _shellNumber(node['minWidth'], '$path.minWidth', 0, 4000, issues);
+  _shellNumber(node['maxWidth'], '$path.maxWidth', 0, 4000, issues);
+  _shellNumber(node['minHeight'], '$path.minHeight', 0, 4000, issues);
+  _shellNumber(node['maxHeight'], '$path.maxHeight', 0, 4000, issues);
+  _shellNumber(node['collapsedSize'], '$path.collapsedSize', 0, 4000, issues);
+  _shellInteger(node['zIndex'], '$path.zIndex', 0, 1000, issues);
+  _shellInteger(node['focusOrder'], '$path.focusOrder', 0, 1000, issues);
+  _bool(node, '$path.collapsible', issues);
+  _shellString(node['label'], '$path.label', 80, issues);
+  _shellString(node['hiddenWhen'], '$path.hiddenWhen', 200, issues);
+
+  final overflow = node['overflow'];
+  if (overflow != null &&
+      (overflow is! String || !_shellOverflowModes.contains(overflow))) {
+    issues.add(
+      Issue(
+        Severity.error,
+        '$path.overflow',
+        'must be one of ${_shellOverflowModes.join(', ')}',
+      ),
+    );
+  }
+
+  _shellSafeArea(node['safeArea'], '$path.safeArea', issues);
+  _shellResizable(node['resizable'], '$path.resizable', issues);
+
+  final storageKey = node['storageKey'];
+  if (storageKey != null &&
+      (storageKey is! String ||
+          !RegExp(_shellStorageKeyPattern).hasMatch(storageKey))) {
+    issues.add(
+      Issue(
+        Severity.error,
+        '$path.storageKey',
+        'must be a lowercase key of at most 64 characters '
+            '(letters, digits, _, . and -)',
+      ),
+    );
+  }
+}
+
+void _shellSize(Object? value, String path, List<Issue> issues) {
+  if (value == null) return;
+  if (value is num && value.isFinite && value >= 0 && value <= 4000) return;
+  if (value == 'auto') return;
+  if (value is String && RegExp(_shellPercentPattern).hasMatch(value)) return;
+  issues.add(
+    Issue(
+      Severity.error,
+      path,
+      'must be pixels (0..4000), a percentage, or "auto"',
+    ),
+  );
+}
+
+void _shellNumber(
+  Object? value,
+  String path,
+  double min,
+  double max,
+  List<Issue> issues,
+) {
+  if (value == null) return;
+  if (value is num && value.isFinite && value >= min && value <= max) return;
+  issues.add(
+    Issue(
+      Severity.error,
+      path,
+      'must be a number between ${min.toInt()} and ${max.toInt()}',
+    ),
+  );
+}
+
+void _shellInteger(
+  Object? value,
+  String path,
+  int min,
+  int max,
+  List<Issue> issues,
+) {
+  if (value == null) return;
+  if (value is num &&
+      value.isFinite &&
+      value == value.roundToDouble() &&
+      value >= min &&
+      value <= max) {
+    return;
+  }
+  issues.add(
+    Issue(Severity.error, path, 'must be an integer between $min and $max'),
+  );
+}
+
+void _shellString(Object? value, String path, int max, List<Issue> issues) {
+  if (value == null) return;
+  if (value is String && value.length <= max) return;
+  issues.add(
+    Issue(Severity.error, path, 'must be a string of at most $max characters'),
+  );
+}
+
+void _shellSafeArea(Object? raw, String path, List<Issue> issues) {
+  if (raw == null) return;
+  if (raw is! List) {
+    issues.add(Issue(Severity.error, path, 'must be a list of edges'));
+    return;
+  }
+  final seen = <String>{};
+  for (var i = 0; i < raw.length; i++) {
+    final edge = raw[i];
+    if (edge is! String || !_shellSafeAreas.contains(edge)) {
+      issues.add(
+        Issue(
+          Severity.error,
+          '$path[$i]',
+          'must be one of ${_shellSafeAreas.join(', ')}',
+        ),
+      );
+    } else if (!seen.add(edge)) {
+      issues.add(Issue(Severity.error, '$path[$i]', 'duplicate edge "$edge"'));
+    }
+  }
+}
+
+void _shellResizable(Object? raw, String path, List<Issue> issues) {
+  if (raw == null || raw is bool) return;
+  if (raw is! Map) {
+    issues.add(
+      Issue(
+        Severity.error,
+        path,
+        'must be a boolean or a {edges, storageKey, min, max} object',
+      ),
+    );
+    return;
+  }
+
+  _sweep(raw, path, const {'edges', 'storageKey', 'min', 'max'}, issues);
+  final edges = raw['edges'];
+  if (edges != null) {
+    if (edges is! List) {
+      issues.add(Issue(Severity.error, '$path.edges', 'must be a list'));
+    } else {
+      final seen = <String>{};
+      for (var i = 0; i < edges.length; i++) {
+        final edge = edges[i];
+        if (edge is! String || !_shellResizeEdges.contains(edge)) {
+          issues.add(
+            Issue(
+              Severity.error,
+              '$path.edges[$i]',
+              'must be one of ${_shellResizeEdges.join(', ')}',
+            ),
+          );
+        } else if (!seen.add(edge)) {
+          issues.add(
+            Issue(Severity.error, '$path.edges[$i]', 'duplicate edge "$edge"'),
+          );
+        }
+      }
+    }
+  }
+
+  final storageKey = raw['storageKey'];
+  if (storageKey != null &&
+      (storageKey is! String ||
+          !RegExp(_shellStorageKeyPattern).hasMatch(storageKey))) {
+    issues.add(
+      Issue(
+        Severity.error,
+        '$path.storageKey',
+        'must be a lowercase key of at most 64 characters '
+            '(letters, digits, _, . and -)',
+      ),
+    );
+  }
+  _shellNumber(raw['min'], '$path.min', 0, 4000, issues);
+  _shellNumber(raw['max'], '$path.max', 0, 4000, issues);
+}
+
+/// Validates `layout.pinTargets`.
+void _pinTargets(Object? raw, String path, List<Issue> issues) {
+  if (raw == null) return;
+  if (raw is! List) {
+    issues.add(Issue(Severity.error, path, 'must be a list of pin targets'));
+    return;
+  }
+
+  final ids = <String, int>{};
+  for (var i = 0; i < raw.length; i++) {
+    final targetPath = '$path[$i]';
+    final target = raw[i];
+    if (target is! Map) {
+      issues.add(Issue(Severity.error, targetPath, 'must be an object'));
+      continue;
+    }
+    _sweep(target, targetPath, const {'id', 'label'}, issues);
+
+    final id = target['id'];
+    if (id is! String || id.trim().isEmpty || id.length > 64) {
+      issues.add(
+        Issue(
+          Severity.error,
+          '$targetPath.id',
+          'must be a non-empty string of at most 64 characters',
+        ),
+      );
+    } else if (ids.containsKey(id)) {
+      issues.add(
+        Issue(
+          Severity.error,
+          '$targetPath.id',
+          'duplicate pin target id (already declared at index ${ids[id]})',
+        ),
+      );
+    } else {
+      ids[id] = i;
+    }
+
+    final label = target['label'];
+    if (label != null && (label is! String || label.length > 80)) {
+      issues.add(
+        Issue(
+          Severity.error,
+          '$targetPath.label',
+          'must be a string of at most 80 characters',
+        ),
+      );
+    }
   }
 }
 

@@ -15,6 +15,273 @@
       "type": "string",
       "pattern": "^screen:[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$"
     },
+    "shellSize": {
+      "oneOf": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4000
+        },
+        {
+          "const": "auto"
+        },
+        {
+          "type": "string",
+          "pattern": "^(?:100(?:\\.0+)?|[0-9]{1,2}(?:\\.[0-9]+)?)%$"
+        }
+      ]
+    },
+    "shellResize": {
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "edges": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "start",
+                  "end",
+                  "top",
+                  "bottom"
+                ]
+              }
+            },
+            "storageKey": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
+            },
+            "min": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            },
+            "max": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 4000
+            }
+          }
+        }
+      ]
+    },
+    "shellNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "row",
+            "column",
+            "stack",
+            "grid"
+          ]
+        },
+        "region": {
+          "enum": [
+            "content",
+            "sidebar",
+            "aside",
+            "player",
+            "titlebar",
+            "navbar",
+            "custom"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "slot": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "width": {
+          "$ref": "#/definitions/shellSize"
+        },
+        "height": {
+          "$ref": "#/definitions/shellSize"
+        },
+        "flex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "minWidth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4000
+        },
+        "maxWidth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4000
+        },
+        "minHeight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4000
+        },
+        "maxHeight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4000
+        },
+        "resizable": {
+          "$ref": "#/definitions/shellResize"
+        },
+        "collapsible": {
+          "type": "boolean"
+        },
+        "collapsedSize": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4000
+        },
+        "overflow": {
+          "enum": [
+            "clip",
+            "scroll",
+            "wrap",
+            "menu"
+          ]
+        },
+        "hiddenWhen": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "safeArea": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "top",
+              "right",
+              "bottom",
+              "left"
+            ]
+          }
+        },
+        "zIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "focusOrder": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "storageKey": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
+        },
+        "children": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "items": {
+            "$ref": "#/definitions/shellNode"
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "region"
+          ]
+        },
+        {
+          "required": [
+            "type"
+          ]
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "region"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "type"
+                  ]
+                },
+                {
+                  "required": [
+                    "children"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "children"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "region": {
+                "const": "custom"
+              }
+            },
+            "required": [
+              "region"
+            ]
+          },
+          "then": {
+            "required": [
+              "id",
+              "slot"
+            ]
+          }
+        }
+      ]
+    },
+    "pinTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 80
+        }
+      }
+    },
     "color": {
       "type": "string",
       "pattern": "^#?([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
@@ -5678,6 +5945,9 @@
             }
           }
         },
+        "shell": {
+          "$ref": "#/definitions/shellNode"
+        },
         "responsive": {
           "type": "object",
           "maxProperties": 3,
@@ -5868,6 +6138,9 @@
                   }
                 }
               },
+              "shell": {
+                "$ref": "#/definitions/shellNode"
+              },
               "sidebar": {
                 "enum": [
                   "host",
@@ -5934,6 +6207,12 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1000
+        },
+        "pinTargets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/pinTarget"
+          }
         }
       }
     },
@@ -6089,6 +6368,11 @@
               {
                 "type": "string",
                 "pattern": "^page\\.[a-z][a-z0-9_-]{0,31}$"
+              },
+              {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^[a-z][a-z0-9_-]*(?:\\.[a-z][a-z0-9_-]*){1,3}$"
               }
             ]
           },

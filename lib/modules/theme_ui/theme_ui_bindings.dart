@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:spotube/models/equalizer/equalizer.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/models/radio/radio_station.dart';
+import 'package:spotube/modules/theme_ui/theme_pins.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_binding_demand.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/audio_player/audio_player_port.dart';
@@ -244,6 +245,7 @@ ThemeUiBindings buildThemeUiBindings(
   required Brightness brightness,
   required String themeMode,
   ThemeUiBindingDemand? demand,
+  ThemeLayout? layout,
 }) {
   final wants = demand ?? ThemeUiBindingDemand.all;
   final values = <String, Object?>{};
@@ -389,6 +391,9 @@ ThemeUiBindings buildThemeUiBindings(
   }
 
   // ----------------------------------------------------------- library
+  if (wants.wants('library.pinTargets')) {
+    values['library.pinTargets'] = themePinTargets(layout);
+  }
   final wantsPlaylists = wants.wants('library.playlists');
   final wantsPins = wants.wants('library.pins');
   final wantsAlbums = wants.wants('library.albums');
@@ -429,10 +434,18 @@ ThemeUiBindings buildThemeUiBindings(
     final pinnedIds = preferences == null
         ? const <String>{}
         : preferences.pinnedPlaylistIds.toSet();
+    final targetPins = (wantsPins || wantsPlaylists || wantsCounts)
+        ? ref.watch(themePinsProvider)
+        : const <String, List<String>>{};
+    final allPinnedIds = {
+      ...pinnedIds,
+      for (final ids in targetPins.values) ...ids,
+    };
     final folders = preferences?.localLibraryLocation ?? const <String>[];
 
     if (wantsPlaylists) {
-      values['library.playlists'] = themeLibraryPlaylists(playlists, pinnedIds);
+      values['library.playlists'] =
+          themeLibraryPlaylists(playlists, allPinnedIds);
     }
     if (wantsAlbums) values['library.albums'] = themeLibraryAlbums(albums);
     if (wantsArtists) {
@@ -446,6 +459,7 @@ ThemeUiBindings buildThemeUiBindings(
       values['library.pins'] = themeLibraryPins(
         playlists,
         pinnedIds,
+        targetPins: targetPins,
         stationPins: stationPins,
         favorites: ref.watch(radioFavoritesProvider).asData?.value ??
             const <RadioStation>[],
@@ -457,6 +471,7 @@ ThemeUiBindings buildThemeUiBindings(
       values['library.counts'] = {
         'playlists': playlists.length,
         'pins': (preferences?.pinnedPlaylistIds.length ?? 0) +
+            targetPins.values.fold<int>(0, (sum, ids) => sum + ids.length) +
             (preferences?.pinnedStationIds.length ?? 0),
         'albums': albums.length,
         'artists': artists.length,
@@ -645,9 +660,27 @@ List<Map<String, Object?>> themeLibraryFolders(Iterable<String> locations) {
   ];
 }
 
+/// The declared pin destinations, or the historic sidebar target.
+///
+/// A theme must declare `layout.pinTargets` before a pin can name a bar; an
+/// empty declaration keeps the pre-5B behaviour where every pin lives in the
+/// sidebar.
+List<Map<String, Object?>> themePinTargets(ThemeLayout? layout) {
+  final targets = layout?.pinTargets ?? const <ThemePinTarget>[];
+  if (targets.isEmpty) {
+    return const [
+      {'id': 'sidebar', 'label': 'Sidebar'},
+    ];
+  }
+  return [
+    for (final target in targets) {'id': target.id, 'label': target.label},
+  ];
+}
+
 List<Map<String, Object?>> themeLibraryPins(
   Iterable<SpotubeSimplePlaylistObject> playlists,
   Set<String> pinnedPlaylistIds, {
+  Map<String, List<String>> targetPins = const {},
   Iterable<String> stationPins = const [],
   Iterable<RadioStation> favorites = const [],
   Iterable<RadioStation> history = const [],
@@ -658,22 +691,31 @@ List<Map<String, Object?>> themeLibraryPins(
     stations[station.favoriteKey] = station;
   }
 
+  Map<String, Object?> playlistPin(
+    SpotubeSimplePlaylistObject playlist,
+    String target,
+  ) =>
+      {
+        'id': playlist.id,
+        'name': playlist.name,
+        'artwork': playlist.images.asUrlString(
+          placeholder: ImagePlaceholder.collection,
+        ),
+        'owner': playlist.owner.name,
+        'trackCount': 0,
+        'pinned': true,
+        'target': target,
+        'palette': const <String, String>{},
+        'uri': playlist.externalUri,
+        'type': 'playlist',
+      };
+
   return [
     for (final id in pinnedPlaylistIds)
-      if (byId[id] case final playlist?)
-        {
-          'id': playlist.id,
-          'name': playlist.name,
-          'artwork': playlist.images.asUrlString(
-            placeholder: ImagePlaceholder.collection,
-          ),
-          'owner': playlist.owner.name,
-          'trackCount': 0,
-          'pinned': true,
-          'palette': const <String, String>{},
-          'uri': playlist.externalUri,
-          'type': 'playlist',
-        },
+      if (byId[id] case final playlist?) playlistPin(playlist, 'sidebar'),
+    for (final entry in targetPins.entries)
+      for (final id in entry.value)
+        if (byId[id] case final playlist?) playlistPin(playlist, entry.key),
     for (final key in stationPins)
       if (stations[key] case final station?)
         {
@@ -683,6 +725,7 @@ List<Map<String, Object?>> themeLibraryPins(
           'owner': station.provider,
           'trackCount': 0,
           'pinned': true,
+          'target': 'sidebar',
           'uri': station.homepageUrl ?? '',
           'type': 'station',
         },

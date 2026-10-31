@@ -28,6 +28,8 @@ class ThemeUiAction {
     'openItem',
     'likeItem',
     'downloadItem',
+    'pinItem',
+    'unpinItem',
     'dismiss',
     'setQuery',
     'clearQuery',

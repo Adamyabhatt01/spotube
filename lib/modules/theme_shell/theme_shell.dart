@@ -47,6 +47,7 @@ ThemeLayout applyResponsiveLayout(ThemeLayout base, double width) {
     aside: _aside(variant['aside']) ?? base.aside,
     asideWidth:
         _number(variant['asideWidth'], min: 0, max: 1000) ?? base.asideWidth,
+    shell: _shell(variant['shell']) ?? base.shell,
     player: _player(base.player, variant['player']),
     navItems: _strings(variant['navItems']) ?? base.navItems,
     navbarItems: _strings(variant['navbarItems']) ?? base.navbarItems,
@@ -123,6 +124,11 @@ List<String> resolveThemeSections({
     ids.add(value);
   }
   return ids.isEmpty ? defaults : ids;
+}
+
+ThemeShellLayout? _shell(Object? raw) {
+  if (raw == null) return null;
+  return ThemeShellLayout.parse(raw);
 }
 
 ThemePlayerLayout _player(ThemePlayerLayout base, Object? raw) {

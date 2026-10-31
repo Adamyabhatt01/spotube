@@ -50,9 +50,17 @@ class Sidebar extends HookConsumerWidget {
   /// edge instead of spanning the whole window as a scaffold footer.
   final Widget? contentFooter;
 
+  /// Draws only the sidebar column, without the content column, divider or
+  /// docked footer.
+  ///
+  /// A shell layout owns placement and width, so it mounts the sidebar as one
+  /// region among siblings rather than as a wrapper around the router.
+  final bool standalone;
+
   const Sidebar({
     required this.child,
     this.contentFooter,
+    this.standalone = false,
     super.key,
   });
 
@@ -222,7 +230,9 @@ class Sidebar extends HookConsumerWidget {
       (e) => router.currentPath.startsWith(e.pathPrefix),
     );
 
-    if (!sidebarVisibleOf(context, layoutMode)) return child;
+    if (!sidebarVisibleOf(context, layoutMode)) {
+      return standalone ? const SizedBox.shrink() : child;
+    }
 
     final scaling = Theme.of(context).scaling;
     final collapsed = ref.watch(
@@ -554,92 +564,98 @@ class Sidebar extends HookConsumerWidget {
       children: navigationButtons,
     );
 
+    // The sidebar column itself. The legacy shell wraps it beside the content;
+    // a shell layout mounts it as one region and owns the width instead.
+    final sidebarBody = hasThemeSidebar
+        // The theme owns the body; the host keeps the width box, the
+        // divider, the bottom clearance and the docked player.
+        ? Column(
+            children: [
+              const Expanded(
+                child: ThemeSlot(
+                  'sidebar.content',
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                ),
+              ),
+              // A standalone sidebar is laid out in flow by the shell, so a
+              // floating footer can never overlap it. Reserving the player's
+              // height there would just lift the profile row off the floor.
+              Gap(standalone ? 0 : bottomClearance),
+            ],
+          )
+        : Column(
+            children: [
+              if (showLabels && hasThemeHeader)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 14, 16, 2),
+                  child: ThemeSlot(
+                    'sidebar.header',
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  ),
+                ),
+              if (showLabels && hasThemeNavBefore)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
+                  child: ThemeSlot(
+                    'sidebar.nav.before',
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  ),
+                ),
+              Expanded(
+                child: showLabels
+                    // shadcn's pinned sidebar labels (NavigationLabel's
+                    // SliverPersistentHeader delegate) paint
+                    // `colorScheme.background` behind themselves, which is opaque
+                    // and punches a solid band across the backdrop at every group
+                    // heading. Transparent in this subtree only, and only while
+                    // a backdrop is actually being painted: with no shell glass
+                    // underneath, that band is the heading's real background.
+                    // The header still hides rows scrolled under it because it is
+                    // pinned over the backdrop layer, not over app content.
+                    ? transparentGround
+                        ? Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: () => colorScheme.copyWith(
+                                background: () => Colors.transparent,
+                              ),
+                            ),
+                            child: navigationSidebar,
+                          )
+                        : navigationSidebar
+                    : NavigationRail(
+                        // Opaque `background` by default (shadcn fills
+                        // `colorScheme.background`); transparent with the
+                        // ground, same as the label band above.
+                        backgroundColor:
+                            transparentGround ? Colors.transparent : null,
+                        alignment: NavigationRailAlignment.start,
+                        index: selectedIndex,
+                        onSelected: (index) {
+                          openSideBarTile(context, ref, tileList[index]);
+                        },
+                        children: navigationButtons,
+                      ),
+              ),
+              if (showLabels && hasThemeFooter)
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(12, 0, 12, 4),
+                  child: ThemeSlot(
+                    'sidebar.footer',
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  ),
+                )
+              else
+                SidebarFooter(compact: !showLabels),
+              Gap(standalone ? 0 : bottomClearance),
+            ],
+          );
+
+    if (standalone) return sidebarBody;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: leftPaneWidth,
-          child: hasThemeSidebar
-              // The theme owns the body; the host keeps the width box, the
-              // divider, the bottom clearance and the docked player.
-              ? Column(
-                  children: [
-                    const Expanded(
-                      child: ThemeSlot(
-                        'sidebar.content',
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                      ),
-                    ),
-                    Gap(bottomClearance),
-                  ],
-                )
-              : Column(
-                  children: [
-                    if (showLabels && hasThemeHeader)
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(16, 14, 16, 2),
-                        child: ThemeSlot(
-                          'sidebar.header',
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                        ),
-                      ),
-                    if (showLabels && hasThemeNavBefore)
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
-                        child: ThemeSlot(
-                          'sidebar.nav.before',
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                        ),
-                      ),
-                    Expanded(
-                      child: showLabels
-                          // shadcn's pinned sidebar labels (NavigationLabel's
-                          // SliverPersistentHeader delegate) paint
-                          // `colorScheme.background` behind themselves, which is opaque
-                          // and punches a solid band across the backdrop at every group
-                          // heading. Transparent in this subtree only, and only while
-                          // a backdrop is actually being painted: with no shell glass
-                          // underneath, that band is the heading's real background.
-                          // The header still hides rows scrolled under it because it is
-                          // pinned over the backdrop layer, not over app content.
-                          ? transparentGround
-                              ? Theme(
-                                  data: Theme.of(context).copyWith(
-                                    colorScheme: () => colorScheme.copyWith(
-                                      background: () => Colors.transparent,
-                                    ),
-                                  ),
-                                  child: navigationSidebar,
-                                )
-                              : navigationSidebar
-                          : NavigationRail(
-                              // Opaque `background` by default (shadcn fills
-                              // `colorScheme.background`); transparent with the
-                              // ground, same as the label band above.
-                              backgroundColor:
-                                  transparentGround ? Colors.transparent : null,
-                              alignment: NavigationRailAlignment.start,
-                              index: selectedIndex,
-                              onSelected: (index) {
-                                openSideBarTile(context, ref, tileList[index]);
-                              },
-                              children: navigationButtons,
-                            ),
-                    ),
-                    if (showLabels && hasThemeFooter)
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(12, 0, 12, 4),
-                        child: ThemeSlot(
-                          'sidebar.footer',
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                        ),
-                      )
-                    else
-                      SidebarFooter(compact: !showLabels),
-                    Gap(bottomClearance),
-                  ],
-                ),
-        ),
+        SizedBox(width: leftPaneWidth, child: sidebarBody),
         const VerticalDivider(),
         Expanded(
           child: contentFooter == null

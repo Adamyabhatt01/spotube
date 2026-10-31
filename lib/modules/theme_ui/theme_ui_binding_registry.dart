@@ -108,6 +108,8 @@ class ThemeUiBindingRegistry {
         phase: 'existing'),
     ThemeUiBindingDefinition(
         'library.playlists', ThemeUiBindingKind.list, 'savedPlaylists'),
+    ThemeUiBindingDefinition(
+        'library.pinTargets', ThemeUiBindingKind.list, 'themeLayout'),
     ThemeUiBindingDefinition('library.pins', ThemeUiBindingKind.list, 'pins'),
     ThemeUiBindingDefinition(
         'library.albums', ThemeUiBindingKind.list, 'savedAlbums'),

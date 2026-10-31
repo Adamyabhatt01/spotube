@@ -7672,6 +7672,21 @@ mixin _$ThemeLayout {
   /// The validator clamps 0–1000.
   double? get asideWidth => throw _privateConstructorUsedError;
 
+  /// A rearranged shell: rows, columns, stacks and grid containers holding
+  /// named regions. Null keeps the host's own shell.
+  ///
+  /// Parsed leniently by [ThemeShellLayout.parse]: a tree that fails the
+  /// host's structural rules reads as null and the legacy layout stands, so
+  /// a malformed descriptor cannot blank the app. The theme-side validator
+  /// reports the same problems as errors.
+  @JsonKey(fromJson: _themeShellFromJson, toJson: _themeShellToJson)
+  ThemeShellLayout? get shell => throw _privateConstructorUsedError;
+
+  /// Where a theme's pins may be shown. The host validates a pin's `target`
+  /// against this list; an empty list keeps the historic sidebar target.
+  @JsonKey(fromJson: _themePinTargetsFromJson)
+  List<ThemePinTarget> get pinTargets => throw _privateConstructorUsedError;
+
   /// The player's own shape. `stage` makes the player the centre of the
   /// app (the theme fills `stage.center`/`stage.below`); the other values
   /// keep the host's footer player.
@@ -7735,6 +7750,10 @@ abstract class $ThemeLayoutCopyWith<$Res> {
       double? sidebarWidth,
       @JsonKey(unknownEnumValue: ThemeAside.none) ThemeAside aside,
       double? asideWidth,
+      @JsonKey(fromJson: _themeShellFromJson, toJson: _themeShellToJson)
+      ThemeShellLayout? shell,
+      @JsonKey(fromJson: _themePinTargetsFromJson)
+      List<ThemePinTarget> pinTargets,
       ThemePlayerLayout player,
       List<String> enforce,
       List<String> navItems,
@@ -7771,6 +7790,8 @@ class _$ThemeLayoutCopyWithImpl<$Res, $Val extends ThemeLayout>
     Object? sidebarWidth = freezed,
     Object? aside = null,
     Object? asideWidth = freezed,
+    Object? shell = freezed,
+    Object? pinTargets = null,
     Object? player = null,
     Object? enforce = null,
     Object? navItems = null,
@@ -7811,6 +7832,14 @@ class _$ThemeLayoutCopyWithImpl<$Res, $Val extends ThemeLayout>
           ? _value.asideWidth
           : asideWidth // ignore: cast_nullable_to_non_nullable
               as double?,
+      shell: freezed == shell
+          ? _value.shell
+          : shell // ignore: cast_nullable_to_non_nullable
+              as ThemeShellLayout?,
+      pinTargets: null == pinTargets
+          ? _value.pinTargets
+          : pinTargets // ignore: cast_nullable_to_non_nullable
+              as List<ThemePinTarget>,
       player: null == player
           ? _value.player
           : player // ignore: cast_nullable_to_non_nullable
@@ -7882,6 +7911,10 @@ abstract class _$$ThemeLayoutImplCopyWith<$Res>
       double? sidebarWidth,
       @JsonKey(unknownEnumValue: ThemeAside.none) ThemeAside aside,
       double? asideWidth,
+      @JsonKey(fromJson: _themeShellFromJson, toJson: _themeShellToJson)
+      ThemeShellLayout? shell,
+      @JsonKey(fromJson: _themePinTargetsFromJson)
+      List<ThemePinTarget> pinTargets,
       ThemePlayerLayout player,
       List<String> enforce,
       List<String> navItems,
@@ -7917,6 +7950,8 @@ class __$$ThemeLayoutImplCopyWithImpl<$Res>
     Object? sidebarWidth = freezed,
     Object? aside = null,
     Object? asideWidth = freezed,
+    Object? shell = freezed,
+    Object? pinTargets = null,
     Object? player = null,
     Object? enforce = null,
     Object? navItems = null,
@@ -7957,6 +7992,14 @@ class __$$ThemeLayoutImplCopyWithImpl<$Res>
           ? _value.asideWidth
           : asideWidth // ignore: cast_nullable_to_non_nullable
               as double?,
+      shell: freezed == shell
+          ? _value.shell
+          : shell // ignore: cast_nullable_to_non_nullable
+              as ThemeShellLayout?,
+      pinTargets: null == pinTargets
+          ? _value._pinTargets
+          : pinTargets // ignore: cast_nullable_to_non_nullable
+              as List<ThemePinTarget>,
       player: null == player
           ? _value.player
           : player // ignore: cast_nullable_to_non_nullable
@@ -8015,6 +8058,10 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
       this.sidebarWidth,
       @JsonKey(unknownEnumValue: ThemeAside.none) this.aside = ThemeAside.none,
       this.asideWidth,
+      @JsonKey(fromJson: _themeShellFromJson, toJson: _themeShellToJson)
+      this.shell,
+      @JsonKey(fromJson: _themePinTargetsFromJson)
+      final List<ThemePinTarget> pinTargets = const [],
       this.player = const ThemePlayerLayout(),
       final List<String> enforce = const [],
       final List<String> navItems = const [],
@@ -8025,7 +8072,8 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
       final Map<String, dynamic> titlebar = const {},
       final Map<String, dynamic> splash = const {},
       final Map<String, dynamic> responsive = const {}})
-      : _enforce = enforce,
+      : _pinTargets = pinTargets,
+        _enforce = enforce,
         _navItems = navItems,
         _navbarItems = navbarItems,
         _libraryItems = libraryItems,
@@ -8078,6 +8126,31 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
   /// The validator clamps 0–1000.
   @override
   final double? asideWidth;
+
+  /// A rearranged shell: rows, columns, stacks and grid containers holding
+  /// named regions. Null keeps the host's own shell.
+  ///
+  /// Parsed leniently by [ThemeShellLayout.parse]: a tree that fails the
+  /// host's structural rules reads as null and the legacy layout stands, so
+  /// a malformed descriptor cannot blank the app. The theme-side validator
+  /// reports the same problems as errors.
+  @override
+  @JsonKey(fromJson: _themeShellFromJson, toJson: _themeShellToJson)
+  final ThemeShellLayout? shell;
+
+  /// Where a theme's pins may be shown. The host validates a pin's `target`
+  /// against this list; an empty list keeps the historic sidebar target.
+  final List<ThemePinTarget> _pinTargets;
+
+  /// Where a theme's pins may be shown. The host validates a pin's `target`
+  /// against this list; an empty list keeps the historic sidebar target.
+  @override
+  @JsonKey(fromJson: _themePinTargetsFromJson)
+  List<ThemePinTarget> get pinTargets {
+    if (_pinTargets is EqualUnmodifiableListView) return _pinTargets;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_pinTargets);
+  }
 
   /// The player's own shape. `stage` makes the player the centre of the
   /// app (the theme fills `stage.center`/`stage.below`); the other values
@@ -8211,7 +8284,7 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
 
   @override
   String toString() {
-    return 'ThemeLayout(chrome: $chrome, nav: $nav, progress: $progress, sidebar: $sidebar, sidebarWidth: $sidebarWidth, aside: $aside, asideWidth: $asideWidth, player: $player, enforce: $enforce, navItems: $navItems, navbarItems: $navbarItems, libraryItems: $libraryItems, home: $home, settings: $settings, titlebar: $titlebar, splash: $splash, responsive: $responsive)';
+    return 'ThemeLayout(chrome: $chrome, nav: $nav, progress: $progress, sidebar: $sidebar, sidebarWidth: $sidebarWidth, aside: $aside, asideWidth: $asideWidth, shell: $shell, pinTargets: $pinTargets, player: $player, enforce: $enforce, navItems: $navItems, navbarItems: $navbarItems, libraryItems: $libraryItems, home: $home, settings: $settings, titlebar: $titlebar, splash: $splash, responsive: $responsive)';
   }
 
   @override
@@ -8229,6 +8302,9 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
             (identical(other.aside, aside) || other.aside == aside) &&
             (identical(other.asideWidth, asideWidth) ||
                 other.asideWidth == asideWidth) &&
+            (identical(other.shell, shell) || other.shell == shell) &&
+            const DeepCollectionEquality()
+                .equals(other._pinTargets, _pinTargets) &&
             (identical(other.player, player) || other.player == player) &&
             const DeepCollectionEquality().equals(other._enforce, _enforce) &&
             const DeepCollectionEquality().equals(other._navItems, _navItems) &&
@@ -8246,25 +8322,28 @@ class _$ThemeLayoutImpl implements _ThemeLayout {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      chrome,
-      nav,
-      progress,
-      sidebar,
-      sidebarWidth,
-      aside,
-      asideWidth,
-      player,
-      const DeepCollectionEquality().hash(_enforce),
-      const DeepCollectionEquality().hash(_navItems),
-      const DeepCollectionEquality().hash(_navbarItems),
-      const DeepCollectionEquality().hash(_libraryItems),
-      const DeepCollectionEquality().hash(_home),
-      const DeepCollectionEquality().hash(_settings),
-      const DeepCollectionEquality().hash(_titlebar),
-      const DeepCollectionEquality().hash(_splash),
-      const DeepCollectionEquality().hash(_responsive));
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        chrome,
+        nav,
+        progress,
+        sidebar,
+        sidebarWidth,
+        aside,
+        asideWidth,
+        shell,
+        const DeepCollectionEquality().hash(_pinTargets),
+        player,
+        const DeepCollectionEquality().hash(_enforce),
+        const DeepCollectionEquality().hash(_navItems),
+        const DeepCollectionEquality().hash(_navbarItems),
+        const DeepCollectionEquality().hash(_libraryItems),
+        const DeepCollectionEquality().hash(_home),
+        const DeepCollectionEquality().hash(_settings),
+        const DeepCollectionEquality().hash(_titlebar),
+        const DeepCollectionEquality().hash(_splash),
+        const DeepCollectionEquality().hash(_responsive)
+      ]);
 
   /// Create a copy of ThemeLayout
   /// with the given fields replaced by the non-null parameter values.
@@ -8292,6 +8371,10 @@ abstract class _ThemeLayout implements ThemeLayout {
       final double? sidebarWidth,
       @JsonKey(unknownEnumValue: ThemeAside.none) final ThemeAside aside,
       final double? asideWidth,
+      @JsonKey(fromJson: _themeShellFromJson, toJson: _themeShellToJson)
+      final ThemeShellLayout? shell,
+      @JsonKey(fromJson: _themePinTargetsFromJson)
+      final List<ThemePinTarget> pinTargets,
       final ThemePlayerLayout player,
       final List<String> enforce,
       final List<String> navItems,
@@ -8346,6 +8429,23 @@ abstract class _ThemeLayout implements ThemeLayout {
   /// The validator clamps 0–1000.
   @override
   double? get asideWidth;
+
+  /// A rearranged shell: rows, columns, stacks and grid containers holding
+  /// named regions. Null keeps the host's own shell.
+  ///
+  /// Parsed leniently by [ThemeShellLayout.parse]: a tree that fails the
+  /// host's structural rules reads as null and the legacy layout stands, so
+  /// a malformed descriptor cannot blank the app. The theme-side validator
+  /// reports the same problems as errors.
+  @override
+  @JsonKey(fromJson: _themeShellFromJson, toJson: _themeShellToJson)
+  ThemeShellLayout? get shell;
+
+  /// Where a theme's pins may be shown. The host validates a pin's `target`
+  /// against this list; an empty list keeps the historic sidebar target.
+  @override
+  @JsonKey(fromJson: _themePinTargetsFromJson)
+  List<ThemePinTarget> get pinTargets;
 
   /// The player's own shape. `stage` makes the player the centre of the
   /// app (the theme fills `stage.center`/`stage.below`); the other values

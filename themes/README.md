@@ -167,7 +167,7 @@ host and must be migrated (see below). The fields the contract defines:
 | `radius` | `small`, `medium`, `large`, `pill` |
 | `density` | 0.7..1.5 — one number for the whole UI's size |
 | `tokens` | `cardWidth`, `cardHeight`, `artistCardWidth`, `artistCardHeight`, `gutter`, `fontFamily` |
-| `layout` | `chrome`, `nav`, `progress`, `player`, `enforce`, `navItems`, `navbarItems`, `libraryItems`, `home`, `settings`, `titlebar`, `splash`, `sidebar`, `sidebarWidth`, `aside`, `asideWidth`, `responsive` |
+| `layout` | `chrome`, `nav`, `progress`, `player`, `enforce`, `navItems`, `navbarItems`, `libraryItems`, `home`, `settings`, `titlebar`, `splash`, `sidebar`, `sidebarWidth`, `aside`, `asideWidth`, `shell`, `pinTargets`, `responsive` |
 | `typography`, `spacing`, `motion`, `scale`, `icons` | The v3 presentation blocks the host applies: font ladder and role colours, page padding and card gaps, animation durations and curves, scale multipliers, icon sizes |
 | `components`, `branding`, `assets` | The host draws the `player` component group and the `card`/`buttons` overrides used by UI nodes; branding drives the window title, wordmark and about text; assets resolve theme-shipped images |
 | `ui` | The theme's own UI tree: `specVersion`, `slots`, `screens`, `templates`, `renderPoints` |
@@ -289,6 +289,14 @@ authoring a v4 theme. The short version:
   Ctrl/Cmd+Shift+B) and publish `app.sidebarCollapsed`/`app.asideOpen`.
   `library.local.content` replaces the local-library body and publishes
   `library.folders`/`library.counts`.
+- `layout.shell` builds a row/column/stack/grid tree of `content`, `sidebar`,
+  `aside`, `player`, `titlebar`, `navbar` and repeatable `custom` regions, with
+  px/`%`/`auto` sizes, flex, clamps, `resizable` handles, `collapsible`,
+  `hiddenWhen`, safe areas and per-breakpoint trees. Exactly one `content`
+  mounts the router outlet; custom regions require `id`, `slot` and `label`.
+  A malformed tree falls back to the legacy shell. `layout.pinTargets` declares
+  pin destinations; `library.pinTargets` publishes them, `library.pins` entries
+  carry `target`, and `pinItem`/`unpinItem` accept one.
 - `pages` declares routed theme pages under host sections; `ui.screens` stays
   for overlays.
 - `ui.renderPoints` replaces the pixels of a host surface without taking its
@@ -305,8 +313,9 @@ authoring a v4 theme. The short version:
 - Bindings, actions, slots and the closed `hostWidget` registry are the plan's
   lists (§4.5, §4.6, §4.7, §4.9).
 
-The v4 host is at **Phase 5** (runtime core, kits, layout nodes, inputs,
-overlays, render points, data display, bindings/palette, and layout regions).
+The v4 host is at **Phase 5B** (runtime core, kits, layout nodes, inputs,
+overlays, render points, data display, bindings/palette, layout regions, and
+the shell descriptor with pin targets).
 `themes/lib/v4_validator.dart`, `theme.v4.schema.json`, `conformance/draft/v4-kitchen-sink.json` and
 `test/v4_*_test.dart` are the current contract and its suite. Inputs read
 `bind` and fire `action`/`actions` with `$value`; dialogs and sheets follow

@@ -26,28 +26,41 @@ bool themeAsideVisible({
 /// strand the user in it. Closing persists through `asideOpen`; the shortcut
 /// and `toggleAside` reopen the same panel.
 class AsideRegion extends ConsumerWidget {
-  const AsideRegion({super.key});
+  /// The slot drawn inside the host frame. Phase 5's contract uses
+  /// `aside.content`; a shell leaf may target a namespaced slot instead.
+  final String slot;
+
+  /// Whether to keep the host's close control. A shell-owned panel that the
+  /// theme closes itself can drop it.
+  final bool showClose;
+
+  const AsideRegion({
+    this.slot = 'aside.content',
+    this.showClose = true,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Align(
-          alignment: AlignmentDirectional.centerEnd,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 4, right: 4),
-            child: IconButton.ghost(
-              icon: const Icon(SpotubeIcons.close),
-              onPressed: () => ref
-                  .read(userPreferencesProvider.notifier)
-                  .setAsideOpen(false),
+        if (showClose)
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4, right: 4),
+              child: IconButton.ghost(
+                icon: const Icon(SpotubeIcons.close),
+                onPressed: () => ref
+                    .read(userPreferencesProvider.notifier)
+                    .setAsideOpen(false),
+              ),
             ),
           ),
-        ),
-        const Expanded(
+        Expanded(
           child: ThemeSlot(
-            'aside.content',
+            slot,
             crossAxisAlignment: CrossAxisAlignment.stretch,
           ),
         ),

@@ -201,4 +201,260 @@ void main() {
       }
     });
   });
+
+  group('shell layout', () {
+    Map<String, dynamic> shellPayload(
+      Map<String, dynamic> shell, {
+      Map<String, dynamic> layout = const {},
+      List<Map<String, dynamic>>? pins,
+    }) {
+      return _payload(
+        layout: {
+          'shell': shell,
+          if (pins != null) 'pinTargets': pins,
+          ...layout,
+        },
+      );
+    }
+
+    test('the shell fixture validates cleanly', () {
+      final payload =
+          jsonDecode(
+                File(
+                  'conformance/draft/v4-shell-layout.json',
+                ).readAsStringSync(),
+              )
+              as Map<String, dynamic>;
+
+      final report = validateThemePayload(payload);
+
+      expect(
+        report.issues,
+        isEmpty,
+        reason: report.issues.map((issue) => issue.toString()).join('\n'),
+      );
+    });
+
+    test('accepts a tree, custom slots and pin targets', () {
+      final payload = shellPayload(
+        {
+          'type': 'row',
+          'children': [
+            {'region': 'sidebar', 'width': 240, 'slot': 'sidebar.content'},
+            {
+              'type': 'column',
+              'flex': 1,
+              'children': [
+                {'region': 'content', 'flex': 1},
+                {'region': 'player', 'height': 88},
+                {
+                  'region': 'custom',
+                  'id': 'bar.bottom',
+                  'slot': 'bar.bottom',
+                  'label': 'Bottom bar',
+                  'height': '12.5%',
+                  'collapsible': true,
+                  'resizable': {
+                    'edges': ['top'],
+                    'storageKey': 'bar.bottom.size',
+                    'min': 48,
+                    'max': 120,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        layout: {
+          'responsive': {
+            'compact': {
+              'shell': {
+                'type': 'column',
+                'children': [
+                  {'region': 'content', 'flex': 1},
+                ],
+              },
+            },
+          },
+        },
+        pins: [
+          {'id': 'sidebar', 'label': 'Sidebar'},
+          {'id': 'bar.bottom', 'label': 'Bottom bar'},
+        ],
+      );
+      (payload['ui'] as Map)['slots']['bar.bottom'] = {
+        'children': [
+          {'type': 'text', 'text': 'Pinned'},
+        ],
+      };
+
+      final report = validateThemePayload(payload);
+
+      expect(_errors(report), isEmpty);
+      expect(_warnings(report), isEmpty);
+    });
+
+    test('rejects a shell without exactly one content', () {
+      final missing = validateThemePayload(
+        shellPayload({
+          'type': 'row',
+          'children': [
+            {'region': 'sidebar'},
+          ],
+        }),
+      );
+      expect(_errors(missing), contains('layout.shell'));
+
+      final duplicated = validateThemePayload(
+        shellPayload({
+          'type': 'row',
+          'children': [
+            {'region': 'content'},
+            {'region': 'content'},
+          ],
+        }),
+      );
+      expect(_errors(duplicated), contains('layout.shell.children[1]'));
+    });
+
+    test('rejects duplicate regions and ids', () {
+      final report = validateThemePayload(
+        shellPayload({
+          'type': 'row',
+          'children': [
+            {'region': 'content'},
+            {'region': 'sidebar'},
+            {'region': 'sidebar'},
+            {
+              'region': 'custom',
+              'id': 'bar.one',
+              'slot': 'bar.one',
+              'label': 'One',
+            },
+            {
+              'region': 'custom',
+              'id': 'bar.one',
+              'slot': 'bar.two',
+              'label': 'Two',
+            },
+          ],
+        }),
+      );
+
+      expect(_errors(report), contains('layout.shell.children[2]'));
+      expect(_errors(report), contains('layout.shell.children[4].id'));
+    });
+
+    test('rejects malformed nodes, sizes and custom leaves', () {
+      final report = validateThemePayload(
+        shellPayload({
+          'type': 'column',
+          'children': [
+            {'region': 'content', 'width': '101%', 'flex': 1.5},
+            {'region': 'custom', 'label': 'No id or slot'},
+            {'region': 'nowhere'},
+            {'type': 'grid'},
+            {'type': 'row', 'children': 'nope'},
+          ],
+        }),
+      );
+
+      final errors = _errors(report);
+      expect(errors, contains('layout.shell.children[0].width'));
+      expect(errors, contains('layout.shell.children[0].flex'));
+      expect(errors, contains('layout.shell.children[1].id'));
+      expect(errors, contains('layout.shell.children[1].slot'));
+      expect(errors, contains('layout.shell.children[2].region'));
+      expect(errors, contains('layout.shell.children[3].children'));
+      expect(errors, contains('layout.shell.children[4].children'));
+    });
+
+    test('warns when two regions share a slot', () {
+      final report = validateThemePayload(
+        shellPayload({
+          'type': 'row',
+          'children': [
+            {'region': 'content'},
+            {
+              'region': 'custom',
+              'id': 'bar.one',
+              'slot': 'bar.mirror',
+              'label': 'One',
+            },
+            {
+              'region': 'custom',
+              'id': 'bar.two',
+              'slot': 'bar.mirror',
+              'label': 'Two',
+            },
+          ],
+        }),
+      );
+
+      expect(_errors(report), isEmpty);
+      expect(_warnings(report), contains('layout.shell.children[2].slot'));
+    });
+
+    test('reserves unknown custom slots for shell-declared names', () {
+      final payload = _payload();
+      (payload['ui'] as Map)['slots']['bar.bottom'] = {
+        'children': [
+          {'type': 'text', 'text': 'Pinned'},
+        ],
+      };
+
+      expect(
+        _errors(validateThemePayload(payload)),
+        contains('ui.slots.bar.bottom'),
+      );
+
+      final declared = shellPayload({
+        'type': 'row',
+        'children': [
+          {'region': 'content'},
+          {
+            'region': 'custom',
+            'id': 'bar.bottom',
+            'slot': 'bar.bottom',
+            'label': 'Bottom bar',
+          },
+        ],
+      });
+      (declared['ui'] as Map)['slots']['bar.bottom'] = {
+        'children': [
+          {'type': 'text', 'text': 'Pinned'},
+        ],
+      };
+
+      final report = validateThemePayload(declared);
+      expect(_errors(report), isEmpty);
+      expect(_warnings(report), isEmpty);
+    });
+
+    test('validates pin target ids and labels', () {
+      final report = validateThemePayload(
+        shellPayload(
+          {
+            'type': 'row',
+            'children': [
+              {'region': 'content'},
+            ],
+          },
+          pins: [
+            {'id': 'sidebar', 'label': 'Sidebar'},
+            {'id': 'sidebar'},
+            {'id': ''},
+            {'id': 'bar.bottom', 'label': 3},
+            {'id': 'bar.bottom', 'label': 'ok', 'unknown': true},
+          ],
+        ),
+      );
+
+      final errors = _errors(report);
+      expect(errors, contains('layout.pinTargets[1].id'));
+      expect(errors, contains('layout.pinTargets[2].id'));
+      expect(errors, contains('layout.pinTargets[3].label'));
+      expect(errors, contains('layout.pinTargets[4].unknown'));
+    });
+  });
 }

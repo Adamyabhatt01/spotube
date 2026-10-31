@@ -6,6 +6,9 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
+import 'package:spotube/modules/root/region_scope.dart';
+import 'package:spotube/modules/theme_ui/theme_pins.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_action.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_screen_stack.dart';
@@ -83,6 +86,10 @@ Future<void> dispatchThemeUiAction(
         await _likeItem(ref, action.args);
       case 'downloadItem':
         _downloadItem(ref, action.args);
+      case 'pinItem':
+        _setPinnedItem(context, ref, action.args, pinned: true);
+      case 'unpinItem':
+        _setPinnedItem(context, ref, action.args, pinned: false);
       case 'setQuery':
         _setQuery(ref, action.args);
       case 'clearQuery':
@@ -100,7 +107,7 @@ Future<void> dispatchThemeUiAction(
       case 'toggleAside':
         _toggleAside(ref);
       case 'toggleRegion':
-        _toggleRegion(ref, action.args);
+        _toggleRegion(context, ref, action.args);
     }
   } catch (e, stack) {
     AppLogger.reportError(e, stack, 'themeUiAction:${action.type}');
@@ -282,6 +289,50 @@ void _downloadItem(WidgetRef ref, Map<String, dynamic> args) {
   ref.read(downloadManagerProvider.notifier).addToQueue(track);
 }
 
+/// The id of the playlist an `item` argument names, if it names one.
+String? _playlistId(Object? raw) {
+  if (raw is SpotubeSimplePlaylistObject) return raw.id;
+  if (raw is SpotubeFullPlaylistObject) return raw.id;
+  if (raw is Map && raw['id'] is String) return raw['id'] as String;
+  return null;
+}
+
+/// The target a pin action names, validated against the theme's declaration.
+///
+/// An omitted target means the sidebar, but only when the theme still declares
+/// it. A theme that replaced the sidebar with custom bars must name one.
+String? _pinTarget(BuildContext context, Map<String, dynamic> args) {
+  final declared = context.layout.pinTargets;
+  final allowed = declared.isEmpty
+      ? const {'sidebar'}
+      : {for (final target in declared) target.id};
+  final raw = args['target'];
+  if (raw is! String || raw.isEmpty) {
+    return allowed.contains('sidebar') ? 'sidebar' : null;
+  }
+  return allowed.contains(raw) ? raw : null;
+}
+
+void _setPinnedItem(
+  BuildContext context,
+  WidgetRef ref,
+  Map<String, dynamic> args, {
+  required bool pinned,
+}) {
+  final id = _playlistId(args['item']);
+  if (id == null) return;
+  final target = _pinTarget(context, args);
+  if (target == null) return;
+
+  if (target == 'sidebar') {
+    final ids = ref.read(userPreferencesProvider).pinnedPlaylistIds;
+    if (ids.contains(id) == pinned) return;
+    ref.read(userPreferencesProvider.notifier).togglePinnedPlaylist(id);
+    return;
+  }
+  ref.read(themePinsProvider.notifier).setPinned(target, id, pinned: pinned);
+}
+
 SpotubeSimpleAlbumObject _simpleAlbum(SpotubeFullAlbumObject album) {
   return SpotubeSimpleAlbumObject(
     id: album.id,
@@ -436,12 +487,38 @@ void _toggleAside(WidgetRef ref) {
 /// `toggleRegion` names a shell region instead of a specific control, so a
 /// theme's own chrome can wire both toggles through one verb. Unknown ids are
 /// ignored rather than guessed at.
-void _toggleRegion(WidgetRef ref, Map<String, dynamic> args) {
-  switch (args['id']) {
+///
+/// `sidebar` and `aside` keep their preference-backed toggles; any other id is
+/// resolved against the active shell tree and must name a `collapsible` leaf.
+void _toggleRegion(
+  BuildContext context,
+  WidgetRef ref,
+  Map<String, dynamic> args,
+) {
+  final id = args['id'];
+  if (id is! String || id.isEmpty) return;
+  switch (id) {
     case 'sidebar':
       _toggleSidebar(ref);
+      return;
     case 'aside':
       _toggleAside(ref);
+      return;
+  }
+
+  final shell = context.layout.shell;
+  if (shell == null) return;
+  for (final leaf in shell.root.leaves) {
+    if (leaf.effectiveId != id || !leaf.collapsible) continue;
+    final key = regionStorageKey(id: id, storageKey: leaf.storageKey);
+    final collapsed =
+        ref.read(regionCollapseProvider)[key] ?? storedRegionCollapsed(key);
+    final next = !collapsed;
+    ref.read(regionCollapseProvider.notifier).update(
+          (states) => {...states, key: next},
+        );
+    persistRegionCollapsed(key, next);
+    return;
   }
 }
 

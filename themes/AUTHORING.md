@@ -325,6 +325,63 @@ filled. Its width is `asideWidth` (default 320). The host draws the close
 control; `toggleAside`, the shortcut, and `app.asideOpen` share the persisted
 state. Both keys and widths can be overridden per breakpoint in `responsive`.
 
+**Shell descriptor (v4).** `layout.shell` rearranges the shell itself. A tree
+is a container (`row`, `column`, `stack`, `grid`) or a region leaf; containers
+carry `children`, gaps and the same size fields as leaves. `grid` is one row of
+equal-width cells because the descriptor has no column count. Exactly one
+`content` region is required and it is where the router outlet mounts; a
+`slot` on `content` is ignored. `sidebar`, `aside`, `player`, `titlebar` and
+`navbar` appear at most once each. `custom` regions repeat and require `id`,
+`slot` and (for screen readers) `label`; their slot names are namespaced by
+that id (`bar.bottom.secondary`). Trees are capped at depth 8 and 24 leaves.
+
+```json
+"shell": {
+  "type": "row",
+  "children": [
+    {"region": "sidebar", "width": 280, "slot": "sidebar.content"},
+    {"type": "column", "flex": 1, "children": [
+      {"region": "content", "flex": 1},
+      {"region": "player", "height": 88},
+      {"region": "custom", "id": "bar.pins", "slot": "bar.pins", "label": "Pinned", "height": 72}
+    ]}
+  ]
+}
+```
+
+Sizes are px numbers, `"30%"` of the parent, or `"auto"` for intrinsic size.
+`flex` consumes the remaining space and turns the fixed size into the flex
+basis; `min*`/`max*` clamp after flex distribution. Defaults when neither size
+nor flex is given: sidebar 280, aside 320, player 88, titlebar 36, navbar 56,
+custom 0. `resizable` adds a drag handle on the listed `edges` and persists the
+drag under `storageKey` (double-click resets); `collapsible` adds a host toggle
+that persists alongside it, with `collapsedSize` defaulting to 0 for
+sidebar/aside/custom and 32 for bars. `hiddenWhen` takes a binding and removes
+the region from layout entirely while false. `overflow: "scroll"` scrolls the
+region; `clip` is the safe default for the other modes until their host chrome
+ships. `safeArea`, `zIndex`, `focusOrder` and `label` are honoured; focus
+follows tree order unless `focusOrder` overrides it.
+
+A shell that fails parsing (wrong content count, duplicate ids, unknown region,
+over-deep tree) reads as absent, so the legacy layout stands instead of a blank
+window. Omitting `shell` keeps today's layout. `responsive.<tier>.shell`
+replaces the whole tree for that breakpoint. On desktop, a tree without a
+`titlebar` region gets a 28 px drag strip injected at the top when the system
+titlebar is hidden; pages keep their own `TitleBar` either way. Region sizes and
+collapse flags persist per theme identity and region id, and a region publishes
+`region.<id>.width`, `region.<id>.height`, `region.<id>.collapsed` and
+`region.<id>.visible` (omit `id` and the region name is used).
+
+**Pin targets (v4).** `layout.pinTargets` declares where a playlist may be
+pinned; `library.pinTargets` publishes the same list (defaulting to
+`[{id: "sidebar", label: "Sidebar"}]`). A pin carries `target` and `library.pins`
+entries include it. `pinItem`/`unpinItem` accept `{item, target?}`; an omitted
+target means `sidebar`, but only while the theme declares it — a theme that
+replaced the sidebar with custom bars must name one. Unknown targets are
+ignored. Sidebar pins keep using the existing preference column; other targets
+are stored per theme. `library.playlists` accepts `filter: "pins"` with
+`pinTarget` (host-widget filtering lands with Phase 8/9).
+
 ### 5. Branding
 
 ```json
@@ -527,8 +584,10 @@ still, which is a graceful fallback rather than an error.
 `app.brightness`, `app.themeMode`, `app.greeting`, `app.sidebarCollapsed`,
 `app.asideOpen`, `clock.now`,
 `theme.id`, `theme.name`, `theme.version`, `queue.tracks`, `queue.count`,
-`queue.currentIndex`, `queue.next`, `library.playlists`, `library.pins`,
-`library.albums`, `library.artists`, `library.folders`, `library.counts`,
+`queue.currentIndex`, `queue.next`, `library.playlists`, `library.pinTargets`,
+`library.pins`, `library.albums`, `library.artists`, `library.folders`,
+`library.counts`, `region.<id>.width`, `region.<id>.height`,
+`region.<id>.collapsed`, `region.<id>.visible`,
 `audio.bass`, `audio.treble`, `audio.normalization`, `audio.crossfade`,
 `audio.sleepTimer`, `audio.speed`, `search.query`, `search.hasQuery`, and
 `setting.<key>` for a theme's own toggle. A document only subscribes to the
@@ -668,12 +727,14 @@ image URL (`item.artwork`, `collection.artwork`, `artist.artwork`, …).
 `openLyrics`, `openQueue`, `openDownloads`, `toast`, `plugin`, `playItem`,
 `playCollection`, `openItem`, `likeItem`, `downloadItem`, `setQuery`,
 `clearQuery`, `setSetting`, `toggleSetting`, `copy`, `refresh`,
+`pinItem`, `unpinItem`,
 `toggleSidebar`, `toggleAside`, `toggleRegion`, and the UI-local `dismiss`.
 `toggleSidebar` flips `app.sidebarCollapsed` (Ctrl/Cmd+B); `toggleAside` flips
 `app.asideOpen` (Ctrl/Cmd+Shift+B); `toggleRegion` takes `{id: "sidebar" |
 "aside"}` and routes to the same two preferences so a theme's own chrome does
-not need to know which region the user means. A node may carry one `action` or
-a list under `actions` (up to four,
+not need to know which region the user means. `pinItem`/`unpinItem` take
+`{item, target?}` and follow the pin-target rules in §4. A node may carry one
+`action` or a list under `actions` (up to four,
 in order). `playCollection` plays the page's own track list
 (`collection.tracks` or `artist.topTracks`), which is how a theme's content slot
 keeps a working play button. `dismiss` closes the nearest dialog, sheet or
@@ -703,7 +764,9 @@ theme definition.
 `search.content`, `library.content`, `library.local.content`,
 `queue.content`, `downloads.content`,
 `stats.content`.
-`sidebar.content` replaces the whole sidebar body (host keeps the width,
+A shell that declares `custom` regions adds exactly those `slot` names to the
+vocabulary (`bar.bottom`), never a wildcard. `sidebar.content` replaces the
+whole sidebar body (host keeps the width,
 divider, clearance and docked player) when `layout.sidebar` is `theme`;
 `sidebar.library` replaces the label, tiles and trailing drop zone of the
 library group while the before/after slots and pins stay host-owned. Both are

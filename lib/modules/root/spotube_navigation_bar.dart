@@ -49,7 +49,14 @@ final chromeBlurFrozen = Provider<bool>((ref) {
 });
 
 class SpotubeNavigationBar extends HookConsumerWidget {
+  /// Keeps the bar mounted at widths where the host's own shell hides it.
+  ///
+  /// A theme shell that placed a `navbar` region asked for the bar explicitly;
+  /// the extended/adaptive defaults describe the host layout, not that tree.
+  final bool forceVisible;
+
   const SpotubeNavigationBar({
+    this.forceVisible = false,
     super.key,
   });
 
@@ -107,8 +114,9 @@ class SpotubeNavigationBar extends HookConsumerWidget {
       ),
     );
 
-    if (layoutMode == LayoutMode.extended ||
-        (size.mdAndUp && layoutMode == LayoutMode.adaptive)) {
+    if (!forceVisible &&
+        (layoutMode == LayoutMode.extended ||
+            (size.mdAndUp && layoutMode == LayoutMode.adaptive))) {
       return const SizedBox();
     }
 

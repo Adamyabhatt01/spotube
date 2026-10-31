@@ -41,8 +41,9 @@ void main() {
     });
 
     test('knows every node type the validator accepts', () {
-      final variants = (document['definitions']
-          as Map<String, dynamic>)['uiNode'] as Map<String, dynamic>;
+      final variants =
+          (document['definitions'] as Map<String, dynamic>)['uiNode']
+              as Map<String, dynamic>;
       final constants = <String>{
         for (final variant in variants['oneOf'] as List)
           ((variant as Map<String, dynamic>)['properties']
@@ -58,8 +59,9 @@ void main() {
     });
 
     test('carries the common node envelope on every branch', () {
-      final variants = (document['definitions']
-          as Map<String, dynamic>)['uiNode'] as Map<String, dynamic>;
+      final variants =
+          (document['definitions'] as Map<String, dynamic>)['uiNode']
+              as Map<String, dynamic>;
       for (final variant in variants['oneOf'] as List) {
         final properties =
             (variant as Map<String, dynamic>)['properties']
@@ -76,24 +78,34 @@ void main() {
     });
 
     test('publishes every slot and the page.<id> pattern', () {
-      final anyOf = (document['properties']
-              as Map<String, dynamic>)['ui']['properties']['slots']
-              ['propertyNames']['anyOf'] as List;
+      final anyOf =
+          (document['properties']
+                  as Map<
+                    String,
+                    dynamic
+                  >)['ui']['properties']['slots']['propertyNames']['anyOf']
+              as List;
       final slots = (anyOf[0] as Map<String, dynamic>)['enum'] as List;
       expect(slots.toSet(), v4SlotNames.toSet());
       expect((anyOf[1] as Map<String, dynamic>)['pattern'], isNotNull);
     });
 
     test('knows every action the validator dispatches', () {
-      final actions = (document['definitions']
-          as Map<String, dynamic>)['uiAction']['properties']['type']['enum']
-          as List;
+      final actions =
+          (document['definitions']
+                  as Map<
+                    String,
+                    dynamic
+                  >)['uiAction']['properties']['type']['enum']
+              as List;
       expect(actions.toSet(), v4UiActionTypes.toSet());
     });
 
     test('knows every exact binding, page scope and region binding', () {
-      final anyOf = (document['definitions']
-          as Map<String, dynamic>)['uiBinding']['anyOf'] as List;
+      final anyOf =
+          (document['definitions']
+                  as Map<String, dynamic>)['uiBinding']['anyOf']
+              as List;
       final exact = (anyOf[0] as Map<String, dynamic>)['enum'] as List;
       expect(exact.toSet().containsAll(v4UiBindings), isTrue);
       expect((anyOf[1] as Map<String, dynamic>)['pattern'], isNotNull);
@@ -101,19 +113,23 @@ void main() {
     });
 
     test('declares the closed capability and kit sets', () {
-      final capabilities = (document['properties']
-          as Map<String, dynamic>)['capabilities']['items']['enum'] as List;
+      final capabilities =
+          (document['properties']
+                  as Map<String, dynamic>)['capabilities']['items']['enum']
+              as List;
       expect(capabilities.toSet(), v4Capabilities);
 
-      final kit = (document['properties']
-          as Map<String, dynamic>)['uiKit']['enum'] as List;
+      final kit =
+          (document['properties'] as Map<String, dynamic>)['uiKit']['enum']
+              as List;
       expect(kit.toSet(), uiKits.toSet());
     });
 
     test('knows the v4 layout keys and no retired ones', () {
-      final layout = (document['properties']
-          as Map<String, dynamic>)['layout']['properties']
-          as Map<String, dynamic>;
+      final layout =
+          (document['properties']
+                  as Map<String, dynamic>)['layout']['properties']
+              as Map<String, dynamic>;
       expect(
         layout.keys.toSet(),
         containsAll([
@@ -130,41 +146,89 @@ void main() {
     });
 
     test('closes responsive breakpoints and the dock', () {
-      final responsive = (document['properties']
-              as Map<String, dynamic>)['layout']['properties']['responsive']
-          as Map<String, dynamic>;
-      expect(
-        responsive['propertyNames']['enum'],
-        ['compact', 'medium', 'expanded'],
-      );
-      final variant = responsive['additionalProperties'] as Map<String, dynamic>;
+      final responsive =
+          (document['properties']
+                  as Map<String, dynamic>)['layout']['properties']['responsive']
+              as Map<String, dynamic>;
+      expect(responsive['propertyNames']['enum'], [
+        'compact',
+        'medium',
+        'expanded',
+      ]);
+      final variant =
+          responsive['additionalProperties'] as Map<String, dynamic>;
       expect(variant['additionalProperties'], isFalse);
+      expect(variant['properties']['player']['properties']['dock']['enum'], [
+        'full',
+        'compact',
+        'stage',
+      ]);
+    });
+
+    test('publishes the shell descriptor and its pin targets', () {
+      final layout =
+          (document['properties']
+                  as Map<String, dynamic>)['layout']['properties']
+              as Map<String, dynamic>;
+      expect(layout['shell'][r'$ref'], '#/definitions/shellNode');
+      expect(layout['pinTargets']['items'][r'$ref'], '#/definitions/pinTarget');
+
+      final responsive = layout['responsive'] as Map<String, dynamic>;
+      final variant =
+          responsive['additionalProperties'] as Map<String, dynamic>;
       expect(
-        variant['properties']['player']['properties']['dock']['enum'],
-        ['full', 'compact', 'stage'],
+        variant['properties']['shell'][r'$ref'],
+        '#/definitions/shellNode',
+      );
+
+      final shellNode =
+          (document['definitions'] as Map<String, dynamic>)['shellNode']
+              as Map<String, dynamic>;
+      expect(shellNode['additionalProperties'], isFalse);
+      expect(shellNode['oneOf'], isNotEmpty);
+      expect(shellNode['allOf'], isNotEmpty);
+      expect(shellNode['properties']['region']['enum'], [
+        'content',
+        'sidebar',
+        'aside',
+        'player',
+        'titlebar',
+        'navbar',
+        'custom',
+      ]);
+      expect(
+        shellNode['properties']['children']['items'][r'$ref'],
+        '#/definitions/shellNode',
+      );
+      expect(
+        shellNode['properties']['width'][r'$ref'],
+        '#/definitions/shellSize',
       );
     });
 
     test('publishes theme pages at the top level and under ui', () {
-      final top = (document['properties']
-          as Map<String, dynamic>)['pages'] as Map<String, dynamic>;
+      final top =
+          (document['properties'] as Map<String, dynamic>)['pages']
+              as Map<String, dynamic>;
       expect(top['items'][r'$ref'], '#/definitions/themePage');
 
-      final uiPages = (document['properties']
-              as Map<String, dynamic>)['ui']['properties']['pages']
-          as Map<String, dynamic>;
+      final uiPages =
+          (document['properties']
+                  as Map<String, dynamic>)['ui']['properties']['pages']
+              as Map<String, dynamic>;
       expect(uiPages['items'][r'$ref'], '#/definitions/themePage');
       expect(
-        (document['definitions'] as Map<String, dynamic>)['themePage']
-            ['additionalProperties'],
+        (document['definitions']
+            as Map<String, dynamic>)['themePage']['additionalProperties'],
         isFalse,
       );
     });
 
     test('publishes per-kit component overrides', () {
-      final components = (document['properties']
-          as Map<String, dynamic>)['components']['properties']
-          as Map<String, dynamic>;
+      final components =
+          (document['properties']
+                  as Map<String, dynamic>)['components']['properties']
+              as Map<String, dynamic>;
       for (final kit in uiKits) {
         expect(components[kit][r'$ref'], '#/definitions/kitComponents');
       }
@@ -181,8 +245,9 @@ void main() {
         'ui',
         'branding',
       ]) {
-        final value = (document['properties']
-            as Map<String, dynamic>)[block] as Map<String, dynamic>;
+        final value =
+            (document['properties'] as Map<String, dynamic>)[block]
+                as Map<String, dynamic>;
         expect(
           value['additionalProperties'],
           isFalse,
@@ -233,6 +298,24 @@ void main() {
     test('exercises a kit override', () {
       final components = payload['components'] as Map;
       expect(components.keys, contains('shadcn'));
+    });
+
+    test('the shell fixture satisfies the schema too', () {
+      final shellPayload = readJson(
+        '$repoRoot/conformance/draft/v4-shell-layout.json',
+      );
+      final results = schema.validate(shellPayload);
+      expect(
+        results.errors,
+        isEmpty,
+        reason: results.errors
+            .map(
+              (error) =>
+                  '${error.instancePath}: ${error.message} '
+                  '(schema ${error.schemaPath})',
+            )
+            .join('\n'),
+      );
     });
   });
 }

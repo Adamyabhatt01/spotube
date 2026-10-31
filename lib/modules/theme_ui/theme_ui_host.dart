@@ -5,6 +5,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_action_dispatcher.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_assets.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_binding_demand.dart';
@@ -13,6 +14,7 @@ import 'package:spotube/modules/theme_ui/theme_ui_debug_overlay.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_fonts.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_node.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_screen_stack.dart';
+import 'package:spotube/modules/root/region_scope.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/services/theme_ui/artwork_palette_provider.dart';
@@ -44,11 +46,16 @@ _LiveUi? _liveUi(
         brightness: Theme.of(context).brightness,
         themeMode: ref.watch(userPreferencesProvider).themeMode.name,
         demand: demand,
+        layout: context.layout,
       );
   final page = ThemeUiPageBindings.of(context);
-  var resolvedBindings = page == null || page.isEmpty
-      ? base
-      : ThemeUiBindings({...base.values, ...page});
+  final region = RegionScope.maybeOf(context);
+  final regionValues = region?.state.bindings ?? const <String, Object?>{};
+  var resolvedBindings = ThemeUiBindings({
+    ...base.values,
+    ...regionValues,
+    if (page != null) ...page,
+  });
 
   final wantsPalette = demand.wantsNamespace('palette');
   final paletteCache =
@@ -120,6 +127,7 @@ class ThemeUiRuntimeScopeHost extends ConsumerWidget {
         demand: ThemeUiBindingDemand(
           const ['app.version', 'app.brightness', 'app.themeMode'],
         ),
+        layout: context.layout,
       ),
       assets: assets,
       templates: ui.templates,

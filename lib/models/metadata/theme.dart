@@ -112,6 +112,22 @@ class ThemeLayout with _$ThemeLayout {
     /// The validator clamps 0–1000.
     double? asideWidth,
 
+    /// A rearranged shell: rows, columns, stacks and grid containers holding
+    /// named regions. Null keeps the host's own shell.
+    ///
+    /// Parsed leniently by [ThemeShellLayout.parse]: a tree that fails the
+    /// host's structural rules reads as null and the legacy layout stands, so
+    /// a malformed descriptor cannot blank the app. The theme-side validator
+    /// reports the same problems as errors.
+    @JsonKey(fromJson: _themeShellFromJson, toJson: _themeShellToJson)
+    ThemeShellLayout? shell,
+
+    /// Where a theme's pins may be shown. The host validates a pin's `target`
+    /// against this list; an empty list keeps the historic sidebar target.
+    @JsonKey(fromJson: _themePinTargetsFromJson)
+    @Default([])
+    List<ThemePinTarget> pinTargets,
+
     /// The player's own shape. `stage` makes the player the centre of the
     /// app (the theme fills `stage.center`/`stage.below`); the other values
     /// keep the host's footer player.
@@ -203,6 +219,470 @@ enum ThemeSidebar {
 enum ThemeAside {
   none,
   theme,
+}
+
+/// One declared pin destination, from `layout.pinTargets`.
+///
+/// The id names a region (usually a custom bar); the label is what the
+/// context menu shows. The host rejects a pin whose `target` is not in the
+/// theme's declared list.
+class ThemePinTarget {
+  final String id;
+  final String label;
+
+  const ThemePinTarget({required this.id, required this.label});
+
+  static ThemePinTarget? parse(Object? raw) {
+    if (raw is! Map) return null;
+    final id = raw['id'];
+    final label = raw['label'];
+    if (id is! String || id.trim().isEmpty || id.length > 64) return null;
+    return ThemePinTarget(
+      id: id,
+      label: label is String && label.trim().isNotEmpty ? label : id,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {'id': id, 'label': label};
+}
+
+List<ThemePinTarget> _themePinTargetsFromJson(dynamic value) {
+  if (value is! List) return const [];
+  final targets = <ThemePinTarget>[];
+  for (final raw in value) {
+    final target = ThemePinTarget.parse(raw);
+    if (target == null || targets.any((t) => t.id == target.id)) continue;
+    targets.add(target);
+    if (targets.length >= 16) break;
+  }
+  return targets;
+}
+
+/// A parsed `layout.shell` tree.
+///
+/// The raw contract is a nested map; the host parses it once into this shape
+/// so the renderer never walks untrusted JSON. [parse] enforces the structural
+/// rules the app cannot survive without — exactly one `content`, unique ids,
+/// one of each non-repeatable host region, depth ≤ 8, leaves ≤ 24 — and
+/// returns null when they fail. The theme-side validator reports the same
+/// failures as errors with a path.
+class ThemeShellLayout {
+  final ThemeShellNode root;
+
+  const ThemeShellLayout(this.root);
+
+  factory ThemeShellLayout.fromJson(Map<String, dynamic> json) {
+    final parsed = ThemeShellLayout.parse(json);
+    if (parsed == null) {
+      throw const FormatException('invalid shell layout');
+    }
+    return parsed;
+  }
+
+  Map<String, dynamic> toJson() => root.toJson();
+
+  static ThemeShellLayout? parse(Object? raw) {
+    if (raw is! Map) return null;
+    final root = ThemeShellNode._parse(raw.cast<String, dynamic>(), 0);
+    if (root == null) return null;
+
+    final leaves = <ThemeShellNode>[];
+    if (!root._collectLeaves(leaves, 0)) return null;
+    if (leaves.length > ThemeShellNode.maxLeaves) return null;
+
+    var contents = 0;
+    final ids = <String>{};
+    final singles = <ThemeShellRegion>{};
+    for (final leaf in leaves) {
+      final region = leaf.region;
+      if (region == null) return null;
+      if (region == ThemeShellRegion.content) contents++;
+      if (region != ThemeShellRegion.custom) {
+        if (!singles.add(region)) return null;
+      }
+      final id = leaf.effectiveId;
+      if (id == null || !ids.add(id)) return null;
+    }
+    if (contents != 1) return null;
+    return ThemeShellLayout(root);
+  }
+}
+
+ThemeShellLayout? _themeShellFromJson(dynamic value) =>
+    ThemeShellLayout.parse(value);
+
+Object? _themeShellToJson(ThemeShellLayout? shell) => shell?.toJson();
+
+enum ThemeShellNodeType { row, column, stack, grid }
+
+enum ThemeShellRegion {
+  content,
+  sidebar,
+  aside,
+  player,
+  titlebar,
+  navbar,
+  custom,
+}
+
+/// A length in the shell descriptor: pixels, a percentage of the parent, or
+/// `auto` (the widget's intrinsic size).
+class ThemeShellSize {
+  final double? pixels;
+  final double? percent;
+  final bool intrinsic;
+
+  const ThemeShellSize._intrinsic()
+      : pixels = null,
+        percent = null,
+        intrinsic = true;
+
+  const ThemeShellSize.px(double value)
+      : pixels = value,
+        percent = null,
+        intrinsic = false;
+
+  const ThemeShellSize.percent(double value)
+      : pixels = null,
+        percent = value,
+        intrinsic = false;
+
+  static const auto = ThemeShellSize._intrinsic();
+
+  static ThemeShellSize? parse(Object? raw) {
+    if (raw == 'auto') return auto;
+    if (raw is num && raw.isFinite) {
+      return ThemeShellSize.px(raw.toDouble().clamp(0.0, 4000.0).toDouble());
+    }
+    if (raw is String && raw.endsWith('%')) {
+      final value = double.tryParse(raw.substring(0, raw.length - 1));
+      if (value == null || !value.isFinite) return null;
+      return ThemeShellSize.percent(value.clamp(0.0, 100.0).toDouble());
+    }
+    return null;
+  }
+
+  /// The concrete size for a parent extent, or null when intrinsic.
+  double? resolve(double parentExtent) {
+    if (intrinsic) return null;
+    if (pixels != null) return pixels;
+    if (percent != null) return parentExtent * percent! / 100;
+    return null;
+  }
+
+  Map<String, dynamic> toJson() {
+    if (intrinsic) return {'auto': true};
+    if (percent != null) return {'percent': percent};
+    return {'px': pixels};
+  }
+}
+
+/// `resizable: { edges, storageKey, min, max }` on a region leaf.
+class ThemeShellResize {
+  final List<String> edges;
+  final String? storageKey;
+  final double? min;
+  final double? max;
+
+  const ThemeShellResize({
+    this.edges = const ['end'],
+    this.storageKey,
+    this.min,
+    this.max,
+  });
+
+  static ThemeShellResize? parse(Object? raw) {
+    if (raw is bool) return raw ? const ThemeShellResize() : null;
+    if (raw is! Map) return null;
+    final edgesRaw = raw['edges'];
+    final edges = <String>[
+      if (edgesRaw is List)
+        for (final edge in edgesRaw)
+          if (edge is String &&
+              const {'start', 'end', 'top', 'bottom'}.contains(edge))
+            edge,
+    ];
+    return ThemeShellResize(
+      edges: edges.isEmpty ? const ['end'] : edges,
+      storageKey: _shellKey(raw['storageKey']),
+      min: _shellNumber(raw['min'], 0, 4000),
+      max: _shellNumber(raw['max'], 0, 4000),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'edges': edges,
+        if (storageKey != null) 'storageKey': storageKey,
+        if (min != null) 'min': min,
+        if (max != null) 'max': max,
+      };
+}
+
+/// One node of a shell tree: a container (`row`, `column`, `stack`, `grid`) or
+/// a region leaf.
+class ThemeShellNode {
+  static const maxDepth = 8;
+  static const maxLeaves = 24;
+
+  final ThemeShellNodeType? type;
+  final ThemeShellRegion? region;
+  final String? id;
+  final String? slot;
+  final String? label;
+  final ThemeShellSize? width;
+  final ThemeShellSize? height;
+  final int flex;
+  final double? minWidth;
+  final double? maxWidth;
+  final double? minHeight;
+  final double? maxHeight;
+  final ThemeShellResize? resizable;
+  final bool collapsible;
+  final double? collapsedSize;
+  final String? overflow;
+  final String? hiddenWhen;
+  final List<String> safeArea;
+  final int zIndex;
+  final int? focusOrder;
+  final String? storageKey;
+  final List<ThemeShellNode> children;
+
+  const ThemeShellNode._({
+    required this.type,
+    required this.region,
+    required this.id,
+    required this.slot,
+    required this.label,
+    required this.width,
+    required this.height,
+    required this.flex,
+    required this.minWidth,
+    required this.maxWidth,
+    required this.minHeight,
+    required this.maxHeight,
+    required this.resizable,
+    required this.collapsible,
+    required this.collapsedSize,
+    required this.overflow,
+    required this.hiddenWhen,
+    required this.safeArea,
+    required this.zIndex,
+    required this.focusOrder,
+    required this.storageKey,
+    required this.children,
+  });
+
+  bool get isRegion => region != null;
+
+  /// Every region leaf in this subtree, depth-first.
+  List<ThemeShellNode> get leaves {
+    final out = <ThemeShellNode>[];
+    _collectLeaves(out, 0);
+    return out;
+  }
+
+  /// A container with no children left after visibility pruning has nothing to
+  /// lay out.
+  bool get isEmptyContainer => !isRegion && children.isEmpty;
+
+  /// The id the host uses for persistence and `region.<id>.*` bindings.
+  String? get effectiveId {
+    if (id != null && id!.isNotEmpty) return id;
+    final region = this.region;
+    if (region == null || region == ThemeShellRegion.custom) return null;
+    return region.name;
+  }
+
+  static ThemeShellNode? _parse(Map<String, dynamic> raw, int depth) {
+    if (depth > maxDepth) return null;
+
+    final regionRaw = raw['region'];
+    if (regionRaw is String) {
+      final region = _region(regionRaw);
+      if (region == null) return null;
+      final slot = raw['slot'] is String && (raw['slot'] as String).isNotEmpty
+          ? raw['slot'] as String
+          : null;
+      final id = raw['id'] is String && (raw['id'] as String).isNotEmpty
+          ? raw['id'] as String
+          : null;
+      final label =
+          raw['label'] is String && (raw['label'] as String).isNotEmpty
+              ? raw['label'] as String
+              : null;
+      // Custom regions have no host default to draw; without a slot the leaf
+      // has nothing to show. Drop it rather than reserving blank space.
+      if (region == ThemeShellRegion.custom && (slot == null || id == null)) {
+        return null;
+      }
+      return ThemeShellNode._(
+        type: null,
+        region: region,
+        id: id,
+        slot: slot,
+        label: label,
+        width: ThemeShellSize.parse(raw['width']),
+        height: ThemeShellSize.parse(raw['height']),
+        flex: _shellInt(raw['flex'], 0, 1000),
+        minWidth: _shellNumber(raw['minWidth'], 0, 4000),
+        maxWidth: _shellNumber(raw['maxWidth'], 0, 4000),
+        minHeight: _shellNumber(raw['minHeight'], 0, 4000),
+        maxHeight: _shellNumber(raw['maxHeight'], 0, 4000),
+        resizable: ThemeShellResize.parse(raw['resizable']),
+        collapsible: raw['collapsible'] == true,
+        collapsedSize: _shellNumber(raw['collapsedSize'], 0, 4000),
+        overflow: _overflow(raw['overflow']),
+        hiddenWhen:
+            raw['hiddenWhen'] is String ? raw['hiddenWhen'] as String : null,
+        safeArea: _safeArea(raw['safeArea']),
+        zIndex: _shellInt(raw['zIndex'], 0, 1000),
+        focusOrder: raw['focusOrder'] is num
+            ? _shellInt(raw['focusOrder'], 0, 1000)
+            : null,
+        storageKey: _shellKey(raw['storageKey']),
+        children: const [],
+      );
+    }
+
+    final type = _type(raw['type']);
+    if (type == null) return null;
+    final childrenRaw = raw['children'];
+    if (childrenRaw is! List) return null;
+    final children = <ThemeShellNode>[];
+    for (final child in childrenRaw) {
+      if (child is! Map) return null;
+      final parsed = _parse(child.cast<String, dynamic>(), depth + 1);
+      if (parsed == null) return null;
+      children.add(parsed);
+      if (children.length >= maxLeaves) break;
+    }
+    if (children.isEmpty) return null;
+
+    return ThemeShellNode._(
+      type: type,
+      region: null,
+      id: raw['id'] is String ? raw['id'] as String : null,
+      slot: null,
+      label: null,
+      width: ThemeShellSize.parse(raw['width']),
+      height: ThemeShellSize.parse(raw['height']),
+      flex: _shellInt(raw['flex'], 0, 1000),
+      minWidth: _shellNumber(raw['minWidth'], 0, 4000),
+      maxWidth: _shellNumber(raw['maxWidth'], 0, 4000),
+      minHeight: _shellNumber(raw['minHeight'], 0, 4000),
+      maxHeight: _shellNumber(raw['maxHeight'], 0, 4000),
+      resizable: null,
+      collapsible: false,
+      collapsedSize: null,
+      overflow: null,
+      hiddenWhen: null,
+      safeArea: const [],
+      zIndex: 0,
+      focusOrder: null,
+      storageKey: null,
+      children: children,
+    );
+  }
+
+  /// Depth-first leaves, failing when the tree is deeper than [maxDepth].
+  bool _collectLeaves(List<ThemeShellNode> out, int depth) {
+    if (depth > maxDepth) return false;
+    if (isRegion) {
+      out.add(this);
+      return out.length <= maxLeaves;
+    }
+    for (final child in children) {
+      if (!child._collectLeaves(out, depth + 1)) return false;
+    }
+    return true;
+  }
+
+  Map<String, dynamic> toJson() {
+    if (isRegion) {
+      return {
+        'region': region!.name,
+        if (id != null) 'id': id,
+        if (slot != null) 'slot': slot,
+        if (label != null) 'label': label,
+        if (width != null) 'width': width!.toJson(),
+        if (height != null) 'height': height!.toJson(),
+        if (flex > 0) 'flex': flex,
+        if (minWidth != null) 'minWidth': minWidth,
+        if (maxWidth != null) 'maxWidth': maxWidth,
+        if (minHeight != null) 'minHeight': minHeight,
+        if (maxHeight != null) 'maxHeight': maxHeight,
+        if (resizable != null) 'resizable': resizable!.toJson(),
+        if (collapsible) 'collapsible': true,
+        if (collapsedSize != null) 'collapsedSize': collapsedSize,
+        if (overflow != null) 'overflow': overflow,
+        if (hiddenWhen != null) 'hiddenWhen': hiddenWhen,
+        if (safeArea.isNotEmpty) 'safeArea': safeArea,
+        if (zIndex != 0) 'zIndex': zIndex,
+        if (focusOrder != null) 'focusOrder': focusOrder,
+        if (storageKey != null) 'storageKey': storageKey,
+      };
+    }
+    return {
+      'type': type!.name,
+      if (width != null) 'width': width!.toJson(),
+      if (height != null) 'height': height!.toJson(),
+      if (flex > 0) 'flex': flex,
+      if (minWidth != null) 'minWidth': minWidth,
+      if (maxWidth != null) 'maxWidth': maxWidth,
+      if (minHeight != null) 'minHeight': minHeight,
+      if (maxHeight != null) 'maxHeight': maxHeight,
+      'children': [for (final child in children) child.toJson()],
+    };
+  }
+}
+
+ThemeShellNodeType? _type(Object? raw) => switch (raw) {
+      'row' => ThemeShellNodeType.row,
+      'column' => ThemeShellNodeType.column,
+      'stack' => ThemeShellNodeType.stack,
+      'grid' => ThemeShellNodeType.grid,
+      _ => null,
+    };
+
+ThemeShellRegion? _region(Object? raw) => switch (raw) {
+      'content' => ThemeShellRegion.content,
+      'sidebar' => ThemeShellRegion.sidebar,
+      'aside' => ThemeShellRegion.aside,
+      'player' => ThemeShellRegion.player,
+      'titlebar' => ThemeShellRegion.titlebar,
+      'navbar' => ThemeShellRegion.navbar,
+      'custom' => ThemeShellRegion.custom,
+      _ => null,
+    };
+
+String? _overflow(Object? raw) =>
+    raw is String && const {'clip', 'scroll', 'wrap', 'menu'}.contains(raw)
+        ? raw
+        : null;
+
+List<String> _safeArea(Object? raw) {
+  if (raw is! List) return const [];
+  return [
+    for (final edge in raw)
+      if (edge is String &&
+          const {'top', 'right', 'bottom', 'left'}.contains(edge))
+        edge,
+  ];
+}
+
+String? _shellKey(Object? raw) {
+  if (raw is! String || raw.isEmpty || raw.length > 64) return null;
+  return RegExp(r'^[a-z][a-z0-9_.-]*$').hasMatch(raw) ? raw : null;
+}
+
+double? _shellNumber(Object? raw, double min, double max) {
+  if (raw is! num || !raw.isFinite) return null;
+  return raw.toDouble().clamp(min, max).toDouble();
+}
+
+int _shellInt(Object? raw, int min, int max) {
+  if (raw is! num || !raw.isFinite) return min;
+  return raw.toInt().clamp(min, max);
 }
 
 /// Plugin-controlled geometry for the parts of the UI a theme is allowed to

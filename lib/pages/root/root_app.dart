@@ -10,6 +10,7 @@ import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/root/aside/aside_region.dart';
 import 'package:spotube/modules/root/bottom_player.dart';
 import 'package:spotube/modules/root/sidebar/sidebar.dart';
+import 'package:spotube/modules/root/shell_layout_host.dart';
 import 'package:spotube/modules/root/spotube_navigation_bar.dart';
 import 'package:spotube/hooks/configurators/use_endless_playback.dart';
 import 'package:spotube/modules/root/use_global_subscriptions.dart';
@@ -73,6 +74,9 @@ class RootAppPage extends HookConsumerWidget {
 
     final scale = context.theme.scaling;
     final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    // A shell owns the space around the router, including the player, so the
+    // legacy footer reserve would only add dead space under the outlet.
+    final shellLayout = context.layout.shell;
     final routerSlot = MediaQuery(
       key: appRouterSlotKey,
       data: MediaQuery.of(context).copyWith(
@@ -82,43 +86,51 @@ class RootAppPage extends HookConsumerWidget {
         // pads the content itself, so the reserve would be dead space
         // above the keyboard.
         padding: MediaQuery.paddingOf(context).copyWith(
-          bottom: keyboardInset > 0 ? 0 : (isDocked ? 12 : 100) * scale,
+          bottom: keyboardInset > 0 || shellLayout != null
+              ? 0
+              : (isDocked ? 12 : 100) * scale,
         ),
       ),
       child: const AutoRouter(),
     );
-    // A theme aside only mounts when the theme asked for one, the user has it
-    // open, the window is wide enough for a third column, and the theme
-    // actually filled the slot. It rides inside Sidebar's child so the
-    // sidebar's own visibility rules hide it too, and the docked player spans
-    // content plus aside.
-    final asideOpen =
-        ref.watch(userPreferencesProvider.select((s) => s.asideOpen));
-    final hasAside = themeAsideVisible(
-          themeAsks: context.asideEnabled,
-          userOpen: asideOpen,
-          windowWidth: MediaQuery.sizeOf(context).width,
-        ) &&
-        themeUiSlotExists(ref, 'aside.content');
-    // The wrapper stays put whether or not the aside is mounted: adding a
-    // parent above the keyed router subtree reparents `AutoRouter`, which
-    // Flutter reports as a duplicate GlobalKey while the old parent still
-    // holds it (same failure `appRouterSlotKey` documents below).
-    final content = Sidebar(
-      contentFooter: isDocked ? const BottomPlayer() : null,
-      child: Row(
-        children: [
-          Expanded(child: routerSlot),
-          if (hasAside) ...[
-            const VerticalDivider(),
-            SizedBox(
-              width: context.asideWidth,
-              child: const AsideRegion(),
-            ),
+
+    final Widget content;
+    if (shellLayout != null) {
+      content = ShellLayoutHost(shell: shellLayout, content: routerSlot);
+    } else {
+      // A theme aside only mounts when the theme asked for one, the user has
+      // it open, the window is wide enough for a third column, and the theme
+      // actually filled the slot. It rides inside Sidebar's child so the
+      // sidebar's own visibility rules hide it too, and the docked player
+      // spans content plus aside.
+      final asideOpen =
+          ref.watch(userPreferencesProvider.select((s) => s.asideOpen));
+      final hasAside = themeAsideVisible(
+            themeAsks: context.asideEnabled,
+            userOpen: asideOpen,
+            windowWidth: MediaQuery.sizeOf(context).width,
+          ) &&
+          themeUiSlotExists(ref, 'aside.content');
+      // The wrapper stays put whether or not the aside is mounted: adding a
+      // parent above the keyed router subtree reparents `AutoRouter`, which
+      // Flutter reports as a duplicate GlobalKey while the old parent still
+      // holds it (same failure `appRouterSlotKey` documents below).
+      content = Sidebar(
+        contentFooter: isDocked ? const BottomPlayer() : null,
+        child: Row(
+          children: [
+            Expanded(child: routerSlot),
+            if (hasAside) ...[
+              const VerticalDivider(),
+              SizedBox(
+                width: context.asideWidth,
+                child: const AsideRegion(),
+              ),
+            ],
           ],
-        ],
-      ),
-    );
+        ),
+      );
+    }
 
     // `chrome: inset` floats the shell in a rounded panel over a darkened
     // shade of the theme's own background. The full-width player is a
@@ -135,8 +147,9 @@ class RootAppPage extends HookConsumerWidget {
       top: false,
       child: Scaffold(
         footers: [
-          if (!isDocked) const MeasuredBottomPlayer(child: BottomPlayer()),
-          const SpotubeNavigationBar(),
+          if (shellLayout == null && !isDocked)
+            const MeasuredBottomPlayer(child: BottomPlayer()),
+          if (shellLayout == null) const SpotubeNavigationBar(),
         ],
         floatingFooter: true,
         backgroundColor: realTransparent

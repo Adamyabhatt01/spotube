@@ -82,7 +82,15 @@ class _MeasuredBottomPlayerState extends ConsumerState<MeasuredBottomPlayer> {
 }
 
 class BottomPlayer extends HookConsumerWidget {
-  const BottomPlayer({super.key});
+  /// Draws the in-flow bar even where the host would normally swap in the
+  /// sliding [PlayerOverlay].
+  ///
+  /// A shell layout that placed a `player` region has already decided the bar
+  /// belongs in flow at that size; the overlay needs the full-window footer
+  /// slot and cannot be positioned inside a 72px region.
+  final bool forceBar;
+
+  const BottomPlayer({this.forceBar = false, super.key});
 
   @override
   Widget build(BuildContext context, ref) {
@@ -143,7 +151,7 @@ class BottomPlayer extends HookConsumerWidget {
 
     // returning an empty non spacious Container as the overlay will take
     // place in the global overlay stack aka [_entries]
-    if (!bottomPlayerVisibleOf(context, layoutMode)) {
+    if (!forceBar && !bottomPlayerVisibleOf(context, layoutMode)) {
       return isRadio
           ? const RadioPlayerOverlay()
           : PlayerOverlay(albumArt: albumArt);

@@ -1,0 +1,251 @@
+{
+  "specVersion": 4,
+  "uiKit": "shadcn",
+  "light": {
+    "background": "#f8fafc",
+    "foreground": "#0f172a",
+    "card": "#ffffff",
+    "cardForeground": "#0f172a",
+    "primary": "#2563eb",
+    "primaryForeground": "#f8fafc",
+    "secondary": "#ffffff",
+    "secondaryForeground": "#0f172a",
+    "muted": "#ffffff",
+    "mutedForeground": "#0f172a",
+    "accent": "#2563eb",
+    "accentForeground": "#f8fafc",
+    "destructive": "#dc2626",
+    "destructiveForeground": "#ffffff",
+    "border": "#334155",
+    "input": "#334155",
+    "ring": "#2563eb"
+  },
+  "dark": {
+    "background": "#0f172a",
+    "foreground": "#f8fafc",
+    "card": "#1e293b",
+    "cardForeground": "#f8fafc",
+    "primary": "#60a5fa",
+    "primaryForeground": "#0f172a",
+    "secondary": "#1e293b",
+    "secondaryForeground": "#f8fafc",
+    "muted": "#1e293b",
+    "mutedForeground": "#f8fafc",
+    "accent": "#60a5fa",
+    "accentForeground": "#0f172a",
+    "destructive": "#dc2626",
+    "destructiveForeground": "#ffffff",
+    "border": "#334155",
+    "input": "#334155",
+    "ring": "#60a5fa"
+  },
+  "layout": {
+    "sidebar": "theme",
+    "sidebarWidth": 240,
+    "aside": "theme",
+    "asideWidth": 340,
+    "responsive": {
+      "compact": {
+        "sidebar": "host",
+        "aside": "none",
+        "sidebarWidth": 180,
+        "shell": {
+          "type": "column",
+          "children": [
+            {
+              "region": "content",
+              "flex": 1
+            },
+            {
+              "region": "player",
+              "height": 72
+            },
+            {
+              "region": "navbar",
+              "height": 56
+            }
+          ]
+        }
+      }
+    },
+    "shell": {
+      "type": "row",
+      "children": [
+        {
+          "region": "sidebar",
+          "id": "sidebar",
+          "width": 240,
+          "slot": "sidebar.content"
+        },
+        {
+          "type": "column",
+          "flex": 1,
+          "children": [
+            {
+              "region": "content",
+              "flex": 1
+            },
+            {
+              "region": "player",
+              "height": 88
+            },
+            {
+              "region": "custom",
+              "id": "bar.bottom",
+              "slot": "bar.bottom",
+              "label": "Pinned playlists",
+              "height": 72,
+              "collapsible": true,
+              "collapsedSize": 24,
+              "resizable": {
+                "edges": [
+                  "top"
+                ],
+                "storageKey": "shell.bottom",
+                "min": 48,
+                "max": 120
+              }
+            }
+          ]
+        },
+        {
+          "region": "aside",
+          "id": "aside",
+          "width": 340,
+          "slot": "aside.content",
+          "hiddenWhen": "player.playing == false"
+        }
+      ]
+    },
+    "pinTargets": [
+      {
+        "id": "sidebar",
+        "label": "Sidebar"
+      },
+      {
+        "id": "bar.bottom",
+        "label": "Bottom bar"
+      }
+    ]
+  },
+  "ui": {
+    "slots": {
+      "sidebar.content": {
+        "children": [
+          {
+            "type": "text",
+            "text": "Regions",
+            "size": "lg",
+            "weight": "bold"
+          },
+          {
+            "type": "resizable",
+            "direction": "horizontal",
+            "initial": 200,
+            "min": 120,
+            "max": 360,
+            "storageKey": "regions.shelf",
+            "children": [
+              {
+                "type": "text",
+                "text": "Pinned"
+              },
+              {
+                "type": "text",
+                "text": "Recent"
+              }
+            ]
+          },
+          {
+            "type": "button",
+            "label": "Collapse sidebar",
+            "action": {
+              "type": "toggleSidebar"
+            }
+          }
+        ]
+      },
+      "sidebar.library": {
+        "children": [
+          {
+            "type": "text",
+            "text": "Your library"
+          },
+          {
+            "type": "button",
+            "label": "Toggle regions",
+            "action": {
+              "type": "toggleRegion",
+              "args": {
+                "id": "sidebar"
+              }
+            }
+          }
+        ]
+      },
+      "aside.content": {
+        "children": [
+          {
+            "type": "text",
+            "text": "Now playing",
+            "size": "sm",
+            "color": "@mutedForeground"
+          },
+          {
+            "type": "text",
+            "bind": "player.title",
+            "size": "lg",
+            "weight": "bold"
+          },
+          {
+            "type": "text",
+            "bind": "player.artist",
+            "color": "@mutedForeground"
+          },
+          {
+            "type": "button",
+            "label": "Close panel",
+            "action": {
+              "type": "toggleAside"
+            }
+          }
+        ]
+      },
+      "library.local.content": {
+        "children": [
+          {
+            "type": "text",
+            "text": "Local folders",
+            "size": "lg",
+            "weight": "bold"
+          },
+          {
+            "type": "list",
+            "bind": "library.folders",
+            "children": [
+              {
+                "type": "text",
+                "bind": "item.name"
+              }
+            ]
+          }
+        ]
+      },
+      "bar.bottom": {
+        "children": [
+          {
+            "type": "text",
+            "text": "Pinned playlists",
+            "size": "sm",
+            "weight": "bold"
+          },
+          {
+            "type": "text",
+            "bind": "player.title",
+            "color": "@mutedForeground"
+          }
+        ]
+      }
+    }
+  }
+}

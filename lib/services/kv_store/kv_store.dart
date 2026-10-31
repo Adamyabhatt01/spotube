@@ -9,6 +9,36 @@ import 'package:uuid/uuid.dart';
 abstract class KVStoreService {
   static SharedPreferences? _sharedPreferences;
   static SharedPreferences get sharedPreferences => _sharedPreferences!;
+  static bool get isInitialized => _sharedPreferences != null;
+
+  static const _themePinPrefix = 'theme.pins.';
+
+  /// Playlist pins grouped by theme-declared pin target.
+  ///
+  /// The sidebar keeps its historical column in the preferences row; every
+  /// other target a theme declares lives here, so one playlist can be pinned
+  /// to several bars independently.
+  static Map<String, List<String>> themePinTargets() {
+    final result = <String, List<String>>{};
+    for (final key in sharedPreferences.getKeys()) {
+      if (!key.startsWith(_themePinPrefix)) continue;
+      final target = key.substring(_themePinPrefix.length);
+      if (target.isEmpty) continue;
+      final ids = sharedPreferences.getStringList(key);
+      if (ids == null || ids.isEmpty) continue;
+      result[target] = List.unmodifiable(ids);
+    }
+    return result;
+  }
+
+  static Future<void> setThemePinTarget(String target, List<String> ids) async {
+    final key = '$_themePinPrefix$target';
+    if (ids.isEmpty) {
+      await sharedPreferences.remove(key);
+      return;
+    }
+    await sharedPreferences.setStringList(key, ids);
+  }
 
   static Future<void> initialize() async {
     _sharedPreferences = await SharedPreferences.getInstance();
@@ -99,10 +129,27 @@ abstract class KVStoreService {
     return value;
   }
 
+  /// The stored size, or null when this key has never been dragged.
+  static double? resizableSizeOrNull(String key) {
+    final value = sharedPreferences.getDouble('resizable.$key');
+    if (value == null || !value.isFinite) return null;
+    return value;
+  }
+
   static Future<void> setResizableSize(String key, double value) async {
     if (!value.isFinite) return;
     await sharedPreferences.setDouble('resizable.$key', value);
   }
+
+  static Future<void> clearResizableSize(String key) async =>
+      await sharedPreferences.remove('resizable.$key');
+
+  /// Collapsed flag of a theme's `collapsible` shell region.
+  static bool resizableCollapsed(String key) =>
+      sharedPreferences.getBool('collapsed.$key') ?? false;
+
+  static Future<void> setResizableCollapsed(String key, bool value) async =>
+      await sharedPreferences.setBool('collapsed.$key', value);
 
   /// Stereo widening used by the "Virtual surround" equalizer tile.
   static bool get spatialAudio =>
