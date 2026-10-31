@@ -11375,6 +11375,13 @@ mixin _$ThemeUiDocument {
   /// or the host refuses to route it.
   List<ThemeUiPage> get pages => throw _privateConstructorUsedError;
 
+  /// Capability names the theme declares it needs (`library.write`,
+  /// `audio.effects`, ...). The authoring validator enforces the full table;
+  /// the host only uses this to gate the actions that mutate the user's
+  /// account, where an installed plugin cannot be trusted to have been
+  /// validated. An absent list grants nothing extra.
+  List<String> get capabilities => throw _privateConstructorUsedError;
+
   /// Serializes this ThemeUiDocument to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -11397,7 +11404,8 @@ abstract class $ThemeUiDocumentCopyWith<$Res> {
       Map<String, ThemeUiScreen> screens,
       Map<String, ThemeUiTemplate> templates,
       Map<String, String> renderPoints,
-      List<ThemeUiPage> pages});
+      List<ThemeUiPage> pages,
+      List<String> capabilities});
 }
 
 /// @nodoc
@@ -11421,6 +11429,7 @@ class _$ThemeUiDocumentCopyWithImpl<$Res, $Val extends ThemeUiDocument>
     Object? templates = null,
     Object? renderPoints = null,
     Object? pages = null,
+    Object? capabilities = null,
   }) {
     return _then(_value.copyWith(
       specVersion: null == specVersion
@@ -11447,6 +11456,10 @@ class _$ThemeUiDocumentCopyWithImpl<$Res, $Val extends ThemeUiDocument>
           ? _value.pages
           : pages // ignore: cast_nullable_to_non_nullable
               as List<ThemeUiPage>,
+      capabilities: null == capabilities
+          ? _value.capabilities
+          : capabilities // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ) as $Val);
   }
 }
@@ -11465,7 +11478,8 @@ abstract class _$$ThemeUiDocumentImplCopyWith<$Res>
       Map<String, ThemeUiScreen> screens,
       Map<String, ThemeUiTemplate> templates,
       Map<String, String> renderPoints,
-      List<ThemeUiPage> pages});
+      List<ThemeUiPage> pages,
+      List<String> capabilities});
 }
 
 /// @nodoc
@@ -11487,6 +11501,7 @@ class __$$ThemeUiDocumentImplCopyWithImpl<$Res>
     Object? templates = null,
     Object? renderPoints = null,
     Object? pages = null,
+    Object? capabilities = null,
   }) {
     return _then(_$ThemeUiDocumentImpl(
       specVersion: null == specVersion
@@ -11513,6 +11528,10 @@ class __$$ThemeUiDocumentImplCopyWithImpl<$Res>
           ? _value._pages
           : pages // ignore: cast_nullable_to_non_nullable
               as List<ThemeUiPage>,
+      capabilities: null == capabilities
+          ? _value._capabilities
+          : capabilities // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }
@@ -11527,12 +11546,14 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
       final Map<String, ThemeUiTemplate> templates =
           const <String, ThemeUiTemplate>{},
       final Map<String, String> renderPoints = const <String, String>{},
-      final List<ThemeUiPage> pages = const <ThemeUiPage>[]})
+      final List<ThemeUiPage> pages = const <ThemeUiPage>[],
+      final List<String> capabilities = const <String>[]})
       : _slots = slots,
         _screens = screens,
         _templates = templates,
         _renderPoints = renderPoints,
-        _pages = pages;
+        _pages = pages,
+        _capabilities = capabilities;
 
   factory _$ThemeUiDocumentImpl.fromJson(Map<String, dynamic> json) =>
       _$$ThemeUiDocumentImplFromJson(json);
@@ -11601,9 +11622,29 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
     return EqualUnmodifiableListView(_pages);
   }
 
+  /// Capability names the theme declares it needs (`library.write`,
+  /// `audio.effects`, ...). The authoring validator enforces the full table;
+  /// the host only uses this to gate the actions that mutate the user's
+  /// account, where an installed plugin cannot be trusted to have been
+  /// validated. An absent list grants nothing extra.
+  final List<String> _capabilities;
+
+  /// Capability names the theme declares it needs (`library.write`,
+  /// `audio.effects`, ...). The authoring validator enforces the full table;
+  /// the host only uses this to gate the actions that mutate the user's
+  /// account, where an installed plugin cannot be trusted to have been
+  /// validated. An absent list grants nothing extra.
+  @override
+  @JsonKey()
+  List<String> get capabilities {
+    if (_capabilities is EqualUnmodifiableListView) return _capabilities;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_capabilities);
+  }
+
   @override
   String toString() {
-    return 'ThemeUiDocument(specVersion: $specVersion, slots: $slots, screens: $screens, templates: $templates, renderPoints: $renderPoints, pages: $pages)';
+    return 'ThemeUiDocument(specVersion: $specVersion, slots: $slots, screens: $screens, templates: $templates, renderPoints: $renderPoints, pages: $pages, capabilities: $capabilities)';
   }
 
   @override
@@ -11619,7 +11660,9 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
                 .equals(other._templates, _templates) &&
             const DeepCollectionEquality()
                 .equals(other._renderPoints, _renderPoints) &&
-            const DeepCollectionEquality().equals(other._pages, _pages));
+            const DeepCollectionEquality().equals(other._pages, _pages) &&
+            const DeepCollectionEquality()
+                .equals(other._capabilities, _capabilities));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -11631,7 +11674,8 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
       const DeepCollectionEquality().hash(_screens),
       const DeepCollectionEquality().hash(_templates),
       const DeepCollectionEquality().hash(_renderPoints),
-      const DeepCollectionEquality().hash(_pages));
+      const DeepCollectionEquality().hash(_pages),
+      const DeepCollectionEquality().hash(_capabilities));
 
   /// Create a copy of ThemeUiDocument
   /// with the given fields replaced by the non-null parameter values.
@@ -11657,7 +11701,8 @@ abstract class _ThemeUiDocument implements ThemeUiDocument {
       final Map<String, ThemeUiScreen> screens,
       final Map<String, ThemeUiTemplate> templates,
       final Map<String, String> renderPoints,
-      final List<ThemeUiPage> pages}) = _$ThemeUiDocumentImpl;
+      final List<ThemeUiPage> pages,
+      final List<String> capabilities}) = _$ThemeUiDocumentImpl;
 
   factory _ThemeUiDocument.fromJson(Map<String, dynamic> json) =
       _$ThemeUiDocumentImpl.fromJson;
@@ -11683,6 +11728,14 @@ abstract class _ThemeUiDocument implements ThemeUiDocument {
   /// or the host refuses to route it.
   @override
   List<ThemeUiPage> get pages;
+
+  /// Capability names the theme declares it needs (`library.write`,
+  /// `audio.effects`, ...). The authoring validator enforces the full table;
+  /// the host only uses this to gate the actions that mutate the user's
+  /// account, where an installed plugin cannot be trusted to have been
+  /// validated. An absent list grants nothing extra.
+  @override
+  List<String> get capabilities;
 
   /// Create a copy of ThemeUiDocument
   /// with the given fields replaced by the non-null parameter values.

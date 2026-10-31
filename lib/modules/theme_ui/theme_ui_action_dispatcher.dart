@@ -7,6 +7,7 @@ import 'package:media_kit/media_kit.dart' show PlaylistMode;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import 'package:spotube/collections/routes.gr.dart';
+import 'package:spotube/components/dialogs/prompt_dialog.dart';
 import 'package:spotube/models/equalizer/equalizer.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
@@ -22,8 +23,10 @@ import 'package:spotube/provider/crossfade_duration_provider.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
 import 'package:spotube/provider/download_manager/download_tasks.dart';
 import 'package:spotube/provider/metadata_plugin/library/library_refresh.dart';
+import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 import 'package:spotube/provider/metadata_plugin/library/tracks.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+import 'package:spotube/provider/metadata_plugin/playlist/playlist.dart';
 import 'package:spotube/provider/sleep_timer_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/provider/volume_provider.dart';
@@ -132,6 +135,14 @@ Future<void> dispatchThemeUiAction(
         await _setSpeed(ref, action.args);
       case 'setMuted':
         await _setMuted(ref, action.args);
+      case 'createPlaylist':
+        await _createPlaylist(ref, action.args);
+      case 'renamePlaylist':
+        await _renamePlaylist(ref, action.args);
+      case 'deletePlaylist':
+        await _deletePlaylist(context, ref, action.args);
+      case 'addToPlaylist':
+        await _addToPlaylist(ref, action.args);
     }
   } catch (e, stack) {
     AppLogger.reportError(e, stack, 'themeUiAction:${action.type}');
@@ -426,6 +437,123 @@ void _setPinnedItem(
     return;
   }
   ref.read(themePinsProvider.notifier).setPinned(target, id, pinned: pinned);
+}
+
+/// The active theme's declared capabilities gate the account mutations.
+///
+/// The authoring validator enforces the full capability table, but an installed
+/// plugin need not have been built by it, so the host itself refuses anything
+/// that writes to the user's own library unless the document declares
+/// `library.write`. `pinItem`/`unpinItem` are deliberately not gated here: a
+/// pin is local ordering state, not an account write, and gating it would
+/// regress themes that pin without asking for `library.write`.
+Future<bool> _grantsLibraryWrite(WidgetRef ref) async {
+  final ui = await ref.read(themeUiProvider.future);
+  return ui?.capabilities.contains('library.write') ?? false;
+}
+
+const _playlistNameMax = 100;
+const _playlistDescriptionMax = 500;
+const _playlistAddTracksMax = 50;
+
+/// A playlist id from either an object the renderer injected or a bare id the
+/// theme hard-coded.
+String? _playlistRef(Object? raw) {
+  if (raw is String && raw.isNotEmpty) return raw;
+  return _playlistId(raw);
+}
+
+/// A trimmed, length-capped string, or null when [raw] is absent/blank.
+String? _cappedString(Object? raw, int max) {
+  if (raw is! String) return null;
+  final value = raw.trim();
+  if (value.isEmpty) return null;
+  return value.length > max ? value.substring(0, max) : value;
+}
+
+Future<void> _createPlaylist(WidgetRef ref, Map<String, dynamic> args) async {
+  if (!await _grantsLibraryWrite(ref)) return;
+  final name = _cappedString(args['name'], _playlistNameMax);
+  if (name == null) return;
+  await ref.read(metadataPluginPlaylistProvider('').notifier).create(
+        name: name,
+        description: _cappedString(args['description'], _playlistDescriptionMax),
+        public: args['public'] is bool ? args['public'] as bool : null,
+        collaborative: args['collaborative'] is bool
+            ? args['collaborative'] as bool
+            : null,
+      );
+}
+
+Future<void> _renamePlaylist(WidgetRef ref, Map<String, dynamic> args) async {
+  if (!await _grantsLibraryWrite(ref)) return;
+  final id = _playlistRef(args['playlist'] ?? args['item']);
+  final name = _cappedString(args['name'], _playlistNameMax);
+  if (id == null || name == null) return;
+  final notifier = ref.read(metadataPluginPlaylistProvider(id).notifier);
+  // modify() skips its local mirror update unless the playlist is loaded, and
+  // delete() refuses outright; wait for the fetch before writing.
+  await ref.read(metadataPluginPlaylistProvider(id).future);
+  await notifier.modify(name: name);
+}
+
+Future<void> _deletePlaylist(
+  BuildContext context,
+  WidgetRef ref,
+  Map<String, dynamic> args,
+) async {
+  if (!await _grantsLibraryWrite(ref)) return;
+  final id = _playlistRef(args['playlist'] ?? args['item']);
+  if (id == null) return;
+  if (!context.mounted) return;
+  final confirmed = await showPromptDialog(
+    context: context,
+    title: 'Delete playlist',
+    message: 'This removes the playlist from your library and cannot be undone.',
+    okText: 'Delete',
+    destructive: true,
+  );
+  if (!confirmed || !context.mounted) return;
+  final notifier = ref.read(metadataPluginPlaylistProvider(id).notifier);
+  await ref.read(metadataPluginPlaylistProvider(id).future);
+  await notifier.delete();
+}
+
+Future<void> _addToPlaylist(WidgetRef ref, Map<String, dynamic> args) async {
+  if (!await _grantsLibraryWrite(ref)) return;
+  final playlistId = _playlistRef(args['playlist'] ?? args['id']);
+  if (playlistId == null) return;
+  final trackIds = _trackIdsFromArgs(args);
+  if (trackIds.isEmpty) return;
+  await ref
+      .read(metadataPluginSavedPlaylistsProvider.notifier)
+      .addTracks(playlistId, trackIds);
+}
+
+/// Collects track ids from a single `track`/`item` or a `tracks`/`trackIds`
+/// list, deduplicated and capped. A theme names the thing it is adding; the
+/// host only ever sees ids, never the caller's objects.
+List<String> _trackIdsFromArgs(Map<String, dynamic> args) {
+  final ids = <String>{};
+  void add(Object? raw) {
+    if (ids.length >= _playlistAddTracksMax) return;
+    final id = switch (raw) {
+      final String value when value.isNotEmpty => value,
+      final DownloadTask task => task.track.id,
+      final SpotubeTrackObject track => track.id,
+      _ => null,
+    };
+    if (id != null) ids.add(id);
+  }
+
+  add(args['track'] ?? args['trackId'] ?? args['item']);
+  final list = args['tracks'] ?? args['trackIds'];
+  if (list is List) {
+    for (final entry in list) {
+      add(entry);
+    }
+  }
+  return ids.toList();
 }
 
 SpotubeSimpleAlbumObject _simpleAlbum(SpotubeFullAlbumObject album) {

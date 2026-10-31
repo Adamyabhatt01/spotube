@@ -941,6 +941,13 @@ class ThemeUiDocument with _$ThemeUiDocument {
     /// `page.<id>` slot inside the shell; `parent` must name a host section
     /// or the host refuses to route it.
     @Default(<ThemeUiPage>[]) List<ThemeUiPage> pages,
+
+    /// Capability names the theme declares it needs (`library.write`,
+    /// `audio.effects`, ...). The authoring validator enforces the full table;
+    /// the host only uses this to gate the actions that mutate the user's
+    /// account, where an installed plugin cannot be trusted to have been
+    /// validated. An absent list grants nothing extra.
+    @Default(<String>[]) List<String> capabilities,
   }) = _ThemeUiDocument;
 
   factory ThemeUiDocument.fromJson(Map<String, dynamic> json) =>

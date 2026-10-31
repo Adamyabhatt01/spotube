@@ -1094,6 +1094,10 @@ _$ThemeUiDocumentImpl _$$ThemeUiDocumentImplFromJson(Map json) =>
                   ThemeUiPage.fromJson(Map<String, dynamic>.from(e as Map)))
               .toList() ??
           const <ThemeUiPage>[],
+      capabilities: (json['capabilities'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const <String>[],
     );
 
 Map<String, dynamic> _$$ThemeUiDocumentImplToJson(
@@ -1105,6 +1109,7 @@ Map<String, dynamic> _$$ThemeUiDocumentImplToJson(
       'templates': instance.templates.map((k, e) => MapEntry(k, e.toJson())),
       'renderPoints': instance.renderPoints,
       'pages': instance.pages.map((e) => e.toJson()).toList(),
+      'capabilities': instance.capabilities,
     };
 
 _$ThemeUiSlotImpl _$$ThemeUiSlotImplFromJson(Map json) => _$ThemeUiSlotImpl(

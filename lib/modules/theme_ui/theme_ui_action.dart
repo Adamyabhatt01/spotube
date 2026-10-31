@@ -50,6 +50,10 @@ class ThemeUiAction {
     'setSleepTimer',
     'setSpeed',
     'setMuted',
+    'createPlaylist',
+    'renamePlaylist',
+    'deletePlaylist',
+    'addToPlaylist',
   };
 
   final String type;
