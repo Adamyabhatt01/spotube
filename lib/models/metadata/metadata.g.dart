@@ -1089,6 +1089,11 @@ _$ThemeUiDocumentImpl _$$ThemeUiDocumentImplFromJson(Map json) =>
             (k, e) => MapEntry(k as String, e as String),
           ) ??
           const <String, String>{},
+      pages: (json['pages'] as List<dynamic>?)
+              ?.map((e) =>
+                  ThemeUiPage.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList() ??
+          const <ThemeUiPage>[],
     );
 
 Map<String, dynamic> _$$ThemeUiDocumentImplToJson(
@@ -1099,6 +1104,7 @@ Map<String, dynamic> _$$ThemeUiDocumentImplToJson(
       'screens': instance.screens.map((k, e) => MapEntry(k, e.toJson())),
       'templates': instance.templates.map((k, e) => MapEntry(k, e.toJson())),
       'renderPoints': instance.renderPoints,
+      'pages': instance.pages.map((e) => e.toJson()).toList(),
     };
 
 _$ThemeUiSlotImpl _$$ThemeUiSlotImplFromJson(Map json) => _$ThemeUiSlotImpl(
@@ -1130,6 +1136,25 @@ Map<String, dynamic> _$$ThemeUiScreenImplToJson(_$ThemeUiScreenImpl instance) =>
       'title': instance.title,
       'showBack': instance.showBack,
       'children': instance.children,
+    };
+
+_$ThemeUiPageImpl _$$ThemeUiPageImplFromJson(Map json) => _$ThemeUiPageImpl(
+      id: json['id'] as String,
+      title: json['title'] as String?,
+      icon: json['icon'] as String?,
+      parent: json['parent'] as String?,
+      showBack: json['showBack'] as bool? ?? false,
+      visible: json['visible'] as bool? ?? true,
+    );
+
+Map<String, dynamic> _$$ThemeUiPageImplToJson(_$ThemeUiPageImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'title': instance.title,
+      'icon': instance.icon,
+      'parent': instance.parent,
+      'showBack': instance.showBack,
+      'visible': instance.visible,
     };
 
 _$ThemeUiTemplateImpl _$$ThemeUiTemplateImplFromJson(Map json) =>

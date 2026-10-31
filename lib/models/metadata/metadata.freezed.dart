@@ -11370,6 +11370,11 @@ mixin _$ThemeUiDocument {
   /// an unknown id is ignored at runtime.
   Map<String, String> get renderPoints => throw _privateConstructorUsedError;
 
+  /// Routed pages the theme adds under a host section. A page renders the
+  /// `page.<id>` slot inside the shell; `parent` must name a host section
+  /// or the host refuses to route it.
+  List<ThemeUiPage> get pages => throw _privateConstructorUsedError;
+
   /// Serializes this ThemeUiDocument to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -11391,7 +11396,8 @@ abstract class $ThemeUiDocumentCopyWith<$Res> {
       Map<String, ThemeUiSlot> slots,
       Map<String, ThemeUiScreen> screens,
       Map<String, ThemeUiTemplate> templates,
-      Map<String, String> renderPoints});
+      Map<String, String> renderPoints,
+      List<ThemeUiPage> pages});
 }
 
 /// @nodoc
@@ -11414,6 +11420,7 @@ class _$ThemeUiDocumentCopyWithImpl<$Res, $Val extends ThemeUiDocument>
     Object? screens = null,
     Object? templates = null,
     Object? renderPoints = null,
+    Object? pages = null,
   }) {
     return _then(_value.copyWith(
       specVersion: null == specVersion
@@ -11436,6 +11443,10 @@ class _$ThemeUiDocumentCopyWithImpl<$Res, $Val extends ThemeUiDocument>
           ? _value.renderPoints
           : renderPoints // ignore: cast_nullable_to_non_nullable
               as Map<String, String>,
+      pages: null == pages
+          ? _value.pages
+          : pages // ignore: cast_nullable_to_non_nullable
+              as List<ThemeUiPage>,
     ) as $Val);
   }
 }
@@ -11453,7 +11464,8 @@ abstract class _$$ThemeUiDocumentImplCopyWith<$Res>
       Map<String, ThemeUiSlot> slots,
       Map<String, ThemeUiScreen> screens,
       Map<String, ThemeUiTemplate> templates,
-      Map<String, String> renderPoints});
+      Map<String, String> renderPoints,
+      List<ThemeUiPage> pages});
 }
 
 /// @nodoc
@@ -11474,6 +11486,7 @@ class __$$ThemeUiDocumentImplCopyWithImpl<$Res>
     Object? screens = null,
     Object? templates = null,
     Object? renderPoints = null,
+    Object? pages = null,
   }) {
     return _then(_$ThemeUiDocumentImpl(
       specVersion: null == specVersion
@@ -11496,6 +11509,10 @@ class __$$ThemeUiDocumentImplCopyWithImpl<$Res>
           ? _value._renderPoints
           : renderPoints // ignore: cast_nullable_to_non_nullable
               as Map<String, String>,
+      pages: null == pages
+          ? _value._pages
+          : pages // ignore: cast_nullable_to_non_nullable
+              as List<ThemeUiPage>,
     ));
   }
 }
@@ -11509,11 +11526,13 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
       final Map<String, ThemeUiScreen> screens = const {},
       final Map<String, ThemeUiTemplate> templates =
           const <String, ThemeUiTemplate>{},
-      final Map<String, String> renderPoints = const <String, String>{}})
+      final Map<String, String> renderPoints = const <String, String>{},
+      final List<ThemeUiPage> pages = const <ThemeUiPage>[]})
       : _slots = slots,
         _screens = screens,
         _templates = templates,
-        _renderPoints = renderPoints;
+        _renderPoints = renderPoints,
+        _pages = pages;
 
   factory _$ThemeUiDocumentImpl.fromJson(Map<String, dynamic> json) =>
       _$$ThemeUiDocumentImplFromJson(json);
@@ -11566,9 +11585,25 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
     return EqualUnmodifiableMapView(_renderPoints);
   }
 
+  /// Routed pages the theme adds under a host section. A page renders the
+  /// `page.<id>` slot inside the shell; `parent` must name a host section
+  /// or the host refuses to route it.
+  final List<ThemeUiPage> _pages;
+
+  /// Routed pages the theme adds under a host section. A page renders the
+  /// `page.<id>` slot inside the shell; `parent` must name a host section
+  /// or the host refuses to route it.
+  @override
+  @JsonKey()
+  List<ThemeUiPage> get pages {
+    if (_pages is EqualUnmodifiableListView) return _pages;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_pages);
+  }
+
   @override
   String toString() {
-    return 'ThemeUiDocument(specVersion: $specVersion, slots: $slots, screens: $screens, templates: $templates, renderPoints: $renderPoints)';
+    return 'ThemeUiDocument(specVersion: $specVersion, slots: $slots, screens: $screens, templates: $templates, renderPoints: $renderPoints, pages: $pages)';
   }
 
   @override
@@ -11583,7 +11618,8 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
             const DeepCollectionEquality()
                 .equals(other._templates, _templates) &&
             const DeepCollectionEquality()
-                .equals(other._renderPoints, _renderPoints));
+                .equals(other._renderPoints, _renderPoints) &&
+            const DeepCollectionEquality().equals(other._pages, _pages));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -11594,7 +11630,8 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
       const DeepCollectionEquality().hash(_slots),
       const DeepCollectionEquality().hash(_screens),
       const DeepCollectionEquality().hash(_templates),
-      const DeepCollectionEquality().hash(_renderPoints));
+      const DeepCollectionEquality().hash(_renderPoints),
+      const DeepCollectionEquality().hash(_pages));
 
   /// Create a copy of ThemeUiDocument
   /// with the given fields replaced by the non-null parameter values.
@@ -11619,7 +11656,8 @@ abstract class _ThemeUiDocument implements ThemeUiDocument {
       final Map<String, ThemeUiSlot> slots,
       final Map<String, ThemeUiScreen> screens,
       final Map<String, ThemeUiTemplate> templates,
-      final Map<String, String> renderPoints}) = _$ThemeUiDocumentImpl;
+      final Map<String, String> renderPoints,
+      final List<ThemeUiPage> pages}) = _$ThemeUiDocumentImpl;
 
   factory _ThemeUiDocument.fromJson(Map<String, dynamic> json) =
       _$ThemeUiDocumentImpl.fromJson;
@@ -11639,6 +11677,12 @@ abstract class _ThemeUiDocument implements ThemeUiDocument {
   /// an unknown id is ignored at runtime.
   @override
   Map<String, String> get renderPoints;
+
+  /// Routed pages the theme adds under a host section. A page renders the
+  /// `page.<id>` slot inside the shell; `parent` must name a host section
+  /// or the host refuses to route it.
+  @override
+  List<ThemeUiPage> get pages;
 
   /// Create a copy of ThemeUiDocument
   /// with the given fields replaced by the non-null parameter values.
@@ -12031,6 +12075,263 @@ abstract class _ThemeUiScreen implements ThemeUiScreen {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ThemeUiScreenImplCopyWith<_$ThemeUiScreenImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+ThemeUiPage _$ThemeUiPageFromJson(Map<String, dynamic> json) {
+  return _ThemeUiPage.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ThemeUiPage {
+  String get id => throw _privateConstructorUsedError;
+  String? get title => throw _privateConstructorUsedError;
+  String? get icon => throw _privateConstructorUsedError;
+  String? get parent => throw _privateConstructorUsedError;
+  bool get showBack => throw _privateConstructorUsedError;
+  bool get visible => throw _privateConstructorUsedError;
+
+  /// Serializes this ThemeUiPage to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ThemeUiPage
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ThemeUiPageCopyWith<ThemeUiPage> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ThemeUiPageCopyWith<$Res> {
+  factory $ThemeUiPageCopyWith(
+          ThemeUiPage value, $Res Function(ThemeUiPage) then) =
+      _$ThemeUiPageCopyWithImpl<$Res, ThemeUiPage>;
+  @useResult
+  $Res call(
+      {String id,
+      String? title,
+      String? icon,
+      String? parent,
+      bool showBack,
+      bool visible});
+}
+
+/// @nodoc
+class _$ThemeUiPageCopyWithImpl<$Res, $Val extends ThemeUiPage>
+    implements $ThemeUiPageCopyWith<$Res> {
+  _$ThemeUiPageCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ThemeUiPage
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? title = freezed,
+    Object? icon = freezed,
+    Object? parent = freezed,
+    Object? showBack = null,
+    Object? visible = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      title: freezed == title
+          ? _value.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String?,
+      icon: freezed == icon
+          ? _value.icon
+          : icon // ignore: cast_nullable_to_non_nullable
+              as String?,
+      parent: freezed == parent
+          ? _value.parent
+          : parent // ignore: cast_nullable_to_non_nullable
+              as String?,
+      showBack: null == showBack
+          ? _value.showBack
+          : showBack // ignore: cast_nullable_to_non_nullable
+              as bool,
+      visible: null == visible
+          ? _value.visible
+          : visible // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ThemeUiPageImplCopyWith<$Res>
+    implements $ThemeUiPageCopyWith<$Res> {
+  factory _$$ThemeUiPageImplCopyWith(
+          _$ThemeUiPageImpl value, $Res Function(_$ThemeUiPageImpl) then) =
+      __$$ThemeUiPageImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String? title,
+      String? icon,
+      String? parent,
+      bool showBack,
+      bool visible});
+}
+
+/// @nodoc
+class __$$ThemeUiPageImplCopyWithImpl<$Res>
+    extends _$ThemeUiPageCopyWithImpl<$Res, _$ThemeUiPageImpl>
+    implements _$$ThemeUiPageImplCopyWith<$Res> {
+  __$$ThemeUiPageImplCopyWithImpl(
+      _$ThemeUiPageImpl _value, $Res Function(_$ThemeUiPageImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ThemeUiPage
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? title = freezed,
+    Object? icon = freezed,
+    Object? parent = freezed,
+    Object? showBack = null,
+    Object? visible = null,
+  }) {
+    return _then(_$ThemeUiPageImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      title: freezed == title
+          ? _value.title
+          : title // ignore: cast_nullable_to_non_nullable
+              as String?,
+      icon: freezed == icon
+          ? _value.icon
+          : icon // ignore: cast_nullable_to_non_nullable
+              as String?,
+      parent: freezed == parent
+          ? _value.parent
+          : parent // ignore: cast_nullable_to_non_nullable
+              as String?,
+      showBack: null == showBack
+          ? _value.showBack
+          : showBack // ignore: cast_nullable_to_non_nullable
+              as bool,
+      visible: null == visible
+          ? _value.visible
+          : visible // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ThemeUiPageImpl implements _ThemeUiPage {
+  const _$ThemeUiPageImpl(
+      {required this.id,
+      this.title,
+      this.icon,
+      this.parent,
+      this.showBack = false,
+      this.visible = true});
+
+  factory _$ThemeUiPageImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ThemeUiPageImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String? title;
+  @override
+  final String? icon;
+  @override
+  final String? parent;
+  @override
+  @JsonKey()
+  final bool showBack;
+  @override
+  @JsonKey()
+  final bool visible;
+
+  @override
+  String toString() {
+    return 'ThemeUiPage(id: $id, title: $title, icon: $icon, parent: $parent, showBack: $showBack, visible: $visible)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ThemeUiPageImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.title, title) || other.title == title) &&
+            (identical(other.icon, icon) || other.icon == icon) &&
+            (identical(other.parent, parent) || other.parent == parent) &&
+            (identical(other.showBack, showBack) ||
+                other.showBack == showBack) &&
+            (identical(other.visible, visible) || other.visible == visible));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, id, title, icon, parent, showBack, visible);
+
+  /// Create a copy of ThemeUiPage
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ThemeUiPageImplCopyWith<_$ThemeUiPageImpl> get copyWith =>
+      __$$ThemeUiPageImplCopyWithImpl<_$ThemeUiPageImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ThemeUiPageImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ThemeUiPage implements ThemeUiPage {
+  const factory _ThemeUiPage(
+      {required final String id,
+      final String? title,
+      final String? icon,
+      final String? parent,
+      final bool showBack,
+      final bool visible}) = _$ThemeUiPageImpl;
+
+  factory _ThemeUiPage.fromJson(Map<String, dynamic> json) =
+      _$ThemeUiPageImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String? get title;
+  @override
+  String? get icon;
+  @override
+  String? get parent;
+  @override
+  bool get showBack;
+  @override
+  bool get visible;
+
+  /// Create a copy of ThemeUiPage
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ThemeUiPageImplCopyWith<_$ThemeUiPageImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 

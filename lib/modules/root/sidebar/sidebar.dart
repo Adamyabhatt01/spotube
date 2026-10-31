@@ -107,8 +107,18 @@ class Sidebar extends HookConsumerWidget {
     final authenticated =
         ref.watch(metadataPluginAuthenticatedProvider).asData?.value;
 
+    // Theme screens and routable pages, keyed `screen:<id>` / `page:<id>`, so
+    // `navItems`/`libraryItems` may reference either. Pages additionally get
+    // auto-injected under the section their `parent` names.
     final screens = useMemoized(
-      () => themeScreenTiles(themeUi),
+      () => {
+        ...themeScreenTiles(themeUi),
+        for (final parent in themePageParents)
+          ...{
+            for (final tile in themePageTiles(themeUi, parent: parent))
+              tile.id: tile,
+          },
+      },
       [themeUi],
     );
 
@@ -162,20 +172,31 @@ class Sidebar extends HookConsumerWidget {
     );
 
     // Library group as the theme asked for it, or in the user's own order.
+    // Pages parented to the sidebar are appended either way (never twice).
     final visibleLibraryTiles = useMemoized(
       () {
-        if (layout.libraryItems.isEmpty) return orderedLibraryTiles;
-        return themeEntriesFor(
-          host: sidebarLibraryTileList,
-          themeIds: layout.libraryItems,
-          screens: screens,
-        );
+        final base = layout.libraryItems.isEmpty
+            ? orderedLibraryTiles
+            : themeEntriesFor(
+                host: sidebarLibraryTileList,
+                themeIds: layout.libraryItems,
+                screens: screens,
+              );
+        final sidebarPages = themePageTiles(themeUi, parent: 'sidebar');
+        if (layout.libraryItems.isEmpty) return [...base, ...sidebarPages];
+        final referenced = base.map((tile) => tile.id).toSet();
+        return [
+          ...base,
+          for (final tile in sidebarPages)
+            if (!referenced.contains(tile.id)) tile,
+        ];
       },
       [
         sidebarLibraryTileList,
         orderedLibraryTiles,
         layout,
         screens,
+        themeUi,
       ],
     );
 

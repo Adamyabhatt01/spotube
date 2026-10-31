@@ -16,6 +16,7 @@ import 'package:spotube/provider/download_manager/download_tasks.dart';
 import 'package:spotube/provider/metadata_plugin/library/albums.dart';
 import 'package:spotube/provider/metadata_plugin/library/artists.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
+import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 
 @RoutePage()
 class LibraryPage extends HookConsumerWidget {
@@ -32,6 +33,7 @@ class LibraryPage extends HookConsumerWidget {
             .length,
       ),
     );
+    final themeUi = ref.watch(themeUiProvider).asData?.value;
     final router = context.watchRouter;
     final sidebarLibraryTileList = useMemoized(
       () => [
@@ -43,8 +45,10 @@ class LibraryPage extends HookConsumerWidget {
           route: const UserDownloadsRoute(),
           icon: SpotubeIcons.download,
         ),
+        // Pages the theme parents to the library, after the host sections.
+        ...themePageTiles(themeUi, parent: 'library'),
       ],
-      [context.l10n],
+      [context.l10n, themeUi],
     );
     final index = sidebarLibraryTileList.indexWhere(
       (e) => router.currentPath.startsWith(e.pathPrefix),

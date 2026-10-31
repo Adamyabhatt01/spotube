@@ -7,7 +7,9 @@ import 'package:spotube/components/titlebar/titlebar.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/theme_shell/theme_shell.dart';
+import 'package:spotube/modules/theme_shell/theme_navigation.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
+import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/pages/settings/sections/about.dart';
 import 'package:spotube/pages/settings/sections/accounts.dart';
 import 'package:spotube/pages/settings/sections/appearance.dart';
@@ -56,6 +58,10 @@ class SettingsPage extends HookConsumerWidget {
       [layout],
     );
 
+    // Pages the theme parents to settings, offered after the host sections.
+    final themeUi = ref.watch(themeUiProvider).asData?.value;
+    final themePages = themePageTiles(themeUi, parent: 'settings');
+
     return SafeArea(
       bottom: false,
       child: Scaffold(
@@ -100,6 +106,15 @@ class SettingsPage extends HookConsumerWidget {
                           'about' => const SettingsAboutSection(),
                           _ => const SizedBox.shrink(),
                         },
+                      for (final tile in themePages)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                          child: Button.ghost(
+                            leading: Icon(tile.icon),
+                            onPressed: () => openSideBarTile(context, ref, tile),
+                            child: Text(tile.title),
+                          ),
+                        ),
                       Center(
                         child: Button.destructive(
                           onPressed: preferencesNotifier.reset,

@@ -113,6 +113,13 @@ class AppRouter extends RootStackRouter {
               path: "lyrics",
               page: LyricsRoute.page,
             ),
+            // One route for every theme page: routes are generated at build
+            // time, so a theme declares pages and the host routes them here.
+            // (v4 contract, Phase 6.)
+            AutoRoute(
+              path: "theme-page/:pageId",
+              page: ThemeRoute.page,
+            ),
             AutoRoute(
               path: "radio",
               page: RadioRoute.page,

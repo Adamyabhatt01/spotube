@@ -936,6 +936,11 @@ class ThemeUiDocument with _$ThemeUiDocument {
     /// replaces its pixels. Only ids in the closed v4 catalogue are honoured;
     /// an unknown id is ignored at runtime.
     @Default(<String, String>{}) Map<String, String> renderPoints,
+
+    /// Routed pages the theme adds under a host section. A page renders the
+    /// `page.<id>` slot inside the shell; `parent` must name a host section
+    /// or the host refuses to route it.
+    @Default(<ThemeUiPage>[]) List<ThemeUiPage> pages,
   }) = _ThemeUiDocument;
 
   factory ThemeUiDocument.fromJson(Map<String, dynamic> json) =>
@@ -968,6 +973,26 @@ class ThemeUiScreen with _$ThemeUiScreen {
 
   factory ThemeUiScreen.fromJson(Map<String, dynamic> json) =>
       _$ThemeUiScreenFromJson(json);
+}
+
+/// A routed page the theme adds to the shell.
+///
+/// Unlike a [ThemeUiScreen] (a full-window overlay on the host stack), a page
+/// is a route: sidebar and player stay mounted, system back works, and it is
+/// reachable from navigation surfaces through its `parent` section.
+@freezed
+class ThemeUiPage with _$ThemeUiPage {
+  const factory ThemeUiPage({
+    required String id,
+    String? title,
+    String? icon,
+    String? parent,
+    @Default(false) bool showBack,
+    @Default(true) bool visible,
+  }) = _ThemeUiPage;
+
+  factory ThemeUiPage.fromJson(Map<String, dynamic> json) =>
+      _$ThemeUiPageFromJson(json);
 }
 
 /// A reusable subtree a text node may expand with `template`/`args`.

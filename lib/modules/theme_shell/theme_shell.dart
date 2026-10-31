@@ -95,8 +95,8 @@ List<String> resolveThemeItems({
   final chosen = <String>[];
   for (final id in themeIds) {
     final valid = known.contains(id) ||
-        (id.startsWith('screen:') &&
-            screens.contains(id.substring('screen:'.length)));
+        ((id.startsWith('screen:') || id.startsWith('page:')) &&
+            screens.contains(id.substring(id.indexOf(':') + 1)));
     if (valid && !chosen.contains(id)) chosen.add(id);
   }
   return chosen.isEmpty ? hostIds : chosen;

@@ -3,9 +3,78 @@ import 'package:flutter/widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:spotube/collections/side_bar_tiles.dart';
+import 'package:spotube/collections/spotube_icons.dart';
+import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/theme_shell/theme_shell.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_screen_stack.dart';
+
+/// The host sections a theme page may hang under.
+///
+/// An unknown (or missing) `parent` is a rejected page: it is never routed and
+/// never injected into navigation. This is the host half of the contract the
+/// theme-side validator cannot check — it has no idea which sections exist.
+const themePageParents = <String>{
+  'sidebar',
+  'library',
+  'library.local',
+  'settings',
+};
+
+/// The display title of a theme page: trimmed, capped, with the id as
+/// fallback so a page is never an unnamed hole in a nav list.
+String themePageTitle(ThemeUiPage page) {
+  final title = page.title?.trim();
+  if (title == null || title.isEmpty) return page.id;
+  return title.length > 60 ? title.substring(0, 60) : title;
+}
+
+/// The page named [id], when the active document declares it, it is visible,
+/// and its parent is a host section.
+ThemeUiPage? routableThemePage(ThemeUiDocument? ui, String id) {
+  if (ui == null) return null;
+  for (final page in ui.pages) {
+    if (page.id != id) continue;
+    if (!page.visible || !themePageParents.contains(page.parent)) return null;
+    return page;
+  }
+  return null;
+}
+
+/// The pages injected into one host section, in declaration order.
+List<SideBarTiles> themePageTiles(ThemeUiDocument? ui, {required String parent}) {
+  if (ui == null || !themePageParents.contains(parent)) return const [];
+  final tiles = <SideBarTiles>[];
+  for (final page in ui.pages) {
+    if (page.parent != parent || !page.visible) continue;
+    tiles.add(
+      SideBarTiles(
+        id: 'page:${page.id}',
+        title: themePageTitle(page),
+        pathPrefix: '/theme-page/${page.id}',
+        route: ThemeRoute(pageId: page.id),
+        icon: _themePageIcon(page.icon),
+      ),
+    );
+  }
+  return tiles;
+}
+
+IconData _themePageIcon(String? name) {
+  return switch (name) {
+    'equalizer' => SpotubeIcons.equalizer,
+    'list' => SpotubeIcons.list,
+    'playlist' => SpotubeIcons.playlist,
+    'download' => SpotubeIcons.download,
+    'settings' => SpotubeIcons.settings,
+    'search' => SpotubeIcons.search,
+    'library' => SpotubeIcons.library,
+    'home' => SpotubeIcons.home,
+    'radio' => SpotubeIcons.radio,
+    'device' => SpotubeIcons.device,
+    _ => SpotubeIcons.magic,
+  };
+}
 
 /// The theme's own screens as navigation destinations.
 ///
@@ -41,11 +110,11 @@ List<SideBarTiles> themeEntriesFor({
   if (themeIds.isEmpty) return host;
 
   final byId = {for (final tile in host) tile.id: tile};
-  // The resolver matches bare screen ids; this map is keyed by the
-  // `screen:<id>` destinations the navigation surface uses.
+  // The resolver matches bare ids; this map is keyed by the prefixed
+  // (`screen:<id>`, `page:<id>`) destinations the navigation surface uses.
   final screenIds = {
     for (final key in screens.keys)
-      key.startsWith('screen:') ? key.substring('screen:'.length) : key,
+      key.contains(':') ? key.substring(key.indexOf(':') + 1) : key,
   };
   final ids = resolveThemeItems(
     hostIds: [for (final tile in host) tile.id],

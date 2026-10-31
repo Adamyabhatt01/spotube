@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/services.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -12,6 +14,7 @@ import 'package:spotube/modules/theme_ui/theme_pins.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_action.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_screen_stack.dart';
+import 'package:spotube/modules/theme_shell/theme_navigation.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/audio_player/audio_player_port.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
@@ -72,6 +75,10 @@ Future<void> dispatchThemeUiAction(
         context.navigateTo(const UserDownloadsRoute());
       case 'navigate':
         await _navigate(context, ref, action.args);
+      case 'openPage':
+        await _openPage(context, ref, action.args);
+      case 'closePage':
+        _closePage(context);
       case 'toast':
         _toast(context, action.args);
       case 'plugin':
@@ -372,6 +379,11 @@ Future<void> _navigate(
     return;
   }
 
+  if (target.startsWith('page:')) {
+    await _openPage(context, ref, {'id': target.substring('page:'.length)});
+    return;
+  }
+
   final route = switch (target) {
     'home' => const HomeRoute(),
     'search' => const SearchRoute(),
@@ -387,6 +399,28 @@ Future<void> _navigate(
   };
   if (route == null) return;
   context.navigateTo(route);
+}
+
+/// Opens a theme page as a route.
+///
+/// The page must exist in the active document, be visible, and name a host
+/// section as its parent — the same gate every other entry point uses, so a
+/// rejected page is unreachable even though it stays in the document.
+Future<void> _openPage(
+  BuildContext context,
+  WidgetRef ref,
+  Map<String, dynamic> args,
+) async {
+  final id = args['id'];
+  if (id is! String || id.isEmpty) return;
+  final ui = await ref.read(themeUiProvider.future);
+  final page = routableThemePage(ui, id);
+  if (page == null || !context.mounted) return;
+  context.pushRoute(ThemeRoute(pageId: page.id));
+}
+
+void _closePage(BuildContext context) {
+  unawaited(context.router.maybePop());
 }
 
 void _toast(BuildContext context, Map<String, dynamic> args) {
