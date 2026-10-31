@@ -162,6 +162,19 @@ abstract class KVStoreService {
   static Future<void> setMonoAudio(bool value) async =>
       await sharedPreferences.setBool('monoAudio', value);
 
+  /// Requested crossfade length between tracks, in seconds. 0 disables it.
+  /// KV rather than a drift column for the same reason as spatial audio: one
+  /// session-independent audio toggle the effects layer composes.
+  static double get crossfadeDuration {
+    final value = sharedPreferences.getDouble('crossfadeDuration') ?? 0;
+    return value.isFinite && value > 0 ? value : 0;
+  }
+
+  static Future<void> setCrossfadeDuration(double seconds) async {
+    if (!seconds.isFinite || seconds < 0) return;
+    await sharedPreferences.setDouble('crossfadeDuration', seconds);
+  }
+
   static bool get hasMigratedToDrift =>
       sharedPreferences.getBool('hasMigratedToDrift') ?? false;
   static Future<void> setHasMigratedToDrift(bool value) async =>

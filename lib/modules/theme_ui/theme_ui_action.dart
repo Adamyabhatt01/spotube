@@ -25,6 +25,7 @@ class ThemeUiAction {
     'toast',
     'plugin',
     'playItem',
+    'playCollection',
     'openItem',
     'likeItem',
     'downloadItem',
@@ -40,6 +41,15 @@ class ThemeUiAction {
     'toggleSidebar',
     'toggleAside',
     'toggleRegion',
+    'openPage',
+    'closePage',
+    'setBass',
+    'setTreble',
+    'setNormalization',
+    'setCrossfade',
+    'setSleepTimer',
+    'setSpeed',
+    'setMuted',
   };
 
   final String type;

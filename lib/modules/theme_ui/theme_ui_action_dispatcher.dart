@@ -7,6 +7,7 @@ import 'package:media_kit/media_kit.dart' show PlaylistMode;
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import 'package:spotube/collections/routes.gr.dart';
+import 'package:spotube/models/equalizer/equalizer.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/root/region_scope.dart';
@@ -17,11 +18,13 @@ import 'package:spotube/modules/theme_ui/theme_ui_screen_stack.dart';
 import 'package:spotube/modules/theme_shell/theme_navigation.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/audio_player/audio_player_port.dart';
+import 'package:spotube/provider/crossfade_duration_provider.dart';
 import 'package:spotube/provider/download_manager_provider.dart';
 import 'package:spotube/provider/download_manager/download_tasks.dart';
 import 'package:spotube/provider/metadata_plugin/library/library_refresh.dart';
 import 'package:spotube/provider/metadata_plugin/library/tracks.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+import 'package:spotube/provider/sleep_timer_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/provider/volume_provider.dart';
 import 'package:spotube/services/logger/logger.dart';
@@ -115,6 +118,20 @@ Future<void> dispatchThemeUiAction(
         _toggleAside(ref);
       case 'toggleRegion':
         _toggleRegion(context, ref, action.args);
+      case 'setBass':
+        _setEqBand(ref, action.args, band: 0);
+      case 'setTreble':
+        _setEqBand(ref, action.args, band: kEqualizerBandCount - 1);
+      case 'setNormalization':
+        _setNormalization(ref, action.args);
+      case 'setCrossfade':
+        await _setCrossfade(ref, action.args);
+      case 'setSleepTimer':
+        _setSleepTimer(ref, action.args);
+      case 'setSpeed':
+        await _setSpeed(ref, action.args);
+      case 'setMuted':
+        await _setMuted(ref, action.args);
     }
   } catch (e, stack) {
     AppLogger.reportError(e, stack, 'themeUiAction:${action.type}');
@@ -175,6 +192,77 @@ Future<void> _setLoopMode(WidgetRef ref, Map<String, dynamic> args) async {
       },
   };
   await player.setLoopMode(mode);
+}
+
+/// Writes one equalizer band from a theme slider. Bass is band 0 and treble the
+/// last; the value is a dB gain, clamped to ±12 and snapped to 0.5 by the
+/// notifier. Enabling a disabled equalizer is what makes the slider audible —
+/// a gain stored against `enabled: false` composes to silence. Writing a band
+/// never touches `normalizeAudio`, so bass and normalization coexist.
+void _setEqBand(
+  WidgetRef ref,
+  Map<String, dynamic> args, {
+  required int band,
+}) {
+  final raw = args['value'];
+  if (raw is! num || !raw.isFinite) return;
+  final notifier = ref.read(userPreferencesProvider.notifier);
+  if (!ref.read(userPreferencesProvider).equalizerEnabled) {
+    notifier.setEqualizerEnabled(true);
+  }
+  notifier.setEqualizerGain(
+    band,
+    raw.toDouble().clamp(kEqualizerMinGain, kEqualizerMaxGain).toDouble(),
+  );
+}
+
+/// Turns loudness normalization on or off; a non-bool value toggles it.
+void _setNormalization(WidgetRef ref, Map<String, dynamic> args) {
+  final raw = args['value'];
+  final current = ref.read(userPreferencesProvider).normalizeAudio;
+  final target = raw is bool ? raw : !current;
+  ref.read(userPreferencesProvider.notifier).setNormalizeAudio(target);
+}
+
+/// Stores the requested crossfade length in seconds (clamped to 0–15). The
+/// audible overlap lands with a backend that can schedule the next track early;
+/// this persists and binds the setting the theme controls today.
+Future<void> _setCrossfade(WidgetRef ref, Map<String, dynamic> args) async {
+  final raw = args['value'];
+  if (raw is! num || !raw.isFinite) return;
+  await ref.read(crossfadeProvider.notifier).setSeconds(raw.toDouble());
+}
+
+/// Arms or cancels the sleep timer. `value` is whole minutes; zero, negative or
+/// a malformed value cancels. The 12-hour ceiling keeps a bad argument from
+/// arming the scheduled shutdown for an absurd span.
+void _setSleepTimer(WidgetRef ref, Map<String, dynamic> args) {
+  final raw = args['value'];
+  final notifier = ref.read(sleepTimerProvider.notifier);
+  if (raw is! num || !raw.isFinite || raw <= 0) {
+    notifier.cancelSleepTimer();
+    return;
+  }
+  notifier.setSleepTimer(
+    Duration(minutes: raw.toDouble().clamp(1, 720).toInt()),
+  );
+}
+
+/// Playback rate, clamped to the range a listener can actually follow.
+Future<void> _setSpeed(WidgetRef ref, Map<String, dynamic> args) async {
+  final raw = args['value'];
+  if (raw is! num || !raw.isFinite) return;
+  final speed = raw.toDouble().clamp(0.25, 4.0).toDouble();
+  await ref.read(audioPlayerPortProvider).setSpeed(speed);
+}
+
+/// Silences or restores the output. A non-bool value toggles from the audible
+/// state. Mute is runtime only — the stored volume keeps the user's level.
+Future<void> _setMuted(WidgetRef ref, Map<String, dynamic> args) async {
+  final raw = args['value'];
+  final current = ref.read(volumeProvider);
+  final muted = raw is bool ? raw : current > 0;
+  await ref.read(volumeProvider.notifier).setMuted(muted);
 }
 
 Future<void> _toggleLike(WidgetRef ref) async {

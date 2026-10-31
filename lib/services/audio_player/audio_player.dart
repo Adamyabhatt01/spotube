@@ -119,6 +119,10 @@ abstract class AudioPlayerInterface {
     return _mkPlayer.state.volume / 100;
   }
 
+  double get speed {
+    return _mkPlayer.state.rate;
+  }
+
   bool get isBuffering {
     return _mkPlayer.state.buffering;
   }

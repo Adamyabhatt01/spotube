@@ -12,6 +12,8 @@ import 'package:spotube/modules/theme_ui/theme_pins.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_binding_demand.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/audio_player/audio_player_port.dart';
+import 'package:spotube/provider/crossfade_duration_provider.dart';
+import 'package:spotube/provider/sleep_timer_provider.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/metadata_plugin/library/albums.dart';
 import 'package:spotube/provider/metadata_plugin/library/artists.dart';
@@ -147,6 +149,17 @@ final themePlayerPositionProvider = StreamProvider.autoDispose<Duration>(
 
 final themePlayerDurationProvider = StreamProvider.autoDispose<Duration>(
   (ref) => ref.read(audioPlayerPortProvider).durationStream,
+);
+
+/// The live playback rate. media_kit's rate stream replays nothing on listen,
+/// so the current value is seeded first — a theme's speed slider then reads
+/// the truth instead of resetting to 1.0 on rebuild.
+final themePlayerSpeedProvider = StreamProvider.autoDispose<double>(
+  (ref) async* {
+    final port = ref.read(audioPlayerPortProvider);
+    yield port.speed;
+    yield* port.speedStream;
+  },
 );
 
 /// Package metadata is a platform-channel call; one lookup per session is
@@ -301,9 +314,9 @@ ThemeUiBindings buildThemeUiBindings(
     values['player.playing'] = player.playing;
     values['player.loop'] = player.loopMode.name;
     values['player.shuffled'] = player.shuffled;
-    // There is no per-player speed surface yet; the contract keeps the
-    // binding so a theme can read it without a null branch at P7.
-    values['player.speed'] = 1.0;
+    if (wants.wants('player.speed')) {
+      values['player.speed'] = _resolvedSpeed(ref);
+    }
   }
   if (wants.wants('player.volume') || wants.wants('player.muted')) {
     final volume = ref.watch(volumeProvider);
@@ -483,18 +496,44 @@ ThemeUiBindings buildThemeUiBindings(
 
   // ------------------------------------------------------ audio effects
   if (wantsAudio) {
-    final preferences = ref.watch(userPreferencesProvider);
-    final gains = EqualizerSettings.normalizeGains(preferences.equalizerGains);
-    values['audio.bass'] = gains.first;
-    values['audio.treble'] = gains.last;
-    values['audio.normalization'] = preferences.normalizeAudio;
-    values['audio.crossfade'] = 0;
-    values['audio.sleepTimer'] = 0;
-    values['audio.speed'] = 1.0;
+    // Only the EQ-derived facts live in the preferences row; the rest are
+    // per-effect providers subscribed on demand so a theme that binds just
+    // `audio.bass` costs no sleep-timer or crossfade listener.
+    if (wants.wants('audio.bass') ||
+        wants.wants('audio.treble') ||
+        wants.wants('audio.normalization')) {
+      final preferences = ref.watch(userPreferencesProvider);
+      if (wants.wants('audio.bass') || wants.wants('audio.treble')) {
+        final gains = EqualizerSettings.normalizeGains(
+          preferences.equalizerGains,
+        );
+        values['audio.bass'] = gains.first;
+        values['audio.treble'] = gains.last;
+      }
+      if (wants.wants('audio.normalization')) {
+        values['audio.normalization'] = preferences.normalizeAudio;
+      }
+    }
+    if (wants.wants('audio.crossfade')) {
+      values['audio.crossfade'] = ref.watch(crossfadeProvider);
+    }
+    if (wants.wants('audio.sleepTimer')) {
+      final remaining = ref.watch(sleepTimerProvider);
+      values['audio.sleepTimer'] = remaining?.inMinutes ?? 0;
+    }
+    if (wants.wants('audio.speed')) {
+      values['audio.speed'] = _resolvedSpeed(ref);
+    }
   }
 
   return ThemeUiBindings(values);
 }
+
+/// The live playback rate: the streamed value when known, else the port's
+/// current speed. Never null, so a bound slider has no null branch.
+double _resolvedSpeed(WidgetRef ref) =>
+    ref.watch(themePlayerSpeedProvider).asData?.value ??
+    ref.read(audioPlayerPortProvider).speed;
 
 /// Lifts an explicit palette map, then a cached artwork palette, over
 /// [bindings].

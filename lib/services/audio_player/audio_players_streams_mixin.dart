@@ -57,6 +57,10 @@ mixin SpotubeAudioPlayersStreams on AudioPlayerInterface {
     return _mkPlayer.stream.volume.map((event) => event / 100);
   }
 
+  Stream<double> get speedStream {
+    return _mkPlayer.stream.rate;
+  }
+
   Stream<bool> get bufferingStream {
     return Stream.value(false);
   }

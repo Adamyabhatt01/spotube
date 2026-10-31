@@ -69,6 +69,9 @@ abstract interface class AudioPlayerPort implements PlayerBackend {
   bool get isShuffled;
   mk.PlaylistMode get loopMode;
   double get volume;
+
+  /// Playback rate, 1.0 at normal speed.
+  double get speed;
   bool get isBuffering;
 
   // Streams
@@ -85,6 +88,9 @@ abstract interface class AudioPlayerPort implements PlayerBackend {
   Stream<bool> get shuffledStream;
   Stream<mk.PlaylistMode> get loopModeStream;
   Stream<double> get volumeStream;
+
+  /// Emits the playback rate whenever [setSpeed] changes it.
+  Stream<double> get speedStream;
   @override
   Stream<bool> get bufferingStream;
   Stream<AudioPlaybackState> get playerStateStream;
