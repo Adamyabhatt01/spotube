@@ -3,10 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart' as material;
 import 'package:flutter/material.dart' hide Page;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:spotube/components/dialogs/prompt_dialog.dart';
 import 'package:spotube/components/track_presentation/presentation_props.dart';
 import 'package:spotube/components/track_presentation/track_presentation.dart';
-import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
@@ -15,7 +13,6 @@ import 'package:spotube/provider/metadata_plugin/playlist/playlist.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/playlist.dart';
 import 'package:spotube/provider/metadata_plugin/utils/common.dart';
 import 'package:spotube/provider/playlist_download_provider.dart';
-import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/services/connectivity_adapter.dart';
 
 @RoutePage()
@@ -143,41 +140,23 @@ class PlaylistPage extends HookConsumerWidget {
           isLiked: isFavoritePlaylist.asData?.value ?? false,
           isUserPlaylist: isUserPlaylist,
           shareUrl: playlist.externalUri,
+          // The heart only saves/unsaves. Deleting a playlist the user owns is
+          // its own destructive action in the header menu, so it can never be
+          // triggered by a stray tap on the favorite control.
           onHeart: isFavoritePlaylist.asData?.value == null
               ? null
               : () async {
-                  final confirmed = isUserPlaylist
-                      ? await showPromptDialog(
-                          context: context,
-                          title: context.l10n.delete_playlist,
-                          message: context.l10n.delete_playlist_confirmation,
-                        )
-                      : true;
-                  if (!confirmed) return null;
-
                   // Read on demand: watching the notifier in build used to
                   // construct the saved-playlists library on every page open.
                   final favoritePlaylistsNotifier =
                       ref.read(metadataPluginSavedPlaylistsProvider.notifier);
 
                   if (isFavoritePlaylist.asData!.value) {
-                    if (isUserPlaylist) {
-                      await favoritePlaylistsNotifier.delete(playlist.id);
-                      // The playlist is gone: remove its mirror metadata and
-                      // both order entries, but never its downloaded files.
-                      await ref
-                          .read(playlistMirrorServiceProvider)
-                          .forget(playlist.id);
-                      ref
-                          .read(userPreferencesProvider.notifier)
-                          .removePlaylistFromOrders(playlist.id);
-                    } else {
-                      await favoritePlaylistsNotifier.removeFavorite(playlist);
-                    }
+                    await favoritePlaylistsNotifier.removeFavorite(playlist);
                   } else {
                     await favoritePlaylistsNotifier.addFavorite(playlist);
                   }
-                  return isUserPlaylist;
+                  return null;
                 },
         ),
       ),

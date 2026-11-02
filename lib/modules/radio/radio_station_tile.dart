@@ -3,9 +3,10 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/image/universal_image.dart';
-import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/radio/radio_station.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
+import 'package:spotube/modules/radio/radio_context_menu.dart';
+import 'package:spotube/modules/radio/radio_station_commands.dart';
 import 'package:spotube/provider/radio/favorites.dart';
 import 'package:spotube/provider/radio/radio_playback.dart';
 import 'package:spotube/provider/radio/state.dart';
@@ -31,7 +32,6 @@ class RadioStationActions extends HookConsumerWidget {
     // equality by default, so watching it here would rebuild every mounted
     // card in the grid and every rail on each volume frame and ICY title.
     final status = ref.watch(radioStationStatusProvider(station.favoriteKey));
-    final isActive = status.isActive;
     // A station is "loading" only while it is the live one and the stream is
     // still connecting; any other station keeps a plain play affordance.
     final isLoading = status.isLoading;
@@ -39,8 +39,6 @@ class RadioStationActions extends HookConsumerWidget {
 
     final favoriteKeys = ref.watch(radioFavoriteKeysProvider);
     final favorited = favoriteKeys.contains(station.favoriteKey);
-
-    final controller = ref.read(radioPlaybackControllerProvider.notifier);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -58,15 +56,7 @@ class RadioStationActions extends HookConsumerWidget {
             (false, true) => const Icon(SpotubeIcons.pause),
             (false, false) => const Icon(SpotubeIcons.play),
           },
-          onPressed: () {
-            if (!isActive) {
-              controller.play(station);
-            } else if (isPlaying) {
-              controller.pause();
-            } else {
-              controller.resume();
-            }
-          },
+          onPressed: () => toggleRadioStationPlayback(ref, station, status),
         ),
       ],
     );
@@ -90,25 +80,7 @@ class RadioStationPinButton extends ConsumerWidget {
     );
     return IconButton.ghost(
       icon: Icon(isPinned ? SpotubeIcons.pinOn : SpotubeIcons.pinOff),
-      onPressed: () {
-        final wasPinned = ref
-            .read(userPreferencesProvider)
-            .pinnedStationIds
-            .contains(station.favoriteKey);
-        ref
-            .read(userPreferencesProvider.notifier)
-            .togglePinnedStation(station.favoriteKey);
-        if (!wasPinned && context.mounted) {
-          showToast(
-            context: context,
-            builder: (context, overlay) {
-              return SurfaceCard(
-                child: Text(context.l10n.pinned_to_sidebar),
-              );
-            },
-          );
-        }
-      },
+      onPressed: () => toggleRadioStationPin(context, ref, station),
     );
   }
 }
@@ -139,8 +111,7 @@ class RadioStationCover extends StatelessWidget {
     // logs `Unable to load asset: "<station name>"`; only real URLs are
     // network-fetched, everything else gets the glyph.
     final hasRemoteFavicon = faviconUrl != null &&
-        (faviconUrl.startsWith('http://') ||
-            faviconUrl.startsWith('https://'));
+        (faviconUrl.startsWith('http://') || faviconUrl.startsWith('https://'));
     if (!hasRemoteFavicon) {
       return Container(
         width: size,
@@ -187,48 +158,50 @@ class RadioStationTile extends ConsumerWidget {
     final isOnAir = ref.watch(radioPlaybackControllerProvider.select(
       (s) => s.activeStation?.favoriteKey == station.favoriteKey && s.playing,
     ));
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Row(
-        children: [
-          RadioStationCover(station: station, size: 50 * scale),
-          const Gap(12),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        station.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+    return RadioStationContextMenu(
+      station: station,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          children: [
+            RadioStationCover(station: station, size: 50 * scale),
+            const Gap(12),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          station.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    ),
-                    if (isOnAir) ...[
-                      const Gap(8),
-                      const _OnAirPill(),
+                      if (isOnAir) ...[
+                        const Gap(8),
+                        const _OnAirPill(),
+                      ],
                     ],
-                  ],
-                ),
-                if (station.subtitle
-                    case final String subtitle
-                    when subtitle.isNotEmpty)
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ).xSmall().muted(),
-              ],
+                  ),
+                  if (station.subtitle case final String subtitle
+                      when subtitle.isNotEmpty)
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ).xSmall().muted(),
+                ],
+              ),
             ),
-          ),
-          const Gap(8),
-          RadioStationPinButton(station: station),
-          const Gap(8),
-          RadioStationActions(station: station),
-        ],
+            const Gap(8),
+            RadioStationPinButton(station: station),
+            const Gap(8),
+            RadioStationActions(station: station),
+          ],
+        ),
       ),
     );
   }
@@ -250,67 +223,70 @@ class RadioStationCard extends ConsumerWidget {
   Widget build(BuildContext context, ref) {
     final coverSize = context.gridCardWidth;
     final subtitle = station.subtitle;
-    return SizedBox(
-      width: coverSize,
-      child: CardImage(
-        image: Stack(
-          children: [
-            RadioStationCover(
-              station: station,
-              size: coverSize,
-              radius: BorderRadius.circular(context.cardCornerRadius),
-            ),
-            Positioned(
-              left: 8,
-              top: 8,
-              child: StatedWidget.builder(
-                builder: (context, states) {
-                  final revealed =
-                      states.contains(WidgetState.hovered) || kIsMobile;
-                  return AnimatedOpacity(
-                    duration: const Duration(milliseconds: 150),
-                    opacity: revealed ? 1 : 0,
-                    child: RadioStationPinButton(station: station),
-                  );
-                },
+    return RadioStationContextMenu(
+      station: station,
+      child: SizedBox(
+        width: coverSize,
+        child: CardImage(
+          image: Stack(
+            children: [
+              RadioStationCover(
+                station: station,
+                size: coverSize,
+                radius: BorderRadius.circular(context.cardCornerRadius),
               ),
-            ),
-            Positioned(
-              right: 8,
-              bottom: 8,
-              child: StatedWidget.builder(
-                builder: (context, states) {
-                  final revealed =
-                      states.contains(WidgetState.hovered) || kIsMobile;
-                  return AnimatedOpacity(
-                    duration: const Duration(milliseconds: 150),
-                    opacity: revealed ? 1 : 0,
-                    child: RadioStationActions(station: station),
-                  );
-                },
+              Positioned(
+                left: 8,
+                top: 8,
+                child: StatedWidget.builder(
+                  builder: (context, states) {
+                    final revealed =
+                        states.contains(WidgetState.hovered) || kIsMobile;
+                    return AnimatedOpacity(
+                      duration: const Duration(milliseconds: 150),
+                      opacity: revealed ? 1 : 0,
+                      child: RadioStationPinButton(station: station),
+                    );
+                  },
+                ),
               ),
+              Positioned(
+                right: 8,
+                bottom: 8,
+                child: StatedWidget.builder(
+                  builder: (context, states) {
+                    final revealed =
+                        states.contains(WidgetState.hovered) || kIsMobile;
+                    return AnimatedOpacity(
+                      duration: const Duration(milliseconds: 150),
+                      opacity: revealed ? 1 : 0,
+                      child: RadioStationActions(station: station),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          title: Tooltip(
+            tooltip: TooltipContainer(child: Text(station.name)).call,
+            child: Text(
+              station.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ],
-        ),
-        title: Tooltip(
-          tooltip: TooltipContainer(child: Text(station.name)).call,
-          child: Text(
-            station.name,
-            maxLines: 1,
+          ),
+          // A blank line keeps the two-line subtitle slot the shared card
+          // reserves, so rows with and without metadata stay the same height.
+          subtitle: Text(
+            subtitle == null || subtitle.isEmpty ? '\n' : subtitle,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
+          // Tapping the cover starts (or restarts) the stream; pause lives on the
+          // overlay so the two actions stay distinct.
+          onPressed: () =>
+              ref.read(radioPlaybackControllerProvider.notifier).play(station),
         ),
-        // A blank line keeps the two-line subtitle slot the shared card
-        // reserves, so rows with and without metadata stay the same height.
-        subtitle: Text(
-          subtitle == null || subtitle.isEmpty ? '\n' : subtitle,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        // Tapping the cover starts (or restarts) the stream; pause lives on the
-        // overlay so the two actions stay distinct.
-        onPressed: () =>
-            ref.read(radioPlaybackControllerProvider.notifier).play(station),
       ),
     );
   }

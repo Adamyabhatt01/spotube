@@ -40,6 +40,80 @@ abstract class KVStoreService {
     await sharedPreferences.setStringList(key, ids);
   }
 
+  static const _contextMenuConfigKey = 'contextMenu.config';
+
+  /// Raw JSON for the user's context-menu configuration.
+  ///
+  /// Stored as one KV string rather than a Drift column: it is a small,
+  /// per-profile UI preference, and keeping it here avoids a schema migration
+  /// for a value only the menu builder reads.
+  static String? get contextMenuConfigJson =>
+      sharedPreferences.getString(_contextMenuConfigKey);
+
+  static Future<void> setContextMenuConfigJson(String value) async =>
+      await sharedPreferences.setString(_contextMenuConfigKey, value);
+
+  static Future<void> clearContextMenuConfig() async =>
+      await sharedPreferences.remove(_contextMenuConfigKey);
+
+  /// Prefix for one theme's own settings namespace.
+  ///
+  /// The contract names it `theme.<author>.<name>.<key>`; the trailing dot is
+  /// part of the prefix so `theme.a.b` cannot read `theme.a.bc.*`.
+  static String themeSettingsPrefix(String author, String name) =>
+      'theme.$author.$name.';
+
+  /// Every persisted setting for one theme, keyed by the theme's own key.
+  ///
+  /// Only scalars the settings actions accept are surfaced. A future version
+  /// that stores a structured value is ignored instead of being handed to a
+  /// binding that expects a string or number.
+  static Map<String, Object?> themeSettings(String author, String name) {
+    final prefix = themeSettingsPrefix(author, name);
+    final result = <String, Object?>{};
+    for (final key in sharedPreferences.getKeys()) {
+      if (!key.startsWith(prefix) || key.length == prefix.length) continue;
+      final value = sharedPreferences.get(key);
+      if (value is bool || value is num || value is String) {
+        result[key.substring(prefix.length)] = value;
+      }
+    }
+    return result;
+  }
+
+  static Future<void> setThemeSetting(
+    String author,
+    String name,
+    String key,
+    Object? value,
+  ) async {
+    final storageKey = '${themeSettingsPrefix(author, name)}$key';
+    if (value == null) {
+      await sharedPreferences.remove(storageKey);
+      return;
+    }
+    if (value is bool) {
+      await sharedPreferences.setBool(storageKey, value);
+    } else if (value is int) {
+      await sharedPreferences.setInt(storageKey, value);
+    } else if (value is double) {
+      await sharedPreferences.setDouble(storageKey, value.isFinite ? value : 0);
+    } else if (value is num) {
+      await sharedPreferences.setDouble(storageKey, value.toDouble());
+    } else if (value is String) {
+      await sharedPreferences.setString(storageKey, value);
+    }
+  }
+
+  /// Drops the whole namespace. Called by the reset action; the next build
+  /// reads an empty map.
+  static Future<void> clearThemeSettings(String author, String name) async {
+    final prefix = themeSettingsPrefix(author, name);
+    for (final key in sharedPreferences.getKeys().toList()) {
+      if (key.startsWith(prefix)) await sharedPreferences.remove(key);
+    }
+  }
+
   static Future<void> initialize() async {
     _sharedPreferences = await SharedPreferences.getInstance();
   }

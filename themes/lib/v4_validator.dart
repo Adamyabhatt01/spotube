@@ -160,7 +160,8 @@ const _v4NodeProps = <String, List<String>>{
   'segmented': ['options', 'valueBind'],
   'tabs': ['items', 'panels'],
   'menu': ['items', 'trigger', 'placement'],
-  'contextMenu': ['items'],
+  // `target` opts a theme-owned menu into the user's host-menu config.
+  'contextMenu': ['items', 'target'],
   'breadcrumb': ['items'],
   'pagination': ['pageBind', 'pageCount'],
   'dialog': ['title', 'description', 'openBind'],
@@ -547,6 +548,29 @@ const _uiKeys = <String>{
   'templates',
   'renderPoints',
   'pages',
+  'menus',
+};
+
+/// The context-menu targets the v4 host publishes.
+const v4ContextMenuTargets = <String>{
+  'track',
+  'playlist',
+  'album',
+  'artist',
+  'queueItem',
+  'download',
+  'searchResult',
+  'radio',
+};
+
+const _menuEntryKeys = <String>{
+  'id',
+  'label',
+  'icon',
+  'action',
+  'capability',
+  'when',
+  'destructive',
 };
 
 /// The render points the v4.0 host publishes.
@@ -575,6 +599,94 @@ const v4RenderPoints = <String>{
   'player.trackDetails',
   'toast.item',
 };
+
+/// The host widgets the v4.0 host mounts.
+///
+/// Mirrors `ThemeUiHostWidgetIds` in the app. This is the closed escape hatch
+/// from the contract: a theme that names an id the host does not know renders
+/// nothing, which is survivable, so it warns instead of failing — the same
+/// policy as an unknown render point, and deliberately looser than the prop
+/// table below.
+const v4HostWidgetIds = <String>{
+  'library.playlists',
+  'library.pins',
+  'library.albums',
+  'library.artists',
+  'player.controls',
+  'audio.bass',
+  'audio.equalizer',
+  'audio.crossfade',
+  'audio.sleepTimer',
+  'queue.list',
+  'search.field',
+  'theme.settings',
+};
+
+/// The props each host widget reads, inside its `props` bag.
+///
+/// Unlike an unknown id, an unknown prop is always a typo, and a widget that
+/// quietly ignores it leaves the theme author with no way to find out — so the
+/// host rejects it as an error, exactly as it does for a node prop.
+const v4HostWidgetProps = <String, Set<String>>{
+  'library.playlists': {
+    'compact',
+    'showSearch',
+    'showCreate',
+    'limit',
+    'filter',
+    'pinTarget',
+    'direction',
+  },
+  'library.pins': {'compact', 'target', 'direction'},
+  'library.albums': {'compact'},
+  'library.artists': {'compact'},
+  'player.controls': {'compact', 'showProgress', 'showVolume'},
+  'audio.bass': {'compact'},
+  'audio.equalizer': {'bands'},
+  'audio.crossfade': <String>{},
+  'audio.sleepTimer': <String>{},
+  'queue.list': {'compact'},
+  'search.field': {'placeholder', 'scope'},
+  'theme.settings': <String>{},
+};
+
+/// Host widget props that must be booleans.
+const _hostWidgetBoolProps = <String>{
+  'compact',
+  'showSearch',
+  'showCreate',
+  'showProgress',
+  'showVolume',
+};
+
+/// Host widget props that must be whole numbers inside a range the host can
+/// honor. The bound is the host's own clamp, so a payload that validates here
+/// also renders the same way on every build.
+const _hostWidgetCountProps = <String, ({int min, int max})>{
+  'limit': (min: 1, max: 200),
+  'bands': (min: 1, max: 10),
+};
+
+/// Host widget props whose value is a closed vocabulary.
+const _hostWidgetEnumProps = <String, Set<String>>{
+  'filter': {'all', 'pins', 'recent'},
+  'direction': {'vertical', 'horizontal'},
+};
+
+/// Host widget props that must be strings, with their length cap.
+const _hostWidgetStringProps = <String, int>{
+  'placeholder': 80,
+  'pinTarget': 64,
+  'target': 64,
+};
+
+/// Props naming a pin target, which must be one the document declares.
+const _hostWidgetTargetProps = <String>{'pinTarget', 'target'};
+
+/// A `search.field` scope names a binding (`search.<scope>.query`), so the host
+/// accepts only this character set. Left as a free-form string an author would
+/// write `scope: "album name"` and silently get the app's own search field back.
+final _hostWidgetScopePattern = RegExp(r'^[A-Za-z0-9_-]{1,32}$');
 
 /// The host stops expanding render-point templates after this many levels.
 const v4MaxTemplateDepth = 8;
@@ -616,6 +728,56 @@ const _actionCapabilities = <String, String>{
   'openPage': 'ui.pages',
   'closePage': 'ui.pages',
   'copy': 'clipboard.write',
+};
+
+/// The action verbs the v4 host knows. Mirrors `ThemeUiAction.knownTypes`.
+const v4ActionVerbs = <String>{
+  'navigate',
+  'playPause',
+  'next',
+  'previous',
+  'seek',
+  'setVolume',
+  'setShuffle',
+  'setLoopMode',
+  'like',
+  'download',
+  'openSettings',
+  'openLyrics',
+  'openQueue',
+  'openDownloads',
+  'toast',
+  'plugin',
+  'playItem',
+  'playCollection',
+  'openItem',
+  'likeItem',
+  'downloadItem',
+  'pinItem',
+  'unpinItem',
+  'dismiss',
+  'setQuery',
+  'clearQuery',
+  'setSetting',
+  'toggleSetting',
+  'copy',
+  'refresh',
+  'toggleSidebar',
+  'toggleAside',
+  'toggleRegion',
+  'openPage',
+  'closePage',
+  'setBass',
+  'setTreble',
+  'setNormalization',
+  'setCrossfade',
+  'setSleepTimer',
+  'setSpeed',
+  'setMuted',
+  'createPlaylist',
+  'renamePlaylist',
+  'deletePlaylist',
+  'addToPlaylist',
 };
 
 /// Validates the v4 half of a payload.
@@ -898,6 +1060,164 @@ void _sweepUi(Object? raw, List<Issue> issues, Set<String>? capabilities) {
   }
   _renderPoints(ui['renderPoints'], templates, issues);
   _pages(ui['pages'], 'ui.pages', issues, capabilities);
+  _menus(ui['menus'], issues, capabilities);
+}
+
+/// Checks `ui.menus`: host target keys, namespaced ids and allowlisted verbs.
+///
+/// A theme can append rows to a host menu, never replace one. Duplicate ids
+/// inside a target are an error because the user's stored order and hidden
+/// list address rows by id.
+void _menus(
+  Object? raw,
+  List<Issue> issues,
+  Set<String>? capabilities,
+) {
+  if (raw == null) return;
+  if (raw is! Map) {
+    issues.add(const Issue(Severity.error, 'ui.menus', 'must be an object'));
+    return;
+  }
+
+  for (final entry in raw.entries) {
+    final target = entry.key;
+    final path = 'ui.menus.$target';
+    if (target is! String || !v4ContextMenuTargets.contains(target)) {
+      issues.add(
+        Issue(
+          Severity.error,
+          path,
+          'not a context-menu target the host publishes',
+        ),
+      );
+      continue;
+    }
+    final rows = entry.value;
+    if (rows is! List) {
+      issues.add(Issue(Severity.error, path, 'must be a list'));
+      continue;
+    }
+    if (rows.length > 32) {
+      issues.add(Issue(Severity.error, path, 'has more than 32 entries'));
+    }
+
+    final seen = <String>{};
+    for (var i = 0; i < rows.length && i < 32; i++) {
+      final itemPath = '$path[$i]';
+      final item = rows[i];
+      if (item is! Map) {
+        issues.add(Issue(Severity.error, itemPath, 'must be an object'));
+        continue;
+      }
+      _sweep(item, itemPath, _menuEntryKeys, issues);
+
+      final id = item['id'];
+      if (id is! String ||
+          !id.startsWith('theme.') ||
+          id.length > 64 ||
+          id.length <= 'theme.'.length) {
+        issues.add(
+          Issue(
+            Severity.error,
+            '$itemPath.id',
+            'must be a theme.<name> id of at most 64 characters',
+          ),
+        );
+      } else if (!seen.add(id)) {
+        issues.add(Issue(Severity.error, '$itemPath.id', 'duplicate id "$id"'));
+      }
+
+      final label = item['label'];
+      if (label is! String || label.trim().isEmpty || label.length > 80) {
+        issues.add(
+          Issue(
+            Severity.error,
+            '$itemPath.label',
+            'must be a non-empty string of at most 80 characters',
+          ),
+        );
+      }
+
+      final icon = item['icon'];
+      if (icon != null && (icon is! String || icon.length > 32)) {
+        issues.add(
+          Issue(Severity.error, '$itemPath.icon', 'must be a short token'),
+        );
+      }
+
+      final when = item['when'];
+      if (when != null && (when is! String || when.length > 160)) {
+        issues.add(
+          Issue(
+            Severity.error,
+            '$itemPath.when',
+            'must be a string of at most 160 characters',
+          ),
+        );
+      }
+
+      final destructive = item['destructive'];
+      if (destructive != null && destructive is! bool) {
+        issues.add(
+          Issue(Severity.error, '$itemPath.destructive', 'must be a boolean'),
+        );
+      }
+
+      final action = item['action'];
+      if (action is! Map) {
+        issues.add(
+          Issue(Severity.error, '$itemPath.action', 'must be an action object'),
+        );
+      } else {
+        final type = action['type'];
+        if (type is! String || !v4ActionVerbs.contains(type)) {
+          issues.add(
+            Issue(
+              Severity.error,
+              '$itemPath.action.type',
+              'not an action verb the host dispatches',
+            ),
+          );
+        } else {
+          final required = _actionCapabilities[type];
+          if (required != null &&
+              capabilities != null &&
+              !capabilities.contains(required)) {
+            issues.add(
+              Issue(
+                Severity.error,
+                '$itemPath.action.type',
+                '$type requires the $required capability',
+              ),
+            );
+          }
+        }
+      }
+
+      final capability = item['capability'];
+      if (capability != null) {
+        if (capability is! String ||
+            !v4Capabilities.contains(capability)) {
+          issues.add(
+            Issue(
+              Severity.error,
+              '$itemPath.capability',
+              'must name a v4 capability',
+            ),
+          );
+        } else if (capabilities != null &&
+            !capabilities.contains(capability)) {
+          issues.add(
+            Issue(
+              Severity.error,
+              '$itemPath.capability',
+              'the document does not grant $capability',
+            ),
+          );
+        }
+      }
+    }
+  }
 }
 
 /// Checks `ui.renderPoints`.
@@ -1723,11 +2043,131 @@ void _pageVisibility(Object? raw, String path, List<Issue> issues) {
   }
 }
 
+/// The pin targets a document declares, or the host default when it declares
+/// none. `library.playlists` and `library.pins` name one of these to decide
+/// which list they render.
+Set<String> _declaredPinTargets(Map<String, dynamic> payload) {
+  final layout = payload['layout'];
+  final raw = layout is Map ? layout['pinTargets'] : null;
+  if (raw is! List) return const {'sidebar'};
+  final ids = <String>{};
+  for (final target in raw) {
+    if (target is Map && target['id'] is String) ids.add(target['id'] as String);
+  }
+  return ids.isEmpty ? const {'sidebar'} : ids;
+}
+
+/// Checks one `hostWidget` node against the closed registry.
+///
+/// The distinction is deliberate: an id the host does not mount is a warning
+/// because the theme still loads and the slot is simply empty, while a prop the
+/// widget never reads is an error because it is a typo that would otherwise sit
+/// unnoticed in a document that looks valid.
+void _hostWidget(
+  Map node,
+  String path,
+  Set<String> pinTargets,
+  List<Issue> issues,
+) {
+  final id = node['id'];
+  if (id is! String || !v4HostWidgetIds.contains(id)) {
+    issues.add(
+      Issue(
+        Severity.warning,
+        '$path.id',
+        'not a host widget the host mounts — ignored at runtime',
+      ),
+    );
+    return;
+  }
+
+  // A missing or malformed bag is reported by the node walk; there is nothing
+  // left to check here.
+  final props = node['props'];
+  if (props is! Map) return;
+
+  final allowed = v4HostWidgetProps[id]!;
+  for (final key in props.keys) {
+    if (key is String && allowed.contains(key)) continue;
+    issues.add(
+      Issue(
+        Severity.error,
+        '$path.props.$key',
+        'not a prop of the "$id" host widget — the host ignores it',
+      ),
+    );
+  }
+
+  for (final key in allowed) {
+    if (!_hostWidgetBoolProps.contains(key)) continue;
+    _bool(props, '$path.props.$key', issues);
+  }
+
+  for (final entry in _hostWidgetCountProps.entries) {
+    if (!allowed.contains(entry.key)) continue;
+    final value = props[entry.key];
+    if (value == null) continue;
+    if (value is! num ||
+        !value.isFinite ||
+        value.roundToDouble() != value.toDouble() ||
+        value < entry.value.min ||
+        value > entry.value.max) {
+      issues.add(
+        Issue(
+          Severity.error,
+          '$path.props.${entry.key}',
+          'must be a whole number between ${entry.value.min} '
+              'and ${entry.value.max}',
+        ),
+      );
+    }
+  }
+
+  for (final entry in _hostWidgetEnumProps.entries) {
+    if (!allowed.contains(entry.key)) continue;
+    _enum(props, '$path.props.${entry.key}', entry.value, issues);
+  }
+
+  for (final entry in _hostWidgetStringProps.entries) {
+    if (!allowed.contains(entry.key)) continue;
+    _string(props, '$path.props.${entry.key}', entry.value, issues);
+  }
+
+  if (allowed.contains('scope')) {
+    final value = props['scope'];
+    if (value != null &&
+        (value is! String || !_hostWidgetScopePattern.hasMatch(value))) {
+      issues.add(
+        Issue(
+          Severity.error,
+          '$path.props.scope',
+          'must be 1-32 letters, digits, dashes or underscores',
+        ),
+      );
+    }
+  }
+
+  for (final key in _hostWidgetTargetProps) {
+    if (!allowed.contains(key)) continue;
+    final value = props[key];
+    if (value is! String || pinTargets.contains(value)) continue;
+    issues.add(
+      Issue(
+        Severity.warning,
+        '$path.props.$key',
+        'not a declared pin target — the host falls back to the sidebar',
+      ),
+    );
+  }
+}
+
 void _capabilityUsage(
   Map<String, dynamic> payload,
   Set<String> granted,
   List<Issue> issues,
 ) {
+  final pinTargets = _declaredPinTargets(payload);
+
   void checkBinding(Map node, String path) {
     for (final key in const [
       'bind',
@@ -1783,14 +2223,17 @@ void _capabilityUsage(
   void walkNode(Object? raw, String path) {
     if (raw is! Map) return;
     final node = raw;
-    if (node['type'] == 'hostWidget' && !granted.contains('ui.hostWidgets')) {
-      issues.add(
-        Issue(
-          Severity.error,
-          path,
-          'hostWidget requires the ui.hostWidgets capability',
-        ),
-      );
+    if (node['type'] == 'hostWidget') {
+      if (!granted.contains('ui.hostWidgets')) {
+        issues.add(
+          Issue(
+            Severity.error,
+            path,
+            'hostWidget requires the ui.hostWidgets capability',
+          ),
+        );
+      }
+      _hostWidget(node, path, pinTargets, issues);
     }
     checkBinding(node.cast<String, dynamic>(), path);
     checkAction(node['action'], '$path.action');
@@ -1844,6 +2287,28 @@ void _capabilityUsage(
         final template = entry.value;
         if (template is Map) {
           walkTree(template['children'], 'ui.templates.${entry.key}');
+        }
+      }
+    }
+    final menus = ui['menus'];
+    if (menus is Map) {
+      for (final entry in menus.entries) {
+        final rows = entry.value;
+        if (rows is! List) continue;
+        for (var i = 0; i < rows.length && i < 32; i++) {
+          final row = rows[i];
+          if (row is! Map) continue;
+          checkAction(row['action'], 'ui.menus.${entry.key}[$i].action');
+          final declared = row['capability'];
+          if (declared is String && !granted.contains(declared)) {
+            issues.add(
+              Issue(
+                Severity.error,
+                'ui.menus.${entry.key}[$i].capability',
+                'the document does not grant $declared',
+              ),
+            );
+          }
         }
       }
     }

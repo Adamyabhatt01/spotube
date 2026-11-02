@@ -528,6 +528,32 @@ back, so dismissing a dialog or sheet is local: it stays closed until the
 binding cycles. `dialog.actions` are footer buttons, not node actions — each is
 `{label, action|actions}` and lacking a label is skipped.
 
+**Host context menus (v4).** A theme may append rows to the app's own
+right-click menus with `ui.menus.<target>`:
+
+```json
+{
+  "menus": {
+    "playlist": [
+      {
+        "id": "theme.open-stats",
+        "label": "Open stats",
+        "action": {"type": "openPage", "args": {"id": "stats"}},
+        "capability": "ui.pages"
+      }
+    ]
+  }
+}
+```
+
+Targets are `track`, `playlist`, `album`, `artist`, `queueItem`, `download`,
+`searchResult` and `radio`. Every row needs a `theme.` id, a label and an
+allowlisted action; the action verb's capability (for example `library.write`
+for `deletePlaylist`) must also be granted in the payload. Rows append after
+the host rows and obey the user's order/hidden settings like any host action.
+A theme-owned `contextMenu` node may carry a host `target` and per-item `id`;
+with a target, the same user settings filter and reorder its items.
+
 **Boxes and grids.** `box.border` is a colour (`"@border"`, one logical pixel)
 or `{"color": "@border", "width": 2}` (0..8). `box.gradient` is
 `{"colors": [..2..8], "begin": "topCenter", "end": "bottomCenter", "stops":
@@ -933,6 +959,129 @@ a typography style or a component style resolves to the shipped file.
 The build checks that every path a theme names is a file it ships, and warns
 about files it ships but never uses. The host resolves the paths — never the
 theme — and only inside the plugin's directory.
+
+### 9. Host widgets
+
+Most of a screen is yours to draw with the node vocabulary. A few surfaces are
+too stateful to redraw from JSON — the real player bar, the equalizer, your own
+settings page — so v4 has one escape hatch, `hostWidget`, and its catalogue is
+closed on purpose. It is a hatch, not a second UI framework: twelve ids, each a
+presentation wrapper over the widget the app already draws.
+
+Declare the capability, then name the widget:
+
+```json
+"capabilities": ["ui.hostWidgets"],
+"ui": {
+  "slots": {
+    "home.content": {
+      "children": [
+        {
+          "type": "hostWidget",
+          "id": "library.playlists",
+          "props": { "compact": true, "filter": "pins", "limit": 20 }
+        }
+      ]
+    }
+  }
+}
+```
+
+| id | props | needs besides `ui.hostWidgets` |
+|---|---|---|
+| `library.playlists` | `compact`, `showSearch`, `showCreate`, `limit` 1..200, `filter` `all`/`pins`/`recent`, `pinTarget`, `direction` `vertical`/`horizontal` | |
+| `library.pins` | `compact`, `target`, `direction` | |
+| `library.albums` | `compact` | |
+| `library.artists` | `compact` | |
+| `player.controls` | `compact`, `showProgress`, `showVolume` | |
+| `audio.bass` | `compact` | `audio.effects` |
+| `audio.equalizer` | `bands` 1..10 | `audio.effects` |
+| `audio.crossfade` | — | `audio.effects` |
+| `audio.sleepTimer` | — | `audio.effects` |
+| `queue.list` | `compact` | |
+| `search.field` | `placeholder` (≤80), `scope` | |
+| `theme.settings` | — | |
+
+What the host does with them:
+
+- **An id outside the table is a warning, not an error.** The build reports
+  `not a host widget the host mounts — ignored at runtime`, the slot renders
+  nothing, and the rest of the theme still loads. A *prop* outside the row is an
+  error, because silently ignoring a typo in a prop name is the failure mode a
+  closed registry exists to prevent.
+- **A missing capability hides the widget quietly.** Gating on `library.read` or
+  `player.control` would strand themes that never mentioned a default
+  capability, so only opt-in capabilities gate anything.
+- **Props are clamped at render time too.** The validator checks the same bounds,
+  but an installed `.smplug` may have been built against another host: `limit`
+  and `bands` snap into range, `filter`/`direction` fall back to `all`/`vertical`,
+  a non-boolean reads as its default.
+- **`hostWidget` is not allowed inside a render-point template** — a template
+  restyles host chrome, it does not mount new host surfaces.
+- `library.playlists` shows the plugin's saved playlists; `filter: "pins"` keeps
+  the order your `layout.pinTargets` stores, and `recent` puts the pinned lists
+  first because nothing else in the host carries a per-playlist timestamp.
+  `limit` defaults to 200. An omitted `pinTarget`/`target`, or `sidebar`, reads
+  the user's own sidebar pins; any other name must be declared in
+  `layout.pinTargets` — the build warns when it is not, and the widget then has
+  nothing to show.
+- `search.field` with a `scope` is a plain field that publishes what the user
+  types to `search.<scope>.query` (300 ms debounce, immediate on submit), so a
+  list next to it can `filter` on it. A scope must be 1–32 letters, digits,
+  dashes or underscores; without one you get the app's global search field, and
+  an invalid scope falls back to that same field rather than binding nothing.
+- `theme.settings` renders the document your `showSettings()` returns, inline —
+  see the next section.
+
+### 10. Your own settings page
+
+`showSettings()` returns a v4 UI document whose `settings.content` slot holds
+the controls. Values are host-persisted per theme, in the namespace
+`theme.<author>.<name>.<key>`, so two themes can both store a `volume` without
+colliding and deleting a theme leaves nothing behind.
+
+That document is not the shell document: `settings.content` is deliberately not
+in the published slot table the build checks, so putting it in `ui.slots` of
+`getUi()` is an error and the host would never read it.
+
+```json
+"settings.content": {
+  "children": [
+    { "type": "text", "text": "Hide bonus tracks" },
+    {
+      "type": "switch",
+      "bind": "setting.hideBonus",
+      "action": { "type": "toggleSetting", "args": { "key": "hideBonus" } }
+    },
+    {
+      "type": "slider",
+      "min": 0,
+      "max": 12,
+      "step": 1,
+      "bind": "setting.duckDb",
+      "action": { "type": "setSetting", "args": { "key": "duckDb", "value": "$value" } }
+    }
+  ]
+}
+```
+
+- Read a value with the `setting.<key>` binding; write it with `setSetting` or
+  `toggleSetting`. The host owns storage — a switch does not write its own bind.
+- Only scalars persist (bool, number, string). `null` removes the key, and
+  anything non-finite becomes `0`.
+- Settings only work in a document that declares `"capabilities":
+  ["settings.write"]`; the build rejects `setSetting`/`toggleSetting` without it,
+  so a theme that ships cannot have written to anything it did not ask for.
+  (The host itself does not re-check this one at runtime — declare it, do not
+  lean on the gap.)
+- The app offers the page in **Settings → Appearance → Theme settings** only
+  when `settings.content` actually has children, and the Reset button there
+  clears your namespace and nothing else. `theme.settings` in any other slot
+  renders the same page inline; a `theme.settings` node *inside* the settings
+  document is dropped, because that is a page inside itself.
+- The first frame after opening is still waiting on the plugin, so the host
+  shows progress; "this theme does not expose any settings" appears only once
+  `showSettings()` really answered with nothing.
 
 ## Rules the app enforces
 

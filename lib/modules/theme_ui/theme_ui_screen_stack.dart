@@ -20,6 +20,14 @@ void pushThemeUiScreen(WidgetRef ref, String id) {
   ref.read(themeUiScreenStackProvider.notifier).state = [...stack, id];
 }
 
+/// Container-shaped twin of [pushThemeUiScreen], for code that only holds a
+/// [ProviderContainer] (the action dispatcher reached from a context).
+void pushThemeUiScreenContainer(ProviderContainer container, String id) {
+  final stack = container.read(themeUiScreenStackProvider);
+  if (stack.isNotEmpty && stack.last == id) return;
+  container.read(themeUiScreenStackProvider.notifier).state = [...stack, id];
+}
+
 void popThemeUiScreen(WidgetRef ref) {
   final stack = ref.read(themeUiScreenStackProvider);
   if (stack.isEmpty) return;

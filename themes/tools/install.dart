@@ -6,13 +6,14 @@ import 'package:path/path.dart' as p;
 import '../lib/installer.dart';
 import '../lib/theme_source.dart';
 
-/// Installs a built theme into a Spotube profile.
+/// Installs a built theme into a Spotube profile, or removes one from it.
 ///
 /// The app has no command line, and the in-app upload is a file picker with a
 /// dialog in the middle of it — fine for a user, slow for somebody editing a
 /// theme. This writes the plugin where the app looks for it (the extraction
 /// directory) and registers it in the profile's database, so a rebuild is one
-/// command and a restart.
+/// command and a restart. `--uninstall <name> --author <author>` takes it away
+/// again, including the cached definition and the theme's own settings.
 Future<void> main(List<String> arguments) async {
   final parser = ArgParser()
     ..addMultiOption('theme', help: 'Theme id to install.', abbr: 't')
@@ -35,11 +36,46 @@ Future<void> main(List<String> arguments) async {
       'create-profile',
       help: 'Create the profile and its plugin table if they are missing.',
       negatable: false,
+    )
+    ..addMultiOption(
+      'uninstall',
+      abbr: 'u',
+      help: 'Plugin name to remove from the profile, with --author.',
+    )
+    ..addOption('author', help: 'Author of the plugin named by --uninstall.')
+    ..addOption(
+      'version',
+      help: 'Only this installed version, for use with --uninstall.',
     );
 
   final options = parser.parse(arguments);
   final profile = options['profile'] as String;
+  final dryRun = options['dry-run'] as bool;
   final repoRoot = p.dirname(p.dirname(p.absolute(Platform.script.toFilePath())));
+
+  final targets = options['uninstall'] as List<String>;
+  if (targets.isNotEmpty) {
+    final author = options['author'] as String?;
+    if (author == null) {
+      stderr.writeln('--uninstall needs --author: the row is keyed by both');
+      exitCode = 64;
+      return;
+    }
+    for (final name in targets) {
+      final result = uninstallPlugin(
+        name: name,
+        author: author,
+        version: options['version'] as String?,
+        profile: profile,
+        dryRun: dryRun,
+      );
+      stdout.writeln(result.message);
+      if (!dryRun && result.removedDirs.isEmpty && !result.removedRow) {
+        exitCode = 66;
+      }
+    }
+    return;
+  }
 
   final archives = <File>[];
   final artifact = options['artifact'] as String?;
@@ -74,10 +110,10 @@ Future<void> main(List<String> arguments) async {
       archive: PluginArchive.read(archive),
       profile: profile,
       select: options['select'] as bool,
-      dryRun: options['dry-run'] as bool,
+      dryRun: dryRun,
     );
     stdout.writeln(result.message);
-    if (!result.registered && !(options['dry-run'] as bool)) failed = true;
+    if (!result.registered && !dryRun) failed = true;
   }
 
   if (failed) exitCode = 69;

@@ -31,6 +31,26 @@ import 'package:sliver_tools/sliver_tools.dart';
 class SettingsMetadataProviderPage extends HookConsumerWidget {
   const SettingsMetadataProviderPage({super.key});
 
+  static void reportInstallFailure(BuildContext context, Object error) {
+    showToast(
+      showDuration: const Duration(seconds: 5),
+      context: context,
+      builder: (context, overlay) {
+        return SurfaceCard(
+          child: Basic(
+            leading: Icon(
+              SpotubeIcons.error,
+              color: context.theme.colorScheme.destructive,
+            ),
+            title: Text(context.l10n.failed_to_add_plugin_error(
+              error.toString(),
+            )),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context, ref) {
     final tabState = useState<int>(0);
@@ -159,26 +179,7 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
                             } catch (e, stackTrace) {
                               AppLogger.reportError(e, stackTrace);
                               if (context.mounted) {
-                                showToast(
-                                  showDuration: const Duration(seconds: 5),
-                                  context: context,
-                                  builder: (context, overlay) {
-                                    return SurfaceCard(
-                                      child: Basic(
-                                        leading: Icon(
-                                          SpotubeIcons.error,
-                                          color: context
-                                              .theme.colorScheme.destructive,
-                                        ),
-                                        title: Text(
-                                          context.l10n
-                                              .failed_to_add_plugin_error(
-                                                  e.toString()),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                );
+                                reportInstallFailure(context, e);
                               }
                             } finally {
                               isLoading.value = false;
@@ -194,6 +195,7 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
                       child: IconButton.primary(
                         icon: const Icon(SpotubeIcons.upload),
                         onPressed: () async {
+                          try {
                           Uint8List bytes;
 
                           if (kIsFlatpak) {
@@ -224,6 +226,15 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
                           final pluginConfig =
                               await PluginStorage().extractArchive(bytes);
                           await pluginsNotifier.addPlugin(pluginConfig);
+                        } catch (e, stackTrace) {
+                          // An archive the extractor refuses says why in the
+                          // exception, and that reason is the only thing an
+                          // author can act on.
+                          AppLogger.reportError(e, stackTrace);
+                          if (context.mounted) {
+                            reportInstallFailure(context, e);
+                          }
+                          }
                         },
                       ),
                     ),

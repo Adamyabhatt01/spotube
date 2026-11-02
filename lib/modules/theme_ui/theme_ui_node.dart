@@ -5,14 +5,17 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart' as cupertino;
 import 'package:flutter/material.dart' as material;
 import 'package:flutter/services.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/image/universal_image.dart';
-import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
+import 'package:spotube/modules/context_menu/context_menu_target.dart';
+import 'package:spotube/provider/context_menu/context_menu_provider.dart';
+import 'package:spotube/modules/theme_ui/host_widgets/theme_ui_host_widgets.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_action.dart';
-import 'package:spotube/modules/theme_ui/theme_ui_assets.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_runtime.dart';
 import 'package:spotube/modules/home/home_search_bar.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_items.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_kit.dart';
@@ -20,8 +23,9 @@ import 'package:spotube/modules/theme_ui/theme_ui_kit_resolver.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_render_points.dart';
 import 'package:spotube/modules/theme_shell/theme_presentation.dart';
 import 'package:spotube/services/kv_store/kv_store.dart';
-import 'package:spotube/services/theme_ui/artwork_palette.dart';
 import 'package:spotube/utils/theme_converter.dart';
+
+export 'theme_ui_runtime.dart';
 
 part 'theme_ui_node_layout.dart';
 part 'theme_ui_node_content.dart';
@@ -31,107 +35,6 @@ part 'theme_ui_node_widgets.dart';
 part 'theme_ui_node_inputs.dart';
 part 'theme_ui_node_overlays.dart';
 part 'theme_ui_node_render_points.dart';
-
-typedef ThemeUiActionCallback = void Function(ThemeUiAction action);
-
-/// Everything a node needs to render, independent of Riverpod and routing.
-///
-/// Keeping the runtime explicit is what makes the node vocabulary testable:
-/// a widget test supplies a few bindings and a recording callback and checks
-/// the tree, without a provider container, database or audio backend.
-class ThemeUiRuntime {
-  final ThemeDefinition theme;
-  final ThemeUiBindings bindings;
-  final ThemeUiAssets assets;
-  final Map<String, ThemeUiTemplate> templates;
-
-  /// Render point id → template name. Empty when the theme did not replace
-  /// any host surface.
-  final Map<String, String> renderPoints;
-  final int specVersion;
-  final ThemeUiActionCallback onAction;
-
-  /// The cached palette for an artwork URL, or null when the document never
-  /// binds `palette.*` (then the renderer is not handed a lookup at all).
-  final ArtworkPalette? Function(String url)? paletteFor;
-
-  /// Asks the host to extract a palette the cache did not have yet.
-  final void Function(String url)? requestPalette;
-
-  /// How many render-point/template expansions enclose this runtime.
-  ///
-  /// Ordinary nodes have their own depth guard; this counter only exists for
-  /// templates, which are the one part of the tree that can expand itself.
-  final int templateDepth;
-  final Set<String> templateStack;
-  static const maxTemplateDepth = themeUiMaxTemplateDepth;
-
-  const ThemeUiRuntime({
-    required this.theme,
-    required this.bindings,
-    required this.assets,
-    required this.templates,
-    this.renderPoints = const {},
-    required this.specVersion,
-    required this.onAction,
-    this.paletteFor,
-    this.requestPalette,
-    this.templateDepth = 0,
-    this.templateStack = const {},
-  });
-
-  /// The kit semantic nodes use when neither the node nor a `kitScope`
-  /// ancestor chooses one.
-  ThemeUiKit get defaultKit => ThemeUiKit.fromId(theme.uiKit);
-
-  /// Whether [name] may be expanded here.
-  ///
-  /// A template the theme document does not carry, a chain that already
-  /// contains the name, and a chain longer than the contract's limit all
-  /// resolve to "no".
-  bool canExpandTemplate(String name) {
-    return templates.containsKey(name) &&
-        templateDepth < maxTemplateDepth &&
-        !templateStack.contains(name);
-  }
-
-  /// The runtime a template's children render with.
-  ThemeUiRuntime descendTemplate(String name) {
-    return ThemeUiRuntime(
-      theme: theme,
-      bindings: bindings,
-      assets: assets,
-      templates: templates,
-      renderPoints: renderPoints,
-      specVersion: specVersion,
-      onAction: onAction,
-      paletteFor: paletteFor,
-      requestPalette: requestPalette,
-      templateDepth: templateDepth + 1,
-      templateStack: {...templateStack, name},
-    );
-  }
-
-  /// The same runtime with a scoped binding map.
-  ///
-  /// Render points merge their context over the app bindings; the result is
-  /// read-only by construction ([ThemeUiBindings] has no writer).
-  ThemeUiRuntime withBindings(ThemeUiBindings next) {
-    return ThemeUiRuntime(
-      theme: theme,
-      bindings: next,
-      assets: assets,
-      templates: templates,
-      renderPoints: renderPoints,
-      specVersion: specVersion,
-      onAction: onAction,
-      paletteFor: paletteFor,
-      requestPalette: requestPalette,
-      templateDepth: templateDepth,
-      templateStack: templateStack,
-    );
-  }
-}
 
 const _uiTypes = <String>{
   'row',
@@ -190,6 +93,7 @@ const _uiTypes = <String>{
   'tooltip',
   'dialog',
   'sheet',
+  'hostWidget',
 };
 
 /// Node types that fire their own actions from a control or overlay.
@@ -304,6 +208,7 @@ class ThemeUiNodeView extends StatelessWidget {
       'tooltip' => _tooltip(context, props, children),
       'dialog' => _dialog(context, props, children, node),
       'sheet' => _sheet(context, props, children),
+      'hostWidget' => _hostWidget(context, props),
       _ => const SizedBox.shrink(),
     };
 

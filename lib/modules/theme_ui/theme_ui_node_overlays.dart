@@ -87,9 +87,42 @@ extension _ThemeUiOverlayNodes on ThemeUiNodeView {
     return actions;
   }
 
-  List<MenuItem> _menuItems(BuildContext context, Object? raw) {
+  List<MenuItem> _menuItems(
+    BuildContext context,
+    Object? raw, {
+    String? target,
+  }) {
     if (raw is! List) return const [];
-    final entries = raw.take(32).toList();
+    var entries = raw.take(32).toList();
+
+    // A theme-owned `contextMenu` may name one of the host targets; the
+    // user's hidden list and order then apply to its ids exactly as they do
+    // to a host menu. Without a target the menu is purely theme-owned and
+    // user configuration does not reach it.
+    final targetEnum = ContextMenuTarget.fromId(target);
+    if (targetEnum != null) {
+      final config = ProviderScope.containerOf(context, listen: false)
+          .read(contextMenuConfigProvider)
+          .forTarget(targetEnum);
+      entries = [
+        for (final entry in entries)
+          if (entry is! Map || !config.hidden.contains(entry['id'])) entry,
+      ];
+      if (config.order.isNotEmpty) {
+        for (var index = 0; index < config.order.length; index++) {
+          final id = config.order[index];
+          final current = entries.indexWhere(
+            (entry) => entry is Map && entry['id'] == id,
+          );
+          if (current == -1) continue;
+          final bounded = index.clamp(0, entries.length - 1);
+          if (current == bounded) continue;
+          final entry = entries.removeAt(current);
+          entries.insert(bounded, entry);
+        }
+      }
+    }
+
     final result = <MenuItem>[];
     for (var index = 0; index < entries.length; index++) {
       final entry = entries[index];
@@ -241,7 +274,11 @@ extension _ThemeUiOverlayNodes on ThemeUiNodeView {
     Map<String, dynamic> props,
     List<Map<String, dynamic>> children,
   ) {
-    final items = _menuItems(context, props['items']);
+    final items = _menuItems(
+      context,
+      props['items'],
+      target: props['target'] is String ? props['target'] as String : null,
+    );
     if (items.isEmpty) return _columnOf(context, children);
     return ContextMenu(
       items: items,

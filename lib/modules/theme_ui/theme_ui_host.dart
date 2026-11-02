@@ -76,12 +76,19 @@ _LiveUi? _liveUi(
       templates: ui.templates,
       renderPoints: ui.renderPoints,
       specVersion: ui.specVersion,
+      capabilities: ui.capabilities.toSet(),
       paletteFor: paletteCache == null ? null : (url) => paletteCache[url],
       requestPalette: paletteCache == null
           ? null
           : (url) => unawaited(paletteCache.load(url)),
       onAction: (action) {
-        unawaited(dispatchThemeUiAction(context, ref, action));
+        unawaited(
+          dispatchThemeUiAction(
+            context,
+            ProviderScope.containerOf(context, listen: false),
+            action,
+          ),
+        );
       },
     ),
     ui: ui,
@@ -133,8 +140,15 @@ class ThemeUiRuntimeScopeHost extends ConsumerWidget {
       templates: ui.templates,
       renderPoints: ui.renderPoints,
       specVersion: ui.specVersion,
+      capabilities: ui.capabilities.toSet(),
       onAction: (action) {
-        unawaited(dispatchThemeUiAction(context, ref, action));
+        unawaited(
+          dispatchThemeUiAction(
+            context,
+            ProviderScope.containerOf(context, listen: false),
+            action,
+          ),
+        );
       },
     );
 

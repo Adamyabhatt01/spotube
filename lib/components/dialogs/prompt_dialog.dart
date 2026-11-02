@@ -7,6 +7,7 @@ Future<bool> showPromptDialog({
   required String message,
   String okText = "Ok",
   String? cancelText = "Cancel",
+  bool destructive = false,
 }) async {
   return showDialog<bool>(
     context: context,
@@ -22,10 +23,16 @@ Future<bool> showPromptDialog({
                 cancelText == "Cancel" ? context.l10n.cancel : cancelText,
               ),
             ),
-          Button.primary(
-            child: Text(okText == "Ok" ? context.l10n.ok : okText),
-            onPressed: () => Navigator.of(context).pop(true),
-          ),
+          if (destructive)
+            Button.destructive(
+              child: Text(okText == "Ok" ? context.l10n.ok : okText),
+              onPressed: () => Navigator.of(context).pop(true),
+            )
+          else
+            Button.primary(
+              child: Text(okText == "Ok" ? context.l10n.ok : okText),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
         ],
       );
     },

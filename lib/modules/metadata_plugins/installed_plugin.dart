@@ -74,6 +74,14 @@ class MetadataInstalledPluginItem extends HookConsumerWidget {
     };
     final hasUpdate = updateAvailable?.asData?.value != null;
 
+    // Capabilities are declared inside the theme's own UI document, so they can
+    // only be read for a theme the app has already resolved — the active one.
+    // Listing them for the others would start a plugin VM per row.
+    final themeUi =
+        isDefaultTheme ? ref.watch(themeUiProvider) : null;
+    final capabilities =
+        themeUi?.asData?.value?.capabilities ?? const <String>[];
+
     return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -129,6 +137,20 @@ class MetadataInstalledPluginItem extends HookConsumerWidget {
                             ),
                       ],
                     ),
+                    if (capabilities.isNotEmpty) ...[
+                      Text(context.l10n.this_plugin_can_do_following).xSmall,
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          // The contract identifiers verbatim: they name what
+                          // the theme can reach, and translating them would
+                          // hide which one to look for in the docs.
+                          for (final capability in capabilities)
+                            SecondaryBadge(child: Text(capability)),
+                        ],
+                      ),
+                    ],
                     if (repoUrl != null)
                       Wrap(
                         spacing: 8,
@@ -184,6 +206,29 @@ class MetadataInstalledPluginItem extends HookConsumerWidget {
                 ),
                 trailing: IconButton.ghost(
                   onPressed: () async {
+                    // Removal takes the files, the row and the theme's own
+                    // settings, so it needs a yes first — the plugin list is
+                    // also where somebody browsing decides to tidy up.
+                    final accepted = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text(context.l10n.delete_plugin),
+                        content: Text(
+                          context.l10n.delete_plugin_confirmation(plugin.name),
+                        ),
+                        actions: [
+                          Button.outline(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: Text(context.l10n.cancel),
+                          ),
+                          Button.destructive(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: Text(context.l10n.delete),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (accepted != true) return;
                     await pluginsNotifier.removePlugin(plugin);
                   },
                   icon: Icon(

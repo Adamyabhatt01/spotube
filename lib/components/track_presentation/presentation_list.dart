@@ -1,4 +1,3 @@
-import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_undraw/flutter_undraw.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -120,10 +119,7 @@ class PresentationListSection extends HookConsumerWidget {
                     notifier.deselectTrack(track);
                   }
                 },
-          onLongPress: () {
-            notifier.selectTrack(track);
-            HapticFeedback.selectionClick();
-          },
+          onSelect: () => notifier.selectTrack(track),
         );
       }),
     );

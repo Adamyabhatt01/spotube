@@ -942,6 +942,15 @@ class ThemeUiDocument with _$ThemeUiDocument {
     /// or the host refuses to route it.
     @Default(<ThemeUiPage>[]) List<ThemeUiPage> pages,
 
+    /// Context-menu additions per host target (`playlist`, `track`, ...).
+    ///
+    /// Entries are contract-owned maps, like UI nodes: the host parses the
+    /// keys it knows and drops the rest. Every entry must carry a `theme.`
+    /// id, an allowlisted action and, when it declares one, a capability the
+    /// document also grants.
+    @Default(<String, List<Map<String, dynamic>>>{})
+    Map<String, List<Map<String, dynamic>>> menus,
+
     /// Capability names the theme declares it needs (`library.write`,
     /// `audio.effects`, ...). The authoring validator enforces the full table;
     /// the host only uses this to gate the actions that mutate the user's

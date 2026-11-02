@@ -28,6 +28,17 @@ class MetadataPluginException implements Exception {
           'Invalid plugin configuration',
           errorCode: MetadataPluginErrorCode.invalidPluginConfiguration,
         );
+
+  /// An archive the extractor will not write: a traversal entry, a symbolic
+  /// link, or past the entry/size limits. [reason] names which, because the
+  /// settings page shows this string and an author cannot act on a generic
+  /// "invalid configuration". The error code stays the configuration one so
+  /// every existing handler keeps classifying it the same way.
+  MetadataPluginException.unsafePluginArchive(String reason)
+      : this._(
+          'Unsafe plugin archive: $reason',
+          errorCode: MetadataPluginErrorCode.invalidPluginConfiguration,
+        );
   MetadataPluginException.failedToGetRelease()
       : this._(
           'Failed to get release information',

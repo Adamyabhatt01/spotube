@@ -291,6 +291,9 @@ class AppLocalizationsTh extends AppLocalizations {
   String get remove_from_favorites => 'ลบออกจากรายการโปรด';
 
   @override
+  String get add_to_favorites => 'Add to favorites';
+
+  @override
   String get save_as_favorite => 'บันทึกเป็นรายการโปรด';
 
   @override
@@ -1616,6 +1619,9 @@ class AppLocalizationsTh extends AppLocalizations {
   String get delete_local_library => 'Delete local library';
 
   @override
+  String get delete_all_downloads => 'Delete all downloads';
+
+  @override
   String delete_local_library_confirmation(Object count, Object size) {
     return 'Delete $count downloaded files ($size) from this device and forget every downloaded playlist? Downloads in progress will be canceled. Music in your own library folders, play history, pinned playlists and your Spotify playlists are left alone.';
   }
@@ -1741,6 +1747,12 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get copy_to_clipboard => 'คัดลอกไปยังคลิปบอร์ด';
+
+  @override
+  String get copy_stream_url => 'Copy stream URL';
+
+  @override
+  String get open_homepage => 'Open homepage';
 
   @override
   String get view_logs => 'ดูบันทึก';
@@ -1893,6 +1905,14 @@ class AppLocalizationsTh extends AppLocalizations {
   String get upload_plugin_from_file => 'อัปโหลดปลั๊กอินจากไฟล์';
 
   @override
+  String get delete_plugin => 'Delete plugin';
+
+  @override
+  String delete_plugin_confirmation(Object name) {
+    return 'Delete $name? Its files and everything it stored through its own settings go with it, and installing it again is the only way back.';
+  }
+
+  @override
   String get installed => 'ติดตั้งแล้ว';
 
   @override
@@ -1924,5 +1944,96 @@ class AppLocalizationsTh extends AppLocalizations {
   @override
   String playlist_library_sync_failed(Object name) {
     return 'The playlist \"$name\" was created, but it could not be added to your Spotify library, so it may not appear on your other devices.';
+  }
+
+  @override
+  String get rename => 'Rename';
+
+  @override
+  String get like => 'Like';
+
+  @override
+  String get go_to_artist => 'Go to artist';
+
+  @override
+  String get open_folder => 'Open folder';
+
+  @override
+  String get remove_download => 'Remove download';
+
+  @override
+  String pin_to(String target) {
+    return 'Pin to $target';
+  }
+
+  @override
+  String unpin_from(String target) {
+    return 'Unpin from $target';
+  }
+
+  @override
+  String get pin_to_ellipsis => 'Pin to…';
+
+  @override
+  String get context_menu => 'Context menu';
+
+  @override
+  String get context_menu_description =>
+      'Choose which actions appear when you right-click or long-press an item, and in what order.';
+
+  @override
+  String get context_menu_target => 'Target';
+
+  @override
+  String get context_menu_track => 'Track';
+
+  @override
+  String get context_menu_radio => 'Radio';
+
+  @override
+  String get context_menu_actions => 'Actions';
+
+  @override
+  String get context_menu_show_icons => 'Show icons';
+
+  @override
+  String get context_menu_confirm_destructive => 'Confirm destructive actions';
+
+  @override
+  String get context_menu_reset_target => 'Reset this target';
+
+  @override
+  String get context_menu_reset_all => 'Reset all';
+
+  @override
+  String get context_menu_hidden_pin_targets => 'Pin targets';
+
+  @override
+  String get theme_settings => 'Theme settings';
+
+  @override
+  String get theme_settings_description =>
+      'Preferences the active theme exposes';
+
+  @override
+  String get theme_settings_empty => 'This theme does not expose any settings.';
+
+  @override
+  String get theme_settings_reset => 'Reset';
+
+  @override
+  String get audio_bass => 'Bass';
+
+  @override
+  String get audio_crossfade => 'Crossfade';
+
+  @override
+  String audio_gain_db(Object value) {
+    return '$value dB';
+  }
+
+  @override
+  String audio_seconds(Object value) {
+    return '$value seconds';
   }
 }

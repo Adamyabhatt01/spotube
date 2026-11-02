@@ -18,6 +18,10 @@ class TrackOptions extends HookConsumerWidget {
   final Widget? icon;
   final VoidCallback? onTapItem;
 
+  /// Enters this row's multi-select mode. Null where the surrounding list has
+  /// no selection, which also hides the entry.
+  final VoidCallback? onSelect;
+
   const TrackOptions({
     super.key,
     required this.track,
@@ -25,6 +29,7 @@ class TrackOptions extends HookConsumerWidget {
     this.playlistId,
     this.icon,
     this.onTapItem,
+    this.onSelect,
   }) : assert(
           track is SpotubeFullTrackObject || track is SpotubeLocalTrackObject,
           "Track must be a SpotubeFullTrackObject, SpotubeLocalTrackObject",
@@ -52,6 +57,16 @@ class TrackOptions extends HookConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: 8,
       children: [
+        if (onSelect != null)
+          ButtonTile(
+            style: ButtonVariance.menu,
+            leading: const Icon(SpotubeIcons.selectionCheck),
+            title: Text(context.l10n.select),
+            onPressed: () {
+              onSelect!.call();
+              onTapItem?.call();
+            },
+          ),
         if (isLocalTrack)
           ButtonTile(
             style: ButtonVariance.menu,

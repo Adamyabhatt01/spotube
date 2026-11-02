@@ -12,8 +12,11 @@ import 'package:spotube/modules/settings/color_scheme_picker_dialog.dart';
 import 'package:spotube/modules/settings/section_card_with_heading.dart';
 import 'package:spotube/modules/splash/splash_prefs.dart';
 import 'package:spotube/modules/splash/splash_screen.dart';
+import 'package:spotube/pages/settings/context_menu.dart';
+import 'package:spotube/pages/settings/theme_settings.dart';
 import 'package:spotube/components/adaptive/adaptive_select_tile.dart';
 import 'package:spotube/extensions/context.dart';
+import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/utils/platform.dart';
 
@@ -72,6 +75,16 @@ class SettingsAppearanceSection extends HookConsumerWidget {
         SplashAnimation.slide => context.l10n.splash_animation_slide,
       };
     }
+
+    // Only a theme that answers `showSettings()` with content earns an entry:
+    // offering an empty dialog would read as a broken feature.
+    final themeSettings = ref
+        .watch(pluginThemeSettingsProvider)
+        .asData
+        ?.value
+        ?.slots['settings.content'];
+    final hasThemeSettings =
+        themeSettings != null && themeSettings.children.isNotEmpty;
 
     final children = [
       AdaptiveSelectTile<LayoutMode>(
@@ -268,6 +281,19 @@ class SettingsAppearanceSection extends HookConsumerWidget {
           ],
         ),
       ),
+      ListTile(
+        leading: const Icon(SpotubeIcons.moreHorizontal),
+        title: Text(context.l10n.context_menu),
+        subtitle: Text(context.l10n.context_menu_description),
+        onTap: () => showContextMenuSettingsDialog(context),
+      ),
+      if (hasThemeSettings)
+        ListTile(
+          leading: const Icon(SpotubeIcons.settings),
+          title: Text(context.l10n.theme_settings),
+          subtitle: Text(context.l10n.theme_settings_description),
+          onTap: () => showThemeSettingsDialog(context),
+        ),
     ];
 
     if (isGettingStarted) {

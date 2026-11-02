@@ -24,6 +24,7 @@ import 'package:spotube/provider/radio/favorites.dart';
 import 'package:spotube/provider/radio/history.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/provider/volume_provider.dart';
+import 'package:spotube/services/kv_store/kv_store.dart';
 import 'package:spotube/services/theme_ui/artwork_palette.dart';
 import 'package:spotube/services/theme_ui/artwork_palette_provider.dart';
 
@@ -213,21 +214,68 @@ final themeUiQueryProvider =
 
 /// Theme-owned settings toggled through `setSetting`/`toggleSetting`.
 ///
-/// Values are published as `setting.<key>`; this is the read side that makes
-/// a theme's own toggle survive the rebuild its action causes. Persistence
-/// is a later phase; within a session the values are stable.
+/// Values are published as `setting.<key>`. The namespace is the selected
+/// theme plugin's `theme.<author>.<name>.` prefix, so switching themes reads a
+/// different map and does not leak one theme's toggles into another's UI.
+typedef ThemeSettingsNamespace = ({String author, String name});
+
+final themeSettingsNamespaceProvider = Provider<ThemeSettingsNamespace?>((ref) {
+  final plugin = ref.watch(
+    metadataPluginsProvider.select(
+      (state) => state.valueOrNull?.defaultThemePluginConfig,
+    ),
+  );
+  if (plugin == null) return null;
+  return (author: plugin.author, name: plugin.name);
+});
+
 class ThemeUiSettingsState extends Notifier<Map<String, Object?>> {
+  ThemeSettingsNamespace? _namespace;
+
   @override
-  Map<String, Object?> build() => const <String, Object?>{};
+  Map<String, Object?> build() {
+    final namespace = ref.watch(themeSettingsNamespaceProvider);
+    _namespace = namespace;
+    if (namespace == null || !KVStoreService.isInitialized) {
+      return const <String, Object?>{};
+    }
+    return KVStoreService.themeSettings(namespace.author, namespace.name);
+  }
 
   void set(String key, Object? value) {
-    state = {...state, key: value};
+    if (value == null) {
+      if (!state.containsKey(key)) return;
+      final next = {...state}..remove(key);
+      state = next;
+    } else {
+      state = {...state, key: value};
+    }
+    unawaited(_persist(key, value));
   }
 
   void toggle(String key) {
     final current = state[key];
-    final next = current is bool ? !current : !_valueIsTruthy(current);
-    state = {...state, key: next};
+    set(key, current is bool ? !current : !_valueIsTruthy(current));
+  }
+
+  void reset() {
+    state = const <String, Object?>{};
+    final namespace = _namespace;
+    if (namespace == null || !KVStoreService.isInitialized) return;
+    unawaited(
+      KVStoreService.clearThemeSettings(namespace.author, namespace.name),
+    );
+  }
+
+  Future<void> _persist(String key, Object? value) async {
+    final namespace = _namespace;
+    if (namespace == null || !KVStoreService.isInitialized) return;
+    await KVStoreService.setThemeSetting(
+      namespace.author,
+      namespace.name,
+      key,
+      value,
+    );
   }
 }
 

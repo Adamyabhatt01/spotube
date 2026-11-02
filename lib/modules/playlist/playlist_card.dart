@@ -7,6 +7,8 @@ import 'package:spotube/components/playbutton_view/playbutton_card.dart';
 import 'package:spotube/components/playbutton_view/playbutton_tile.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/playlist/playlist_context_menu.dart';
+import 'package:spotube/modules/playlist/playlist_delete.dart';
 import 'package:spotube/modules/playlist/use_playlist_play.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_visibility.dart';
 import 'package:spotube/provider/history/history.dart';
@@ -143,44 +145,57 @@ class PlaylistCard extends HookConsumerWidget {
       }
     }, [playlist.id, ref, context, sidebarVisible]);
 
-    if (_isTile) {
-      return PlaybuttonTile(
-        title: playlist.name,
-        description: playlist.description,
-        image: null,
-        imageUrl: imageUrl,
-        isPlaying: isPlaylistPlaying,
-        // The icon follows the audio, not the queue membership: pausing
-        // from elsewhere left the button showing "pause".
-        isActuallyPlaying: play.isPlaying,
-        isLoading: play.isLoading,
-        isQueueLoading: queueUpdating.value,
-        isOwner: isOwner,
-        isPinned: isPinned,
-        onTap: onTap,
-        onPlaybuttonPressed: onPlaybuttonPressed,
-        onAddToQueuePressed: onAddToQueuePressed,
-        onPinPressed: onPinPressed,
-      );
-    }
+    final card = _isTile
+        ? PlaybuttonTile(
+            title: playlist.name,
+            description: playlist.description,
+            image: null,
+            imageUrl: imageUrl,
+            isPlaying: isPlaylistPlaying,
+            // The icon follows the audio, not the queue membership: pausing
+            // from elsewhere left the button showing "pause".
+            isActuallyPlaying: play.isPlaying,
+            isLoading: play.isLoading,
+            isQueueLoading: queueUpdating.value,
+            isOwner: isOwner,
+            isPinned: isPinned,
+            onTap: onTap,
+            onPlaybuttonPressed: onPlaybuttonPressed,
+            onAddToQueuePressed: onAddToQueuePressed,
+            onPinPressed: onPinPressed,
+          )
+        : PlaybuttonCard(
+            title: playlist.name,
+            description: playlist.description,
+            image: null,
+            imageUrl: imageUrl,
+            isPlaying: isPlaylistPlaying,
+            // The icon follows the audio, not the queue membership: pausing
+            // from elsewhere left the button showing "pause".
+            isActuallyPlaying: play.isPlaying,
+            isLoading: play.isLoading,
+            isQueueLoading: queueUpdating.value,
+            isOwner: isOwner,
+            isPinned: isPinned,
+            onTap: onTap,
+            onPlaybuttonPressed: onPlaybuttonPressed,
+            onAddToQueuePressed: onAddToQueuePressed,
+            onPinPressed: onPinPressed,
+          );
 
-    return PlaybuttonCard(
-      title: playlist.name,
-      description: playlist.description,
-      image: null,
-      imageUrl: imageUrl,
-      isPlaying: isPlaylistPlaying,
-      // The icon follows the audio, not the queue membership: pausing from
-      // elsewhere left the button showing "pause".
-      isActuallyPlaying: play.isPlaying,
-      isLoading: play.isLoading,
-      isQueueLoading: queueUpdating.value,
+    return PlaylistContextMenu(
+      playlist: playlist,
       isOwner: isOwner,
       isPinned: isPinned,
-      onTap: onTap,
-      onPlaybuttonPressed: onPlaybuttonPressed,
-      onAddToQueuePressed: onAddToQueuePressed,
-      onPinPressed: onPinPressed,
+      isPlaying: play.isPlaying,
+      isLoading: play.isLoading,
+      isQueueLoading: queueUpdating.value,
+      onOpen: onTap,
+      onPlayPause: onPlaybuttonPressed,
+      onAddToQueue: onAddToQueuePressed,
+      onTogglePin: onPinPressed,
+      onDelete: () => deletePlaylistWithConfirmation(context, ref, playlist.id),
+      child: card,
     );
   }
 }

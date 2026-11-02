@@ -1,3 +1,4 @@
+import 'package:auto_route/auto_route.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -5,6 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/collections/spotube_icons.dart';
+import 'package:spotube/components/adaptive/adaptive_pop_sheet_list.dart';
 import 'package:spotube/components/heart_button/heart_button.dart';
 import 'package:spotube/components/image/frosted_artwork.dart';
 import 'package:spotube/components/image/universal_image.dart';
@@ -16,14 +18,29 @@ import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/playlist/playlist_create_dialog.dart';
+import 'package:spotube/modules/playlist/playlist_delete.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_visibility.dart';
 import 'package:spotube/provider/playlist_download_provider.dart';
 import 'package:spotube/provider/scroll_motion.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/utils/primitive_utils.dart';
 
+enum _PlaylistMenuAction { delete }
+
 class TrackPresentationTopSection extends HookConsumerWidget {
   const TrackPresentationTopSection({super.key});
+
+  Future<void> _deletePlaylist(
+    BuildContext context,
+    WidgetRef ref,
+    String playlistId,
+  ) async {
+    final deleted =
+        await deletePlaylistWithConfirmation(context, ref, playlistId);
+    if (deleted && context.mounted) {
+      context.router.maybePop();
+    }
+  }
 
   @override
   Widget build(BuildContext context, ref) {
@@ -153,6 +170,34 @@ class TrackPresentationTopSection extends HookConsumerWidget {
                   );
                 },
               );
+            },
+          ),
+        if (isUserPlaylist)
+          AdaptivePopSheetList<_PlaylistMenuAction>(
+            tooltip: context.l10n.more_actions,
+            icon: const Icon(SpotubeIcons.moreVertical),
+            variance: ButtonVariance.outline,
+            size: ButtonSize.small,
+            items: (context) => [
+              AdaptiveMenuButton(
+                value: _PlaylistMenuAction.delete,
+                leading: Icon(
+                  SpotubeIcons.trash,
+                  color: context.theme.colorScheme.destructive,
+                ),
+                child: Text(
+                  context.l10n.delete_playlist,
+                  style: TextStyle(
+                    color: context.theme.colorScheme.destructive,
+                  ),
+                ),
+              ),
+            ],
+            onSelected: (action) {
+              switch (action) {
+                case _PlaylistMenuAction.delete:
+                  _deletePlaylist(context, ref, options.collectionId);
+              }
             },
           ),
         if (options.shareUrl != null)

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:auto_route/auto_route.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -14,6 +13,7 @@ import 'package:spotube/components/image/universal_image.dart';
 import 'package:spotube/components/links/artist_link.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/components/links/link_text.dart';
+import 'package:spotube/components/track_tile/track_context_menu.dart';
 import 'package:spotube/components/track_tile/track_options_button.dart';
 import 'package:spotube/components/ui/button_tile.dart';
 import 'package:spotube/extensions/constrains.dart';
@@ -23,8 +23,6 @@ import 'package:spotube/provider/audio_player/querying_track_info.dart';
 import 'package:spotube/provider/blacklist_provider.dart';
 import 'package:spotube/utils/platform.dart';
 
-final _overlay = ValueNotifier<OverlayCompleter<dynamic>?>(null);
-
 class TrackTile extends HookConsumerWidget {
   /// [index] will not be shown if null
   final int? index;
@@ -33,7 +31,10 @@ class TrackTile extends HookConsumerWidget {
   final bool selectionMode;
   final ValueChanged<bool?>? onChanged;
   final Future<void> Function()? onTap;
-  final VoidCallback? onLongPress;
+
+  /// Enters this list's multi-select mode. Null where the list has none,
+  /// which also hides the matching row in the options menu.
+  final VoidCallback? onSelect;
   final bool userPlaylist;
   final String? playlistId;
 
@@ -58,7 +59,7 @@ class TrackTile extends HookConsumerWidget {
     this.selectionMode = false,
     required this.isPlaying,
     this.onTap,
-    this.onLongPress,
+    this.onSelect,
     this.onChanged,
     this.userPlaylist = false,
     this.playlistId,
@@ -109,20 +110,11 @@ class TrackTile extends HookConsumerWidget {
     final effectiveSelection = selectionMode || onChanged != null;
 
     return LayoutBuilder(builder: (context, constrains) {
-      return Listener(
-        onPointerDown: (event) {
-          if (event.buttons != kSecondaryMouseButton) return;
-          if (_overlay.value != null) {
-            _overlay.value?.remove();
-            _overlay.value = null;
-          }
-          _overlay.value = TrackOptionsButton.showOptions(
-            context,
-            track,
-            userPlaylist: userPlaylist,
-            playlistId: playlistId,
-          );
-        },
+      return TrackContextMenu(
+        track: track,
+        userPlaylist: userPlaylist,
+        playlistId: playlistId,
+        onSelect: onSelect,
         child: HoverBuilder(
           permanentState: isSelected || constrains.smAndDown ? true : null,
           builder: (context, isHovering) => ButtonTile(
@@ -138,7 +130,9 @@ class TrackTile extends HookConsumerWidget {
                 }
               }
             },
-            onLongPress: onLongPress,
+            // Right-click and long-press belong to TrackContextMenu now; a
+            // second long-press owner here would open the sheet and the
+            // builder menu on the same row at once.
             style: (isBlackListed
                     ? ButtonVariance.destructive
                     : ButtonVariance.ghost)
@@ -262,36 +256,36 @@ class TrackTile extends HookConsumerWidget {
                   child: AbsorbPointer(
                     absorbing: selectionMode,
                     child: switch (track) {
-                    SpotubeLocalTrackObject() => Text(
-                        track.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    _ => Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                child: Button(
-                style: ButtonVariance.link.copyWith(
-                padding: (context, states, value) =>
-                  EdgeInsets.zero,
-                ),
-                onPressed: effectiveSelection
-                  ? null
-                  : () {
-                    context
-                      .navigateTo(TrackRoute(trackId: track.id));
-                  },
-                              child: Text(
-                                track.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                      SpotubeLocalTrackObject() => Text(
+                          track.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      _ => Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Button(
+                                style: ButtonVariance.link.copyWith(
+                                  padding: (context, states, value) =>
+                                      EdgeInsets.zero,
+                                ),
+                                onPressed: effectiveSelection
+                                    ? null
+                                    : () {
+                                        context.navigateTo(
+                                            TrackRoute(trackId: track.id));
+                                      },
+                                child: Text(
+                                  track.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                  },
+                          ],
+                        ),
+                    },
                   ),
                 ),
                 if (constrains.mdAndUp) ...[
@@ -323,14 +317,14 @@ class TrackTile extends HookConsumerWidget {
             ),
             subtitle: Align(
               alignment: Alignment.centerLeft,
-                    child: track is SpotubeLocalTrackObject
+              child: track is SpotubeLocalTrackObject
                   ? Text(
                       track.artists.asString(),
                     )
                   : ClipRect(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxHeight: 40),
-                          child: AbsorbPointer(
+                        child: AbsorbPointer(
                           absorbing: effectiveSelection,
                           child: ArtistLink(
                             artists: track.artists,
@@ -362,6 +356,7 @@ class TrackTile extends HookConsumerWidget {
                       track: track,
                       userPlaylist: userPlaylist,
                       playlistId: playlistId,
+                      onSelect: onSelect,
                     );
                   },
                 ),

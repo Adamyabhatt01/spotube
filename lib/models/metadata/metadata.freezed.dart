@@ -11375,6 +11375,15 @@ mixin _$ThemeUiDocument {
   /// or the host refuses to route it.
   List<ThemeUiPage> get pages => throw _privateConstructorUsedError;
 
+  /// Context-menu additions per host target (`playlist`, `track`, ...).
+  ///
+  /// Entries are contract-owned maps, like UI nodes: the host parses the
+  /// keys it knows and drops the rest. Every entry must carry a `theme.`
+  /// id, an allowlisted action and, when it declares one, a capability the
+  /// document also grants.
+  Map<String, List<Map<String, dynamic>>> get menus =>
+      throw _privateConstructorUsedError;
+
   /// Capability names the theme declares it needs (`library.write`,
   /// `audio.effects`, ...). The authoring validator enforces the full table;
   /// the host only uses this to gate the actions that mutate the user's
@@ -11405,6 +11414,7 @@ abstract class $ThemeUiDocumentCopyWith<$Res> {
       Map<String, ThemeUiTemplate> templates,
       Map<String, String> renderPoints,
       List<ThemeUiPage> pages,
+      Map<String, List<Map<String, dynamic>>> menus,
       List<String> capabilities});
 }
 
@@ -11429,6 +11439,7 @@ class _$ThemeUiDocumentCopyWithImpl<$Res, $Val extends ThemeUiDocument>
     Object? templates = null,
     Object? renderPoints = null,
     Object? pages = null,
+    Object? menus = null,
     Object? capabilities = null,
   }) {
     return _then(_value.copyWith(
@@ -11456,6 +11467,10 @@ class _$ThemeUiDocumentCopyWithImpl<$Res, $Val extends ThemeUiDocument>
           ? _value.pages
           : pages // ignore: cast_nullable_to_non_nullable
               as List<ThemeUiPage>,
+      menus: null == menus
+          ? _value.menus
+          : menus // ignore: cast_nullable_to_non_nullable
+              as Map<String, List<Map<String, dynamic>>>,
       capabilities: null == capabilities
           ? _value.capabilities
           : capabilities // ignore: cast_nullable_to_non_nullable
@@ -11479,6 +11494,7 @@ abstract class _$$ThemeUiDocumentImplCopyWith<$Res>
       Map<String, ThemeUiTemplate> templates,
       Map<String, String> renderPoints,
       List<ThemeUiPage> pages,
+      Map<String, List<Map<String, dynamic>>> menus,
       List<String> capabilities});
 }
 
@@ -11501,6 +11517,7 @@ class __$$ThemeUiDocumentImplCopyWithImpl<$Res>
     Object? templates = null,
     Object? renderPoints = null,
     Object? pages = null,
+    Object? menus = null,
     Object? capabilities = null,
   }) {
     return _then(_$ThemeUiDocumentImpl(
@@ -11528,6 +11545,10 @@ class __$$ThemeUiDocumentImplCopyWithImpl<$Res>
           ? _value._pages
           : pages // ignore: cast_nullable_to_non_nullable
               as List<ThemeUiPage>,
+      menus: null == menus
+          ? _value._menus
+          : menus // ignore: cast_nullable_to_non_nullable
+              as Map<String, List<Map<String, dynamic>>>,
       capabilities: null == capabilities
           ? _value._capabilities
           : capabilities // ignore: cast_nullable_to_non_nullable
@@ -11547,12 +11568,15 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
           const <String, ThemeUiTemplate>{},
       final Map<String, String> renderPoints = const <String, String>{},
       final List<ThemeUiPage> pages = const <ThemeUiPage>[],
+      final Map<String, List<Map<String, dynamic>>> menus =
+          const <String, List<Map<String, dynamic>>>{},
       final List<String> capabilities = const <String>[]})
       : _slots = slots,
         _screens = screens,
         _templates = templates,
         _renderPoints = renderPoints,
         _pages = pages,
+        _menus = menus,
         _capabilities = capabilities;
 
   factory _$ThemeUiDocumentImpl.fromJson(Map<String, dynamic> json) =>
@@ -11622,6 +11646,28 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
     return EqualUnmodifiableListView(_pages);
   }
 
+  /// Context-menu additions per host target (`playlist`, `track`, ...).
+  ///
+  /// Entries are contract-owned maps, like UI nodes: the host parses the
+  /// keys it knows and drops the rest. Every entry must carry a `theme.`
+  /// id, an allowlisted action and, when it declares one, a capability the
+  /// document also grants.
+  final Map<String, List<Map<String, dynamic>>> _menus;
+
+  /// Context-menu additions per host target (`playlist`, `track`, ...).
+  ///
+  /// Entries are contract-owned maps, like UI nodes: the host parses the
+  /// keys it knows and drops the rest. Every entry must carry a `theme.`
+  /// id, an allowlisted action and, when it declares one, a capability the
+  /// document also grants.
+  @override
+  @JsonKey()
+  Map<String, List<Map<String, dynamic>>> get menus {
+    if (_menus is EqualUnmodifiableMapView) return _menus;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_menus);
+  }
+
   /// Capability names the theme declares it needs (`library.write`,
   /// `audio.effects`, ...). The authoring validator enforces the full table;
   /// the host only uses this to gate the actions that mutate the user's
@@ -11644,7 +11690,7 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
 
   @override
   String toString() {
-    return 'ThemeUiDocument(specVersion: $specVersion, slots: $slots, screens: $screens, templates: $templates, renderPoints: $renderPoints, pages: $pages, capabilities: $capabilities)';
+    return 'ThemeUiDocument(specVersion: $specVersion, slots: $slots, screens: $screens, templates: $templates, renderPoints: $renderPoints, pages: $pages, menus: $menus, capabilities: $capabilities)';
   }
 
   @override
@@ -11661,6 +11707,7 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
             const DeepCollectionEquality()
                 .equals(other._renderPoints, _renderPoints) &&
             const DeepCollectionEquality().equals(other._pages, _pages) &&
+            const DeepCollectionEquality().equals(other._menus, _menus) &&
             const DeepCollectionEquality()
                 .equals(other._capabilities, _capabilities));
   }
@@ -11675,6 +11722,7 @@ class _$ThemeUiDocumentImpl implements _ThemeUiDocument {
       const DeepCollectionEquality().hash(_templates),
       const DeepCollectionEquality().hash(_renderPoints),
       const DeepCollectionEquality().hash(_pages),
+      const DeepCollectionEquality().hash(_menus),
       const DeepCollectionEquality().hash(_capabilities));
 
   /// Create a copy of ThemeUiDocument
@@ -11702,6 +11750,7 @@ abstract class _ThemeUiDocument implements ThemeUiDocument {
       final Map<String, ThemeUiTemplate> templates,
       final Map<String, String> renderPoints,
       final List<ThemeUiPage> pages,
+      final Map<String, List<Map<String, dynamic>>> menus,
       final List<String> capabilities}) = _$ThemeUiDocumentImpl;
 
   factory _ThemeUiDocument.fromJson(Map<String, dynamic> json) =
@@ -11728,6 +11777,15 @@ abstract class _ThemeUiDocument implements ThemeUiDocument {
   /// or the host refuses to route it.
   @override
   List<ThemeUiPage> get pages;
+
+  /// Context-menu additions per host target (`playlist`, `track`, ...).
+  ///
+  /// Entries are contract-owned maps, like UI nodes: the host parses the
+  /// keys it knows and drops the rest. Every entry must carry a `theme.`
+  /// id, an allowlisted action and, when it declares one, a capability the
+  /// document also grants.
+  @override
+  Map<String, List<Map<String, dynamic>>> get menus;
 
   /// Capability names the theme declares it needs (`library.write`,
   /// `audio.effects`, ...). The authoring validator enforces the full table;

@@ -52,6 +52,26 @@ class MetadataPluginThemeEndpoint {
     }
   }
 
+  /// The theme's optional settings UI, or null when it carries no
+  /// `showSettings()` method.
+  ///
+  /// The document has the same shape as `getUi()`; the host renders its
+  /// `settings.content` slot in a standard dialog. A missing method is a
+  /// normal "no settings", never a plugin failure.
+  Future<ThemeUiDocument?> getSettings() async {
+    final theme = _theme;
+    if (theme == null) return null;
+
+    try {
+      final result = await theme.invoke("showSettings");
+      final json = _jsonMap(result);
+      if (json == null) return null;
+      return parseThemeUiDocument(json);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// The theme's optional answer to a UI action.
   ///
   /// A `plugin` action hands an id and a payload to the theme; the theme may

@@ -14,6 +14,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:spotube/collections/fake.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/button/back_button.dart';
+import 'package:spotube/components/dialogs/delete_downloads_dialog.dart';
 import 'package:spotube/components/track_presentation/presentation_actions.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/string.dart';
@@ -152,8 +153,8 @@ class LocalLibraryPage extends HookConsumerWidget {
       await exportDirectory.create(recursive: true);
     }
 
-    final cacheDir = Directory(
-        await UserPreferencesNotifier.getMusicCacheDir());
+    final cacheDir =
+        Directory(await UserPreferencesNotifier.getMusicCacheDir());
 
     if (!context.mounted) return;
     await showDialog(
@@ -172,6 +173,7 @@ class LocalLibraryPage extends HookConsumerWidget {
     final scale = context.theme.scaling;
 
     final sortBy = useState<SortBy>(SortBy.none);
+    final deletingAll = useState(false);
     // Perf: queue-membership + highlight only.
     final queueTracks = ref.watch(audioPlayerProvider.select((s) => s.tracks));
     final activeTrackId =
@@ -277,7 +279,28 @@ class LocalLibraryPage extends HookConsumerWidget {
                   ).xSmall().iconSmall(),
                   onPressed: () => exportCache(context),
                 ),
-              ]
+              ],
+              if (isDownloads)
+                IconButton.outline(
+                  size: ButtonSize.small,
+                  icon: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(SpotubeIcons.trash),
+                      Text(context.l10n.delete_all_downloads),
+                    ],
+                  ).xSmall().iconSmall(),
+                  onPressed: deletingAll.value
+                      ? null
+                      : () async {
+                          deletingAll.value = true;
+                          try {
+                            await showDeleteDownloadsDialog(context, ref);
+                          } finally {
+                            deletingAll.value = false;
+                          }
+                        },
+                ),
             ],
           ),
         ],

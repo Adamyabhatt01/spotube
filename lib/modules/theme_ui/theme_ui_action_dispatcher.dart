@@ -40,7 +40,7 @@ import 'package:spotube/services/logger/logger.dart';
 /// route object, a file path or an arbitrary callback through.
 Future<void> dispatchThemeUiAction(
   BuildContext context,
-  WidgetRef ref,
+  ProviderContainer ref,
   ThemeUiAction action,
 ) async {
   try {
@@ -149,7 +149,7 @@ Future<void> dispatchThemeUiAction(
   }
 }
 
-Future<void> _seek(WidgetRef ref, Map<String, dynamic> args) async {
+Future<void> _seek(ProviderContainer ref, Map<String, dynamic> args) async {
   final player = ref.read(audioPlayerPortProvider);
   final duration = player.duration;
   final seconds = args['position'];
@@ -170,7 +170,8 @@ Future<void> _seek(WidgetRef ref, Map<String, dynamic> args) async {
   );
 }
 
-Future<void> _setVolume(WidgetRef ref, Map<String, dynamic> args) async {
+Future<void> _setVolume(
+    ProviderContainer ref, Map<String, dynamic> args) async {
   final current = ref.read(volumeProvider);
   final raw = args['volume'] ?? args['value'];
   final target = switch (raw) {
@@ -182,14 +183,16 @@ Future<void> _setVolume(WidgetRef ref, Map<String, dynamic> args) async {
   await ref.read(volumeProvider.notifier).setVolume(target.clamp(0, 1));
 }
 
-Future<void> _setShuffle(WidgetRef ref, Map<String, dynamic> args) async {
+Future<void> _setShuffle(
+    ProviderContainer ref, Map<String, dynamic> args) async {
   final current = ref.read(audioPlayerProvider).shuffled;
   final raw = args['value'] ?? args['shuffle'];
   final target = raw is bool ? raw : !current;
   await ref.read(audioPlayerPortProvider).setShuffle(target);
 }
 
-Future<void> _setLoopMode(WidgetRef ref, Map<String, dynamic> args) async {
+Future<void> _setLoopMode(
+    ProviderContainer ref, Map<String, dynamic> args) async {
   final player = ref.read(audioPlayerPortProvider);
   final raw = args['mode'] ?? args['value'];
   final mode = switch (raw) {
@@ -211,7 +214,7 @@ Future<void> _setLoopMode(WidgetRef ref, Map<String, dynamic> args) async {
 /// a gain stored against `enabled: false` composes to silence. Writing a band
 /// never touches `normalizeAudio`, so bass and normalization coexist.
 void _setEqBand(
-  WidgetRef ref,
+  ProviderContainer ref,
   Map<String, dynamic> args, {
   required int band,
 }) {
@@ -228,7 +231,7 @@ void _setEqBand(
 }
 
 /// Turns loudness normalization on or off; a non-bool value toggles it.
-void _setNormalization(WidgetRef ref, Map<String, dynamic> args) {
+void _setNormalization(ProviderContainer ref, Map<String, dynamic> args) {
   final raw = args['value'];
   final current = ref.read(userPreferencesProvider).normalizeAudio;
   final target = raw is bool ? raw : !current;
@@ -238,7 +241,8 @@ void _setNormalization(WidgetRef ref, Map<String, dynamic> args) {
 /// Stores the requested crossfade length in seconds (clamped to 0–15). The
 /// audible overlap lands with a backend that can schedule the next track early;
 /// this persists and binds the setting the theme controls today.
-Future<void> _setCrossfade(WidgetRef ref, Map<String, dynamic> args) async {
+Future<void> _setCrossfade(
+    ProviderContainer ref, Map<String, dynamic> args) async {
   final raw = args['value'];
   if (raw is! num || !raw.isFinite) return;
   await ref.read(crossfadeProvider.notifier).setSeconds(raw.toDouble());
@@ -247,7 +251,7 @@ Future<void> _setCrossfade(WidgetRef ref, Map<String, dynamic> args) async {
 /// Arms or cancels the sleep timer. `value` is whole minutes; zero, negative or
 /// a malformed value cancels. The 12-hour ceiling keeps a bad argument from
 /// arming the scheduled shutdown for an absurd span.
-void _setSleepTimer(WidgetRef ref, Map<String, dynamic> args) {
+void _setSleepTimer(ProviderContainer ref, Map<String, dynamic> args) {
   final raw = args['value'];
   final notifier = ref.read(sleepTimerProvider.notifier);
   if (raw is! num || !raw.isFinite || raw <= 0) {
@@ -260,7 +264,7 @@ void _setSleepTimer(WidgetRef ref, Map<String, dynamic> args) {
 }
 
 /// Playback rate, clamped to the range a listener can actually follow.
-Future<void> _setSpeed(WidgetRef ref, Map<String, dynamic> args) async {
+Future<void> _setSpeed(ProviderContainer ref, Map<String, dynamic> args) async {
   final raw = args['value'];
   if (raw is! num || !raw.isFinite) return;
   final speed = raw.toDouble().clamp(0.25, 4.0).toDouble();
@@ -269,14 +273,14 @@ Future<void> _setSpeed(WidgetRef ref, Map<String, dynamic> args) async {
 
 /// Silences or restores the output. A non-bool value toggles from the audible
 /// state. Mute is runtime only — the stored volume keeps the user's level.
-Future<void> _setMuted(WidgetRef ref, Map<String, dynamic> args) async {
+Future<void> _setMuted(ProviderContainer ref, Map<String, dynamic> args) async {
   final raw = args['value'];
   final current = ref.read(volumeProvider);
   final muted = raw is bool ? raw : current > 0;
   await ref.read(volumeProvider.notifier).setMuted(muted);
 }
 
-Future<void> _toggleLike(WidgetRef ref) async {
+Future<void> _toggleLike(ProviderContainer ref) async {
   final track = ref.read(audioPlayerProvider).activeTrack;
   if (track == null) return;
   await ref
@@ -284,7 +288,7 @@ Future<void> _toggleLike(WidgetRef ref) async {
       .toggleFavorite(track);
 }
 
-void _download(WidgetRef ref) {
+void _download(ProviderContainer ref) {
   final track = ref.read(audioPlayerProvider).activeTrack;
   if (track is! SpotubeFullTrackObject) return;
   ref.read(downloadManagerProvider.notifier).addToQueue(track);
@@ -295,7 +299,7 @@ void _download(WidgetRef ref) {
 /// The renderer injects the typed item and the collection it came from, so a
 /// row click starts the surrounding list — not a one-track queue that ends
 /// after the song the user picked.
-Future<void> _playItem(WidgetRef ref, Map<String, dynamic> args) async {
+Future<void> _playItem(ProviderContainer ref, Map<String, dynamic> args) async {
   final raw = args['item'];
   if (raw is! SpotubeTrackObject) return;
 
@@ -329,7 +333,7 @@ Future<void> _playItem(WidgetRef ref, Map<String, dynamic> args) async {
 /// keeps the action from carrying data through the node tree.
 Future<void> _playCollection(
   BuildContext context,
-  WidgetRef ref,
+  ProviderContainer ref,
   Map<String, dynamic> args,
 ) async {
   final page = ThemeUiPageBindings.read(context);
@@ -380,7 +384,7 @@ void _openItem(BuildContext context, Map<String, dynamic> args) {
   }
 }
 
-Future<void> _likeItem(WidgetRef ref, Map<String, dynamic> args) async {
+Future<void> _likeItem(ProviderContainer ref, Map<String, dynamic> args) async {
   final raw = args['item'];
   if (raw is! SpotubeTrackObject) return;
   await ref
@@ -388,7 +392,7 @@ Future<void> _likeItem(WidgetRef ref, Map<String, dynamic> args) async {
       .toggleFavorite(raw);
 }
 
-void _downloadItem(WidgetRef ref, Map<String, dynamic> args) {
+void _downloadItem(ProviderContainer ref, Map<String, dynamic> args) {
   final raw = args['item'];
   final track = raw is DownloadTask ? raw.track : raw;
   if (track is! SpotubeFullTrackObject) return;
@@ -421,7 +425,7 @@ String? _pinTarget(BuildContext context, Map<String, dynamic> args) {
 
 void _setPinnedItem(
   BuildContext context,
-  WidgetRef ref,
+  ProviderContainer ref,
   Map<String, dynamic> args, {
   required bool pinned,
 }) {
@@ -447,7 +451,7 @@ void _setPinnedItem(
 /// `library.write`. `pinItem`/`unpinItem` are deliberately not gated here: a
 /// pin is local ordering state, not an account write, and gating it would
 /// regress themes that pin without asking for `library.write`.
-Future<bool> _grantsLibraryWrite(WidgetRef ref) async {
+Future<bool> _grantsLibraryWrite(ProviderContainer ref) async {
   final ui = await ref.read(themeUiProvider.future);
   return ui?.capabilities.contains('library.write') ?? false;
 }
@@ -471,13 +475,15 @@ String? _cappedString(Object? raw, int max) {
   return value.length > max ? value.substring(0, max) : value;
 }
 
-Future<void> _createPlaylist(WidgetRef ref, Map<String, dynamic> args) async {
+Future<void> _createPlaylist(
+    ProviderContainer ref, Map<String, dynamic> args) async {
   if (!await _grantsLibraryWrite(ref)) return;
   final name = _cappedString(args['name'], _playlistNameMax);
   if (name == null) return;
   await ref.read(metadataPluginPlaylistProvider('').notifier).create(
         name: name,
-        description: _cappedString(args['description'], _playlistDescriptionMax),
+        description:
+            _cappedString(args['description'], _playlistDescriptionMax),
         public: args['public'] is bool ? args['public'] as bool : null,
         collaborative: args['collaborative'] is bool
             ? args['collaborative'] as bool
@@ -485,7 +491,8 @@ Future<void> _createPlaylist(WidgetRef ref, Map<String, dynamic> args) async {
       );
 }
 
-Future<void> _renamePlaylist(WidgetRef ref, Map<String, dynamic> args) async {
+Future<void> _renamePlaylist(
+    ProviderContainer ref, Map<String, dynamic> args) async {
   if (!await _grantsLibraryWrite(ref)) return;
   final id = _playlistRef(args['playlist'] ?? args['item']);
   final name = _cappedString(args['name'], _playlistNameMax);
@@ -499,7 +506,7 @@ Future<void> _renamePlaylist(WidgetRef ref, Map<String, dynamic> args) async {
 
 Future<void> _deletePlaylist(
   BuildContext context,
-  WidgetRef ref,
+  ProviderContainer ref,
   Map<String, dynamic> args,
 ) async {
   if (!await _grantsLibraryWrite(ref)) return;
@@ -509,7 +516,8 @@ Future<void> _deletePlaylist(
   final confirmed = await showPromptDialog(
     context: context,
     title: 'Delete playlist',
-    message: 'This removes the playlist from your library and cannot be undone.',
+    message:
+        'This removes the playlist from your library and cannot be undone.',
     okText: 'Delete',
     destructive: true,
   );
@@ -519,7 +527,8 @@ Future<void> _deletePlaylist(
   await notifier.delete();
 }
 
-Future<void> _addToPlaylist(WidgetRef ref, Map<String, dynamic> args) async {
+Future<void> _addToPlaylist(
+    ProviderContainer ref, Map<String, dynamic> args) async {
   if (!await _grantsLibraryWrite(ref)) return;
   final playlistId = _playlistRef(args['playlist'] ?? args['id']);
   if (playlistId == null) return;
@@ -582,7 +591,7 @@ SpotubeSimplePlaylistObject _simplePlaylist(
 
 Future<void> _navigate(
   BuildContext context,
-  WidgetRef ref,
+  ProviderContainer ref,
   Map<String, dynamic> args,
 ) async {
   final target = args['target'];
@@ -591,7 +600,7 @@ Future<void> _navigate(
   if (target.startsWith('screen:')) {
     final id = target.substring('screen:'.length);
     if (id.isEmpty || !RegExp(r'^[A-Za-z0-9_-]{1,64}$').hasMatch(id)) return;
-    pushThemeUiScreen(ref, id);
+    pushThemeUiScreenContainer(ref, id);
     return;
   }
 
@@ -624,7 +633,7 @@ Future<void> _navigate(
 /// rejected page is unreachable even though it stays in the document.
 Future<void> _openPage(
   BuildContext context,
-  WidgetRef ref,
+  ProviderContainer ref,
   Map<String, dynamic> args,
 ) async {
   final id = args['id'];
@@ -654,7 +663,8 @@ void _toast(BuildContext context, Map<String, dynamic> args) {
   );
 }
 
-Future<void> _askPlugin(WidgetRef ref, Map<String, dynamic> args) async {
+Future<void> _askPlugin(
+    ProviderContainer ref, Map<String, dynamic> args) async {
   final id = args['id'];
   if (id is! String || id.isEmpty || id.length > 64) return;
   final payload = args['payload'];
@@ -677,7 +687,7 @@ final _settingKeyPattern = RegExp(r'^[A-Za-z][A-Za-z0-9_.-]{0,63}$');
 /// The scope is the surface the field belongs to (`sidebar`, a region id);
 /// omitted means the default field. A malformed scope or a non-string value
 /// drops the action instead of guessing.
-void _setQuery(WidgetRef ref, Map<String, dynamic> args) {
+void _setQuery(ProviderContainer ref, Map<String, dynamic> args) {
   final value = args['value'];
   if (value is! String) return;
   final scope = args['scope'];
@@ -691,7 +701,7 @@ void _setQuery(WidgetRef ref, Map<String, dynamic> args) {
       );
 }
 
-void _clearQuery(WidgetRef ref, Map<String, dynamic> args) {
+void _clearQuery(ProviderContainer ref, Map<String, dynamic> args) {
   final scope = args['scope'];
   if (scope != null &&
       (scope is! String || !_queryScopePattern.hasMatch(scope))) {
@@ -702,7 +712,7 @@ void _clearQuery(WidgetRef ref, Map<String, dynamic> args) {
 
 /// Writes a theme-owned setting. Only scalar values are accepted; a theme
 /// cannot smuggle a nested object into the binding map through an action.
-void _setSetting(WidgetRef ref, Map<String, dynamic> args) {
+void _setSetting(ProviderContainer ref, Map<String, dynamic> args) {
   final key = args['key'];
   if (key is! String || !_settingKeyPattern.hasMatch(key)) return;
   final value = args['value'];
@@ -718,18 +728,18 @@ void _setSetting(WidgetRef ref, Map<String, dynamic> args) {
   }
 }
 
-void _toggleSetting(WidgetRef ref, Map<String, dynamic> args) {
+void _toggleSetting(ProviderContainer ref, Map<String, dynamic> args) {
   final key = args['key'];
   if (key is! String || !_settingKeyPattern.hasMatch(key)) return;
   ref.read(themeUiSettingsProvider.notifier).toggle(key);
 }
 
-void _toggleSidebar(WidgetRef ref) {
+void _toggleSidebar(ProviderContainer ref) {
   final collapsed = ref.read(userPreferencesProvider).sidebarCollapsed;
   ref.read(userPreferencesProvider.notifier).setSidebarCollapsed(!collapsed);
 }
 
-void _toggleAside(WidgetRef ref) {
+void _toggleAside(ProviderContainer ref) {
   final open = ref.read(userPreferencesProvider).asideOpen;
   ref.read(userPreferencesProvider.notifier).setAsideOpen(!open);
 }
@@ -742,7 +752,7 @@ void _toggleAside(WidgetRef ref) {
 /// resolved against the active shell tree and must name a `collapsible` leaf.
 void _toggleRegion(
   BuildContext context,
-  WidgetRef ref,
+  ProviderContainer ref,
   Map<String, dynamic> args,
 ) {
   final id = args['id'];
@@ -788,7 +798,7 @@ Future<void> _copy(Map<String, dynamic> args) async {
 /// signed-in/network guards and the rate-limit budget. `theme` re-resolves
 /// the theme payload. Any other scope is a no-op: a theme cannot use a
 /// refresh action to invalidate an arbitrary provider.
-Future<void> _refresh(WidgetRef ref, Map<String, dynamic> args) async {
+Future<void> _refresh(ProviderContainer ref, Map<String, dynamic> args) async {
   final scope = args['scope'];
   final target = scope is String && scope.isNotEmpty ? scope : 'library';
   switch (target) {

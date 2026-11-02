@@ -141,6 +141,18 @@ final pluginThemeUiProvider = FutureProvider<ThemeUiDocument?>((ref) async {
   return plugin.theme.getUi();
 });
 
+/// UI a theme answers from its optional `showSettings()` method.
+///
+/// Cached for the same reason as [pluginThemeUiProvider]: opening the
+/// settings dialog twice must not spin the Hetu VM twice. The host uses the
+/// document's `settings.content` slot and persists values through the
+/// per-theme settings namespace.
+final pluginThemeSettingsProvider = FutureProvider<ThemeUiDocument?>((ref) async {
+  final plugin = await ref.watch(themePluginProvider.future);
+  if (plugin == null) return null;
+  return plugin.theme.getSettings();
+});
+
 /// A UI document returned by a theme's `onUiAction()`.
 ///
 /// It wins over the current inline/`getUi()` document for the rest of the

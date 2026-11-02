@@ -657,6 +657,12 @@ abstract class AppLocalizations {
   /// **'Remove from favorites'**
   String get remove_from_favorites;
 
+  /// No description provided for @add_to_favorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to favorites'**
+  String get add_to_favorites;
+
   /// No description provided for @save_as_favorite.
   ///
   /// In en, this message translates to:
@@ -3105,6 +3111,12 @@ abstract class AppLocalizations {
   /// **'Delete local library'**
   String get delete_local_library;
 
+  /// No description provided for @delete_all_downloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete all downloads'**
+  String get delete_all_downloads;
+
   /// No description provided for @delete_local_library_confirmation.
   ///
   /// In en, this message translates to:
@@ -3314,6 +3326,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copy to clipboard'**
   String get copy_to_clipboard;
+
+  /// No description provided for @copy_stream_url.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy stream URL'**
+  String get copy_stream_url;
+
+  /// No description provided for @open_homepage.
+  ///
+  /// In en, this message translates to:
+  /// **'Open homepage'**
+  String get open_homepage;
 
   /// No description provided for @view_logs.
   ///
@@ -3579,6 +3603,18 @@ abstract class AppLocalizations {
   /// **'Upload plugin from file'**
   String get upload_plugin_from_file;
 
+  /// No description provided for @delete_plugin.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete plugin'**
+  String get delete_plugin;
+
+  /// No description provided for @delete_plugin_confirmation.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}? Its files and everything it stored through its own settings go with it, and installing it again is the only way back.'**
+  String delete_plugin_confirmation(Object name);
+
   /// No description provided for @installed.
   ///
   /// In en, this message translates to:
@@ -3638,6 +3674,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The playlist \"{name}\" was created, but it could not be added to your Spotify library, so it may not appear on your other devices.'**
   String playlist_library_sync_failed(Object name);
+
+  /// No description provided for @rename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get rename;
+
+  /// No description provided for @like.
+  ///
+  /// In en, this message translates to:
+  /// **'Like'**
+  String get like;
+
+  /// No description provided for @go_to_artist.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to artist'**
+  String get go_to_artist;
+
+  /// No description provided for @open_folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Open folder'**
+  String get open_folder;
+
+  /// No description provided for @remove_download.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove download'**
+  String get remove_download;
+
+  /// No description provided for @pin_to.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin to {target}'**
+  String pin_to(String target);
+
+  /// No description provided for @unpin_from.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin from {target}'**
+  String unpin_from(String target);
+
+  /// No description provided for @pin_to_ellipsis.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin to…'**
+  String get pin_to_ellipsis;
+
+  /// No description provided for @context_menu.
+  ///
+  /// In en, this message translates to:
+  /// **'Context menu'**
+  String get context_menu;
+
+  /// No description provided for @context_menu_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which actions appear when you right-click or long-press an item, and in what order.'**
+  String get context_menu_description;
+
+  /// No description provided for @context_menu_target.
+  ///
+  /// In en, this message translates to:
+  /// **'Target'**
+  String get context_menu_target;
+
+  /// No description provided for @context_menu_track.
+  ///
+  /// In en, this message translates to:
+  /// **'Track'**
+  String get context_menu_track;
+
+  /// No description provided for @context_menu_radio.
+  ///
+  /// In en, this message translates to:
+  /// **'Radio'**
+  String get context_menu_radio;
+
+  /// No description provided for @context_menu_actions.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions'**
+  String get context_menu_actions;
+
+  /// No description provided for @context_menu_show_icons.
+  ///
+  /// In en, this message translates to:
+  /// **'Show icons'**
+  String get context_menu_show_icons;
+
+  /// No description provided for @context_menu_confirm_destructive.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm destructive actions'**
+  String get context_menu_confirm_destructive;
+
+  /// No description provided for @context_menu_reset_target.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset this target'**
+  String get context_menu_reset_target;
+
+  /// No description provided for @context_menu_reset_all.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset all'**
+  String get context_menu_reset_all;
+
+  /// No description provided for @context_menu_hidden_pin_targets.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin targets'**
+  String get context_menu_hidden_pin_targets;
+
+  /// No description provided for @theme_settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme settings'**
+  String get theme_settings;
+
+  /// No description provided for @theme_settings_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferences the active theme exposes'**
+  String get theme_settings_description;
+
+  /// No description provided for @theme_settings_empty.
+  ///
+  /// In en, this message translates to:
+  /// **'This theme does not expose any settings.'**
+  String get theme_settings_empty;
+
+  /// No description provided for @theme_settings_reset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get theme_settings_reset;
+
+  /// No description provided for @audio_bass.
+  ///
+  /// In en, this message translates to:
+  /// **'Bass'**
+  String get audio_bass;
+
+  /// No description provided for @audio_crossfade.
+  ///
+  /// In en, this message translates to:
+  /// **'Crossfade'**
+  String get audio_crossfade;
+
+  /// No description provided for @audio_gain_db.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} dB'**
+  String audio_gain_db(Object value);
+
+  /// No description provided for @audio_seconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} seconds'**
+  String audio_seconds(Object value);
 }
 
 class _AppLocalizationsDelegate

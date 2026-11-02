@@ -15,6 +15,7 @@ import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/metadata_plugin/plugin_storage.dart';
 import 'package:spotube/provider/dio/dio_provider.dart';
 import 'package:spotube/provider/youtube_engine/youtube_engine.dart';
+import 'package:spotube/services/kv_store/kv_store.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/services/metadata/metadata.dart';
@@ -400,6 +401,11 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     }
     await database.pluginsTable.deleteWhere((tbl) =>
         tbl.name.equals(plugin.name) & tbl.author.equals(plugin.author));
+
+    // A theme's own settings live in its `theme.<author>.<name>.` namespace.
+    // Nothing will read them once the plugin is gone, and the next theme by
+    // the same author would otherwise inherit this one's toggles.
+    await KVStoreService.clearThemeSettings(plugin.author, plugin.name);
 
     // Cached VMs of a removed plugin must not resolve anymore.
     ref.read(pluginCacheProvider).evictPlugin(plugin.slug);

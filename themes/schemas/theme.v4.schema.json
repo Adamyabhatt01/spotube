@@ -3779,6 +3779,18 @@
             "type": {
               "const": "contextMenu"
             },
+            "target": {
+              "enum": [
+                "track",
+                "playlist",
+                "album",
+                "artist",
+                "queueItem",
+                "download",
+                "searchResult",
+                "radio"
+              ]
+            },
             "bind": {
               "$ref": "#/definitions/uiBinding"
             },
@@ -6480,6 +6492,73 @@
           "maxItems": 32,
           "items": {
             "$ref": "#/definitions/themePage"
+          }
+        },
+        "menus": {
+          "type": "object",
+          "maxProperties": 8,
+          "propertyNames": {
+            "enum": [
+              "track",
+              "playlist",
+              "album",
+              "artist",
+              "queueItem",
+              "download",
+              "searchResult",
+              "radio"
+            ]
+          },
+          "additionalProperties": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "label",
+                "action"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^theme\\.[A-Za-z0-9][A-Za-z0-9_.-]{0,57}$"
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "icon": {
+                  "type": "string",
+                  "maxLength": 32
+                },
+                "when": {
+                  "type": "string",
+                  "maxLength": 160
+                },
+                "destructive": {
+                  "type": "boolean"
+                },
+                "capability": {
+                  "enum": [
+                    "library.read",
+                    "library.write",
+                    "player.control",
+                    "audio.effects",
+                    "ui.pages",
+                    "ui.hostWidgets",
+                    "settings.write",
+                    "clipboard.write",
+                    "theme.assets"
+                  ]
+                },
+                "action": {
+                  "$ref": "#/definitions/uiAction"
+                }
+              }
+            }
           }
         }
       }

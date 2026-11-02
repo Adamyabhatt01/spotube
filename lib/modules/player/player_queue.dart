@@ -357,13 +357,12 @@ class PlayerQueue extends HookConsumerWidget {
                                     }
                                     await onJump(track);
                                   },
-                                  onLongPress: () {
-                                    if (!selectionMode.value) {
-                                      selectionMode.value = true;
-                                      selectedTrackIds.value = {track.id};
-                                    } else {
-                                      toggleSelection(track.id);
-                                    }
+                                  onSelect: () {
+                                    selectionMode.value = true;
+                                    selectedTrackIds.value = {
+                                      ...selectedTrackIds.value,
+                                      track.id,
+                                    };
                                   },
                                   leadingActions: [
                                     if (!isSearching.value &&

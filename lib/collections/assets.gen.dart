@@ -122,8 +122,7 @@ class $AssetsPluginsSpotubePluginSpotifyGen {
   const $AssetsPluginsSpotubePluginSpotifyGen();
 
   /// File path: assets/plugins/spotube-plugin-spotify/plugin.smplug
-  String get plugin =>
-      'assets/plugins/spotube-plugin-spotify/plugin.smplug';
+  String get plugin => 'assets/plugins/spotube-plugin-spotify/plugin.smplug';
 
   /// List of all assets
   List<String> get values => [plugin];

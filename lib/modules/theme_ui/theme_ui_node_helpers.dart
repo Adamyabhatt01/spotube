@@ -430,6 +430,7 @@ ThemeUiRuntime _itemRuntime(
     templates: runtime.templates,
     renderPoints: runtime.renderPoints,
     specVersion: runtime.specVersion,
+    capabilities: runtime.capabilities,
     paletteFor: runtime.paletteFor,
     requestPalette: runtime.requestPalette,
     templateDepth: runtime.templateDepth,

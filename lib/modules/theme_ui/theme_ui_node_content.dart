@@ -174,6 +174,21 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
     );
   }
 
+  /// The contract's escape hatch: a piece of host UI mounted by id.
+  ///
+  /// What an id means is the registry's business, not the renderer's — it hands
+  /// back an empty box for an unknown id, a missing capability, or a document
+  /// that never asked for `ui.hostWidgets`.
+  Widget _hostWidget(BuildContext context, Map<String, dynamic> props) {
+    final id = props['id'];
+    if (id is! String) return const SizedBox.shrink();
+    return ThemeUiHostWidgets.build(
+      runtime: runtime,
+      id: id,
+      props: props,
+    );
+  }
+
   Widget _button(
     BuildContext context,
     Map<String, dynamic> props,

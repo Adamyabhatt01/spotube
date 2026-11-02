@@ -278,8 +278,7 @@ Future<void> detachTracksFromPlaylist(
 
   await (database.delete(database.playlistDownloadTable)
         ..where(
-          (t) =>
-              t.playlistId.equals(playlistId) & t.trackId.isIn(trackIds),
+          (t) => t.playlistId.equals(playlistId) & t.trackId.isIn(trackIds),
         ))
       .go();
 }
@@ -523,6 +522,18 @@ Future<void> deletePlaylistMirror(
 /// of everything the app owns, and nothing else asks for the full table.
 Future<List<TrackDownloadTableData>> allDownloads(AppDatabase database) {
   return database.select(database.trackDownloadTable).get();
+}
+
+/// Live number of download rows, whatever their status.
+///
+/// A count projection rather than a row stream: the Downloads page only needs
+/// to know whether a wipe would have anything to do, and it must not rebuild
+/// on every progress tick of every tracked row.
+Stream<int> watchDownloadRecordCount(AppDatabase database) {
+  final count = database.trackDownloadTable.trackId.count();
+  final query = database.selectOnly(database.trackDownloadTable)
+    ..addColumns([count]);
+  return query.watchSingle().map((row) => row.read(count) ?? 0);
 }
 
 /// Removes every mirrored playlist, its membership, and every download row.

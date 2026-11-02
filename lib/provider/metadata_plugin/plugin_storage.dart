@@ -112,10 +112,9 @@ class PluginStorage {
     final pluginExtractionDir = await extractionDir(pluginConfig);
     await recoverInterruptedExtraction(pluginExtractionDir);
 
-    for (final file in archive) {
-      if (file.isFile && !isSafePluginEntryPath(file.name)) {
-        throw MetadataPluginException.invalidPluginConfiguration();
-      }
+    final rejection = archiveRejection(archive);
+    if (rejection != null) {
+      throw MetadataPluginException.unsafePluginArchive(rejection);
     }
 
     // Never write over the live plugin directory. A failed extraction must
@@ -145,6 +144,44 @@ class PluginStorage {
   }
 
   static int _stagingSequence = 0;
+
+  /// Entry count and unpacked size the host will extract.
+  ///
+  /// A theme plugin is a manifest, a bytecode file and a handful of assets.
+  /// Anything past these limits is either a malformed build or an archive
+  /// meant to make the installer spend memory and disk it never gets back, and
+  /// the CLI mirror in `themes/lib/installer.dart` refuses the same numbers so
+  /// an author hits the limit locally instead of in a running app.
+  static const maxArchiveEntries = 2000;
+  static const maxArchiveBytes = 50 * 1024 * 1024;
+
+  /// Why this archive cannot be extracted, or null when it can.
+  ///
+  /// Three rules, all about where bytes land rather than what they say: an
+  /// entry name stays inside the extraction directory, a symbolic link does not
+  /// exist at all, and the archive is small enough to write. The host writes
+  /// every entry as an ordinary file, so a link here cannot redirect the
+  /// extraction — but a theme that ships one was built by something other than
+  /// this pipeline, and the next unzipper may well follow it.
+  static String? archiveRejection(Archive archive) {
+    var totalBytes = 0;
+    for (final entry in archive) {
+      if (entry.isSymbolicLink) {
+        return '"${entry.name}" is a symbolic link, which a plugin may not ship';
+      }
+      if (entry.isFile && !isSafePluginEntryPath(entry.name)) {
+        return '"${entry.name}" would land outside the plugin directory';
+      }
+      totalBytes += entry.size;
+    }
+    if (archive.length > maxArchiveEntries) {
+      return '${archive.length} entries, over the $maxArchiveEntries the host extracts';
+    }
+    if (totalBytes > maxArchiveBytes) {
+      return '$totalBytes bytes unpacked, over the $maxArchiveBytes the host extracts';
+    }
+    return null;
+  }
 
   /// Replaces [target] with [staging] as close to atomically as the
   /// filesystem allows. The target is moved aside first because a directory

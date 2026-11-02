@@ -23,6 +23,120 @@ class AdaptiveMenuButton<T> extends MenuButton {
         );
 }
 
+/// Maps menu entries whose value drives selection into plain [MenuButton]s.
+///
+/// Shared by the trigger menu and the pointer/long-press context menu so both
+/// report through `onSelected` the same way.
+List<MenuButton> buildAdaptiveMenuButtons<T>(
+  BuildContext context,
+  List<AdaptiveMenuButton<T>> items,
+  ValueChanged<T>? onSelected,
+) {
+  return items.map((s) {
+    if (s.onPressed == null) {
+      return MenuButton(
+        key: s.key,
+        autoClose: s.autoClose,
+        enabled: s.enabled,
+        leading: s.leading,
+        focusNode: s.focusNode,
+        onPressed: (context) {
+          if (s.value != null) {
+            onSelected?.call(s.value as T);
+          }
+        },
+        popoverController: s.popoverController,
+        subMenu: s.subMenu,
+        trailing: s.trailing,
+        child: s.child,
+      );
+    }
+    return s;
+  }).toList();
+}
+
+/// Desktop dropdown anchored at a global position.
+///
+/// Pass `follow: false` when [position] must win (pointer or long-press
+/// menus); the default re-anchors to the caller's render box every frame.
+OverlayCompleter<T?> showAdaptiveMenuDropdown<T>({
+  required BuildContext context,
+  required Offset position,
+  required List<AdaptiveMenuButton<T>> Function(BuildContext context) items,
+  ValueChanged<T>? onSelected,
+  bool rootOverlay = true,
+  bool follow = true,
+  AlignmentGeometry? alignment,
+  Offset? offset,
+}) {
+  return showDropdown<T?>(
+    context: context,
+    rootOverlay: rootOverlay,
+    position: position,
+    follow: follow,
+    alignment: alignment,
+    offset: offset,
+    builder: (context) {
+      return WidgetStatesProvider.boundary(
+        child: DropdownMenu(
+          children: buildAdaptiveMenuButtons(
+            context,
+            items(context),
+            onSelected,
+          ),
+        ),
+      );
+    },
+  );
+}
+
+/// Bottom drawer presentation of the same entries, used on compact touch UIs.
+Future<T?> openAdaptiveMenuSheet<T>({
+  required BuildContext context,
+  required List<AdaptiveMenuButton<T>> Function(BuildContext context) items,
+  ValueChanged<T>? onSelected,
+}) {
+  return openDrawer<T>(
+    context: context,
+    draggable: true,
+    showDragHandle: true,
+    position: OverlayPosition.bottom,
+    borderRadius: context.theme.borderRadiusMd,
+    transformBackdrop: false,
+    builder: (context) {
+      final children = buildAdaptiveMenuButtons(
+        context,
+        items(context),
+        onSelected,
+      );
+      return ListView.builder(
+        itemCount: children.length,
+        shrinkWrap: true,
+        itemBuilder: (context, index) {
+          final data = children[index];
+
+          return Button(
+            enabled: data.enabled,
+            style: ButtonVariance.ghost.copyWith(
+              padding: (context, state, value) => const EdgeInsets.all(16),
+            ),
+            onPressed: () {
+              data.onPressed?.call(context);
+              if (data.autoClose) {
+                closeDrawer(context);
+              }
+            },
+            leading: data.leading,
+            trailing: data.trailing,
+            alignment: Alignment.centerLeft,
+            child: data.child,
+          );
+        },
+      );
+    },
+  );
+}
+
 /// An adaptive widget that shows a [PopupMenuButton] when screen size is above
 /// or equal to 640px
 /// In smaller screen, a [IconButton] with a [openDrawer] is shown
@@ -40,6 +154,10 @@ class AdaptivePopSheetList<T> extends StatelessWidget {
 
   final AbstractButtonStyle variance;
 
+  /// Size of the trigger button. Lets a menu sit in a row of small icon
+  /// buttons without standing taller than its neighbours.
+  final ButtonSize size;
+
   const AdaptivePopSheetList({
     super.key,
     required this.items,
@@ -51,90 +169,28 @@ class AdaptivePopSheetList<T> extends StatelessWidget {
     required this.tooltip,
     this.offset = Offset.zero,
     this.variance = ButtonVariance.ghost,
+    this.size = ButtonSize.normal,
   }) : assert(
           !(icon != null && child != null),
           'Either icon or child must be provided',
         );
 
   Future<void> showDropdownMenu(BuildContext context, Offset position) async {
-    final mediaQuery = MediaQuery.of(context);
-    List<MenuButton> childrenModified(BuildContext context) =>
-        items(context).map((s) {
-          if (s.onPressed == null) {
-            return MenuButton(
-              key: s.key,
-              autoClose: s.autoClose,
-              enabled: s.enabled,
-              leading: s.leading,
-              focusNode: s.focusNode,
-              onPressed: (context) {
-                if (s.value != null) {
-                  onSelected?.call(s.value as T);
-                }
-              },
-              popoverController: s.popoverController,
-              subMenu: s.subMenu,
-              trailing: s.trailing,
-              child: s.child,
-            );
-          }
-          return s;
-        }).toList();
-
-    if (mediaQuery.mdAndUp) {
-      await showDropdown<T?>(
+    if (MediaQuery.of(context).mdAndUp) {
+      await showAdaptiveMenuDropdown<T>(
         context: context,
-        rootOverlay: useRootNavigator,
-        // heightConstraint: PopoverConstraint.anchorFixedSize,
-        // constraints: BoxConstraints(
-        //   maxHeight: mediaQuery.size.height * 0.6,
-        // ),
         position: position,
-        builder: (context) {
-          return WidgetStatesProvider.boundary(
-            child: DropdownMenu(
-              children: childrenModified(context),
-            ),
-          );
-        },
+        items: items,
+        onSelected: onSelected,
+        rootOverlay: useRootNavigator,
       ).future;
       return;
     }
 
-    await openDrawer(
+    await openAdaptiveMenuSheet<T>(
       context: context,
-      draggable: true,
-      showDragHandle: true,
-      position: OverlayPosition.bottom,
-      borderRadius: context.theme.borderRadiusMd,
-      transformBackdrop: false,
-      builder: (context) {
-        final children = childrenModified(context);
-        return ListView.builder(
-          itemCount: children.length,
-          shrinkWrap: true,
-          itemBuilder: (context, index) {
-            final data = children[index];
-
-            return Button(
-              enabled: data.enabled,
-              style: ButtonVariance.ghost.copyWith(
-                padding: (context, state, value) => const EdgeInsets.all(16),
-              ),
-              onPressed: () {
-                data.onPressed?.call(context);
-                if (data.autoClose) {
-                  closeDrawer(context);
-                }
-              },
-              leading: data.leading,
-              trailing: data.trailing,
-              alignment: Alignment.centerLeft,
-              child: data.child,
-            );
-          },
-        );
-      },
+      items: items,
+      onSelected: onSelected,
     );
   }
 
@@ -149,6 +205,7 @@ class AdaptivePopSheetList<T> extends StatelessWidget {
         ).call,
         child: IconButton(
           variance: variance,
+          size: size,
           icon: icon ?? const Icon(SpotubeIcons.moreVertical),
           onPressed: () {
             final renderBox = context.findRenderObject() as RenderBox;
@@ -183,6 +240,7 @@ class AdaptivePopSheetList<T> extends StatelessWidget {
       tooltip: TooltipContainer(child: Text(tooltip)).call,
       child: IconButton(
         variance: variance,
+        size: size,
         icon: icon ?? const Icon(SpotubeIcons.moreVertical),
         onPressed: () => showDropdownMenu(context, Offset.zero),
       ),
