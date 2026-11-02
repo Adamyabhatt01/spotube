@@ -73,17 +73,27 @@ typedef SeekToPosition = void Function(double fraction);
 /// `progress: "below"` shape — the bar stretched across the player with the
 /// times at its ends.
 ///
+/// The gesture is owned here because a controlled shadcn `Slider` may not be
+/// fed while it drags: it dispatches updates and its release only when the
+/// thumb's value differs from `value`, so echoing the drag back turns the
+/// release into a silent no-op (the equalizer hit exactly this, see
+/// `.ai/CHANGELOG.md` 2026-10-28) and a ~1/sec playhead tick would snap the
+/// filled track back under the finger. While a gesture holds the thumb the bar
+/// stays pinned to the value the drag started from, the thumb renders from the
+/// slider's own state, and the elapsed label follows the held fraction; the
+/// release hands the value to [onSeek].
+///
 /// Pure layout, no providers, which is what lets
 /// `test/player_progress_intrinsic_test.dart` put the real widget into a real
 /// `Scaffold` footer and ask it the question shadcn will ask.
-class PlayerSeekLine extends StatelessWidget {
+class PlayerSeekLine extends HookWidget {
   final bool inline;
   final double value;
   final double buffered;
   final String elapsed;
   final String total;
+  final Duration duration;
   final bool enabled;
-  final SeekToPosition onScrub;
   final SeekToPosition onSeek;
 
   const PlayerSeekLine({
@@ -92,8 +102,8 @@ class PlayerSeekLine extends StatelessWidget {
     required this.buffered,
     required this.elapsed,
     required this.total,
+    required this.duration,
     required this.enabled,
-    required this.onScrub,
     required this.onSeek,
     super.key,
   });
@@ -103,12 +113,43 @@ class PlayerSeekLine extends StatelessWidget {
     final theme = Theme.of(context);
     final scaling = theme.scaling;
 
-    final slider = Slider(
-      hintValue: SliderValue.single(buffered),
-      value: SliderValue.single(value),
-      onChanged: enabled ? (v) => onScrub(v.value) : null,
-      onChangeEnd: (value) => onSeek(value.value),
+    // The value the thumb was taken from; non-null while a gesture holds it.
+    final anchor = useState<double?>(null);
+    // The fraction the finger currently holds, for the label and release only.
+    final held = useState<double?>(null);
+
+    void clearGesture() {
+      anchor.value = null;
+      held.value = null;
+    }
+
+    // A pointer that leaves the bar (canceled, or a release the slider deemed
+    // unmoved and therefore never dispatched) ends the gesture without seeking.
+    final slider = Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerCancel: (_) => clearGesture(),
+      onPointerUp: (_) => clearGesture(),
+      child: Slider(
+        hintValue: SliderValue.single(buffered),
+        value: SliderValue.single(anchor.value ?? value),
+        onChangeStart: enabled ? (v) => anchor.value = v.value : null,
+        onChanged: enabled ? (v) => held.value = v.value : null,
+        onChangeEnd: enabled
+            ? (v) {
+                clearGesture();
+                onSeek(v.value);
+              }
+            : null,
+      ),
     );
+
+    String elapsedLabel() {
+      final fraction = held.value;
+      if (fraction == null) return elapsed;
+      return Duration(
+        seconds: (fraction * duration.inSeconds).round(),
+      ).toHumanReadableString();
+    }
 
     Text time(String label, {TextAlign? align}) => Text(
           label,
@@ -130,7 +171,7 @@ class PlayerSeekLine extends StatelessWidget {
           children: [
             SizedBox(
               width: _progressTimeLabelWidth * scaling,
-              child: time(elapsed),
+              child: time(elapsedLabel()),
             ),
             SizedBox(
               height: 16 * scaling,
@@ -163,7 +204,7 @@ class PlayerSeekLine extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              time(elapsed),
+              time(elapsedLabel()),
               time(total),
             ],
           ),
@@ -190,24 +231,25 @@ class PlayerProgress extends HookConsumerWidget {
     final (:bufferProgress, :duration, :position, :progressStatic) =
         useProgress(ref);
 
-    // The scrub value is local while the thumb is moving, and follows the
-    // player again whenever the real position advances underneath it.
-    final progress = useState<num>(useMemoized(() => progressStatic, []));
+    // What the bar shows: the player's fraction, until a release puts it where
+    // the listener asked and the player has to catch up.
+    final displayed = useState<num>(useMemoized(() => progressStatic, []));
 
     useEffect(() {
-      progress.value = progressStatic;
+      displayed.value = progressStatic;
       return null;
     }, [progressStatic]);
 
     return PlayerSeekLine(
       inline: inline,
-      value: progress.value.toDouble(),
+      value: displayed.value.toDouble(),
       buffered: bufferProgress,
       elapsed: position.toHumanReadableString(),
       total: duration.toHumanReadableString(),
+      duration: duration,
       enabled: !isResolvingActiveTrack,
-      onScrub: (fraction) => progress.value = fraction,
       onSeek: (fraction) async {
+        displayed.value = fraction;
         await ref.read(audioPlayerPortProvider).seek(
               Duration(seconds: (fraction * duration.inSeconds).toInt()),
             );
