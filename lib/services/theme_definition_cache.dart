@@ -29,6 +29,11 @@ Future<void> writeThemePluginKey(String? pluginKey) async {
     final prefs = await SharedPreferences.getInstance();
     if (pluginKey == null) {
       await prefs.remove(_pluginKeyKey);
+      // No active theme means nothing can legitimately warm-start from the
+      // cached definition. Leaving it behind would keep a payload naming a
+      // plugin that is no longer selected, and an uninstall would leave files
+      // that no longer exist as its only owner.
+      await prefs.remove(_cacheKey);
     } else {
       await prefs.setString(_pluginKeyKey, pluginKey);
     }

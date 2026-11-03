@@ -18,6 +18,7 @@ PluginArchive archive({
   String author = _themeAuthor,
   String version = _themeVersion,
   String? bytecode = 'fake-bytecode',
+  String pluginApiVersion = '2.0.0',
   List<String> abilities = const ['theme'],
   List<String> apis = const [],
   Map<String, String> extraEntries = const {},
@@ -30,7 +31,7 @@ PluginArchive archive({
     'version': version,
     'author': author,
     'entryPoint': 'plugin.out',
-    'pluginApiVersion': '2.0.0',
+    'pluginApiVersion': pluginApiVersion,
     'abilities': abilities,
     'apis': apis,
   };
@@ -212,6 +213,16 @@ void main() {
 
       expect(result.registered, isFalse);
       expect(result.message, contains('"name" must be a non-empty string'));
+    });
+
+    test('an unparseable pluginApiVersion is refused', () {
+      final result = installPlugin(
+        archive: archive(pluginApiVersion: 'v2'),
+        profile: profile.path,
+      );
+
+      expect(result.registered, isFalse);
+      expect(result.message, contains('"pluginApiVersion" is not a version'));
     });
 
     test('an archive without bytecode is refused before the files land', () {

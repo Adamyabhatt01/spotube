@@ -67,7 +67,11 @@ palette.
 2. **Settings → Metadata plugins → Theme** tab → set it as the default theme.
 
 Re-installing after a version bump replaces the entry, since Spotube
-identifies a plugin by **name and author**.
+identifies a plugin by **name and author**. The trash button on an installed
+theme removes its files, its plugin row, its own settings and its warm-start
+cache; removing the active theme returns the app to the built-in shell.
+Authors can do the same from the CLI — see `AUTHORING.md` → **Install and
+uninstall**.
 
 ## Layout
 

@@ -390,14 +390,25 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
   }
 
   Future<void> removePlugin(PluginConfiguration plugin) async {
-    final pluginExtractionDir = await _storage.extractionDir(plugin);
+    Directory? pluginExtractionDir;
+    try {
+      pluginExtractionDir = await _storage.extractionDir(plugin);
+    } on MetadataPluginException {
+      // A row written before the path guard (or a hand-edited database) can
+      // name a version that resolves outside the plugin root. There is no safe
+      // directory to delete, but the row and its records must still go so the
+      // plugin stops loading and the user is not stuck with an unremovable
+      // entry.
+    }
 
-    // A previous interrupted swap may have left the real files in the backup.
-    await _storage.deleteDirectoryQuietly(
-      Directory('${pluginExtractionDir.path}.backup'),
-    );
-    if (await pluginExtractionDir.exists()) {
-      await pluginExtractionDir.delete(recursive: true);
+    if (pluginExtractionDir != null) {
+      // A previous interrupted swap may have left the real files in the backup.
+      await _storage.deleteDirectoryQuietly(
+        Directory('${pluginExtractionDir.path}.backup'),
+      );
+      if (await pluginExtractionDir.exists()) {
+        await pluginExtractionDir.delete(recursive: true);
+      }
     }
     await database.pluginsTable.deleteWhere((tbl) =>
         tbl.name.equals(plugin.name) & tbl.author.equals(plugin.author));
@@ -412,14 +423,7 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     _storage.validatedPlugins.removeWhere(
         (key) => key.startsWith(PluginStorage.validationPrefix(plugin)));
 
-    // The removed plugin can no longer seed the startup cache. Clear
-    // before the promotion blocks below: a promoted replacement
-    // re-records its own identity via setDefaultThemePlugin.
-    if (state.valueOrNull?.defaultThemePluginConfig == plugin) {
-      await writeThemePluginKey(null);
-    }
-
-    // Same here, if the removed plugin is the default plugin
+    // If the removed plugin is the default plugin
     // set the first available plugin as the default plugin
     // only when there is 1 remaining plugin
     if (state.valueOrNull?.defaultMetadataPluginConfig == plugin) {
@@ -446,14 +450,16 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     }
 
     if (state.valueOrNull?.defaultThemePluginConfig == plugin) {
-      final remainingPlugins = state.valueOrNull?.plugins.where(
-            (p) => p != plugin && p.abilities.contains(PluginAbilities.theme),
-          ) ??
-          [];
-      if (remainingPlugins.length == 1) {
-        await setDefaultThemePlugin(remainingPlugins.first);
-      }
-      // No promoted theme means the UI screens have no owner left.
+      // A theme is optional and the built-in shell is a complete fallback.
+      // Unlike metadata/audio/radio, deleting the active theme must not
+      // silently promote another installed theme: the user removed the one
+      // they were looking at. Clear every stale selection flag (the deleted
+      // row is already gone), then the startup cache and the screens that
+      // belonged to the identity that no longer exists.
+      await (database.pluginsTable.update()).write(
+        const PluginsTableCompanion(selectedForTheme: Value(false)),
+      );
+      await writeThemePluginKey(null);
       _resetThemeUiForIdentityChange();
     }
 
@@ -676,5 +682,10 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
   void _resetThemeUiForIdentityChange() {
     ref.read(themeUiOverrideProvider.notifier).state = null;
     clearThemeUiScreensState(ref);
+
+    // Assets and fonts are resolved through the plugin's versioned extraction
+    // directory, so the new identity loads its own; the artwork palette cache
+    // is keyed by the image URL, not the theme, and is deliberately kept. Only
+    // state that names the old identity is cleared here.
   }
 }

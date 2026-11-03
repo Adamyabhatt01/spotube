@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
+import 'package:pub_semver/pub_semver.dart' as semver;
 import 'package:sqlite3/sqlite3.dart';
 
 /// Where a plugin lives inside a profile.
@@ -165,11 +166,24 @@ class PluginArchive {
       issues.add('plugin.json: "version" must not contain a path');
     }
 
-    for (final field in const ['description', 'pluginApiVersion']) {
-      final value = manifest[field];
-      if (value != null && value is! String) {
-        issues.add('plugin.json: "$field" must be a string');
+    final pluginApiVersion = manifest['pluginApiVersion'];
+    if (pluginApiVersion is! String || pluginApiVersion.trim().isEmpty) {
+      issues.add('plugin.json: "pluginApiVersion" must be a non-empty string');
+    } else if (pluginApiVersion.length > 64) {
+      issues.add(
+        'plugin.json: "pluginApiVersion" is longer than 64 characters',
+      );
+    } else {
+      try {
+        semver.Version.parse(pluginApiVersion.trim());
+      } on FormatException {
+        issues.add('plugin.json: "pluginApiVersion" is not a version');
       }
+    }
+
+    final description = manifest['description'];
+    if (description != null && description is! String) {
+      issues.add('plugin.json: "description" must be a string');
     }
 
     final abilities = manifest['abilities'];

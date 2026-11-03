@@ -12,6 +12,7 @@ dependencies:
   args: ^2.5.0
   hetu_script: ^0.4.2+1
   path: ^1.9.0
+  pub_semver: ^2.2.0
   sqlite3: ^2.9.0
 
 dev_dependencies:

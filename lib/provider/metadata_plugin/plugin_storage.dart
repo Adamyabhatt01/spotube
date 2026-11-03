@@ -5,6 +5,7 @@ import 'package:archive/archive.dart';
 import 'package:collection/collection.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:pub_semver/pub_semver.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
 import 'package:spotube/utils/service_utils.dart';
@@ -95,15 +96,26 @@ class PluginStorage {
   Future<PluginConfiguration> extractArchiveFrom(Archive archive) async {
     final pluginConfig = readArchiveConfig(archive);
 
-    // Validate before anything is written to disk: the bytecode file
+    // Validate before anything is written to disk: the manifest must name the
+    // plugin, its version must stay a directory component, the bytecode file
     // [MetadataPluginNotifier.getPluginByteCode] will later require must be
     // present, and every entry path must stay inside the extraction directory.
     // A partially extracted plugin would otherwise linger on disk even though
     // the install itself fails.
+    final manifestProblem = manifestRejection(pluginConfig);
+    if (manifestProblem != null) {
+      throw MetadataPluginException.invalidPluginManifest(manifestProblem);
+    }
+
     final hasByteCode =
         archive.any((file) => file.isFile && file.name == "plugin.out");
     if (!hasByteCode) {
       throw MetadataPluginException.pluginByteCodeFileNotFound();
+    }
+
+    final rejection = archiveRejection(archive);
+    if (rejection != null) {
+      throw MetadataPluginException.unsafePluginArchive(rejection);
     }
 
     final pluginDir = await rootDir;
@@ -111,11 +123,6 @@ class PluginStorage {
 
     final pluginExtractionDir = await extractionDir(pluginConfig);
     await recoverInterruptedExtraction(pluginExtractionDir);
-
-    final rejection = archiveRejection(archive);
-    if (rejection != null) {
-      throw MetadataPluginException.unsafePluginArchive(rejection);
-    }
 
     // Never write over the live plugin directory. A failed extraction must
     // leave the previous working version byte-for-byte intact, and readers
@@ -154,6 +161,61 @@ class PluginStorage {
   /// an author hits the limit locally instead of in a running app.
   static const maxArchiveEntries = 2000;
   static const maxArchiveBytes = 50 * 1024 * 1024;
+
+  /// Why [config] cannot be installed, or null when it can.
+  ///
+  /// The manifest is the only part of an archive that decides what the host
+  /// writes and later reads, so it is checked before extraction rather than
+  /// after: `version` becomes part of the extraction directory name, `name`
+  /// and `author` become the rest of it, and an empty or unparseable API
+  /// version would otherwise be extracted and only rejected by `addPlugin`,
+  /// leaving a directory no row points at. The CLI mirror in
+  /// `themes/lib/installer.dart` enforces the same field rules.
+  static String? manifestRejection(PluginConfiguration config) {
+    for (final (field, value) in <(String, String)>[
+      ('name', config.name),
+      ('author', config.author),
+      ('version', config.version),
+      ('entryPoint', config.entryPoint),
+    ]) {
+      if (value.trim().isEmpty) {
+        return 'plugin.json: "$field" must be a non-empty string';
+      }
+      if (value.length > 128) {
+        return 'plugin.json: "$field" is longer than 128 characters';
+      }
+    }
+
+    // The extraction directory is built from the sanitized pair: a value made
+    // only of characters a path cannot keep would land in `-<version>`.
+    for (final (field, value) in <(String, String)>[
+      ('name', config.name),
+      ('author', config.author),
+    ]) {
+      if (ServiceUtils.sanitizeFilename(value).trim().isEmpty) {
+        return 'plugin.json: "$field" has no characters a path can use';
+      }
+    }
+
+    if (!isSafePluginEntryPath(config.version)) {
+      return 'plugin.json: "version" must not contain a path';
+    }
+
+    final apiVersion = config.pluginApiVersion.trim();
+    if (apiVersion.isEmpty) {
+      return 'plugin.json: "pluginApiVersion" must be a non-empty string';
+    }
+    if (apiVersion.length > 64) {
+      return 'plugin.json: "pluginApiVersion" is longer than 64 characters';
+    }
+    try {
+      Version.parse(apiVersion);
+    } on FormatException {
+      return 'plugin.json: "pluginApiVersion" is not a version';
+    }
+
+    return null;
+  }
 
   /// Why this archive cannot be extracted, or null when it can.
   ///

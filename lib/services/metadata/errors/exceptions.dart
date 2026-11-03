@@ -29,6 +29,17 @@ class MetadataPluginException implements Exception {
           errorCode: MetadataPluginErrorCode.invalidPluginConfiguration,
         );
 
+  /// A manifest the extractor can read but will not install.
+  ///
+  /// The reason is part of the message because the settings page shows it and
+  /// an author cannot act on a generic "invalid configuration". The code stays
+  /// the configuration one so existing handlers keep classifying it the same.
+  MetadataPluginException.invalidPluginManifest(String reason)
+      : this._(
+          'Invalid plugin manifest: $reason',
+          errorCode: MetadataPluginErrorCode.invalidPluginConfiguration,
+        );
+
   /// An archive the extractor will not write: a traversal entry, a symbolic
   /// link, or past the entry/size limits. [reason] names which, because the
   /// settings page shows this string and an author cannot act on a generic

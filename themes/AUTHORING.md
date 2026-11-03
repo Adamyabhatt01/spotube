@@ -1,14 +1,15 @@
 # Authoring a theme
 
 > **v4 status:** the authoritative contract is
-> `/home/adamya/.opencode/plan/v4-theme-contract.md`; Phases 0–5 are
+> `/home/adamya/.opencode/plan/v4-theme-contract.md`; Phases 0–10 are
 > implemented (spec foundation, kits, layout nodes, inputs and overlays,
-> render points, bindings/palette, and layout regions). v4 is breaking: v2
-> payloads remain, `specVersion: 3` is rejected with
+> render points, bindings/palette, layout regions, routed pages, context
+> menus, host widgets, theme settings, install/uninstall and lifecycle).
+> Phase 11 (performance, migration, docs, release) remains. v4 is breaking:
+> v2 payloads remain, `specVersion: 3` is rejected with
 > `specVersion 3 is not supported; migrate to 4`, and
 > `themes/tools/migrate_v3.dart` is the migration path. This document
-> describes the v3 blocks where noted and the v4 nodes that exist today; the
-> full v4 rewrite is Phase 11.
+> describes the v3 blocks where noted and the v4 nodes that exist today.
 
 ## A theme is a plugin
 
@@ -116,6 +117,46 @@ fvm dart run tools/inspect.dart -f dist/my-theme-1.0.0.smplug --json
 
 The build runs the theme before it packages it, so a theme that returns
 nothing, or a colour the app cannot parse, fails the build.
+
+## Install and uninstall
+
+A `.smplug` is a zip with `plugin.json`, `plugin.out` (the compiled Hetu
+bytecode) and optional files below `assets/`. The manifest must declare the
+`theme` ability and a version in `pluginApiVersion` (currently `2.0.0`).
+
+From the app:
+
+1. **Settings → Metadata plugins** → paste an `.smplug` URL or upload a local
+   file. The archive is validated before anything is extracted.
+2. Open the **Theme** tab and set the theme as the default.
+3. The trash button removes it after confirmation.
+
+From the command line, for a profile while the app is closed:
+
+```bash
+# profile is the directory that contains .local/share (not the app data dir)
+fvm dart run tools/install.dart -t caelestia \
+  --profile /path/to/profile --create-profile --select
+
+# Remove every installed version of one theme
+fvm dart run tools/install.dart \
+  --uninstall "Caelestia Shell Theme" --author "Adamya Bhatt" \
+  --profile /path/to/profile
+```
+
+`--dry-run` prints what would happen without touching the profile. Add
+`--version` to uninstall one version while another stays registered.
+
+Install is staged beside the version directory and swapped in only after the
+manifest and every entry pass: no absolute paths, `..`, drive letters,
+symbolic links, more than 2 000 entries, or more than 50 MB unpacked. A theme
+lives in its own `<author>-<name>-<version>` directory, so installing a new
+version never overwrites the running one.
+
+Uninstall removes that directory, its `plugins_table` row, the
+`theme.<author>.<name>.` settings namespace and the warm-start definition
+cache. Deleting the active theme returns the app to the built-in shell; it
+does not silently promote another installed theme.
 
 ## Preview it
 
