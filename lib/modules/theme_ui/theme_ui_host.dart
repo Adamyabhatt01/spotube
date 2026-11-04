@@ -193,6 +193,11 @@ class ThemeSlot extends ConsumerWidget {
   final CrossAxisAlignment crossAxisAlignment;
   final MainAxisAlignment mainAxisAlignment;
 
+  /// Render the slot so it fills the box the host gave it (see
+  /// [ThemeUiNodes.stretch]). Only `app.overlay` uses this; every other slot
+  /// stays a shrink-wrapped list.
+  final bool stretch;
+
   /// A binding snapshot to use instead of the live providers.
   ///
   /// Production callers leave this null. Tests and previews use it to render
@@ -204,6 +209,7 @@ class ThemeSlot extends ConsumerWidget {
     this.fallback,
     this.crossAxisAlignment = CrossAxisAlignment.start,
     this.mainAxisAlignment = MainAxisAlignment.start,
+    this.stretch = false,
     this.bindings,
     super.key,
   });
@@ -221,6 +227,7 @@ class ThemeSlot extends ConsumerWidget {
       runtime: live.runtime,
       crossAxisAlignment: crossAxisAlignment,
       mainAxisAlignment: mainAxisAlignment,
+      stretch: stretch,
     );
   }
 }
@@ -236,12 +243,19 @@ class ThemeUiNodes extends StatelessWidget {
   final MainAxisAlignment mainAxisAlignment;
   final double gap;
 
+  /// Lay the nodes out to fill the box the host gave the slot, giving each one
+  /// a bounded share of the main axis. Off by default: most slots are
+  /// shrink-wrapped lists, but a full-window overlay (`app.overlay`) composes
+  /// against the viewport and its `expanded` children need finite height.
+  final bool stretch;
+
   const ThemeUiNodes({
     required this.nodes,
     required this.runtime,
     this.crossAxisAlignment = CrossAxisAlignment.start,
     this.mainAxisAlignment = MainAxisAlignment.start,
     this.gap = 0,
+    this.stretch = false,
     super.key,
   });
 
@@ -252,6 +266,17 @@ class ThemeUiNodes extends StatelessWidget {
     for (var i = 0; i < nodes.length; i++) {
       if (i > 0 && gap > 0) children.add(SizedBox(height: gap));
       children.add(ThemeUiNodeView(node: nodes[i], runtime: runtime));
+    }
+    if (stretch && children.length == 1) {
+      // A single root node is a fill surface (a marquee stack, a player bar,
+      // the app overlay): give it the region's bounded height so its own
+      // `expanded`/`stack` children resolve instead of seeing infinity.
+      return Column(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: mainAxisAlignment,
+        crossAxisAlignment: crossAxisAlignment,
+        children: [Expanded(child: children.first)],
+      );
     }
     return Column(
       mainAxisSize: MainAxisSize.min,

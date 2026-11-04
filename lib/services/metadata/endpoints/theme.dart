@@ -2,6 +2,7 @@ import 'package:hetu_script/hetu_script.dart';
 import 'package:hetu_script/shared/jsonify.dart';
 import 'package:hetu_script/values.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_vm_metrics.dart';
 import 'package:spotube/services/metadata/theme_sanitizer.dart';
 
 class MetadataPluginThemeEndpoint {
@@ -43,6 +44,7 @@ class MetadataPluginThemeEndpoint {
     if (theme == null) return null;
 
     try {
+      ThemeUiVmMetrics.recordGetUi();
       final result = await theme.invoke("getUi");
       final json = _jsonMap(result);
       if (json == null) return null;
@@ -85,6 +87,7 @@ class MetadataPluginThemeEndpoint {
     if (theme == null) return null;
 
     try {
+      ThemeUiVmMetrics.recordOnUiAction();
       final result = await theme.invoke(
         "onUiAction",
         positionalArgs: [id, payload],

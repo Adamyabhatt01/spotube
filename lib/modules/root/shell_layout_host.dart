@@ -516,15 +516,22 @@ class ShellLayoutHost extends ConsumerWidget {
 
     child = _applySafeArea(node, child);
     final overflow = node.overflow;
-    if (overflow == 'scroll') {
-      child = SingleChildScrollView(
-        scrollDirection:
-            parentAxis == Axis.horizontal ? Axis.vertical : Axis.horizontal,
-        child: child,
-      );
-    } else if (overflow != null) {
-      // `wrap` and `menu` have no host chrome yet; clip is the safe default.
-      child = ClipRect(child: child);
+    // The router outlet owns its own viewport and page scrolling; wrapping it
+    // in a scroll view or clip loosens an axis its root Overlay cannot absorb
+    // (it asserts a finite size on both). So `content` takes its flexed box as
+    //-is, exactly as its slot is ignored above.
+    if (region != ThemeShellRegion.content) {
+      if (overflow == 'scroll') {
+        // A region is fixed along the container's flow and fills it across, so
+        // its content overflows along that fixed (main) axis — scroll there.
+        child = SingleChildScrollView(
+          scrollDirection: parentAxis,
+          child: child,
+        );
+      } else if (overflow != null) {
+        // `wrap` and `menu` have no host chrome yet; clip is the safe default.
+        child = ClipRect(child: child);
+      }
     }
 
     return child;
@@ -563,10 +570,14 @@ class ShellLayoutHost extends ConsumerWidget {
           result,
           if (hasHandle)
             Positioned(
-              right: parentAxis == Axis.horizontal ? 0 : null,
-              bottom: parentAxis == Axis.horizontal ? null : 0,
-              top: 0,
+              // The strip rides the trailing main-axis edge and fills the
+              // cross axis. Pinning both cross ends keeps the handle's
+              // infinite dimension bounded; leaving one end null hands the
+              // child an unbounded constraint and trips size.isFinite.
+              right: 0,
+              bottom: 0,
               left: parentAxis == Axis.horizontal ? null : 0,
+              top: parentAxis == Axis.horizontal ? 0 : null,
               child: _ResizeHandle(
                 node: node,
                 storageKey: storageKey,

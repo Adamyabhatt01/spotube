@@ -295,16 +295,18 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
       content.add(SizedBox(width: gap));
     }
     if (label != null && label.isNotEmpty) {
-      content.add(Text(
-        label.length > 200 ? label.substring(0, 200) : label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: foreground,
-          fontFamily: fontFamily,
-          fontSize: _px(context, style['fontSize'], fallback: 18) * size,
-          fontWeight: _fontWeight(style['fontWeight']),
-          letterSpacing: _clamp(style['letterSpacing'], -2, 8),
+      content.add(Flexible(
+        child: Text(
+          label.length > 200 ? label.substring(0, 200) : label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: foreground,
+            fontFamily: fontFamily,
+            fontSize: _px(context, style['fontSize'], fallback: 18) * size,
+            fontWeight: _fontWeight(style['fontWeight']),
+            letterSpacing: _clamp(style['letterSpacing'], -2, 8),
+          ),
         ),
       ));
     }

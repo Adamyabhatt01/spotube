@@ -3519,6 +3519,12 @@ abstract class AppLocalizations {
   /// **'This plugin can do following'**
   String get this_plugin_can_do_following;
 
+  /// No description provided for @theme_contract_too_old.
+  ///
+  /// In en, this message translates to:
+  /// **'This theme was built for an older interface contract. Its colors apply, but its custom layout is not loaded. Install a v4 theme to get it back.'**
+  String get theme_contract_too_old;
+
   /// No description provided for @install.
   ///
   /// In en, this message translates to:

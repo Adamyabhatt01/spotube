@@ -1864,6 +1864,10 @@ class AppLocalizationsPt extends AppLocalizations {
       'Este plugin pode fazer o seguinte';
 
   @override
+  String get theme_contract_too_old =>
+      'This theme was built for an older interface contract. Its colors apply, but its custom layout is not loaded. Install a v4 theme to get it back.';
+
+  @override
   String get install => 'Instalar';
 
   @override

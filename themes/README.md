@@ -23,6 +23,7 @@ contract.
 | `caelestia-shell` | The glassier backdrop with more opaque surfaces, so text survives a bright wallpaper | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/caelestia-shell/plugin.smplug` |
 | `caelestia-plain` | The base palette with no desktop backdrop and no shell-derived glass | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/caelestia-plain/plugin.smplug` |
 | `spotify-shell` | A Spotify-shaped shell instead of the Caelestia one: black and green, inset content, labelled sidebar, a full-width seek line with elapsed and total time below the transport, Inter | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/spotify-shell/plugin.smplug` |
+| `spotify-shell-v4` | The v4 reference theme: the same Spotify shell plus a theme-owned aside, a routed Audio page and artwork-palette accents | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/spotify-shell-v4/plugin.smplug` |
 | `obsidian` | A pixel-Minecraft theme: black amethyst and lavender end stone, a stage player and a record that turns with the track | `https://raw.githubusercontent.com/Adamyabhatt01/spotube/master/themes/obsidian/plugin.smplug` |
 
 ### Which one should you install?
@@ -34,18 +35,19 @@ contract.
 | `caelestia-shell` | You want the glass look but readable text. The glassier backdrop with surfaces at 75%. **Best with real transparency on.** |
 | `caelestia-plain` | You want no wallpaper and no veil at all — a flat, quiet surface. With real transparency on it is completely clear. |
 | `spotify-shell` | You want Spotube to look like Spotify rather than like your desktop shell. Works on every platform. |
+| `spotify-shell-v4` | You want the Spotify shell plus the v4 features: a now-playing aside on wide windows and an Audio page under Settings. Its manifest is v4-only, so it needs a v4-capable build. |
 | `obsidian` | You want a pixel-art player with a stage layout and a record for a player, in two schemes. Ships its own OFL fonts, so it looks the same everywhere. |
 
 Under real window transparency (Linux, with the host setting on) the wallpaper
 and its blur are not painted at all: the veil decides how much of the desktop
 shows through — about 30% for `caelestia`, 60% for `caelestia-glassier` and
-`caelestia-shell`, and everything for `caelestia-plain`. `spotify-shell` does
-not ask for transparency and stays opaque.
+`caelestia-shell`, and everything for `caelestia-plain`. `spotify-shell` and
+`spotify-shell-v4` do not ask for transparency and stay opaque.
 
 The Caelestia themes need the [Caelestia shell](https://github.com/caelestia-dots/shell)
 for the live wallpaper and palette; without it you still get the static
-palette, the glass and the layout. `spotify-shell` and `obsidian` need nothing
-but the app.
+palette, the glass and the layout. `spotify-shell`, `spotify-shell-v4` and
+`obsidian` need nothing but the app.
 
 
 ## Requirements
@@ -149,6 +151,7 @@ reference renderer (`fvm flutter run -d linux` with the theme selected).
 | `caelestia-plain` | The base palette with no backdrop and no glass — published |
 | `caelestia-shell` | The balanced variant: readable text over a bright wallpaper — published |
 | `spotify-shell` | A Spotify-shaped shell: black and green, inset panel, labelled sidebar, a full-width seek line with elapsed and total time below the transport, per-row downloads, a search empty state, Inter, its own page bodies — published |
+| `spotify-shell-v4` | The v4 reference theme: the Spotify shell with a theme-owned aside, a routed Audio page and palette accents — published by the v4 build |
 | `obsidian` | A pixel-Minecraft theme: black amethyst / lavender end stone, OFL fonts, pixel icons, a stage player and a turning record — published |
 | `minimal` | The SDK in nine lines: one seed colour |
 | `brand-demo` | The whole v3 payload, including a slot and a screen |
@@ -171,10 +174,12 @@ host and must be migrated (see below). The fields the contract defines:
 | `radius` | `small`, `medium`, `large`, `pill` |
 | `density` | 0.7..1.5 — one number for the whole UI's size |
 | `tokens` | `cardWidth`, `cardHeight`, `artistCardWidth`, `artistCardHeight`, `gutter`, `fontFamily` |
-| `layout` | `chrome`, `nav`, `progress`, `player`, `enforce`, `navItems`, `navbarItems`, `libraryItems`, `home`, `settings`, `titlebar`, `splash`, `sidebar`, `sidebarWidth`, `aside`, `asideWidth`, `shell`, `pinTargets`, `responsive` |
+| `layout` | `chrome`, `nav`, `progress`, `player`, `navItems`, `navbarItems`, `libraryItems`, `home`, `settings`, `titlebar`, `splash`, `sidebar`, `sidebarWidth`, `aside`, `asideWidth`, `shell`, `pinTargets`, `responsive` (v4 drops v3's `enforce`: presence of a non-empty list is now the gate) |
 | `typography`, `spacing`, `motion`, `scale`, `icons` | The v3 presentation blocks the host applies: font ladder and role colours, page padding and card gaps, animation durations and curves, scale multipliers, icon sizes |
 | `components`, `branding`, `assets` | The host draws the `player` component group and the `card`/`buttons` overrides used by UI nodes; branding drives the window title, wordmark and about text; assets resolve theme-shipped images |
-| `ui` | The theme's own UI tree: `specVersion`, `slots`, `screens`, `templates`, `renderPoints` |
+| `ui` | The theme's own UI tree: `specVersion`, `slots`, `screens`, `templates`, `renderPoints`, `pages`, `menus`, `capabilities` |
+| `pages` | v4 routed pages under a host section (`id`, `title`, `icon`, `parent`, `showBack`, `visible`); each renders its `page.<id>` slot |
+| `capabilities` | v4 opt-in capabilities (`library.write`, `audio.effects`, `ui.pages`, `ui.hostWidgets`, `settings.write`, `clipboard.write`); `library.read`, `player.control` and `theme.assets` are implicit |
 | `ext` | Theme-owned extension data; the host ignores it |
 
 Rules that are not obvious:
@@ -317,15 +322,34 @@ authoring a v4 theme. The short version:
 - Bindings, actions, slots and the closed `hostWidget` registry are the plan's
   lists (§4.5, §4.6, §4.7, §4.9).
 
-The v4 host is at **Phase 5B** (runtime core, kits, layout nodes, inputs,
-overlays, render points, data display, bindings/palette, layout regions, and
-the shell descriptor with pin targets).
-`themes/lib/v4_validator.dart`, `theme.v4.schema.json`, `conformance/draft/v4-kitchen-sink.json` and
-`test/v4_*_test.dart` are the current contract and its suite. Inputs read
+The v4 host is **complete through Phase 11**, the last phase (Phases 0–10
+shipped the runtime core, kits,
+layout nodes, inputs, overlays, render points, data display,
+bindings/palette, layout regions, the shell descriptor, routed pages, library
+mutations, context menus, host widgets, theme settings and the install/
+uninstall lifecycle; Phase 11 shipped the reference theme, the conformance
+fixtures, the v3 migration report and the release measurements).
+`themes/lib/v4_validator.dart`, `schemas/theme.v4.schema.json`,
+`conformance/draft/v4-kitchen-sink.json` and `test/v4_*_test.dart` are the
+current contract and its suite. Inputs read
 `bind` and fire `action`/`actions` with `$value`; dialogs and sheets follow
 `openBind` and close locally through `dismiss`. `virtualList` and a sticky
 `table` virtualize host-side, `list`/`virtualList` can filter a typed binding
 without a rebuild per keystroke, and `tree`, `accordion`, `collapsible` and
 `carousel` keep their open/page state in the host. `resizable` splits its two
 panes and persists the drag size through `storageKey`. The acceptance test for
-the finished contract is `themes/spotify-shell-v4`.
+the contract is `themes/spotify-shell-v4`: its payload
+(`conformance/spotify-shell-v4.json`) validates with zero errors/warnings, and
+`test/spotify_shell_v4_test.dart` pins the v4-only surface (aside, routed page,
+palette tokens, audio actions).
+
+Migrating a v3 theme:
+
+```bash
+cd themes
+fvm dart run tools/migrate_v3.dart -f old.json -o new.json --report report.txt
+```
+
+The report separates `renamed`, `removed` and `needs a human`; the result is
+validated through the v4 validator. `AUTHORING.md` documents the mapping and
+the v4 feature set.

@@ -1867,6 +1867,10 @@ class AppLocalizationsId extends AppLocalizations {
       'Plugin ini dapat melakukan hal berikut';
 
   @override
+  String get theme_contract_too_old =>
+      'This theme was built for an older interface contract. Its colors apply, but its custom layout is not loaded. Install a v4 theme to get it back.';
+
+  @override
   String get install => 'Instal';
 
   @override

@@ -49,9 +49,9 @@ void main() {
           entryPoint: theme.entryPoint,
         );
 
-        // The bundled themes are v3 until Phase 11 migrates them. The build
-        // tooling reads them through the legacy validator; the host rejects
-        // them, which `v4_validator_test` covers.
+        // The bundled themes are still v3: the app loads their palette and
+        // refuses their tree. The build tooling reads them through the legacy
+        // validator; `v4_validator_test` covers the rejection.
         final report = compiled.payload['specVersion'] == 3
             ? validateLegacyThemePayload(compiled.payload)
             : validateThemePayload(compiled.payload);

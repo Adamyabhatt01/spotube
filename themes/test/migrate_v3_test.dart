@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:spotube_themes/migrate_v3.dart';
 import 'package:spotube_themes/validator.dart';
 import 'package:test/test.dart';
@@ -143,5 +146,63 @@ void main() {
         reason: validation.issues.join('\n'),
       );
     });
+  });
+
+  // The published themes are still v3, so `migrate_v3.dart` is a live path
+  // rather than a historical one. Their goldens are the payloads the tool has
+  // to handle; a v3 key the mapper does not know about shows up here as an
+  // error or a warning instead of reaching an author as a broken theme.
+  group('the shipped v3 payloads', () {
+    final repoRoot = Directory.current.path;
+    final v3Payloads =
+        (Directory('$repoRoot/conformance')
+                .listSync()
+                .whereType<File>()
+                .where((file) => file.path.endsWith('.json')))
+            .map((file) => MapEntry(file.uri.pathSegments.last, file))
+            .where((entry) {
+              final payload = jsonDecode(
+                entry.value.readAsStringSync(),
+              ) as Map<String, dynamic>;
+              return payload['specVersion'] == 3;
+            })
+            .toList()
+          ..sort((a, b) => a.key.compareTo(b.key));
+
+    test('there are v3 payloads to migrate', () {
+      expect(v3Payloads, isNotEmpty);
+    });
+
+    for (final entry in v3Payloads) {
+      test('${entry.key} migrates to a clean v4 payload', () {
+        final payload = jsonDecode(
+          entry.value.readAsStringSync(),
+        ) as Map<String, dynamic>;
+        final report = migrateV3Theme(payload);
+
+        expect(report.payload['specVersion'], 4);
+        expect(
+          report.renamed,
+          isNotEmpty,
+          reason: 'a v3 payload that changes nothing was not migrated',
+        );
+
+        final validation = validateThemePayload(report.payload);
+        expect(
+          validation.issues,
+          isEmpty,
+          reason: '${entry.key}:\n${validation.issues.join('\n')}',
+        );
+
+        // The only construct with no safe automatic answer is `search`, whose
+        // bindings and actions are a decision. Anything else needing a human
+        // means the mapper is missing a rule.
+        expect(
+          report.manual,
+          everyElement(contains('search')),
+          reason: report.manual.join('\n'),
+        );
+      });
+    }
   });
 }

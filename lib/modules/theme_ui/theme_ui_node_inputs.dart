@@ -527,7 +527,17 @@ class _ThemeUiSliderState extends State<_ThemeUiSlider> {
             quarterTurns: 3,
             child: SizedBox(width: 160, child: slider),
           )
-        : slider;
+        : LayoutBuilder(
+            builder: (context, constraints) {
+              // A horizontal Slider fills the main axis and asserts a finite
+              // width. The host player's trailing slot is laid out inside a
+              // shrink-wrapped column that hands this row unbounded width, so
+              // a bare Slider crashes its internal Stack. Pin it to a compact
+              // default when there is none; a bounded host is untouched.
+              if (constraints.hasBoundedWidth) return slider;
+              return SizedBox(width: 160, child: slider);
+            },
+          );
 
     if (widget.label == null && !widget.showValue) return body;
     return Column(

@@ -208,7 +208,9 @@ class RootAppPage extends HookConsumerWidget {
       shell = Stack(
         children: [
           shell,
-          const Positioned.fill(child: ThemeSlot('app.overlay')),
+          const Positioned.fill(
+            child: ThemeSlot('app.overlay', stretch: true),
+          ),
         ],
       );
     }

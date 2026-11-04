@@ -9,9 +9,11 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/services/metadata/endpoints/theme.dart';
 import 'package:spotube/services/metadata/theme_sanitizer.dart';
 
-/// The two ways a theme may ship a UI: inline in `getTheme()` (obsidian), or
-/// from the optional `getUi()` method (ui-demo). The host has to accept both,
-/// and a broken tree must cost the UI only, never the palette.
+/// The two ways a theme may ship a UI: inline in `getTheme()` (the reference
+/// v4 theme), or from the optional `getUi()` method (ui-demo). The host has to
+/// accept both, and a broken tree must cost the UI only, never the palette.
+/// A `specVersion: 3` payload is the third case: its tree is refused and only
+/// the palette is kept.
 Future<MetadataPluginThemeEndpoint> _endpoint(
   File archive,
   String entryPoint,
@@ -38,13 +40,14 @@ var metadataPlugin = Plugin()
 void main() {
   final obsidianArchive = File('themes/dist/obsidian-1.0.0.smplug');
   final uiDemoArchive = File('themes/dist/ui-demo-1.0.0.smplug');
+  final referenceArchive = File('themes/dist/spotify-shell-v4-1.0.0.smplug');
   final obsidianGolden = File('themes/conformance/obsidian.json');
 
-  group('obsidian carries its UI inline', () {
+  group('the reference v4 theme carries its UI inline', () {
     late MetadataPluginThemeEndpoint endpoint;
 
     setUpAll(() async {
-      endpoint = await _endpoint(obsidianArchive, 'ObsidianTheme');
+      endpoint = await _endpoint(referenceArchive, 'SpotifyTheme');
     });
 
     test('the tree arrives with the palette', () async {
@@ -53,33 +56,64 @@ void main() {
 
       final ui = definition!.ui;
       expect(ui, isNotNull);
+      expect(definition.specVersion, 4);
+      // The document format version and the payload contract version are
+      // different axes: a v4 payload carries a `specVersion: 2` document.
       expect(ui!.specVersion, 2);
-      expect(ui.slots, hasLength(15));
-      expect(ui.screens.keys, containsAll(<String>['now-playing', 'colophon']));
+      expect(ui.slots, hasLength(13));
       expect(ui.templates, isEmpty);
-
-      final stage = ui.slots['stage.center']!.children;
-      expect(stage, isNotEmpty);
-      expect(stage.first['type'], 'animate');
-      expect(stage.first['kind'], 'rotate');
-      expect(stage.first['bind'], 'player.playing');
+      expect(ui.screens, isEmpty);
+      expect(ui.pages.map((page) => page.id), contains('audio'));
 
       expect(
         ui.slots.keys,
         containsAll(<String>[
           'sidebar.header',
           'sidebar.footer',
-          'player.controls',
-          'stage.center',
-          'stage.below',
+          'aside.content',
+          'player.leading',
+          'player.progress',
+          'home.content',
+          'collection.content',
+          'artist.content',
+          'search.content',
+          'queue.content',
+          'downloads.content',
+          'stats.content',
+          'page.audio',
         ]),
       );
+      for (final slot in ['home.content', 'aside.content', 'player.leading']) {
+        expect(ui.slots[slot]!.children, isNotEmpty, reason: slot);
+      }
     });
 
     test('a theme without getUi() answers null, not an error', () async {
       expect(await endpoint.getUi(), isNull);
     });
-  }, skip: !obsidianArchive.existsSync());
+  }, skip: !referenceArchive.existsSync());
+
+  group('a v3 theme keeps its palette and loses its UI', () {
+    late MetadataPluginThemeEndpoint endpoint;
+
+    setUpAll(() async {
+      endpoint = await _endpoint(obsidianArchive, 'ObsidianTheme');
+    });
+
+    test('the endpoint refuses the tree and the colours survive', () async {
+      final definition = await endpoint.getTheme();
+      expect(definition, isNotNull);
+      expect(definition!.specVersion, 3);
+      expect(definition.ui, isNull);
+
+      final raw = ThemeDefinition.fromJson(
+        jsonDecode(obsidianGolden.readAsStringSync()) as Map<String, dynamic>,
+      );
+      expect(definition.light, raw.light);
+      expect(definition.dark, raw.dark);
+      expect(definition.background, raw.background);
+    });
+  }, skip: !obsidianArchive.existsSync() || !obsidianGolden.existsSync());
 
   group('ui-demo answers from getUi()', () {
     late MetadataPluginThemeEndpoint endpoint;

@@ -100,8 +100,10 @@ ValidationReport validateThemePayload(Map<String, dynamic> payload) =>
 
 /// Validates a legacy v3 payload for the build and migration tools.
 ///
-/// The host never calls this: `themes/tools/migrate_v3.dart` and the bundled
-/// v3 themes need the old rules until Phase 11 rewrites those themes.
+/// The host never calls this. The bundled v3 themes stay published under the
+/// old rules — the app loads their palette and refuses their UI tree — so the
+/// build tooling still has to read them, and `themes/tools/migrate_v3.dart` is
+/// what turns one into a v4 payload.
 ValidationReport validateLegacyThemePayload(Map<String, dynamic> payload) =>
     _validateThemePayload(payload, allowV3: true);
 

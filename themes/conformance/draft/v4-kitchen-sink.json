@@ -399,7 +399,7 @@
               {
                 "type": "text",
                 "bind": "palette.dominant",
-                "color": "@primary"
+                "color": "@palette.dominant"
               },
               {
                 "type": "safeArea",

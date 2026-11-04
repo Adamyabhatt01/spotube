@@ -560,6 +560,7 @@
   "third_party_plugin_warning": "This plugin is from a third-party repository. Please ensure you trust the source before installing.",
   "author": "Author",
   "this_plugin_can_do_following": "This plugin can do following",
+  "theme_contract_too_old": "This theme was built for an older interface contract. Its colors apply, but its custom layout is not loaded. Install a v4 theme to get it back.",
   "install": "Install",
   "install_a_metadata_provider": "Install a Metadata Provider",
   "no_tracks_playing": "No Track being played currently",

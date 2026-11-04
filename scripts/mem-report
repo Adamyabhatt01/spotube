@@ -6,6 +6,8 @@
 #   scripts/mem-report --no-build      # reuse the existing release bundle
 #   scripts/mem-report --binary PATH   # measure an already-built binary
 #   scripts/mem-report --label NAME    # tag this run in the report
+#   scripts/mem-report --cpu-window S  # seconds of CPU sampling per memory
+#                                      # sample (0 disables it)
 #
 # What it measures, and why each number is reported separately:
 #
@@ -22,6 +24,12 @@
 #   VSZ             virtual address space. NOT memory. A 4 GB VSZ with 300 MB
 #                   RSS is normal (allocator reservations, thread stacks,
 #                   mmap'd-but-untouched pages). Never report VSZ as RAM.
+#   CPU             percent of one core, summed over the tree, measured over a
+#                   window behind each memory sample. /proc/<pid>/stat counts a
+#                   process's threads together, so no per-thread walk is
+#                   needed. Only processes alive at both ends of the window are
+#                   counted, so a child that exits mid-window cannot hand its
+#                   whole lifetime to the delta.
 #
 # The process tree is sampled too, because the app's real cost is not one
 # process: WebKit spawns helper processes for a webview, and the YouTube
@@ -40,13 +48,15 @@ DO_BUILD=1
 # Seconds after launch at which to sample. The last one is the longest
 # observation window; earlier ones show the settling curve.
 SAMPLE_AT=(0 30 300)
+# Seconds of CPU sampling behind each memory sample. Set 0 to skip it.
+CPU_WINDOW=10
 # Optional: seconds to wait for the tree to settle before the first sample.
 # 0 = sample as soon as the process is up.
 
 die() { echo "mem-report: $*" >&2; exit 1; }
 
 usage() {
-  sed -n '3,17p' "${BASH_SOURCE[0]}" | cut -c3-
+  sed -n '3,32p' "${BASH_SOURCE[0]}" | cut -c3-
 }
 
 while [[ $# -gt 0 ]]; do
@@ -54,6 +64,7 @@ while [[ $# -gt 0 ]]; do
     --no-build) DO_BUILD=0 ;;
     --binary) BINARY="${2:?--binary needs a path}"; shift ;;
     --label) LABEL="${2:?--label needs a name}"; shift ;;
+    --cpu-window) CPU_WINDOW="${2:?--cpu-window needs seconds}"; shift ;;
     -h | --help) usage; exit 0 ;;
     *) die "unknown option: $1" ;;
   esac
@@ -220,11 +231,94 @@ PY
   printf '%s\n' "${pids[@]}"
 }
 
+# Percent of one core the tree used over a window, as JSON.
+#
+# Keyed by (pid, starttime): a child that exits mid-window drops out of the
+# intersection rather than contributing its whole lifetime to the delta, and a
+# recycled pid cannot be mistaken for the same process.
+cpu_percent() {
+  local root_pid="$1"
+  local window="$2"
+  python3 - "$root_pid" "$window" <<'PY'
+import json, os, sys, time
+
+root, window = int(sys.argv[1]), float(sys.argv[2])
+
+
+def children_map():
+    children = {}
+    starttimes = {}
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        try:
+            with open(f"/proc/{entry}/stat") as f:
+                data = f.read()
+        except OSError:
+            continue
+        tail = data.rsplit(")", 1)[-1].split()
+        try:
+            pid, ppid, starttime = int(entry), int(tail[1]), int(tail[19])
+        except (IndexError, ValueError):
+            continue
+        children.setdefault(ppid, []).append(pid)
+        starttimes[pid] = starttime
+    return children, starttimes
+
+
+def tree(root):
+    children, starttimes = children_map()
+    out, stack = [], [root]
+    while stack:
+        pid = stack.pop()
+        out.append((pid, starttimes.get(pid)))
+        stack.extend(children.get(pid, []))
+    return out
+
+
+def ticks(keys):
+    """(pid, starttime) pairs -> {key: utime+stime}, summed."""
+    values = {}
+    for pid, starttime in keys:
+        if starttime is None:
+            continue
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                tail = f.read().rsplit(")", 1)[-1].split()
+            values[(pid, starttime)] = int(tail[11]) + int(tail[12])
+        except (OSError, IndexError, ValueError):
+            continue
+    return values
+
+
+hz = os.sysconf("SC_CLK_TCK")
+before = ticks(tree(root))
+time.sleep(window)
+after = ticks(tree(root))
+
+used = sum(
+    value - before[key]
+    for key, value in after.items()
+    if key in before and value >= before[key]
+)
+percent = used / hz / window * 100.0
+
+print(
+    json.dumps(
+        {
+            "cpu_window_s": window,
+            "cpu_pct_of_core": round(percent, 1),
+            "cpu_processes": len(after),
+        }
+    )
+)
+PY
+}
+
 sample() {
   local root_pid="$1"
   local elapsed="$2"
   local label="$3"
-
   local pids
   pids=$(collect_tree "$root_pid")
 
@@ -235,7 +329,12 @@ sample() {
     [[ -n $rec ]] && entries+=("$rec")
   done
 
-  python3 - "$JSON" "$elapsed" "$label" "${entries[@]}" <<'PY'
+  local cpu_json='{}'
+  if (( CPU_WINDOW > 0 )); then
+    cpu_json=$(cpu_percent "$root_pid" "$CPU_WINDOW")
+  fi
+
+  CPU_JSON="$cpu_json" python3 - "$JSON" "$elapsed" "$label" "${entries[@]}" <<'PY'
 import json, os, sys
 
 json_path, elapsed, label = sys.argv[1], int(sys.argv[2]), sys.argv[3]
@@ -261,6 +360,7 @@ sample = {
     "tree_private_kb": total("private_kb"),
     "tree_shared_kb": total("shared_kb"),
     "tree_swap_kb": total("swap_kb"),
+    **json.loads(os.environ.get("CPU_JSON") or "{}"),
     "processes": sorted(procs, key=lambda p: -p.get("pss_kb", 0)),
 }
 
@@ -279,11 +379,13 @@ with open(json_path, "w") as f:
 def mb(kb):
     return kb / 1024.0
 
+cpu = sample.get("cpu_pct_of_core")
+cpu_text = f"  CPU={cpu:6.1f}% of one core" if cpu is not None else ""
 print(
     f"[{label:>18}] t+{elapsed:>5}s  procs={len(procs):<3} "
     f"PSS={mb(sample['tree_pss_kb']):8.1f} MB  "
     f"RSS={mb(sample['tree_rss_kb']):8.1f} MB  "
-    f"private={mb(sample['tree_private_kb']):8.1f} MB"
+    f"private={mb(sample['tree_private_kb']):8.1f} MB{cpu_text}"
 )
 for p in sample["processes"][:6]:
     print(

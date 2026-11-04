@@ -81,6 +81,11 @@ class MetadataInstalledPluginItem extends HookConsumerWidget {
         isDefaultTheme ? ref.watch(themeUiProvider) : null;
     final capabilities =
         themeUi?.asData?.value?.capabilities ?? const <String>[];
+    // A v3 theme keeps its colours and loses its UI tree (`sanitizeThemeDefinition`
+    // refuses it, so `themeUiProvider` answers null). Say that out loud, or the
+    // shell silently reverting to the built-in one reads like a theme bug.
+    final isStaleThemeContract = isDefaultTheme &&
+        ref.watch(themeDefinitionProvider).asData?.value?.specVersion == 3;
 
     return Card(
       child: Column(
@@ -151,6 +156,8 @@ class MetadataInstalledPluginItem extends HookConsumerWidget {
                         ],
                       ),
                     ],
+                    if (isStaleThemeContract)
+                      Text(context.l10n.theme_contract_too_old).xSmall,
                     if (repoUrl != null)
                       Wrap(
                         spacing: 8,

@@ -94,7 +94,7 @@ void main() {
       );
     });
 
-    test('the v4 host rejects it until Phase 11 migrates it', () {
+    test('the v4 host rejects it', () {
       final report = validateThemePayload(payload);
       expect(report.issues, hasLength(1));
       expect(

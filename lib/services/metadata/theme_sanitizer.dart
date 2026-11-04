@@ -1,4 +1,15 @@
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/services/logger/logger.dart';
+
+/// The contract's migration instruction, worded as `themes/lib/validator.dart`
+/// words it so an author sees the same message from the toolchain and the app.
+const themeV3Rejection = 'specVersion 3 is not supported; migrate to 4';
+
+/// Whether the v3 rejection has been written to the app log yet.
+///
+/// Sanitizing runs on every theme recompute, and one theme losing its UI is
+/// one fact — a line per repaint would bury the rest of the log.
+var _v3RejectionLogged = false;
 
 /// Clamps untrusted plugin numerics to render-safe ranges.
 ///
@@ -12,11 +23,23 @@ import 'package:spotube/models/metadata/metadata.dart';
 /// a non-finite double from the Hetu boundary poisons every constraint it
 /// touches. Anything outside a range is a plugin bug, and the honest recovery
 /// is the nearest plausible value.
+///
+/// It also enforces the version gate: v4 is a breaking contract, so a v3
+/// payload keeps its colours and loses its UI document. Both the plugin and the
+/// warm-start cache paths come through here, which is why the gate is here
+/// rather than in the endpoint. A v3 theme's optional `getUi()` answer is
+/// refused one level up, in `themeUiProvider`, so it is never even invoked.
 ThemeDefinition sanitizeThemeDefinition(ThemeDefinition definition) {
   final radius = definition.radius;
   final tokens = definition.tokens;
 
+  if (definition.specVersion == 3 && !_v3RejectionLogged) {
+    _v3RejectionLogged = true;
+    AppLogger.logEvent('[theme] $themeV3Rejection');
+  }
+
   return definition.copyWith(
+    ui: definition.specVersion == 3 ? null : definition.ui,
     surfaces: definition.surfaces.copyWith(
       opacity: _fraction(definition.surfaces.opacity, 0.8),
       blur: _px(definition.surfaces.blur, max: 100),

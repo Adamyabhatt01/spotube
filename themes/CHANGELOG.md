@@ -3,6 +3,78 @@
 The themes and the tool that builds them. The payload contract is versioned
 here; the app's reader is versioned with the app.
 
+## 2.0.0 — v4, the whole contract
+
+`specVersion: 4` is the current contract and it is breaking: the host rejects
+`specVersion: 3` with `specVersion 3 is not supported; migrate to 4`. A v2
+payload (no `specVersion`) still loads as a palette. `themes/tools/migrate_v3.dart`
+is the only supported v3 path.
+
+- **Kits and layout.** `uiKit` selects `shadcn` (default), `material` or
+  `cupertino`; `kitScope` and per-node `kit` override it. v4 adds
+  `box`/`grid`/`resizable`/`safeArea`/`aspectRatio`, the input and overlay set
+  (`slider`, `switch`, `checkbox`, `radioGroup`, `textField`, `textArea`,
+  `select`, `segmented`, `tabs`, `menu`, `contextMenu`, `popover`, `tooltip`,
+  `dialog`, `sheet`) and data display (`badge`, `chip`, `avatar`, `skeleton`,
+  `spinner`, virtualized `table`/`virtualList`, `tree`, `accordion`,
+  `collapsible`, `carousel`).
+- **Capabilities.** `library.read`, `player.control` and `theme.assets` are
+  implicit; `library.write`, `audio.effects`, `ui.pages`, `ui.hostWidgets`,
+  `settings.write` and `clipboard.write` are opt-in. An unknown capability, or
+  a binding/action that needs an undeclared one, is a build error.
+- **Bindings and palette.** A document scan drives demand, so a theme pays only
+  for the provider namespaces it references. `palette.*` and `@palette.*`
+  resolve from a URL-keyed artwork palette cache and fall back to the scheme
+  role. The v4 validator accepts the six `@palette.*` colour tokens.
+- **Shell regions.** `layout.sidebar`/`aside` and their widths, the
+  `sidebar.content`/`sidebar.library`/`aside.content`/`library.local.content`
+  slots, `toggleSidebar`/`toggleAside`, and `layout.shell` — a
+  row/column/stack/grid tree of host regions with px/`%`/`auto` sizes, flex,
+  clamps, drag handles, collapsible/hidden-when rules and per-breakpoint trees.
+- **Pages, menus, widgets, settings.** `pages`/`ui.pages` route theme pages
+  under `sidebar`, `library`, `library.local` or `settings`, each rendering its
+  `page.<id>` slot. `ui.menus` appends namespaced `theme.*` rows to host context
+  menus without taking over the user's `contextMenu.config` order.
+  `ui.renderPoints` replaces host surface pixels while keeping their behaviour.
+  `hostWidget` mounts one of twelve host-owned surfaces. `showSettings()`
+  renders `settings.content` and persists values per theme as
+  `theme.<author>.<name>.<key>`.
+- **Install lifecycle.** Manifests are validated before extraction (required
+  fields, length caps, path-safe name/author, parseable `pluginApiVersion`), so
+  a refused archive leaves no orphan directory. Uninstall drops the version
+  directory, row, theme KV namespace and warm-start cache; removing the active
+  theme clears `selected_for_theme`, resets the UI and falls back to the built-in
+  shell instead of promoting another theme. A row whose version fails the path
+  guard is still removable. The CLI mirrors the same field rules.
+- **Reference theme.** `themes/spotify-shell-v4` is the v4 acceptance test: the
+  Spotify shell plus a theme-owned aside, a routed Audio page, palette tokens
+  and audio actions. Its golden is `conformance/spotify-shell-v4.json`
+  (0 errors/warnings) and `test/spotify_shell_v4_test.dart` pins the v4-only
+  surface. `spotify-shell` stays published at its 1.1.0 v3 URL: a user on it
+  keeps its colours and loses its layout until they install
+  `spotify-shell-v4`, and the active theme's card in Settings → Metadata
+  plugins says so instead of letting the shell silently revert.
+- **Migration and conformance.** `tools/migrate_v3.dart` maps v3 to v4, reports
+  `renamed`/`removed`/`needs a human`, and validates the result.
+  `test/v4_conformance_test.dart` requires a fixture for palette, sidebar,
+  inputs, pages and audio. `AUTHORING.md` gained "v4 in one page"; `README.md`
+  and the schemas describe the current contract.
+- **Debug instrumentation.** `getUi`/`onUiAction` are counted in debug builds
+  at the plugin endpoint and shown in the binding overlay, so a per-frame VM
+  call would be visible.
+- **Verification.** Host suite **2,284 passed / 2 skipped / 0 failed** and
+  themes **347/347** after Phase 11, both analyzers clean and both release
+  targets green (`fvm flutter build linux --release`, `make apk-arm64`).
+  The host suite now
+  includes `test/theme_v3_rejection_test.dart`, which pins the runtime gate on
+  both seams (`sanitizeThemeDefinition` for the inline tree, `themeUiProvider`
+  so a v3 theme's `getUi()` is never invoked) and the §8 "one `getUi()` per
+  session" budget. Release measurements are recorded in
+  `.ai/PERFORMANCE.md` — "Theme v4 cost (2026-11-03)": idle CPU (0.2–0.4%) and
+  theme load (≈1–2 ms of Hetu work) pass §8 with room, the reference theme
+  costs roughly +22 MB PSS over an unthemed build, and the idle memory budget
+  is missed by **both** builds, which is recorded rather than smoothed over.
+
 ## 1.7.0 — the host reads the presentation blocks
 
 The v3 payload already carried a type scale, spacing, motion, scale and icon

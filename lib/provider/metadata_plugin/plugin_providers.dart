@@ -166,12 +166,19 @@ final themeUiOverrideProvider = StateProvider<ThemeUiDocument?>((ref) => null);
 /// A theme may carry it inline in `getTheme()` (and then it rides the theme
 /// definition cache) or answer from `getUi()`. Inline wins, because it
 /// arrived with the same payload the colours did.
+///
+/// A `specVersion: 3` payload gets no UI at all: v4 is a breaking contract and
+/// there is no runtime v3 compatibility layer. The gate is here as well as in
+/// `sanitizeThemeDefinition` because that one only strips the tree carried
+/// inline — this is the seam that can also call into the plugin, so refusing
+/// here means a v3 theme's `getUi()` is never invoked.
 final themeUiProvider = FutureProvider<ThemeUiDocument?>((ref) async {
   final override = ref.watch(themeUiOverrideProvider);
   if (override != null) return override;
 
   final definition = await ref.watch(themeDefinitionProvider.future);
   if (definition == null) return null;
+  if (definition.specVersion == 3) return null;
   if (definition.ui != null) return definition.ui;
   return ref.watch(pluginThemeUiProvider.future);
 });

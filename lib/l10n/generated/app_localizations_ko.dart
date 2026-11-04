@@ -1837,6 +1837,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get this_plugin_can_do_following => '이 플러그인은 다음을 수행할 수 있습니다';
 
   @override
+  String get theme_contract_too_old =>
+      'This theme was built for an older interface contract. Its colors apply, but its custom layout is not loaded. Install a v4 theme to get it back.';
+
+  @override
   String get install => '설치';
 
   @override

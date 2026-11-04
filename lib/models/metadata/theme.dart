@@ -1027,6 +1027,11 @@ class ThemeUiTemplate with _$ThemeUiTemplate {
 ///
 /// Installed plugins are not built by this checkout, so the host cannot rely
 /// on the theme-side validator. A bad UI loses the UI, never the palette.
+///
+/// [ThemeUiDocument.specVersion] is the document format version, not the
+/// payload contract version: a v4 theme ships a `specVersion: 2` document. The
+/// v3 payload rejection lives in [sanitizeThemeDefinition] and
+/// `themeUiProvider`, which read [ThemeDefinition.specVersion].
 ThemeUiDocument? parseThemeUiDocument(Map<String, dynamic> json) {
   try {
     return ThemeUiDocument.fromJson(json);

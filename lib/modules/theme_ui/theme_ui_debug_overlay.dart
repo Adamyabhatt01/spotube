@@ -4,6 +4,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_binding_registry.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_vm_metrics.dart';
 
 /// Turns the binding inspector on.
 ///
@@ -59,6 +60,10 @@ class ThemeUiBindingDebugOverlay extends ConsumerWidget {
               ),
               Text(
                 '${names.length} active · ${sources.length} sources',
+                style: TextStyle(fontSize: 11, color: scheme.mutedForeground),
+              ),
+              Text(
+                ThemeUiVmMetrics.summary,
                 style: TextStyle(fontSize: 11, color: scheme.mutedForeground),
               ),
               if (sources.isNotEmpty)

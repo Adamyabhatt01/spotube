@@ -254,6 +254,12 @@ bool isV4UiBinding(String name) {
   ).hasMatch(name)) {
     return true;
   }
+  // A theme's own persisted settings, written by `setSetting`/`toggleSetting`
+  // and published by the host's `setting` namespace — the read-back half of a
+  // settings page, so a toggle survives the rebuild its own action causes.
+  if (RegExp(r'^setting\.[A-Za-z][A-Za-z0-9_.-]{0,63}$').hasMatch(name)) {
+    return true;
+  }
   return RegExp(
     r'^(item|home|collection|artist|search|library|queue|downloads|stats)\.'
     r'[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*){0,4}$',

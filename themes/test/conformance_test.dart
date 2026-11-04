@@ -50,9 +50,9 @@ void main() {
       for (final file in Directory('$repoRoot/conformance').listSync()) {
         if (file is! File || !file.path.endsWith('.json')) continue;
         final payload = readJson(file.path);
-        // The bundled themes are still v3 until Phase 11 migrates them. The
-        // host rejects v3, so the tooling validates them through the legacy
-        // path; a v4 payload goes through the host's own entry point.
+        // The bundled themes are still v3 and stay that way: the host refuses
+        // v3, so the tooling validates them through the legacy path while a v4
+        // payload goes through the host's own entry point.
         final report = payload['specVersion'] == 3
             ? validateLegacyThemePayload(payload)
             : validateThemePayload(payload);

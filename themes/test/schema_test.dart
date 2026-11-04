@@ -16,6 +16,7 @@ void main() {
   final repoRoot = Directory.current.path;
 
   late JsonSchema schema;
+  late JsonSchema v4Schema;
   setUpAll(() {
     final document =
         jsonDecode(
@@ -23,6 +24,13 @@ void main() {
             )
             as Map<String, dynamic>;
     schema = JsonSchema.create(document);
+
+    final v4Document =
+        jsonDecode(
+              File('$repoRoot/schemas/theme.v4.schema.json').readAsStringSync(),
+            )
+            as Map<String, dynamic>;
+    v4Schema = JsonSchema.create(v4Document);
   });
 
   final payloads =
@@ -121,7 +129,12 @@ void main() {
       final name = file.uri.pathSegments.last;
       test('$name validates against the published schema', () {
         final payload = jsonDecode(file.readAsStringSync());
-        final results = schema.validate(payload);
+        // A v4 golden is checked by the v4 schema; the v3 schema cannot
+        // describe its layout regions, pages or aside slots.
+        final document = payload is Map && payload['specVersion'] == 4
+            ? v4Schema
+            : schema;
+        final results = document.validate(payload);
         expect(
           results.errors,
           isEmpty,

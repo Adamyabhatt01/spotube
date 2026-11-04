@@ -581,6 +581,20 @@ const roleNames = <String>[
   'chart6',
 ];
 
+/// The artwork-palette colours a v4 theme may use as `@palette.*` tokens.
+///
+/// These resolve from the URL-keyed palette cache rather than the scheme, so
+/// they are not in [roleNames]; the renderer still accepts them as colour
+/// references and falls back when no palette is available.
+const paletteRoleNames = <String>{
+  'palette.dominant',
+  'palette.vibrant',
+  'palette.muted',
+  'palette.darkMuted',
+  'palette.lightMuted',
+  'palette.onDominant',
+};
+
 /// The limits a UI tree may not exceed.
 ///
 /// Sixteen levels is the v4 limit: the root node is level 1, so a chain of
@@ -3293,17 +3307,21 @@ void _uiAction(
     }
   } else if (type == 'seek') {
     final position = map['position'];
-    if (position is! num) {
+    if (!_isNumberOrValue(position)) {
       issues.add(
         Issue(
           Severity.warning,
           '$path.args.position',
-          'seek needs a position in seconds',
+          'seek needs a position in seconds, or \$value',
         ),
       );
     }
   } else if (type == 'setVolume') {
     final volume = map['volume'];
+    // `$value` is the placeholder an input node fills in: the host substitutes
+    // it before dispatch and keeps the value's type, so a slider hands
+    // setVolume a number rather than the string "$value".
+    if (volume == r'$value') return;
     if (volume is! num || volume < 0 || volume > 1) {
       issues.add(
         Issue(
@@ -3315,6 +3333,10 @@ void _uiAction(
     }
   }
 }
+
+/// Whether an action argument is a number or the `$value` placeholder.
+bool _isNumberOrValue(Object? value) =>
+    value is num || value == r'$value';
 
 /// A number given directly, rather than looked up in a map.
 void _uiNumber(
@@ -3460,7 +3482,8 @@ void _colorOrRole(String path, Object? value, List<Issue> issues) {
     return;
   }
   if (value.startsWith('@')) {
-    if (!roleNames.contains(value.substring(1))) {
+    final role = value.substring(1);
+    if (!roleNames.contains(role) && !paletteRoleNames.contains(role)) {
       issues.add(
         Issue(
           Severity.warning,

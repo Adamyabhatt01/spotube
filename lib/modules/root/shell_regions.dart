@@ -39,7 +39,11 @@ class SidebarRegion extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final slot = this.slot;
     if (slot != null) {
-      return ThemeSlot(slot, crossAxisAlignment: CrossAxisAlignment.stretch);
+      return ThemeSlot(
+        slot,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        stretch: true,
+      );
     }
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -68,7 +72,11 @@ class ShellAsideRegion extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final slot = this.slot;
     if (slot != null) {
-      return ThemeSlot(slot, crossAxisAlignment: CrossAxisAlignment.stretch);
+      return ThemeSlot(
+        slot,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        stretch: true,
+      );
     }
     return const AsideRegion();
   }
@@ -88,7 +96,11 @@ class PlayerRegion extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final slot = this.slot;
     if (slot != null) {
-      return ThemeSlot(slot, crossAxisAlignment: CrossAxisAlignment.stretch);
+      return ThemeSlot(
+        slot,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        stretch: true,
+      );
     }
     return MeasuredBottomPlayer(
       child: LayoutBuilder(
@@ -119,6 +131,7 @@ class TitlebarRegion extends ConsumerWidget {
         : ThemeSlot(
             slot,
             crossAxisAlignment: CrossAxisAlignment.stretch,
+            stretch: true,
           );
     if (!kIsDesktop) return child;
 
@@ -144,7 +157,11 @@ class NavbarRegion extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final slot = this.slot;
     if (slot != null) {
-      return ThemeSlot(slot, crossAxisAlignment: CrossAxisAlignment.stretch);
+      return ThemeSlot(
+        slot,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        stretch: true,
+      );
     }
     return const SpotubeNavigationBar(forceVisible: true);
   }
@@ -165,6 +182,7 @@ class CustomRegion extends StatelessWidget {
     final content = ThemeSlot(
       slot,
       crossAxisAlignment: CrossAxisAlignment.stretch,
+      stretch: true,
     );
     final label = this.label;
     if (label == null) return content;

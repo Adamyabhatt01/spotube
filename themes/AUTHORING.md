@@ -1,15 +1,17 @@
 # Authoring a theme
 
-> **v4 status:** the authoritative contract is
-> `/home/adamya/.opencode/plan/v4-theme-contract.md`; Phases 0–10 are
-> implemented (spec foundation, kits, layout nodes, inputs and overlays,
-> render points, bindings/palette, layout regions, routed pages, context
-> menus, host widgets, theme settings, install/uninstall and lifecycle).
-> Phase 11 (performance, migration, docs, release) remains. v4 is breaking:
-> v2 payloads remain, `specVersion: 3` is rejected with
-> `specVersion 3 is not supported; migrate to 4`, and
-> `themes/tools/migrate_v3.dart` is the migration path. This document
-> describes the v3 blocks where noted and the v4 nodes that exist today.
+> **v4 status:** v4 is the current contract and the work is complete through
+> Phase 11 (Phases 0–10: spec foundation, kits, layout nodes, inputs and
+> overlays, render points, bindings/palette, layout regions, routed pages,
+> context menus, host widgets, theme settings, install/uninstall and lifecycle;
+> Phase 11: the reference theme, conformance coverage, the migration report and
+> the performance evidence). v4 is breaking: v2 payloads remain readable,
+> `specVersion: 3` is rejected with `specVersion 3 is not supported; migrate to
+> 4` — by the toolchain *and* by the host, which loads a v3 theme's palette and
+> drops its UI tree — and `themes/tools/migrate_v3.dart` is the migration path.
+> The sections below describe the v3 payload blocks that v4 still uses, then the
+> v4 additions on top of them. `themes/spotify-shell-v4` is the reference
+> implementation.
 
 ## A theme is a plugin
 
@@ -47,6 +49,150 @@ class MyTheme {
   var theme = MyThemeApi();
 }
 ```
+
+## v4 in one page
+
+A v4 payload declares the contract version at the top:
+
+```json
+{
+  "specVersion": 4,
+  "uiKit": "shadcn",
+  "capabilities": ["library.read", "player.control"],
+  "light": { /* roles */ },
+  "dark": { /* roles */ },
+  "ui": { "specVersion": 2, "slots": { /* … */ } }
+}
+```
+
+- `specVersion: 4` is required. A v2 payload (no `specVersion`) still loads as
+  a palette. A v3 payload is rejected before parsing; migrate it rather than
+  hand-editing.
+- `uiKit` is `shadcn` (default), `material` or `cupertino`. It chooses the kit
+  behind kit-aware nodes; `components.<kit>.<group>` overrides a component for
+  one kit.
+- `ui.specVersion` stays `2`: the UI envelope is the v3 one, while the v4 node
+  set and features are gated by the top-level version. A v4 theme can still
+  answer `getUi()` and `onUiAction()`; nothing about the document shape changed.
+- The v4 vocabulary is closed. `specVersion: 4` accepts the v3 node set plus
+  the v4 nodes listed in `conformance/draft/v4-kitchen-sink.json` (layout,
+  inputs, overlays, data display and `hostWidget`). The fixture is the
+  executable list; `schemas/theme.v4.schema.json` is the machine one.
+
+### Capabilities
+
+`library.read`, `player.control` and `theme.assets` are implicit. Everything
+else is opt-in and a missing capability is a build error when the theme uses a
+guarded binding or action:
+
+| Capability | Unlocks |
+|---|---|
+| `library.read` | `item.*` and the library/queue/collection bindings |
+| `player.control` | transport bindings and `playPause`/`next`/`seek`/`setVolume`/… |
+| `library.write` | `pinItem`/`unpinItem`/`createPlaylist`/`renamePlaylist`/`deletePlaylist`/`addToPlaylist` |
+| `audio.effects` | `audio.bass`/`treble`/`normalization`/`crossfade`/`sleepTimer` and their actions |
+| `ui.pages` | top-level `pages`, `ui.pages`, `openPage`/`closePage` |
+| `ui.hostWidgets` | the `hostWidget` node |
+| `settings.write` | `setSetting`/`toggleSetting` and the `setting.<key>` bindings |
+| `clipboard.write` | the `copy` action |
+
+Declare exactly what the theme uses; an unknown name fails the build.
+
+### Pages, regions and the shell
+
+A v4 theme may own the sidebar, the aside and routed pages:
+
+```json
+{
+  "layout": { "sidebar": "theme", "aside": "theme" },
+  "pages": [
+    {"id": "audio", "title": "Audio", "icon": "equalizer", "parent": "settings", "showBack": true}
+  ],
+  "ui": {
+    "specVersion": 2,
+    "pages": [
+      {"id": "audio", "title": "Audio", "icon": "equalizer", "parent": "settings", "showBack": true}
+    ],
+    "slots": {
+      "sidebar.content": { "children": [/* … */] },
+      "aside.content": { "children": [/* … */] },
+      "page.audio": { "children": [/* … */] }
+    }
+  }
+}
+```
+
+`parent` must be a host section (`sidebar`, `library`, `library.local`,
+`settings`). A page renders its `page.<id>` slot inside the host page shell;
+the host owns routing, the back control and the nav entry. `layout.shell`
+replaces the whole shell with a region tree when a theme needs a different
+arrangement; `layout.sidebar`/`aside` and their widths are the smaller step.
+See `conformance/draft/v4-layout-regions.json` and
+`conformance/draft/v4-shell-layout.json`.
+
+### Data, palette and actions
+
+`ThemeUiBindingRegistry` is the closed binding list. Demand detection scans the
+document, so a theme pays only for the names it references: `library.*`,
+`queue.*`, `audio.*`, `player.*`, `app.*`, `theme.*`, `region.*`, `item.*`,
+`palette.*`. `@primary`, `@mutedForeground` and the other role tokens resolve
+from the scheme; `@palette.dominant` (and the five siblings) resolve from the
+URL-keyed artwork palette and fall back to the role colour when no artwork has
+been decoded.
+
+Actions are validated against a closed verb list and their capability. A theme
+may add its own row behaviour through `plugin` (handled by `onUiAction`), but
+it cannot run arbitrary host code. The action timeout and the per-surface
+allowlist live in `lib/modules/theme_ui/theme_ui_action_dispatcher.dart`.
+
+### Menus, host widgets and settings
+
+- `ui.menus.<target>` appends namespaced `theme.*` rows to the host context
+  menu. The user's hidden/order configuration in `contextMenu.config` always
+  wins; a theme row cannot reorder host rows.
+- `hostWidget` mounts one of the twelve host-owned surfaces. The catalogue and
+  props are in the table in [Host widgets](#9-host-widgets).
+- `showSettings()` returns a document whose `settings.content` slot is rendered
+  in **Settings → Appearance → Theme settings**; values persist per theme as
+  `theme.<author>.<name>.<key>`. See [Your own settings page](#10-your-own-settings-page).
+
+### Migration
+
+```bash
+cd themes
+fvm dart run tools/migrate_v3.dart \
+  -f conformance/my-theme.v3.json \
+  -o my-theme.v4.json \
+  --report my-theme.report.txt
+```
+
+The report separates `renamed`, `removed` and `needs a human`. The tool adds
+`uiKit: shadcn`, drops `layout.enforce` (v4 reads presence) and validates the
+result through the v4 validator. A `search` node is reported for a human
+decision: v4 keeps it for compatibility, but new work should use a
+`textField` bound to `setQuery`/`clearQuery` (see the search render points).
+Migration operates on a payload; if the theme is Hetu source, make the same
+change it reports in the source and rebuild, so the golden payload stays in
+sync.
+
+Against the six published v3 payloads the report is: `uiKit` added for every
+one, `layout.enforce` removed from four, `search → textField` flagged for
+`kitchen-sink` and `spotify-shell`, and all six then validate with 0 errors and
+0 warnings. `test/migrate_v3_test.dart` pins exactly that, so a v3 key the
+mapper does not know about fails here instead of reaching an author.
+
+### Checking the result
+
+- `fvm dart run tools/build.dart` compiles, runs, validates and packages every
+  theme. `--check` validates only.
+- `fvm dart test` runs the contract suite; `themes/test/v4_conformance_test.dart`
+  proves the fixtures still cover palette, sidebar, inputs, pages and audio.
+- The debug overlay (`themeUiDebugOverlayProvider`) shows binding demand and the
+  debug-only `getUi`/`onUiAction` counters. Open it, interact, and the counters
+  should move by one per user action, never per frame.
+- `themes/spotify-shell-v4` is the reference theme; its payload is
+  `conformance/spotify-shell-v4.json` and its test is
+  `themes/test/spotify_shell_v4_test.dart`.
 
 ## The seventeen roles
 
@@ -188,11 +334,12 @@ The build then also writes the artifact to that path, which is the path the
 install URL in the README points at. A published path is part of the contract
 with whoever installed the theme — moving it breaks their install.
 
-## v3: what a theme may decide
+## The payload: v3 blocks v4 keeps
 
-`specVersion: 3` adds four kinds of decision. Everything a v2 host reads stays
-exactly as it was, so a v3 theme still works on an older app — it draws as a
-palette there.
+`specVersion: 3` added four kinds of decision. v4 inherits all of them; only
+the version gate and the unlocked features changed. Everything a v2 host reads
+stays exactly as it was, so the palette half of a theme still works on an older
+app — it draws as a palette there.
 
 ### 1. More roles
 
