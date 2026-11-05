@@ -94,6 +94,7 @@ android/app/.cxx
 /.ai/
 /AGENTS.md
 /.qoder/
+/.kilo/
 
 # Local regression suite (per-machine; not published)
 /test/
