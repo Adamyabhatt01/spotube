@@ -56,6 +56,33 @@ abstract class KVStoreService {
   static Future<void> clearContextMenuConfig() async =>
       await sharedPreferences.remove(_contextMenuConfigKey);
 
+  static const _voiceCommandsConfigKey = 'voiceCommands.config';
+
+  /// Raw JSON for the voice-commands configuration. Absent or malformed means
+  /// `mode: off`, which is why the feature is inert for anyone who has never
+  /// flipped its settings switch.
+  static String? get voiceCommandsConfigJson =>
+      sharedPreferences.getString(_voiceCommandsConfigKey);
+
+  static Future<void> setVoiceCommandsConfigJson(String value) async =>
+      await sharedPreferences.setString(_voiceCommandsConfigKey, value);
+
+  static const _voiceStartingKey = 'voice.starting';
+
+  /// Set before the voice worker starts, cleared after it has run healthy for
+  /// a few seconds. Still being set at launch means the previous session died
+  /// during startup: an onnxruntime fault is not isolate-contained, and the
+  /// wake stage restarts automatically, so one bad model could crash-loop every
+  /// launch. Launch then disables voice instead of retrying it.
+  static bool get voiceCrashMarker =>
+      sharedPreferences.getBool(_voiceStartingKey) ?? false;
+
+  static Future<void> markVoiceStarting() async =>
+      await sharedPreferences.setBool(_voiceStartingKey, true);
+
+  static Future<void> clearVoiceStarting() async =>
+      await sharedPreferences.remove(_voiceStartingKey);
+
   /// Prefix for one theme's own settings namespace.
   ///
   /// The contract names it `theme.<author>.<name>.<key>`; the trailing dot is
