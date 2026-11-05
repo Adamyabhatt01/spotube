@@ -590,19 +590,30 @@ class Sidebar extends HookConsumerWidget {
     final sidebarBody = hasThemeSidebar
         // The theme owns the body; the host keeps the width box, the
         // divider, the bottom clearance and the docked player.
-        ? Column(
-            children: [
-              const Expanded(
-                child: ThemeSlot(
-                  'sidebar.content',
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+        ? ColoredBox(
+            // The theme's own nodes paint its panel, but the clearance under
+            // them belongs to the host. Filling the whole column keeps the
+            // rail black down to the player instead of ending in a lighter
+            // page-coloured strip.
+            color: colorScheme.sidebar,
+            child: Column(
+              children: [
+                const Expanded(
+                  child: ThemeSlot(
+                    'sidebar.content',
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    // A theme-owned rail draws its own library panel, profile
+                    // row and background; it needs the full column height, not
+                    // the shrink-wrapped height of its node list.
+                    stretch: true,
+                  ),
                 ),
-              ),
-              // A standalone sidebar is laid out in flow by the shell, so a
-              // floating footer can never overlap it. Reserving the player's
-              // height there would just lift the profile row off the floor.
-              Gap(standalone ? 0 : bottomClearance),
-            ],
+                // A standalone sidebar is laid out in flow by the shell, so a
+                // floating footer can never overlap it. Reserving the player's
+                // height there would just lift the profile row off the floor.
+                Gap(standalone ? 0 : bottomClearance),
+              ],
+            ),
           )
         : Column(
             children: [
@@ -679,19 +690,24 @@ class Sidebar extends HookConsumerWidget {
         SizedBox(width: leftPaneWidth, child: sidebarBody),
         const VerticalDivider(),
         Expanded(
-          child: contentFooter == null
-              ? child
-              : Column(
-                  children: [
-                    Expanded(child: child),
-                    LayoutBuilder(
-                      builder: (context, constraints) => PlayerSeekWidth(
-                        width: constraints.maxWidth,
-                        child: contentFooter!,
-                      ),
-                    ),
-                  ],
+          // `child` carries `appRouterSlotKey` (root_app.dart:27). It must
+          // always sit at the same tree depth, otherwise toggling `contentFooter`
+          // (docked ↔ floating player) re-parents the keyed router subtree to a
+          // different depth and Flutter reports a duplicate GlobalKey. Wrap it in
+          // the same Column/Expanded structure either way and only make the
+          // footer conditional, so the router slot's ancestors never change.
+          child: Column(
+            children: [
+              Expanded(child: child),
+              if (contentFooter != null)
+                LayoutBuilder(
+                  builder: (context, constraints) => PlayerSeekWidth(
+                    width: constraints.maxWidth,
+                    child: contentFooter!,
+                  ),
                 ),
+            ],
+          ),
         ),
       ],
     );

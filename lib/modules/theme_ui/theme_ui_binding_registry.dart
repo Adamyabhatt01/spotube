@@ -102,6 +102,16 @@ class ThemeUiBindingRegistry {
         'app.sidebarCollapsed', ThemeUiBindingKind.boolean, 'layoutPrefs'),
     ThemeUiBindingDefinition(
         'app.asideOpen', ThemeUiBindingKind.boolean, 'layoutPrefs'),
+    ThemeUiBindingDefinition(
+        'app.pinnedPlaylistIds',
+        ThemeUiBindingKind.list,
+        'layoutPrefs',
+        phase: 'existing'),
+    ThemeUiBindingDefinition(
+        'app.pinnedStationIds',
+        ThemeUiBindingKind.list,
+        'layoutPrefs',
+        phase: 'existing'),
     ThemeUiBindingDefinition('app.greeting', ThemeUiBindingKind.string, 'clock',
         phase: 'existing'),
     ThemeUiBindingDefinition('clock.now', ThemeUiBindingKind.datetime, 'clock',

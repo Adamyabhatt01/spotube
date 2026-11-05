@@ -6,6 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/components/dialogs/select_device_dialog.dart';
+import 'package:spotube/components/playbutton_view/collection_row_policy.dart';
 import 'package:spotube/components/playbutton_view/playbutton_card.dart';
 import 'package:spotube/components/playbutton_view/playbutton_tile.dart';
 import 'package:spotube/components/track_presentation/append_playback_tail.dart';
@@ -26,14 +27,22 @@ extension FormattedAlbumType on SpotubeAlbumType {
 class AlbumCard extends HookConsumerWidget {
   final SpotubeSimpleAlbumObject album;
   final bool _isTile;
+
+  /// The theme-managed row policy: trailing action visibility, cover play,
+  /// subtitle, density, cover size and radius. Defaults preserve the current
+  /// presentation; a theme host widget passes a policy read from its props.
+  final CollectionRowPolicy rowPolicy;
+
   const AlbumCard(
     this.album, {
     super.key,
+    this.rowPolicy = const CollectionRowPolicy(),
   }) : _isTile = false;
 
   const AlbumCard.tile(
     this.album, {
     super.key,
+    this.rowPolicy = const CollectionRowPolicy(),
   }) : _isTile = true;
 
   @override
@@ -191,9 +200,8 @@ class AlbumCard extends HookConsumerWidget {
     ]);
 
     // The cover stays part of the card's navigation target, like playlist
-    // cards. Mapping it to playback made a touch on the artwork start or
-    // pause the album instead of opening it; the explicit play button is the
-    // only direct-play action.
+    // cards. A theme host widget may route cover taps through
+    // `coverPlays: true` instead.
     if (_isTile) {
       return PlaybuttonTile(
         imageUrl: imageUrl,
@@ -206,6 +214,8 @@ class AlbumCard extends HookConsumerWidget {
         title: album.name,
         description: description,
         onTap: onTap,
+        onCoverTap: rowPolicy.coverPlays ? onPlaybuttonPressed : null,
+        rowPolicy: rowPolicy,
         onPlaybuttonPressed: onPlaybuttonPressed,
         onAddToQueuePressed: onAddToQueuePressed,
       );
@@ -222,6 +232,8 @@ class AlbumCard extends HookConsumerWidget {
       title: album.name,
       description: description,
       onTap: onTap,
+      onCoverTap: rowPolicy.coverPlays ? onPlaybuttonPressed : null,
+      rowPolicy: rowPolicy,
       onPlaybuttonPressed: onPlaybuttonPressed,
       onAddToQueuePressed: onAddToQueuePressed,
     );

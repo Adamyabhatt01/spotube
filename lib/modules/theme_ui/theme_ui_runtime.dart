@@ -25,6 +25,13 @@ class ThemeUiRuntime {
   final int specVersion;
   final ThemeUiActionCallback onAction;
 
+  /// The typed collection entry a list row is drawing, if any.
+  ///
+  /// The host keeps the object so a row can offer the same verbs the host's
+  /// own rows do (a track's right-click menu, for example) without the theme
+  /// having to rebuild them from `item.*` strings.
+  final Object? item;
+
   /// Capability names the active document grants (`library.write`,
   /// `ui.hostWidgets`, ...). The authoring validator enforces the full table;
   /// the host repeats the checks that would otherwise let an installed plugin
@@ -54,6 +61,7 @@ class ThemeUiRuntime {
     this.renderPoints = const {},
     required this.specVersion,
     required this.onAction,
+    this.item,
     this.capabilities = const {},
     this.paletteFor,
     this.requestPalette,
@@ -89,6 +97,7 @@ class ThemeUiRuntime {
       renderPoints: renderPoints,
       specVersion: specVersion,
       onAction: onAction,
+      item: item,
       capabilities: capabilities,
       paletteFor: paletteFor,
       requestPalette: requestPalette,
@@ -110,6 +119,7 @@ class ThemeUiRuntime {
       renderPoints: renderPoints,
       specVersion: specVersion,
       onAction: onAction,
+      item: item,
       capabilities: capabilities,
       paletteFor: paletteFor,
       requestPalette: requestPalette,

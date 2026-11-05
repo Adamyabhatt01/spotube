@@ -335,6 +335,18 @@ ThemeUiBindings buildThemeUiBindings(
   if (wants.wants('app.greeting')) {
     values['app.greeting'] = greetingFor(now);
   }
+  final wantsAppPins =
+      wants.wants('app.pinnedPlaylistIds') ||
+      wants.wants('app.pinnedStationIds');
+  if (wantsAppPins) {
+    final prefs = ref.watch(userPreferencesProvider);
+    if (wants.wants('app.pinnedPlaylistIds')) {
+      values['app.pinnedPlaylistIds'] = prefs.pinnedPlaylistIds;
+    }
+    if (wants.wants('app.pinnedStationIds')) {
+      values['app.pinnedStationIds'] = prefs.pinnedStationIds;
+    }
+  }
   if (wants.wants('clock.now')) values['clock.now'] = now;
 
   // ------------------------------------------------------------- player
@@ -671,6 +683,10 @@ List<Map<String, Object?>> themeQueueTracks(List<SpotubeTrackObject> tracks) {
   return [for (final track in tracks) themeQueueTrack(track)];
 }
 
+/// The track total for a row the host has no count for. Saved playlists and
+/// albums arrive without one, and a literal `0` read as an empty collection.
+const int? _unknownTrackCount = null;
+
 List<Map<String, Object?>> themeLibraryPlaylists(
   Iterable<SpotubeSimplePlaylistObject> playlists,
   Set<String> pinnedIds,
@@ -685,7 +701,7 @@ List<Map<String, Object?>> themeLibraryPlaylists(
         ),
         'owner': playlist.owner.name,
         'ownerId': playlist.owner.id,
-        'trackCount': 0,
+        'trackCount': _unknownTrackCount,
         'pinned': pinnedIds.contains(playlist.id),
         'palette': const <String, String>{},
         'uri': playlist.externalUri,
@@ -710,7 +726,7 @@ List<Map<String, Object?>> themeLibraryAlbums(
         'year': album.releaseDate == null
             ? ''
             : (DateTime.tryParse(album.releaseDate!)?.year ?? ''),
-        'trackCount': 0,
+        'trackCount': _unknownTrackCount,
         'uri': album.externalUri,
         'type': 'album',
       },
@@ -789,7 +805,7 @@ List<Map<String, Object?>> themeLibraryPins(
           placeholder: ImagePlaceholder.collection,
         ),
         'owner': playlist.owner.name,
-        'trackCount': 0,
+        'trackCount': _unknownTrackCount,
         'pinned': true,
         'target': target,
         'palette': const <String, String>{},
@@ -810,7 +826,7 @@ List<Map<String, Object?>> themeLibraryPins(
           'name': station.name,
           'artwork': station.faviconUrl ?? '',
           'owner': station.provider,
-          'trackCount': 0,
+          'trackCount': _unknownTrackCount,
           'pinned': true,
           'target': 'sidebar',
           'uri': station.homepageUrl ?? '',

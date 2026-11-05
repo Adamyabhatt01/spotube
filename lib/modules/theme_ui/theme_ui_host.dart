@@ -7,6 +7,7 @@ import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_action_dispatcher.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_anchors.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_assets.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_binding_demand.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
@@ -152,7 +153,13 @@ class ThemeUiRuntimeScopeHost extends ConsumerWidget {
       },
     );
 
-    final scoped = ThemeUiRuntimeScope(runtime: runtime, child: child);
+    // The anchor registry must outlive a single build: keys created during
+    // one frame have to stay valid until the document unmounts, so it lives
+    // in a StatefulWidget's State rather than being rebuilt here.
+    final scoped = ThemeUiRuntimeScope(
+      runtime: runtime,
+      child: _ThemeUiAnchorRegistryHost(child: child),
+    );
     return debug ? _withDebugOverlay(scoped) : scoped;
   }
 
@@ -166,6 +173,34 @@ class ThemeUiRuntimeScopeHost extends ConsumerWidget {
           child: ThemeUiBindingDebugOverlay(),
         ),
       ],
+    );
+  }
+}
+
+/// Holds the document's [ThemeUiAnchorRegistry] for its whole lifetime.
+///
+/// A [ConsumerWidget] rebuild would mint a fresh map (and fresh [GlobalKey]s)
+/// every frame, remounting every anchored subtree; the registry therefore
+/// lives in State, created once per mount.
+class _ThemeUiAnchorRegistryHost extends StatefulWidget {
+  final Widget child;
+
+  const _ThemeUiAnchorRegistryHost({required this.child});
+
+  @override
+  State<_ThemeUiAnchorRegistryHost> createState() =>
+      _ThemeUiAnchorRegistryHostState();
+}
+
+class _ThemeUiAnchorRegistryHostState
+    extends State<_ThemeUiAnchorRegistryHost> {
+  final ThemeUiAnchorRegistry _registry = ThemeUiAnchorRegistry();
+
+  @override
+  Widget build(BuildContext context) {
+    return ThemeUiAnchorRegistryScope(
+      registry: _registry,
+      child: widget.child,
     );
   }
 }

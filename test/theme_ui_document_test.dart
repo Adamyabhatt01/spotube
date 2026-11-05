@@ -38,8 +38,12 @@ var metadataPlugin = Plugin()
 }
 
 void main() {
-  final obsidianArchive = File('themes/dist/obsidian-1.0.0.smplug');
-  final uiDemoArchive = File('themes/dist/ui-demo-1.0.0.smplug');
+  // Obsidian published its tree as a v3 payload until the v4 port; the
+  // outgoing artifact and its golden stay pinned so the gate is tested on a
+  // real plugin rather than a synthetic one.
+  final obsidianArchive = File('themes/dist/legacy/obsidian-1.0.0.smplug');
+  final obsidianLegacyGolden = File('themes/conformance/legacy/obsidian.json');
+  final uiDemoArchive = File('themes/dist/ui-demo-2.0.0.smplug');
   final referenceArchive = File('themes/dist/spotify-shell-v4-1.0.0.smplug');
   final obsidianGolden = File('themes/conformance/obsidian.json');
 
@@ -60,6 +64,19 @@ void main() {
       // The document format version and the payload contract version are
       // different axes: a v4 payload carries a `specVersion: 2` document.
       expect(ui!.specVersion, 2);
+      // Capabilities are declared once, on the payload. The runtime reads
+      // them off the UI document, so the endpoint has to carry them across —
+      // without this every host widget mounted as an empty box.
+      expect(
+        ui.capabilities,
+        containsAll(<String>[
+          'library.read',
+          'player.control',
+          'audio.effects',
+          'ui.pages',
+          'ui.hostWidgets',
+        ]),
+      );
       expect(ui.slots, hasLength(13));
       expect(ui.templates, isEmpty);
       expect(ui.screens, isEmpty);
@@ -68,11 +85,11 @@ void main() {
       expect(
         ui.slots.keys,
         containsAll(<String>[
-          'sidebar.header',
-          'sidebar.footer',
+          'sidebar.content',
           'aside.content',
           'player.leading',
-          'player.progress',
+          'player.controls',
+          'player.trailing',
           'home.content',
           'collection.content',
           'artist.content',
@@ -107,13 +124,16 @@ void main() {
       expect(definition.ui, isNull);
 
       final raw = ThemeDefinition.fromJson(
-        jsonDecode(obsidianGolden.readAsStringSync()) as Map<String, dynamic>,
+        jsonDecode(obsidianLegacyGolden.readAsStringSync())
+            as Map<String, dynamic>,
       );
       expect(definition.light, raw.light);
       expect(definition.dark, raw.dark);
       expect(definition.background, raw.background);
     });
-  }, skip: !obsidianArchive.existsSync() || !obsidianGolden.existsSync());
+  },
+  skip: !obsidianArchive.existsSync() ||
+      !obsidianLegacyGolden.existsSync());
 
   group('ui-demo answers from getUi()', () {
     late MetadataPluginThemeEndpoint endpoint;

@@ -141,7 +141,8 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
     );
   }
 
-  /// A surface that can carry a colour, gradient, border, radius and size.
+  /// A surface that can carry a colour, gradient, border, radius, size and
+  /// frost.
   ///
   /// `box` exists so a theme can build hero banners and framed panels without
   /// shipping bitmaps: the same node is the skeleton of every styled section.
@@ -176,6 +177,7 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
     final gradient = _gradient(context, props['gradient']);
     final padding = _px(context, props['padding'], fallback: 0);
     final opacity = _clamp(props['opacity'], 0, 1, fallback: 1);
+    final blur = _clamp(props['blur'], 0, 100, fallback: 0);
 
     Widget box = Container(
       width: width,
@@ -202,6 +204,18 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
         clipBehavior: clip == 'antiAliasWithSaveLayer'
             ? Clip.antiAliasWithSaveLayer
             : Clip.antiAlias,
+        child: box,
+      );
+    }
+
+    if (blur > 0) {
+      final tintRaw = props['blurTint'];
+      box = _frost(
+        sigma: blur,
+        tint: tintRaw == null
+            ? null
+            : _color(context, tintRaw, fallback: Colors.transparent),
+        radius: radius,
         child: box,
       );
     }
@@ -254,6 +268,36 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
     return false;
   }
 
+  /// Resolve the `columns` prop to a 1..12 count for [width].
+  ///
+  /// A bare int (or num) is clamped straight through. A map selects the value
+  /// for the active breakpoint tier — `compact` (with `xs`/`sm` aliases),
+  /// `medium` (`md`) or `expanded` (`lg`/`xl`/`2xl`) — falling back to any
+  /// numeric value in the map, then [fallback]. Anything else yields [fallback].
+  int _resolveColumns(Object? raw, double width, {int fallback = 1}) {
+    if (raw is num && raw.isFinite) return raw.toInt().clamp(1, 12);
+    if (raw is Map) {
+      final tier = themeBreakpointForWidth(width);
+      final candidates = <String>[];
+      switch (tier) {
+        case ThemeBreakpoint.compact:
+          candidates.addAll(const ['compact', 'xs', 'sm']);
+        case ThemeBreakpoint.medium:
+          candidates.addAll(const ['medium', 'md']);
+        case ThemeBreakpoint.expanded:
+          candidates.addAll(const ['expanded', 'lg', 'xl', '2xl']);
+      }
+      for (final key in candidates) {
+        final value = raw[key];
+        if (value is num && value.isFinite) return value.toInt().clamp(1, 12);
+      }
+      for (final value in raw.values) {
+        if (value is num && value.isFinite) return value.toInt().clamp(1, 12);
+      }
+    }
+    return fallback;
+  }
+
   /// A fixed column count whose cells keep their intrinsic height.
   ///
   /// A `GridView` would force a child aspect ratio the contract does not
@@ -265,7 +309,6 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
     List<Map<String, dynamic>> children,
   ) {
     if (children.isEmpty) return const SizedBox.shrink();
-    final columns = _int(props['columns'], fallback: 2, min: 1, max: 12);
     final gap = _gapSize(context, props['gap']);
 
     return LayoutBuilder(
@@ -278,7 +321,7 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
             children: _nodes(context, children),
           );
         }
-
+        final columns = _resolveColumns(props['columns'], width, fallback: 2);
         final cellWidth = ((width - gap * (columns - 1)) / columns)
             .clamp(0.0, width)
             .toDouble();
@@ -552,6 +595,11 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
     // A shelf is a list that scrolls sideways. The repeated entry is the same
     // subtree; only the axis changes, so cards and rows share one vocabulary.
     final horizontal = props['direction'] == 'horizontal';
+    // A vertical list can wrap into equal-width cells. This is what a home
+    // shortcut matrix needs: the entries stay bound to live data, but six of
+    // them read as two rows of three instead of a single tall column.
+    // The count depends on the window width, so it is resolved inside the
+    // LayoutBuilder in buildRows.
     final filter = _listFilter(props);
 
     Widget buildRows(String? query) {
@@ -561,38 +609,37 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
           : _filterItems(all, query, filter?.fields ?? const []);
       final items = visible.take(limit).toList();
 
-      final rows = <Widget>[];
-      for (var i = 0; i < items.length; i++) {
-        if (i > 0 && gap > 0) {
-          rows.add(SizedBox(
-            width: horizontal ? gap : 0,
-            height: horizontal ? 0 : gap,
-          ));
-        }
-        final itemRuntime = _itemRuntime(runtime, items[i], i, items);
-        rows.add(
-          children.length == 1
-              ? ThemeUiNodeView(
-                  node: children.first,
-                  runtime: itemRuntime,
-                  depth: depth + 1,
-                )
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: crossAxisAlignment,
-                  children: [
-                    for (final child in children)
-                      ThemeUiNodeView(
-                        node: child,
-                        runtime: itemRuntime,
-                        depth: depth + 1,
-                      ),
-                  ],
-                ),
-        );
+      Widget itemAt(int index) {
+        final itemRuntime = _itemRuntime(runtime, items[index], index, items);
+        return children.length == 1
+            ? ThemeUiNodeView(
+                node: children.first,
+                runtime: itemRuntime,
+                depth: depth + 1,
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: crossAxisAlignment,
+                children: [
+                  for (final child in children)
+                    ThemeUiNodeView(
+                      node: child,
+                      runtime: itemRuntime,
+                      depth: depth + 1,
+                    ),
+                ],
+              );
       }
 
+      // A horizontal shelf is always a single column.
       if (horizontal) {
+        final rows = <Widget>[];
+        for (var i = 0; i < items.length; i++) {
+          if (i > 0 && gap > 0) {
+            rows.add(SizedBox(width: gap, height: 0));
+          }
+          rows.add(itemAt(i));
+        }
         return SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -602,10 +649,39 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
           ),
         );
       }
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: crossAxisAlignment,
-        children: rows,
+
+      // A vertical list wraps into equal-width cells. The column count depends
+      // on the window width, so resolve it inside the LayoutBuilder where the
+      // actual width is known.
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final columns =
+              _resolveColumns(props['columns'], width, fallback: 1);
+          if (!width.isFinite || width <= 0 || columns <= 1) {
+            final rows = <Widget>[];
+            for (var i = 0; i < items.length; i++) {
+              if (i > 0 && gap > 0) rows.add(SizedBox(height: gap));
+              rows.add(itemAt(i));
+            }
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: crossAxisAlignment,
+              children: rows,
+            );
+          }
+          final cellWidth = ((width - gap * (columns - 1)) / columns)
+              .clamp(0.0, width)
+              .toDouble();
+          return Wrap(
+            spacing: gap,
+            runSpacing: gap,
+            children: [
+              for (var i = 0; i < items.length; i++)
+                SizedBox(width: cellWidth, child: itemAt(i)),
+            ],
+          );
+        },
       );
     }
 
@@ -887,4 +963,38 @@ class _ThemeUiCupertinoProgressState extends State<_ThemeUiCupertinoProgress> {
       ),
     );
   }
+}
+
+/// The contract's node-level frost: blur what is behind a box, then tint it.
+///
+/// A `BackdropFilter` runs a backdrop pass on every frame that the content
+/// behind it changes, so mid-scroll the filter comes off entirely rather than
+/// staying mounted at sigma zero — the mistake the title bar made once. The tint
+/// stays, so the panel reads as glass for the whole gesture instead of losing
+/// its frost.
+Widget _frost({
+  required double sigma,
+  Color? tint,
+  required double radius,
+  required Widget child,
+}) {
+  final tinted = (tint == null || tint.a == 0)
+      ? child
+      : ColoredBox(color: tint, child: child);
+  return Consumer(
+    builder: (context, ref, _) {
+      final surface = ref.watch(chromeBlurFrozen)
+          ? tinted
+          : BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+              child: tinted,
+            );
+      return radius > 0
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(radius),
+              child: surface,
+            )
+          : surface;
+    },
+  );
 }

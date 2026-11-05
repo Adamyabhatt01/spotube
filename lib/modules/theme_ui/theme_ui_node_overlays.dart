@@ -50,7 +50,18 @@ extension _ThemeUiOverlayNodes on ThemeUiNodeView {
         child: content,
       );
     }
-    return ThemeUiKitScope(kit: kit, child: content);
+    // Overlays mount outside the document's inherited scope, so the anchor
+    // registry is re-provided here: an `anchor` node inside a dialog or menu
+    // still resolves for `scrollTo`, and names stay document-unique.
+    final anchors = ThemeUiAnchorRegistryScope.maybeOf(anchor) ??
+        ThemeUiAnchorRegistry();
+    return ThemeUiKitScope(
+      kit: kit,
+      child: ThemeUiAnchorRegistryScope(
+        registry: anchors,
+        child: content,
+      ),
+    );
   }
 
   Alignment _menuAlignment(Object? raw) => switch (raw) {
@@ -274,6 +285,24 @@ extension _ThemeUiOverlayNodes on ThemeUiNodeView {
     Map<String, dynamic> props,
     List<Map<String, dynamic>> children,
   ) {
+    // `hostItem` asks the host for the menu it already owns for this row:
+    // a theme that draws a track row gets the same right-click menu the
+    // host's own track rows carry, with the same verbs and the same user
+    // configuration.
+    if (props['hostItem'] == true) {
+      final item = runtime.item;
+      if (item is SpotubeTrackObject) {
+        return TrackContextMenu(
+          track: item,
+          child: _columnOf(context, children),
+        );
+      }
+      return HostItemContextMenu(
+        item: item,
+        child: _columnOf(context, children),
+      );
+    }
+
     final items = _menuItems(
       context,
       props['items'],

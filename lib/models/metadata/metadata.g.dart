@@ -685,6 +685,9 @@ _$ThemeDefinitionImpl _$$ThemeDefinitionImplFromJson(Map json) =>
           ) ??
           const {},
       ui: _themeUiFromJson(json['ui']),
+      capabilities: json['capabilities'] == null
+          ? const <String>[]
+          : _capabilitiesFromJson(json['capabilities']),
     );
 
 Map<String, dynamic> _$$ThemeDefinitionImplToJson(
@@ -710,6 +713,7 @@ Map<String, dynamic> _$$ThemeDefinitionImplToJson(
       'branding': instance.branding,
       'assets': instance.assets,
       'ui': instance.ui?.toJson(),
+      'capabilities': instance.capabilities,
     };
 
 _$ThemeLayoutImpl _$$ThemeLayoutImplFromJson(Map json) => _$ThemeLayoutImpl(

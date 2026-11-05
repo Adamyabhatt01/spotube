@@ -380,6 +380,7 @@ extension _ThemeUiNodeHelpers on ThemeUiNodeView {
         'settings' => SpotubeIcons.settings,
         'search' => SpotubeIcons.search,
         'library' => SpotubeIcons.library,
+        'music' => SpotubeIcons.music,
         'download' => SpotubeIcons.download,
         'back' => SpotubeIcons.angleLeft,
         'close' => SpotubeIcons.close,
@@ -387,6 +388,8 @@ extension _ThemeUiNodeHelpers on ThemeUiNodeView {
         'home' => SpotubeIcons.home,
         'radio' => SpotubeIcons.radio,
         'stats' => SpotubeIcons.chart,
+        'chevronLeft' => SpotubeIcons.angleLeft,
+        'chevronRight' => SpotubeIcons.angleRight,
         _ => Icons.circle_outlined,
       };
 }
@@ -431,6 +434,9 @@ ThemeUiRuntime _itemRuntime(
     renderPoints: runtime.renderPoints,
     specVersion: runtime.specVersion,
     capabilities: runtime.capabilities,
+    // The typed entry travels with the row, so a host surface (a track's
+    // right-click menu) can act on the object itself.
+    item: item,
     paletteFor: runtime.paletteFor,
     requestPalette: runtime.requestPalette,
     templateDepth: runtime.templateDepth,

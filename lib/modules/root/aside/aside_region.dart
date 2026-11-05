@@ -62,6 +62,9 @@ class AsideRegion extends ConsumerWidget {
           child: ThemeSlot(
             slot,
             crossAxisAlignment: CrossAxisAlignment.stretch,
+            // The aside is a full-height panel: a theme's queue list needs to
+            // scroll inside it instead of sizing the panel to its content.
+            stretch: true,
           ),
         ),
       ],

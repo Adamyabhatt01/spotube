@@ -9,6 +9,7 @@ import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/adaptive/adaptive_pop_sheet_list.dart';
+import 'package:spotube/components/playbutton_view/collection_row_policy.dart';
 import 'package:spotube/components/playbutton_view/playbutton_tile.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/equalizer/equalizer.dart';
@@ -24,11 +25,13 @@ import 'package:spotube/modules/player/volume_slider.dart';
 import 'package:spotube/modules/playlist/playlist_card.dart';
 import 'package:spotube/modules/playlist/playlist_create_dialog.dart';
 import 'package:spotube/modules/theme_ui/host_widgets/theme_ui_settings_body.dart';
+import 'package:spotube/modules/playlist/liked_playlist_synthetic.dart';
 import 'package:spotube/modules/theme_ui/theme_pins.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_runtime.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/crossfade_duration_provider.dart';
+import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/metadata_plugin/library/albums.dart';
 import 'package:spotube/provider/metadata_plugin/library/artists.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
@@ -79,10 +82,59 @@ class ThemeUiHostWidgets {
       'filter',
       'pinTarget',
       'direction',
+      'showPin',
+      'showQueue',
+      'showPlay',
+      'coverPlays',
+      'showTitle',
+      'showSubtitle',
+      'density',
+      'coverSize',
+      'coverRadius',
+      'showDividers',
+      'rowSpacing',
     },
-    'library.pins': {'compact', 'target', 'direction'},
-    'library.albums': {'compact'},
-    'library.artists': {'compact'},
+    'library.pins': {
+      'compact',
+      'target',
+      'direction',
+      'showPin',
+      'showQueue',
+      'showPlay',
+      'coverPlays',
+      'showTitle',
+      'showSubtitle',
+      'density',
+      'coverSize',
+      'coverRadius',
+      'showDividers',
+      'rowSpacing',
+    },
+    'library.albums': {
+      'compact',
+      'showQueue',
+      'showPlay',
+      'coverPlays',
+      'showTitle',
+      'showSubtitle',
+      'density',
+      'coverSize',
+      'coverRadius',
+      'showDividers',
+      'rowSpacing',
+    },
+    'library.artists': {
+      'compact',
+      'showPlay',
+      'coverPlays',
+      'showTitle',
+      'showSubtitle',
+      'density',
+      'coverSize',
+      'coverRadius',
+      'showDividers',
+      'rowSpacing',
+    },
     'player.controls': {'compact', 'showProgress', 'showVolume'},
     'audio.bass': {'compact'},
     'audio.equalizer': {'bands'},
@@ -198,6 +250,17 @@ class ThemeUiHostWidgets {
       'limit': 200,
       'showSearch': false,
       'showCreate': false,
+      if (props['showPin'] is bool) 'showPin': props['showPin'],
+      if (props['showQueue'] is bool) 'showQueue': props['showQueue'],
+      if (props['showPlay'] is bool) 'showPlay': props['showPlay'],
+      if (props['coverPlays'] is bool) 'coverPlays': props['coverPlays'],
+      if (props['showTitle'] is bool) 'showTitle': props['showTitle'],
+      if (props['showSubtitle'] is bool) 'showSubtitle': props['showSubtitle'],
+      if (props['density'] is String) 'density': props['density'],
+      if (props['coverSize'] is num) 'coverSize': props['coverSize'],
+      if (props['coverRadius'] is num) 'coverRadius': props['coverRadius'],
+      if (props['showDividers'] is bool) 'showDividers': props['showDividers'],
+      if (props['rowSpacing'] is num) 'rowSpacing': props['rowSpacing'],
     };
   }
 }
@@ -265,6 +328,7 @@ class _ThemeUiCollection extends StatelessWidget {
     required this.compact,
     required this.horizontal,
     required this.hasArtist,
+    this.listStyle = const CollectionListStyle(),
   });
 
   final List<Object> items;
@@ -272,6 +336,10 @@ class _ThemeUiCollection extends StatelessWidget {
   final bool compact;
   final bool horizontal;
   final bool hasArtist;
+
+  /// List-level styling from the theme: whether to separate compact rows and
+  /// the additional vertical gap between rows.
+  final CollectionListStyle listStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -288,7 +356,8 @@ class _ThemeUiCollection extends StatelessWidget {
           padding: EdgeInsets.zero,
           scrollDirection: Axis.horizontal,
           itemCount: items.length,
-          separatorBuilder: (_, __) => const Gap(8),
+          separatorBuilder: (_, __) =>
+              Gap(8 + listStyle.rowSpacing.toDouble()),
           itemBuilder: (context, index) {
             // A tile fills the width it is given; a card picks its own.
             return compact
@@ -306,14 +375,16 @@ class _ThemeUiCollection extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: items.length,
-        separatorBuilder: (_, __) => const Divider(),
+        separatorBuilder: (_, __) => listStyle.showDividers
+            ? const Divider()
+            : SizedBox(height: listStyle.rowSpacing.toDouble()),
         itemBuilder: (context, index) => builder(context, items[index]),
       );
     }
 
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: 8 + listStyle.rowSpacing.toDouble(),
+      runSpacing: 8 + listStyle.rowSpacing.toDouble(),
       children: [for (final item in items) builder(context, item)],
     );
   }
@@ -349,6 +420,13 @@ class _ThemeUiPlaylists extends HookConsumerWidget {
         ) ==
         'horizontal';
 
+    // The row chrome belongs to the theme: the same host widget draws the
+    // expanded sidebar rows and the collapsed rail's cover-only rows, and
+    // the props decide which. The host does not second-guess the theme
+    // with a collapse check of its own.
+    final rowPolicy = collectionRowPolicyFromProps(props);
+    final listStyle = collectionListStyleFromProps(props);
+
     // The sidebar pin list is a preference; every other target is a theme pin.
     final pinTarget = ThemeUiHostWidgets.stringProp(props['pinTarget']);
     final pinnedIds = pinTarget == null || pinTarget == 'sidebar'
@@ -368,7 +446,18 @@ class _ThemeUiPlaylists extends HookConsumerWidget {
     // plugin's entry wins so a rename on the service is not shadowed.
     final mirrored = ref.watch(mirroredPlaylistsProvider).asData?.value ??
         const <SpotubeSimplePlaylistObject>[];
+    final me = ref.watch(metadataPluginUserProvider).asData?.value;
+    // The synthetic "Liked Songs" entry is backed by the metadata plugin's
+    // savedTracks, so it is real content (not a placeholder) and plays through
+    // the same path as every other playlist.
+    final likedPlaylist = resolveLikedTracksPlaylist(
+      name: context.l10n.liked_tracks,
+      description: context.l10n.liked_tracks_description,
+      me: me,
+      authenticated: me != null,
+    );
     final all = <String, SpotubeSimplePlaylistObject>{
+      if (likedPlaylist != null) likedTracksPlaylistId: likedPlaylist,
       for (final playlist in mirrored) playlist.id: playlist,
       for (final playlist in saved) playlist.id: playlist,
     }.values.toList();
@@ -413,11 +502,12 @@ class _ThemeUiPlaylists extends HookConsumerWidget {
             compact: compact,
             horizontal: horizontal,
             hasArtist: false,
+            listStyle: listStyle,
             builder: (context, item) {
               final playlist = item as SpotubeSimplePlaylistObject;
               return compact
-                  ? PlaylistCard.tile(playlist)
-                  : PlaylistCard(playlist);
+                  ? PlaylistCard.tile(playlist, rowPolicy: rowPolicy)
+                  : PlaylistCard(playlist, rowPolicy: rowPolicy);
             },
           ),
       ],
@@ -438,14 +528,19 @@ class _ThemeUiAlbums extends ConsumerWidget {
     if (albums.isEmpty) return const SizedBox.shrink();
 
     final compact = ThemeUiHostWidgets.boolProp(props['compact']);
+    final rowPolicy = collectionRowPolicyFromProps(props);
+    final listStyle = collectionListStyleFromProps(props);
     return _ThemeUiCollection(
       items: albums,
       compact: compact,
       horizontal: false,
       hasArtist: false,
+      listStyle: listStyle,
       builder: (context, item) {
         final album = item as SpotubeSimpleAlbumObject;
-        return compact ? AlbumCard.tile(album) : AlbumCard(album);
+        return compact
+            ? AlbumCard.tile(album, rowPolicy: rowPolicy)
+            : AlbumCard(album, rowPolicy: rowPolicy);
       },
     );
   }
@@ -464,12 +559,15 @@ class _ThemeUiArtists extends ConsumerWidget {
     if (artists.isEmpty) return const SizedBox.shrink();
 
     final compact = ThemeUiHostWidgets.boolProp(props['compact']);
+    final rowPolicy = collectionRowPolicyFromProps(props);
+    final listStyle = collectionListStyleFromProps(props);
     if (!compact) {
       return _ThemeUiCollection(
         items: artists,
         compact: false,
         horizontal: false,
         hasArtist: true,
+        listStyle: listStyle,
         builder: (context, item) => ArtistCard(item as SpotubeFullArtistObject),
       );
     }
@@ -483,6 +581,7 @@ class _ThemeUiArtists extends ConsumerWidget {
       compact: true,
       horizontal: false,
       hasArtist: true,
+      listStyle: listStyle,
       builder: (context, item) {
         final artist = item as SpotubeFullArtistObject;
         return PlaybuttonTile(
@@ -492,6 +591,7 @@ class _ThemeUiArtists extends ConsumerWidget {
               artist.images.asUrlString(placeholder: ImagePlaceholder.artist),
           isPlaying: false,
           isLoading: false,
+          rowPolicy: rowPolicy,
           onTap: () => context.navigateTo(ArtistRoute(artistId: artist.id)),
         );
       },

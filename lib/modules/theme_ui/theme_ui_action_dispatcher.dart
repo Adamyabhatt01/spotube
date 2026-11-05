@@ -27,6 +27,7 @@ import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 import 'package:spotube/provider/metadata_plugin/library/tracks.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/playlist/playlist.dart';
+import 'package:spotube/provider/player/player_actions_service.dart';
 import 'package:spotube/provider/sleep_timer_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/provider/volume_provider.dart';
@@ -46,29 +47,19 @@ Future<void> dispatchThemeUiAction(
   try {
     switch (action.type) {
       case 'playPause':
-        if (ref.read(audioPlayerProvider).activeTrack == null) return;
-        final player = ref.read(audioPlayerPortProvider);
-        if (player.isPlaying) {
-          await player.pause();
-        } else {
-          await player.resume();
-        }
       case 'next':
-        if (ref.read(audioPlayerProvider).activeTrack == null) return;
-        await ref.read(audioPlayerPortProvider).skipToNext();
       case 'previous':
-        if (ref.read(audioPlayerProvider).activeTrack == null) return;
-        await ref.read(audioPlayerPortProvider).skipToPrevious();
       case 'seek':
-        await _seek(ref, action.args);
       case 'setVolume':
-        await _setVolume(ref, action.args);
+      case 'like':
+        // Transport verbs live in PlayerActionsService: a spoken command asks
+        // for the same thing and must not get a second, diverging copy of the
+        // guards and clamping below.
+        await _transport(ref, action);
       case 'setShuffle':
         await _setShuffle(ref, action.args);
       case 'setLoopMode':
         await _setLoopMode(ref, action.args);
-      case 'like':
-        await _toggleLike(ref);
       case 'download':
         _download(ref);
       case 'openSettings':
@@ -108,11 +99,11 @@ Future<void> dispatchThemeUiAction(
       case 'clearQuery':
         _clearQuery(ref, action.args);
       case 'setSetting':
-        _setSetting(ref, action.args);
+        await _setSetting(ref, action.args);
       case 'toggleSetting':
-        _toggleSetting(ref, action.args);
+        await _toggleSetting(ref, action.args);
       case 'copy':
-        await _copy(action.args);
+        await _copy(ref, action.args);
       case 'refresh':
         await _refresh(ref, action.args);
       case 'toggleSidebar':
@@ -149,38 +140,26 @@ Future<void> dispatchThemeUiAction(
   }
 }
 
-Future<void> _seek(ProviderContainer ref, Map<String, dynamic> args) async {
-  final player = ref.read(audioPlayerPortProvider);
-  final duration = player.duration;
-  final seconds = args['position'];
-  final fraction = args['fraction'];
-  final target = switch ((seconds, fraction)) {
-    (final num value, _) => Duration(milliseconds: (value * 1000).round()),
-    (_, final num value) => Duration(
-        milliseconds: (duration.inMilliseconds * value.clamp(0, 1)).round(),
-      ),
-    _ => null,
-  };
-  if (target == null) return;
-  final max = duration > Duration.zero ? duration : target;
-  await player.seek(
-    Duration(
-      milliseconds: target.inMilliseconds.clamp(0, max.inMilliseconds).toInt(),
-    ),
-  );
-}
-
-Future<void> _setVolume(
-    ProviderContainer ref, Map<String, dynamic> args) async {
-  final current = ref.read(volumeProvider);
-  final raw = args['volume'] ?? args['value'];
-  final target = switch (raw) {
-    final num value => value.toDouble(),
-    _ =>
-      args['delta'] is num ? current + (args['delta'] as num).toDouble() : null,
-  };
-  if (target == null || !target.isFinite) return;
-  await ref.read(volumeProvider.notifier).setVolume(target.clamp(0, 1));
+/// Hands a transport verb to the service the voice executor uses too.
+///
+/// The args travel as a map because that is what a theme's JSON gives and what
+/// a spoken command's slots produce; the service does the parsing.
+Future<void> _transport(ProviderContainer ref, ThemeUiAction action) async {
+  final actions = ref.read(playerActionsServiceProvider);
+  switch (action.type) {
+    case 'playPause':
+      await actions.playPause();
+    case 'next':
+      await actions.next();
+    case 'previous':
+      await actions.previous();
+    case 'seek':
+      await actions.seek(action.args);
+    case 'setVolume':
+      await actions.setVolume(action.args);
+    case 'like':
+      await actions.like();
+  }
 }
 
 Future<void> _setShuffle(
@@ -278,14 +257,6 @@ Future<void> _setMuted(ProviderContainer ref, Map<String, dynamic> args) async {
   final current = ref.read(volumeProvider);
   final muted = raw is bool ? raw : current > 0;
   await ref.read(volumeProvider.notifier).setMuted(muted);
-}
-
-Future<void> _toggleLike(ProviderContainer ref) async {
-  final track = ref.read(audioPlayerProvider).activeTrack;
-  if (track == null) return;
-  await ref
-      .read(metadataPluginSavedTracksProvider.notifier)
-      .toggleFavorite(track);
 }
 
 void _download(ProviderContainer ref) {
@@ -443,17 +414,18 @@ void _setPinnedItem(
   ref.read(themePinsProvider.notifier).setPinned(target, id, pinned: pinned);
 }
 
-/// The active theme's declared capabilities gate the account mutations.
+/// The active theme's declared capabilities gate the writes it may perform.
 ///
 /// The authoring validator enforces the full capability table, but an installed
-/// plugin need not have been built by it, so the host itself refuses anything
-/// that writes to the user's own library unless the document declares
-/// `library.write`. `pinItem`/`unpinItem` are deliberately not gated here: a
-/// pin is local ordering state, not an account write, and gating it would
-/// regress themes that pin without asking for `library.write`.
-Future<bool> _grantsLibraryWrite(ProviderContainer ref) async {
+/// plugin need not have been built by it, so the host itself refuses a write
+/// the document did not ask for: `library.write` for the account mutations,
+/// `settings.write` and `clipboard.write` for the two that reach the user's own
+/// machine. `pinItem`/`unpinItem` are deliberately not gated here: a pin is
+/// local ordering state, not an account write, and gating it would regress
+/// themes that pin without asking for `library.write`.
+Future<bool> _grants(ProviderContainer ref, String capability) async {
   final ui = await ref.read(themeUiProvider.future);
-  return ui?.capabilities.contains('library.write') ?? false;
+  return ui?.capabilities.contains(capability) ?? false;
 }
 
 const _playlistNameMax = 100;
@@ -477,7 +449,7 @@ String? _cappedString(Object? raw, int max) {
 
 Future<void> _createPlaylist(
     ProviderContainer ref, Map<String, dynamic> args) async {
-  if (!await _grantsLibraryWrite(ref)) return;
+  if (!await _grants(ref, 'library.write')) return;
   final name = _cappedString(args['name'], _playlistNameMax);
   if (name == null) return;
   await ref.read(metadataPluginPlaylistProvider('').notifier).create(
@@ -493,7 +465,7 @@ Future<void> _createPlaylist(
 
 Future<void> _renamePlaylist(
     ProviderContainer ref, Map<String, dynamic> args) async {
-  if (!await _grantsLibraryWrite(ref)) return;
+  if (!await _grants(ref, 'library.write')) return;
   final id = _playlistRef(args['playlist'] ?? args['item']);
   final name = _cappedString(args['name'], _playlistNameMax);
   if (id == null || name == null) return;
@@ -509,7 +481,7 @@ Future<void> _deletePlaylist(
   ProviderContainer ref,
   Map<String, dynamic> args,
 ) async {
-  if (!await _grantsLibraryWrite(ref)) return;
+  if (!await _grants(ref, 'library.write')) return;
   final id = _playlistRef(args['playlist'] ?? args['item']);
   if (id == null) return;
   if (!context.mounted) return;
@@ -529,7 +501,7 @@ Future<void> _deletePlaylist(
 
 Future<void> _addToPlaylist(
     ProviderContainer ref, Map<String, dynamic> args) async {
-  if (!await _grantsLibraryWrite(ref)) return;
+  if (!await _grants(ref, 'library.write')) return;
   final playlistId = _playlistRef(args['playlist'] ?? args['id']);
   if (playlistId == null) return;
   final trackIds = _trackIdsFromArgs(args);
@@ -712,7 +684,9 @@ void _clearQuery(ProviderContainer ref, Map<String, dynamic> args) {
 
 /// Writes a theme-owned setting. Only scalar values are accepted; a theme
 /// cannot smuggle a nested object into the binding map through an action.
-void _setSetting(ProviderContainer ref, Map<String, dynamic> args) {
+Future<void> _setSetting(
+    ProviderContainer ref, Map<String, dynamic> args) async {
+  if (!await _grants(ref, 'settings.write')) return;
   final key = args['key'];
   if (key is! String || !_settingKeyPattern.hasMatch(key)) return;
   final value = args['value'];
@@ -728,7 +702,9 @@ void _setSetting(ProviderContainer ref, Map<String, dynamic> args) {
   }
 }
 
-void _toggleSetting(ProviderContainer ref, Map<String, dynamic> args) {
+Future<void> _toggleSetting(
+    ProviderContainer ref, Map<String, dynamic> args) async {
+  if (!await _grants(ref, 'settings.write')) return;
   final key = args['key'];
   if (key is! String || !_settingKeyPattern.hasMatch(key)) return;
   ref.read(themeUiSettingsProvider.notifier).toggle(key);
@@ -782,7 +758,9 @@ void _toggleRegion(
   }
 }
 
-Future<void> _copy(Map<String, dynamic> args) async {
+Future<void> _copy(
+    ProviderContainer ref, Map<String, dynamic> args) async {
+  if (!await _grants(ref, 'clipboard.write')) return;
   final text = args['text'];
   if (text is! String || text.isEmpty) return;
   await Clipboard.setData(

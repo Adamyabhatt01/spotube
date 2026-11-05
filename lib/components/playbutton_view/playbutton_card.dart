@@ -2,6 +2,7 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/image/universal_image.dart';
 import 'package:spotube/components/play_pause_icon.dart';
+import 'package:spotube/components/playbutton_view/collection_row_policy.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/extensions/string.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
@@ -44,6 +45,16 @@ class PlaybuttonCard extends StatelessWidget {
   final void Function()? onPlaybuttonPressed;
   final void Function()? onAddToQueuePressed;
   final void Function()? onPinPressed;
+
+  /// Tapping the cover plays (or resumes) the collection. Null keeps the
+  /// cover as part of the card's navigation tap.
+  final void Function()? onCoverTap;
+
+  /// The theme-managed row policy: which trailing actions render, whether the
+  /// cover plays, whether the subtitle shows, and how dense the row is.
+  /// See `CollectionRowPolicy` for the defaults.
+  final CollectionRowPolicy rowPolicy;
+
   final String? description;
 
   final String? imageUrl;
@@ -82,6 +93,8 @@ class PlaybuttonCard extends StatelessWidget {
     this.onAddToQueuePressed,
     this.onPinPressed,
     this.onTap,
+    this.onCoverTap,
+    this.rowPolicy = const CollectionRowPolicy(),
     this.isOwner = false,
     this.isPinned = false,
     this.imageUrl,
@@ -95,10 +108,12 @@ class PlaybuttonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final unescapeHtml = description.strippedHtml();
-    // 4/3 is the decode oversample the fixed 150px card used with a 200px
-    // image; the cover is square, so one value serves both edges.
-    final coverSize = context.gridCardWidth;
-    final coverRadius = BorderRadius.circular(context.cardCornerRadius);
+    final gridCoverSize = context.gridCardWidth;
+    // Row-policy props may override the card cover edge and corner radius.
+    final coverSize = rowPolicy.coverSize?.toDouble() ?? gridCoverSize;
+    final coverRadius = rowPolicy.coverRadius == null
+        ? BorderRadius.circular(context.cardCornerRadius)
+        : BorderRadius.circular(rowPolicy.coverRadius!.toDouble());
     // A play spinner is only honest while nothing is sounding. This guards
     // against a caller whose loading flag outlives audible playback (for
     // example, a slow manifest after a downloaded copy has already started).
@@ -141,6 +156,15 @@ class PlaybuttonCard extends StatelessWidget {
       child: CardImage(
         image: Stack(
           children: [
+            // Bottom-most capture: if the theme routes cover taps to play,
+            // this widget wins everywhere the overlay buttons do not.
+            if (onCoverTap != null)
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onCoverTap,
+                ),
+              ),
             cover,
             StatedWidget.builder(
               builder: (context, states) {
@@ -155,36 +179,39 @@ class PlaybuttonCard extends StatelessWidget {
                   bottom: 8,
                   child: Column(
                     children: [
-                      hoverReveal(
-                        shown: hovered && !isLoading,
-                        duration: const Duration(milliseconds: 300),
-                        animated: !kIsMobile,
-                        child: IconButton.secondary(
-                          icon: const Icon(SpotubeIcons.queueAdd),
-                          onPressed: onAddToQueuePressed,
-                          enabled: !isLoading && !isQueueLoading,
-                          size: ButtonSize.small,
+                      if (rowPolicy.showQueue)
+                        hoverReveal(
+                          shown: hovered && !isLoading,
+                          duration: const Duration(milliseconds: 300),
+                          animated: !kIsMobile,
+                          child: IconButton.secondary(
+                            icon: const Icon(SpotubeIcons.queueAdd),
+                            onPressed: onAddToQueuePressed,
+                            enabled: !isLoading && !isQueueLoading,
+                            size: ButtonSize.small,
+                          ),
                         ),
-                      ),
-                      const Gap(5),
-                      hoverReveal(
-                        shown: hovered || isPlaying || isLoading,
-                        duration: const Duration(milliseconds: 150),
-                        animated: !kIsMobile,
-                        child: IconButton.secondary(
-                          icon: switch ((showPlaySpinner, isActuallyPlaying)) {
-                            (true, _) => const CircularProgressIndicator(
-                                size: 15,
-                              ),
-                            (false, _) => AnimatedPlayPauseIcon(
-                                isPlaying: isActuallyPlaying,
-                              ),
-                          },
-                          enabled: canPressPlay,
-                          onPressed: onPlaybuttonPressed,
-                          size: ButtonSize.small,
+                      if (rowPolicy.showQueue && rowPolicy.showPlay)
+                        const Gap(5),
+                      if (rowPolicy.showPlay)
+                        hoverReveal(
+                          shown: hovered || isPlaying || isLoading,
+                          duration: const Duration(milliseconds: 150),
+                          animated: !kIsMobile,
+                          child: IconButton.secondary(
+                            icon: switch ((showPlaySpinner, isActuallyPlaying)) {
+                              (true, _) => const CircularProgressIndicator(
+                                  size: 15,
+                                ),
+                              (false, _) => AnimatedPlayPauseIcon(
+                                  isPlaying: isActuallyPlaying,
+                                ),
+                            },
+                            enabled: canPressPlay,
+                            onPressed: onPlaybuttonPressed,
+                            size: ButtonSize.small,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 );
@@ -206,7 +233,9 @@ class PlaybuttonCard extends StatelessWidget {
             // Top-left: top-right carries the owner badge. On touch there is
             // no hover, so the button only exists when pinned — an invisible
             // Opacity-zero button would still swallow taps on the cover.
-            if (onPinPressed != null && (isPinned || !kIsMobile))
+            if (rowPolicy.showPin &&
+                onPinPressed != null &&
+                (isPinned || !kIsMobile))
               StatedWidget.builder(
                 builder: (context, states) {
                   final hovered = states.contains(WidgetState.hovered);
@@ -245,11 +274,13 @@ class PlaybuttonCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        subtitle: Text(
-          unescapeHtml.isEmpty ? "\n" : unescapeHtml,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
+        subtitle: rowPolicy.showSubtitle
+            ? Text(
+                unescapeHtml.isEmpty ? "\n" : unescapeHtml,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              )
+            : null,
         onPressed: onTap,
       ),
     );

@@ -52,6 +52,15 @@ class ThemeDefinition with _$ThemeDefinition {
     /// malformed tree is dropped here rather than taking the palette with
     /// it, so a broken screen cannot leave the user on the built-in theme.
     @JsonKey(fromJson: _themeUiFromJson) ThemeUiDocument? ui,
+
+    /// The capabilities the payload declared at `getTheme()` time.
+    ///
+    /// The contract spells them once, at the top level; `ui.capabilities` is
+    /// the copy the renderer reads. A palette-only theme has no `ui`, but its
+    /// `showSettings()` document still dispatches actions, so the grant lives
+    /// here too and `themeCapabilitiesProvider` unions the two.
+    @JsonKey(fromJson: _capabilitiesFromJson)
+    @Default(<String>[]) List<String> capabilities,
   }) = _ThemeDefinition;
 
   factory ThemeDefinition.fromJson(Map<String, dynamic> json) =>
@@ -673,6 +682,14 @@ List<String> _safeArea(Object? raw) {
 String? _shellKey(Object? raw) {
   if (raw is! String || raw.isEmpty || raw.length > 64) return null;
   return RegExp(r'^[a-z][a-z0-9_.-]*$').hasMatch(raw) ? raw : null;
+}
+
+/// Tolerant decode of the payload's top-level `capabilities` list: non-string
+/// entries are dropped rather than throwing, so junk in this one key does not
+/// take the whole palette down. Content clamping happens in the sanitizer.
+List<String> _capabilitiesFromJson(Object? raw) {
+  if (raw is! List) return const [];
+  return raw.whereType<String>().toList(growable: false);
 }
 
 double? _shellNumber(Object? raw, double min, double max) {

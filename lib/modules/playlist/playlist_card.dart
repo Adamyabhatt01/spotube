@@ -3,6 +3,7 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/routes.gr.dart';
+import 'package:spotube/components/playbutton_view/collection_row_policy.dart';
 import 'package:spotube/components/playbutton_view/playbutton_card.dart';
 import 'package:spotube/components/playbutton_view/playbutton_tile.dart';
 import 'package:spotube/extensions/context.dart';
@@ -20,14 +21,21 @@ class PlaylistCard extends HookConsumerWidget {
   final SpotubeSimplePlaylistObject playlist;
   final bool _isTile;
 
+  /// The theme-managed row policy: trailing action visibility, cover play,
+  /// subtitle, density, cover size and radius. Defaults preserve the current
+  /// presentation; a theme host widget passes a policy read from its props.
+  final CollectionRowPolicy rowPolicy;
+
   const PlaylistCard(
     this.playlist, {
     super.key,
+    this.rowPolicy = const CollectionRowPolicy(),
   }) : _isTile = false;
 
   const PlaylistCard.tile(
     this.playlist, {
     super.key,
+    this.rowPolicy = const CollectionRowPolicy(),
   }) : _isTile = true;
 
   @override
@@ -160,6 +168,8 @@ class PlaylistCard extends HookConsumerWidget {
             isOwner: isOwner,
             isPinned: isPinned,
             onTap: onTap,
+            onCoverTap: rowPolicy.coverPlays ? onPlaybuttonPressed : null,
+            rowPolicy: rowPolicy,
             onPlaybuttonPressed: onPlaybuttonPressed,
             onAddToQueuePressed: onAddToQueuePressed,
             onPinPressed: onPinPressed,
@@ -178,6 +188,8 @@ class PlaylistCard extends HookConsumerWidget {
             isOwner: isOwner,
             isPinned: isPinned,
             onTap: onTap,
+            onCoverTap: rowPolicy.coverPlays ? onPlaybuttonPressed : null,
+            rowPolicy: rowPolicy,
             onPlaybuttonPressed: onPlaybuttonPressed,
             onAddToQueuePressed: onAddToQueuePressed,
             onPinPressed: onPinPressed,

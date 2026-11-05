@@ -54,6 +54,7 @@ class ThemeUiAction {
     'renamePlaylist',
     'deletePlaylist',
     'addToPlaylist',
+    'scrollTo',
   };
 
   final String type;

@@ -560,6 +560,10 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
         ? null
         : _color(context, hoverRaw, fallback: background);
     final opacity = _clamp(props['opacity'], 0, 1, fallback: 1);
+    final blur = _clamp(props['blur'], 0, 100, fallback: 0);
+    final blurTint = props['blurTint'] == null
+        ? null
+        : _color(context, props['blurTint'], fallback: Colors.transparent);
     final padding = _px(
       context,
       props['padding'] ?? component['padding'],
@@ -604,9 +608,17 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(radius), child: card)
             : card;
-        return opacity < 1
-            ? Opacity(opacity: opacity, child: clipped)
+        final surface = blur > 0
+            ? _frost(
+                sigma: blur,
+                tint: blurTint,
+                radius: radius,
+                child: clipped,
+              )
             : clipped;
+        return opacity < 1
+            ? Opacity(opacity: opacity, child: surface)
+            : surface;
       },
     );
   }

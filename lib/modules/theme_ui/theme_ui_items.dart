@@ -55,7 +55,6 @@ Map<String, Object?> themeItemBindings(
     case SpotubeSimpleAlbumObject album:
       _album(values, album);
       values['item.kind'] = 'album';
-      values['item.trackCount'] = 0;
     case SpotubeFullArtistObject artist:
       values['item.id'] = artist.id;
       values['item.title'] = artist.name;

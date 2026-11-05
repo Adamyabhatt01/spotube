@@ -93,6 +93,33 @@ ThemeDefinition sanitizeThemeDefinition(ThemeDefinition definition) {
 double _fraction(double value, double fallback) =>
     _between(value, min: 0, max: 1, fallback: fallback);
 
+/// Moves the payload's declared capabilities onto its UI document.
+///
+/// The contract declares capabilities once, at the top level of `getTheme()`:
+/// `"capabilities": ["ui.hostWidgets", "library.write"]`. The runtime reads
+/// them from [ThemeUiDocument.capabilities], because a UI document can also
+/// arrive from `getUi()`/`onUiAction()` without the theme payload around it.
+/// Nothing copied the list across, so every opt-in host widget and
+/// account-mutating action saw an empty grant and silently disabled itself.
+///
+/// Anything the document already declares is kept, so both spellings work for
+/// a theme built against a host that expected the list inside `ui`.
+ThemeDefinition withUiCapabilities(
+  ThemeDefinition definition,
+  List<String> payloadCapabilities,
+) {
+  final ui = definition.ui;
+  if (ui == null || payloadCapabilities.isEmpty) return definition;
+
+  final merged = <String>{
+    ...ui.capabilities,
+    ...payloadCapabilities,
+  }.toList(growable: false);
+  if (merged.length == ui.capabilities.length) return definition;
+
+  return definition.copyWith(ui: ui.copyWith(capabilities: merged));
+}
+
 /// Density rides the app's size and text scaling, so a wild value resizes
 /// every widget at once. Zero or negative means "not a density" and is read as
 /// the neutral 1.0 rather than the nearest bound — an unset field arrives as 0

@@ -6831,6 +6831,15 @@ mixin _$ThemeDefinition {
   @JsonKey(fromJson: _themeUiFromJson)
   ThemeUiDocument? get ui => throw _privateConstructorUsedError;
 
+  /// The capabilities the payload declared at `getTheme()` time.
+  ///
+  /// The contract spells them once, at the top level; `ui.capabilities` is
+  /// the copy the renderer reads. A palette-only theme has no `ui`, but its
+  /// `showSettings()` document still dispatches actions, so the grant lives
+  /// here too and `themeCapabilitiesProvider` unions the two.
+  @JsonKey(fromJson: _capabilitiesFromJson)
+  List<String> get capabilities => throw _privateConstructorUsedError;
+
   /// Serializes this ThemeDefinition to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -6867,7 +6876,8 @@ abstract class $ThemeDefinitionCopyWith<$Res> {
       Map<String, dynamic> components,
       Map<String, dynamic> branding,
       Map<String, dynamic> assets,
-      @JsonKey(fromJson: _themeUiFromJson) ThemeUiDocument? ui});
+      @JsonKey(fromJson: _themeUiFromJson) ThemeUiDocument? ui,
+      @JsonKey(fromJson: _capabilitiesFromJson) List<String> capabilities});
 
   $ThemeColorsCopyWith<$Res> get light;
   $ThemeColorsCopyWith<$Res> get dark;
@@ -6915,6 +6925,7 @@ class _$ThemeDefinitionCopyWithImpl<$Res, $Val extends ThemeDefinition>
     Object? branding = null,
     Object? assets = null,
     Object? ui = freezed,
+    Object? capabilities = null,
   }) {
     return _then(_value.copyWith(
       specVersion: null == specVersion
@@ -6997,6 +7008,10 @@ class _$ThemeDefinitionCopyWithImpl<$Res, $Val extends ThemeDefinition>
           ? _value.ui
           : ui // ignore: cast_nullable_to_non_nullable
               as ThemeUiDocument?,
+      capabilities: null == capabilities
+          ? _value.capabilities
+          : capabilities // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ) as $Val);
   }
 
@@ -7127,7 +7142,8 @@ abstract class _$$ThemeDefinitionImplCopyWith<$Res>
       Map<String, dynamic> components,
       Map<String, dynamic> branding,
       Map<String, dynamic> assets,
-      @JsonKey(fromJson: _themeUiFromJson) ThemeUiDocument? ui});
+      @JsonKey(fromJson: _themeUiFromJson) ThemeUiDocument? ui,
+      @JsonKey(fromJson: _capabilitiesFromJson) List<String> capabilities});
 
   @override
   $ThemeColorsCopyWith<$Res> get light;
@@ -7182,6 +7198,7 @@ class __$$ThemeDefinitionImplCopyWithImpl<$Res>
     Object? branding = null,
     Object? assets = null,
     Object? ui = freezed,
+    Object? capabilities = null,
   }) {
     return _then(_$ThemeDefinitionImpl(
       specVersion: null == specVersion
@@ -7264,6 +7281,10 @@ class __$$ThemeDefinitionImplCopyWithImpl<$Res>
           ? _value.ui
           : ui // ignore: cast_nullable_to_non_nullable
               as ThemeUiDocument?,
+      capabilities: null == capabilities
+          ? _value._capabilities
+          : capabilities // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }
@@ -7291,7 +7312,9 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
       final Map<String, dynamic> components = const {},
       final Map<String, dynamic> branding = const {},
       final Map<String, dynamic> assets = const {},
-      @JsonKey(fromJson: _themeUiFromJson) this.ui})
+      @JsonKey(fromJson: _themeUiFromJson) this.ui,
+      @JsonKey(fromJson: _capabilitiesFromJson)
+      final List<String> capabilities = const <String>[]})
       : _typography = typography,
         _spacing = spacing,
         _motion = motion,
@@ -7299,7 +7322,8 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
         _icons = icons,
         _components = components,
         _branding = branding,
-        _assets = assets;
+        _assets = assets,
+        _capabilities = capabilities;
 
   factory _$ThemeDefinitionImpl.fromJson(Map<String, dynamic> json) =>
       _$$ThemeDefinitionImplFromJson(json);
@@ -7444,9 +7468,31 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
   @JsonKey(fromJson: _themeUiFromJson)
   final ThemeUiDocument? ui;
 
+  /// The capabilities the payload declared at `getTheme()` time.
+  ///
+  /// The contract spells them once, at the top level; `ui.capabilities` is
+  /// the copy the renderer reads. A palette-only theme has no `ui`, but its
+  /// `showSettings()` document still dispatches actions, so the grant lives
+  /// here too and `themeCapabilitiesProvider` unions the two.
+  final List<String> _capabilities;
+
+  /// The capabilities the payload declared at `getTheme()` time.
+  ///
+  /// The contract spells them once, at the top level; `ui.capabilities` is
+  /// the copy the renderer reads. A palette-only theme has no `ui`, but its
+  /// `showSettings()` document still dispatches actions, so the grant lives
+  /// here too and `themeCapabilitiesProvider` unions the two.
+  @override
+  @JsonKey(fromJson: _capabilitiesFromJson)
+  List<String> get capabilities {
+    if (_capabilities is EqualUnmodifiableListView) return _capabilities;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_capabilities);
+  }
+
   @override
   String toString() {
-    return 'ThemeDefinition(specVersion: $specVersion, uiKit: $uiKit, light: $light, dark: $dark, surfaces: $surfaces, background: $background, radius: $radius, density: $density, tokens: $tokens, layout: $layout, dynamicTheme: $dynamicTheme, typography: $typography, spacing: $spacing, motion: $motion, scale: $scale, icons: $icons, components: $components, branding: $branding, assets: $assets, ui: $ui)';
+    return 'ThemeDefinition(specVersion: $specVersion, uiKit: $uiKit, light: $light, dark: $dark, surfaces: $surfaces, background: $background, radius: $radius, density: $density, tokens: $tokens, layout: $layout, dynamicTheme: $dynamicTheme, typography: $typography, spacing: $spacing, motion: $motion, scale: $scale, icons: $icons, components: $components, branding: $branding, assets: $assets, ui: $ui, capabilities: $capabilities)';
   }
 
   @override
@@ -7479,7 +7525,9 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
                 .equals(other._components, _components) &&
             const DeepCollectionEquality().equals(other._branding, _branding) &&
             const DeepCollectionEquality().equals(other._assets, _assets) &&
-            (identical(other.ui, ui) || other.ui == ui));
+            (identical(other.ui, ui) || other.ui == ui) &&
+            const DeepCollectionEquality()
+                .equals(other._capabilities, _capabilities));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -7505,7 +7553,8 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
         const DeepCollectionEquality().hash(_components),
         const DeepCollectionEquality().hash(_branding),
         const DeepCollectionEquality().hash(_assets),
-        ui
+        ui,
+        const DeepCollectionEquality().hash(_capabilities)
       ]);
 
   /// Create a copy of ThemeDefinition
@@ -7527,27 +7576,28 @@ class _$ThemeDefinitionImpl implements _ThemeDefinition {
 
 abstract class _ThemeDefinition implements ThemeDefinition {
   const factory _ThemeDefinition(
-          {final int specVersion,
-          final String uiKit,
-          required final ThemeColors light,
-          required final ThemeColors dark,
-          final ThemeSurfaces surfaces,
-          final ThemeBackground background,
-          final ThemeRadius radius,
-          final double density,
-          final ThemeTokens tokens,
-          final ThemeLayout layout,
-          @JsonKey(name: 'dynamic') final DynamicTheme? dynamicTheme,
-          final Map<String, dynamic> typography,
-          final Map<String, dynamic> spacing,
-          final Map<String, dynamic> motion,
-          final Map<String, dynamic> scale,
-          final Map<String, dynamic> icons,
-          final Map<String, dynamic> components,
-          final Map<String, dynamic> branding,
-          final Map<String, dynamic> assets,
-          @JsonKey(fromJson: _themeUiFromJson) final ThemeUiDocument? ui}) =
-      _$ThemeDefinitionImpl;
+      {final int specVersion,
+      final String uiKit,
+      required final ThemeColors light,
+      required final ThemeColors dark,
+      final ThemeSurfaces surfaces,
+      final ThemeBackground background,
+      final ThemeRadius radius,
+      final double density,
+      final ThemeTokens tokens,
+      final ThemeLayout layout,
+      @JsonKey(name: 'dynamic') final DynamicTheme? dynamicTheme,
+      final Map<String, dynamic> typography,
+      final Map<String, dynamic> spacing,
+      final Map<String, dynamic> motion,
+      final Map<String, dynamic> scale,
+      final Map<String, dynamic> icons,
+      final Map<String, dynamic> components,
+      final Map<String, dynamic> branding,
+      final Map<String, dynamic> assets,
+      @JsonKey(fromJson: _themeUiFromJson) final ThemeUiDocument? ui,
+      @JsonKey(fromJson: _capabilitiesFromJson)
+      final List<String> capabilities}) = _$ThemeDefinitionImpl;
 
   factory _ThemeDefinition.fromJson(Map<String, dynamic> json) =
       _$ThemeDefinitionImpl.fromJson;
@@ -7623,6 +7673,16 @@ abstract class _ThemeDefinition implements ThemeDefinition {
   @override
   @JsonKey(fromJson: _themeUiFromJson)
   ThemeUiDocument? get ui;
+
+  /// The capabilities the payload declared at `getTheme()` time.
+  ///
+  /// The contract spells them once, at the top level; `ui.capabilities` is
+  /// the copy the renderer reads. A palette-only theme has no `ui`, but its
+  /// `showSettings()` document still dispatches actions, so the grant lives
+  /// here too and `themeCapabilitiesProvider` unions the two.
+  @override
+  @JsonKey(fromJson: _capabilitiesFromJson)
+  List<String> get capabilities;
 
   /// Create a copy of ThemeDefinition
   /// with the given fields replaced by the non-null parameter values.

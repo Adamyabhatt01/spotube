@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart' as cupertino;
@@ -9,19 +10,25 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/spotube_icons.dart';
 import 'package:spotube/components/image/universal_image.dart';
+import 'package:spotube/components/track_tile/track_context_menu.dart';
+import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/context_menu/context_menu_target.dart';
 import 'package:spotube/provider/context_menu/context_menu_provider.dart';
 import 'package:spotube/modules/theme_ui/host_widgets/theme_ui_host_widgets.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_action.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_anchors.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
+import 'package:spotube/modules/theme_ui/host_item_context_menu.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_runtime.dart';
 import 'package:spotube/modules/home/home_search_bar.dart';
+import 'package:spotube/modules/root/spotube_navigation_bar.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_items.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_kit.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_kit_resolver.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_render_points.dart';
 import 'package:spotube/modules/theme_shell/theme_presentation.dart';
+import 'package:spotube/modules/theme_shell/theme_shell.dart';
 import 'package:spotube/services/kv_store/kv_store.dart';
 import 'package:spotube/utils/theme_converter.dart';
 
@@ -222,6 +229,20 @@ class ThemeUiNodeView extends StatelessWidget {
         ),
       );
     }
+
+    // `anchor` names a spot a `scrollTo` action can reach. The keyed wrapper
+    // is outermost so the anchor's context sits below every scrollable the
+    // node itself might introduce.
+    final anchor = props['anchor'];
+    if (anchor is String && anchor.trim().isNotEmpty) {
+      final registry = ThemeUiAnchorRegistryScope.maybeOf(context);
+      if (registry != null) {
+        result = KeyedSubtree(
+          key: registry.keyFor(anchor.trim()),
+          child: result,
+        );
+      }
+    }
     return result;
   }
 
@@ -277,6 +298,30 @@ class ThemeUiNodeView extends StatelessWidget {
         return;
       }
     }
+    if (action.type == 'scrollTo') {
+      _scrollTo(context, action);
+      return;
+    }
     runtime.onAction(action);
+  }
+
+  /// Scrolls the nearest scrollable ancestor of the named `anchor` node into
+  /// view. A missing anchor or registry is a theme bug, not a crash — the
+  /// action simply does nothing, the same as any other unresolvable target.
+  void _scrollTo(BuildContext context, ThemeUiAction action) {
+    final raw = action.args['target'] ??
+        action.args['anchor'] ??
+        action.args['id'] ??
+        action.args['value'];
+    if (raw is! String || raw.isEmpty) return;
+    final registry = ThemeUiAnchorRegistryScope.read(context);
+    final target = registry?[raw]?.currentContext;
+    if (target == null) return;
+    unawaited(Scrollable.ensureVisible(
+      target,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      alignment: 0.1,
+    ));
   }
 }

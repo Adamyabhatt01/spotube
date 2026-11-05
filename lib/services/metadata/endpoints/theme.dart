@@ -10,6 +10,14 @@ class MetadataPluginThemeEndpoint {
 
   MetadataPluginThemeEndpoint(this.hetu);
 
+  /// Capabilities declared by the last `getTheme()` call.
+  ///
+  /// A UI document can also come from `getUi()`/`getSettings()`/`onUiAction()`
+  /// with no payload around it. Remembering the grant lets those documents
+  /// keep the same host-widget/account permissions instead of silently
+  /// losing them at the second call.
+  List<String> _payloadCapabilities = const <String>[];
+
   HTInstance? get _theme {
     try {
       final plugin = hetu.fetch("metadataPlugin") as HTInstance;
@@ -20,6 +28,9 @@ class MetadataPluginThemeEndpoint {
   }
 
   Future<ThemeDefinition?> getTheme() async {
+    // Grants belong to the latest payload: a null return or a plugin switch
+    // must not let a later getUi()/showSettings() document inherit them.
+    _payloadCapabilities = const <String>[];
     final theme = _theme;
     if (theme == null) {
       return null;
@@ -31,7 +42,15 @@ class MetadataPluginThemeEndpoint {
       return null;
     }
 
-    return sanitizeThemeDefinition(ThemeDefinition.fromJson(json));
+    final declared = json['capabilities'];
+    _payloadCapabilities = declared is List
+        ? declared.whereType<String>().toList(growable: false)
+        : const <String>[];
+
+    return withUiCapabilities(
+      sanitizeThemeDefinition(ThemeDefinition.fromJson(json)),
+      _payloadCapabilities,
+    );
   }
 
   /// The theme's optional declarative UI, or null when it carries no
@@ -48,7 +67,7 @@ class MetadataPluginThemeEndpoint {
       final result = await theme.invoke("getUi");
       final json = _jsonMap(result);
       if (json == null) return null;
-      return parseThemeUiDocument(json);
+      return _withPayloadCapabilities(parseThemeUiDocument(json));
     } catch (_) {
       return null;
     }
@@ -68,7 +87,7 @@ class MetadataPluginThemeEndpoint {
       final result = await theme.invoke("showSettings");
       final json = _jsonMap(result);
       if (json == null) return null;
-      return parseThemeUiDocument(json);
+      return _withPayloadCapabilities(parseThemeUiDocument(json));
     } catch (_) {
       return null;
     }
@@ -94,10 +113,23 @@ class MetadataPluginThemeEndpoint {
       );
       final json = _jsonMap(result);
       if (json == null) return null;
-      return parseThemeUiDocument(json);
+      return _withPayloadCapabilities(parseThemeUiDocument(json));
     } catch (_) {
       return null;
     }
+  }
+
+  /// Gives a standalone UI document the payload's capability grant.
+  ThemeUiDocument? _withPayloadCapabilities(ThemeUiDocument? ui) {
+    if (ui == null || _payloadCapabilities.isEmpty) return ui;
+
+    final merged = <String>{
+      ...ui.capabilities,
+      ..._payloadCapabilities,
+    }.toList(growable: false);
+    if (merged.length == ui.capabilities.length) return ui;
+
+    return ui.copyWith(capabilities: merged);
   }
 
   /// Hetu struct literals cross the boundary as HTStruct, while values

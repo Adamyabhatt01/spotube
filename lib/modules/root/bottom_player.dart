@@ -183,9 +183,19 @@ class BottomPlayer extends HookConsumerWidget {
           child: Padding(
             padding: const EdgeInsets.only(top: 5),
             child: hasThemeControls
-                ? const ThemeSlot(
-                    'player.controls',
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                ? Align(
+                    alignment: Alignment.center,
+                    // The transport column is wider than its controls: the
+                    // theme's seek line would otherwise span the window. A
+                    // max width keeps the centre block Spotify-sized while
+                    // still shrinking on a narrow window.
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 640),
+                      child: const ThemeSlot(
+                        'player.controls',
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                      ),
+                    ),
                   )
                 : PlayerControls(progressInline: !progressBelow),
           ),

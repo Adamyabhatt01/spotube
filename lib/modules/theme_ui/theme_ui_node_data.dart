@@ -34,6 +34,9 @@ extension _ThemeUiDataNodes on ThemeUiNodeView {
         .clamp(8.0, 400.0)
         .toDouble();
     final overscan = _int(props['overscan'], fallback: 4, min: 0, max: 64);
+    // Same grid vocabulary as `list`: a long collection that belongs on the
+    // lazy list still needs to read as rows of N, not one endless column.
+    final columns = _int(props['columns'], fallback: 1, min: 1, max: 12);
     final templateName = props['itemTemplate'] is String
         ? props['itemTemplate'] as String
         : null;
@@ -47,15 +50,40 @@ extension _ThemeUiDataNodes on ThemeUiNodeView {
       final items = visible.take(limit).toList();
       if (items.isEmpty) return const SizedBox.shrink();
 
+      Widget row(int index) {
+        final rowRuntime =
+            _rowRuntime(runtime, items[index], index, items, templateName);
+        return _itemNodeView(rowRuntime, nodes, depth);
+      }
+
+      if (columns > 1) {
+        // One extent per row of `columns` cells, so the lazy path keeps its
+        // fixed-height assumption. A short last row pads with empty cells to
+        // keep the columns aligned.
+        final rowCount = (items.length / columns).ceil();
+        Widget cell(int item) =>
+            item < items.length ? row(item) : const SizedBox.shrink();
+        return ListView.builder(
+          itemCount: rowCount,
+          itemExtent: extent,
+          cacheExtent: overscan * extent,
+          itemBuilder: (context, index) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (var column = 0; column < columns; column++)
+                  Expanded(child: cell(index * columns + column)),
+              ],
+            );
+          },
+        );
+      }
+
       return ListView.builder(
         itemCount: items.length,
         itemExtent: extent,
         cacheExtent: overscan * extent,
-        itemBuilder: (context, index) {
-          final rowRuntime =
-              _rowRuntime(runtime, items[index], index, items, templateName);
-          return _itemNodeView(rowRuntime, nodes, depth);
-        },
+        itemBuilder: (context, index) => row(index),
       );
     }
 
