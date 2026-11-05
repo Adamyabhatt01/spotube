@@ -470,10 +470,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/desktop_webview_window"
-      ref: f261ff20e310d05713249b21c199a9fe17a3de6f
-      resolved-ref: f261ff20e310d05713249b21c199a9fe17a3de6f
-      url: "https://github.com/KRTirtho/flutter-plugins.git"
-    source: git
+      relative: true
+    source: path
     version: "0.2.4"
   device_info_plus:
     dependency: "direct main"

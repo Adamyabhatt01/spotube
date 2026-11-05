@@ -29,12 +29,12 @@ dependencies:
   bonsoir: ">=6.0.2 <6.1.0"
   cached_network_image: ^3.3.1
   connectivity_plus: ^6.1.2
+  # Vendored from KRTirtho/flutter-plugins @ f261ff20 (DEP.4) with a Linux
+  # fix: closing the login webview hides its window instead of destroying the
+  # secondary Flutter view, which segfaults Flutter 3.38. See
+  # packages/desktop_webview_window/VENDORED.md.
   desktop_webview_window:
-    git:
-      # DEP.4: pinned to the tested resolution (was floating HEAD).
-      ref: f261ff20e310d05713249b21c199a9fe17a3de6f
-      path: packages/desktop_webview_window
-      url: https://github.com/KRTirtho/flutter-plugins.git
+    path: packages/desktop_webview_window
   device_info_plus: ^11.1.1
   dio: ^5.4.3+1
   disable_battery_optimization:
@@ -219,7 +219,8 @@ dependency_overrides:
   # DEP.4: force the pinned SHAs transitively too. hetu_spotube_plugin
   # itself depends on hetu_std/hetu_otp_util at branch main,
   # desktop_webview_window at HEAD and fk_user_agent at HEAD, which would
-  # otherwise conflict with (and float past) the direct pins above.
+  # otherwise conflict with (and float past) the direct pins above. The
+  # webview is overridden by the vendored path below rather than by a SHA.
   hetu_std:
     git:
       url: https://github.com/hetu-community/hetu_std.git
@@ -229,10 +230,7 @@ dependency_overrides:
       url: https://github.com/hetu-community/hetu_otp_util.git
       ref: 7790606751828758769596e809ba6cbb756f9b9a
   desktop_webview_window:
-    git:
-      url: https://github.com/KRTirtho/flutter-plugins.git
-      ref: f261ff20e310d05713249b21c199a9fe17a3de6f
-      path: packages/desktop_webview_window
+    path: packages/desktop_webview_window
   fk_user_agent:
     git:
       url: https://github.com/maeltoukap/fk_user_agent.git
