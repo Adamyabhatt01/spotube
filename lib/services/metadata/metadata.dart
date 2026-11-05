@@ -27,6 +27,7 @@ import 'package:spotube/services/metadata/endpoints/core.dart';
 import 'package:spotube/services/metadata/endpoints/user.dart';
 import 'package:spotube/services/metadata/endpoints/theme.dart';
 import 'package:spotube/services/metadata/endpoints/radio.dart';
+import 'package:spotube/services/youtube_engine/manifest_fallback.dart';
 import 'package:spotube/services/youtube_engine/youtube_engine.dart';
 
 const defaultMetadataLimit = "20";
@@ -121,7 +122,10 @@ class MetadataPlugin {
             };
           },
           streamManifest: (videoId) {
-            return youtubeEngine.getStreamManifest(videoId).then(
+            return streamManifestWithFallback(
+              videoId: videoId,
+              chain: manifestFallbackChain(youtubeEngine),
+            ).then(
               (manifest) {
                 final streams = manifest.audioOnly
                     .map(
