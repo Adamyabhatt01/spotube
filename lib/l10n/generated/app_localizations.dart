@@ -3842,6 +3842,222 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{value} seconds'**
   String audio_seconds(Object value);
+
+  /// No description provided for @voice_commands.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice commands'**
+  String get voice_commands;
+
+  /// No description provided for @voice_commands_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Control playback hands-free with offline speech recognition.'**
+  String get voice_commands_description;
+
+  /// No description provided for @voice_mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Mode'**
+  String get voice_mode;
+
+  /// No description provided for @voice_mode_off.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get voice_mode_off;
+
+  /// No description provided for @voice_mode_off_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice commands are disabled.'**
+  String get voice_mode_off_description;
+
+  /// No description provided for @voice_mode_tap.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to talk'**
+  String get voice_mode_tap;
+
+  /// No description provided for @voice_mode_tap_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold or tap the mic button to speak a command; the microphone closes between taps.'**
+  String get voice_mode_tap_description;
+
+  /// No description provided for @voice_mode_wake.
+  ///
+  /// In en, this message translates to:
+  /// **'Wake word'**
+  String get voice_mode_wake;
+
+  /// No description provided for @voice_mode_wake_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Say the wake phrase, then the command. The microphone stays open while the app is in front.'**
+  String get voice_mode_wake_description;
+
+  /// No description provided for @voice_language.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get voice_language;
+
+  /// No description provided for @voice_secondary_language.
+  ///
+  /// In en, this message translates to:
+  /// **'Second language'**
+  String get voice_secondary_language;
+
+  /// No description provided for @voice_language_none.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get voice_language_none;
+
+  /// No description provided for @voice_listen_minimized.
+  ///
+  /// In en, this message translates to:
+  /// **'Listen while minimized'**
+  String get voice_listen_minimized;
+
+  /// No description provided for @voice_listen_minimized_description.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the wake listener running when the window is in the background.'**
+  String get voice_listen_minimized_description;
+
+  /// No description provided for @voice_models.
+  ///
+  /// In en, this message translates to:
+  /// **'Speech models'**
+  String get voice_models;
+
+  /// No description provided for @voice_models_missing.
+  ///
+  /// In en, this message translates to:
+  /// **'Not downloaded yet — required before voice commands can run.'**
+  String get voice_models_missing;
+
+  /// No description provided for @voice_models_ready.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloaded and ready.'**
+  String get voice_models_ready;
+
+  /// No description provided for @voice_models_install.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get voice_models_install;
+
+  /// No description provided for @voice_models_delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get voice_models_delete;
+
+  /// No description provided for @voice_status_off.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice off'**
+  String get voice_status_off;
+
+  /// No description provided for @voice_status_ready.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the mic to speak'**
+  String get voice_status_ready;
+
+  /// No description provided for @voice_status_listening.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening'**
+  String get voice_status_listening;
+
+  /// No description provided for @voice_status_window.
+  ///
+  /// In en, this message translates to:
+  /// **'Listening…'**
+  String get voice_status_window;
+
+  /// No description provided for @voice_status_testing.
+  ///
+  /// In en, this message translates to:
+  /// **'Testing phrases'**
+  String get voice_status_testing;
+
+  /// No description provided for @voice_status_missing_models.
+  ///
+  /// In en, this message translates to:
+  /// **'Models missing'**
+  String get voice_status_missing_models;
+
+  /// No description provided for @voice_status_no_microphone.
+  ///
+  /// In en, this message translates to:
+  /// **'No microphone'**
+  String get voice_status_no_microphone;
+
+  /// No description provided for @voice_status_failed.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice failed'**
+  String get voice_status_failed;
+
+  /// No description provided for @voice_playlist_not_found.
+  ///
+  /// In en, this message translates to:
+  /// **'No playlist matched that name.'**
+  String get voice_playlist_not_found;
+
+  /// No description provided for @voice_not_understood.
+  ///
+  /// In en, this message translates to:
+  /// **'Didn\'t catch a command.'**
+  String get voice_not_understood;
+
+  /// No description provided for @voice_choose_playlist.
+  ///
+  /// In en, this message translates to:
+  /// **'Which playlist?'**
+  String get voice_choose_playlist;
+
+  /// No description provided for @voice_unavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'unavailable'**
+  String get voice_unavailable;
+
+  /// No description provided for @voice_lang_en.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get voice_lang_en;
+
+  /// No description provided for @voice_lang_hi.
+  ///
+  /// In en, this message translates to:
+  /// **'Hindi'**
+  String get voice_lang_hi;
+
+  /// No description provided for @voice_lang_es.
+  ///
+  /// In en, this message translates to:
+  /// **'Spanish'**
+  String get voice_lang_es;
+
+  /// No description provided for @voice_lang_fr.
+  ///
+  /// In en, this message translates to:
+  /// **'French'**
+  String get voice_lang_fr;
+
+  /// No description provided for @voice_lang_ar.
+  ///
+  /// In en, this message translates to:
+  /// **'Arabic'**
+  String get voice_lang_ar;
 }
 
 class _AppLocalizationsDelegate

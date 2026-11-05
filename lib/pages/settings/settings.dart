@@ -19,6 +19,7 @@ import 'package:spotube/pages/settings/sections/downloads.dart';
 import 'package:spotube/pages/settings/sections/language_region.dart';
 import 'package:spotube/pages/settings/sections/playback.dart';
 import 'package:spotube/pages/settings/sections/sidebar.dart';
+import 'package:spotube/pages/settings/sections/voice.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/utils/platform.dart';
 import 'package:auto_route/auto_route.dart';
@@ -48,6 +49,7 @@ class SettingsPage extends HookConsumerWidget {
           'appearance',
           'sidebar',
           'playback',
+          'voice',
           'downloads',
           if (kIsDesktop) 'desktop',
           if (!kIsWeb) 'developers',
@@ -98,6 +100,7 @@ class SettingsPage extends HookConsumerWidget {
                           'appearance' => const SettingsAppearanceSection(),
                           'sidebar' => const SettingsSidebarSection(),
                           'playback' => const SettingsPlaybackSection(),
+                          'voice' => const SettingsVoiceSection(),
                           'downloads' => const SettingsDownloadsSection(),
                           'desktop' when kIsDesktop =>
                             const SettingsDesktopSection(),

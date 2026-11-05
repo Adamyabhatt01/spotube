@@ -16,6 +16,7 @@ import 'package:spotube/hooks/configurators/use_endless_playback.dart';
 import 'package:spotube/modules/root/use_global_subscriptions.dart';
 import 'package:spotube/modules/theme_background/real_transparency.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
+import 'package:spotube/modules/voice/voice_wiring.dart';
 import 'package:spotube/provider/glance/glance.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 
@@ -172,7 +173,7 @@ class RootAppPage extends HookConsumerWidget {
               color: insetChrome
                   ? context.theme.colorScheme.background
                   : Colors.transparent,
-              child: content,
+              child: VoiceWiring(child: content),
             ),
           ),
         ),
