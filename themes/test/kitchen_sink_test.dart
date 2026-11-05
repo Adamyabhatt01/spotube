@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:spotube_themes/v3_validator.dart';
+import 'package:spotube_themes/v4_validator.dart';
 import 'package:test/test.dart';
 
 /// The kitchen sink is the contract's reference example: it has to carry
@@ -119,7 +120,16 @@ void main() {
           walk(child);
         }
       }
-      expect(found, containsAll(uiNodeTypes));
+      expect(
+        found,
+        containsAll(uiNodeTypes.where((type) => type != 'search')),
+        reason: 'a node type the sink does not draw is a node type nobody '
+            'has an example of',
+      );
+      // v4 retired the v3 `search` node in favour of `textField`, which the
+      // host can actually wire. The sink carries the replacement, not the
+      // frozen type.
+      expect(found, contains('textField'));
     });
 
     test('exercises every prop a node type declares', () {
@@ -154,6 +164,7 @@ void main() {
       }
 
       for (final entry in uiNodeProps.entries) {
+        if (entry.key == 'search') continue;
         expect(used[entry.key], isNotNull,
             reason: 'no ${entry.key} node in the kitchen sink');
         for (final prop in entry.value) {
@@ -163,6 +174,30 @@ void main() {
             reason: 'the kitchen sink does not exercise ${entry.key}.$prop',
           );
         }
+      }
+
+      // The v4 replacement for `search`, checked against what v4 declares.
+      final fieldProps = <String>[
+        for (final prop in v4UiNodeProps['textField']!)
+          if (!v4EnvelopeProps.contains(prop)) prop
+      ];
+      expect(used['textField'], containsAll(fieldProps),
+          reason: 'the kitchen sink does not exercise textField\'s props');
+
+      // Props v4 adds to a node type that already existed. A prop the sink
+      // does not draw is a prop no fixture proves the host reads.
+      for (final entry in v4UiNodeProps.entries) {
+        final base = uiNodeProps[entry.key];
+        if (base == null || used[entry.key] == null) continue;
+        final added = entry.value
+            .where((prop) =>
+                !base.contains(prop) && !v4EnvelopeProps.contains(prop))
+            .toList();
+        expect(
+          used[entry.key],
+          containsAll(added),
+          reason: 'the kitchen sink does not exercise ${entry.key}.$added',
+        );
       }
     });
 

@@ -106,7 +106,7 @@ fvm dart run tools/build.dart --check    # validate only, write nothing
 fvm dart run tools/build.dart -t spotify-shell
 fvm dart run tools/build.dart --watch -t spotify-shell
 
-fvm dart run tools/inspect.dart -f dist/caelestia-1.2.0.smplug --json
+fvm dart run tools/inspect.dart -f dist/caelestia-2.0.0.smplug --json
 fvm dart run tools/inspect.dart -f old.smplug -f new.smplug   # same payload?
 
 fvm dart run tools/export.dart           # regenerate the golden payloads
@@ -193,9 +193,13 @@ Rules that are not obvious:
   fields as warnings.
 - **Numbers outside the app's range are clamped**, not rejected. The build
   prints the value the app will actually use.
-- **`dynamic` is v2-only.** The v3 schema has no `dynamic` block; use
-  `background.source` (`none` / `albumArt` / `shell` / `asset`). The validator
-  still accepts the legacy key, but nothing in the host reads it.
+- **`dynamic` names where the palette comes from.** `{"source": "shell"}` takes
+  the desktop's live colours, `{"source": "albumArt"}` follows the playing
+  track; `algorithm` is optional (`material`). It is independent of
+  `background.source`, which only decides what gets painted behind the app —
+  `caelestia-plain` asks the shell for colours and the backdrop for nothing.
+  v4 first dropped this key; it is back because it was the one thing v4 had no
+  other way to say, and the host never stopped reading it.
 
 `schemas/theme.v4.schema.json` is the current contract;
 `schemas/theme.v3.schema.json` is kept for the migration tool;

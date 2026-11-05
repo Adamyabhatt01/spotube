@@ -510,6 +510,8 @@
             "player.muted",
             "app.sidebarCollapsed",
             "app.asideOpen",
+            "app.pinnedPlaylistIds",
+            "app.pinnedStationIds",
             "library.pinTargets",
             "library.playlists",
             "library.pins",
@@ -541,6 +543,10 @@
         {
           "type": "string",
           "pattern": "^(item|home|collection|artist|search|library|queue|downloads|stats)\\.[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*){0,4}$"
+        },
+        {
+          "type": "string",
+          "pattern": "^setting\\.[A-Za-z][A-Za-z0-9_.-]{0,63}$"
         },
         {
           "type": "string",
@@ -1533,7 +1539,8 @@
                 "destructive",
                 "link",
                 "fixed",
-                "muted"
+                "muted",
+                "default"
               ]
             },
             "size": {
@@ -1624,6 +1631,14 @@
               "type": "number",
               "minimum": 0,
               "maximum": 1
+            },
+            "blur": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "blurTint": {
+              "$ref": "#/definitions/colorOrRole"
             },
             "width": {
               "type": "number",
@@ -2280,6 +2295,66 @@
             "filter": {
               "$ref": "#/definitions/uiFilter"
             },
+            "columns": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "compact": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "xs": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "sm": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "medium": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "md": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "expanded": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "lg": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "xl": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "2xl": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    }
+                  }
+                }
+              ]
+            },
             "align": {
               "enum": [
                 "start",
@@ -2414,6 +2489,14 @@
               "type": "number",
               "minimum": 0,
               "maximum": 1
+            },
+            "blur": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "blurTint": {
+              "$ref": "#/definitions/colorOrRole"
             }
           }
         },
@@ -2460,9 +2543,64 @@
               }
             },
             "columns": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 12
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "compact": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "xs": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "sm": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "medium": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "md": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "expanded": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "lg": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "xl": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "2xl": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    }
+                  }
+                }
+              ]
             },
             "gap": {
               "type": "number",
@@ -3779,6 +3917,9 @@
             "type": {
               "const": "contextMenu"
             },
+            "hostItem": {
+              "type": "boolean"
+            },
             "target": {
               "enum": [
                 "track",
@@ -4422,6 +4563,66 @@
               "minimum": 8,
               "maximum": 400
             },
+            "columns": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 12
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "compact": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "xs": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "sm": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "medium": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "md": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "expanded": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "lg": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "xl": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    },
+                    "2xl": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 12
+                    }
+                  }
+                }
+              ]
+            },
             "overscan": {
               "type": "integer",
               "minimum": 0,
@@ -4838,8 +5039,32 @@
             "variant": {
               "type": "string",
               "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "id": {
+              "enum": [
+                "library.playlists",
+                "library.pins",
+                "library.albums",
+                "library.artists",
+                "player.controls",
+                "audio.bass",
+                "audio.equalizer",
+                "audio.crossfade",
+                "audio.sleepTimer",
+                "queue.list",
+                "search.field",
+                "theme.settings"
+              ]
+            },
+            "props": {
+              "type": "object",
+              "maxProperties": 32
             }
-          }
+          },
+          "required": [
+            "type",
+            "id"
+          ]
         }
       ]
     },
@@ -5308,6 +5533,26 @@
         }
       }
     },
+    "dynamic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source"
+      ],
+      "properties": {
+        "source": {
+          "enum": [
+            "albumArt",
+            "shell"
+          ]
+        },
+        "algorithm": {
+          "enum": [
+            "material"
+          ]
+        }
+      }
+    },
     "typography": {
       "type": "object",
       "additionalProperties": false,
@@ -5632,6 +5877,9 @@
               "$ref": "#/definitions/componentStyle"
             },
             "muted": {
+              "$ref": "#/definitions/componentStyle"
+            },
+            "default": {
               "$ref": "#/definitions/componentStyle"
             }
           }

@@ -71,12 +71,10 @@ MigrationReport migrateV3Theme(Map<String, dynamic> source) {
     renamed.add('added uiKit: shadcn (the v4 default)');
   }
 
-  // v4 rejects the v3 `dynamic` block; the host palette is the replacement.
-  if (payload.remove('dynamic') != null) {
-    removed.add(
-      'dynamic — v4 has no dynamic block; a shell palette comes from the host',
-    );
-  }
+  // `dynamic` carries through untouched. v4 once rejected it, which left
+  // shell-synced themes with no way to say where their colours come from; the
+  // host reads the same block on every version, so a v3 `dynamic` is already a
+  // valid v4 one.
 
   final layout = payload['layout'];
   if (layout is Map) {

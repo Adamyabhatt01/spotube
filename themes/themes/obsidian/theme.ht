@@ -9,7 +9,8 @@
 class ObsidianThemeApi {
   fun getTheme() {
     return {
-      'specVersion': 3,
+      'specVersion': 4,
+      'uiKit': 'shadcn',
 
       // ------------------------------------------------------------ palettes
       'light': {
@@ -550,9 +551,6 @@ class ObsidianThemeApi {
           'logo': 'asset://images/logo.png',
           'text': 'OBSIDIAN',
         },
-        // The stage is the point of this theme; everything else still belongs
-        // to the user.
-        'enforce': ['playerDock'],
         'responsive': {
           'compact': {
             'nav': 'rail',

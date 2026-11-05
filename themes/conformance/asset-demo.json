@@ -1,5 +1,6 @@
 {
-  "specVersion": 3,
+  "specVersion": 4,
+  "uiKit": "shadcn",
   "light": {
     "background": "#fcfbfb",
     "foreground": "#281b1a",

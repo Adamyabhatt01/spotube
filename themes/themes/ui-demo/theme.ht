@@ -14,7 +14,8 @@ class UiDemoThemeApi {
   fun getTheme() {
     var schemes = ThemePalette.fromSeed('#0f9d76')
     return {
-      'specVersion': 3,
+      'specVersion': 4,
+      'uiKit': 'shadcn',
       'light': schemes['light'],
       'dark': schemes['dark'],
       'layout': {

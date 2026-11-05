@@ -1,6 +1,8 @@
 class CaelestiaThemeApi {
   fun getTheme() {
     return {
+      'specVersion': 4,
+      'uiKit': 'shadcn',
       'light': {
         'background': '#fafafa',
         'foreground': '#09090b',

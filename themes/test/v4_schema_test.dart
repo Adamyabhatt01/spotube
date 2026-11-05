@@ -40,6 +40,16 @@ void main() {
       expect(document['additionalProperties'], isFalse);
     });
 
+    test('declares exactly the top-level keys the validator accepts', () {
+      // The schema is what an editor offers an author. If the two sets drift,
+      // an author is told a key exists that the build then rejects, or the
+      // reverse — and neither shows up as a failing theme.
+      expect(
+        (document['properties'] as Map<String, dynamic>).keys.toSet(),
+        v4TopLevelKeys.toSet(),
+      );
+    });
+
     test('knows every node type the validator accepts', () {
       final variants =
           (document['definitions'] as Map<String, dynamic>)['uiNode']
@@ -77,6 +87,52 @@ void main() {
       }
     });
 
+    test('declares exactly the props the validator accepts', () {
+      // The prop table is what a build is checked against; the schema is what
+      // an editor offers an author. Each disagreement is a prop a theme can
+      // write in one of the two and have rejected by the other.
+      final variants =
+          (document['definitions'] as Map<String, dynamic>)['uiNode']
+              as Map<String, dynamic>;
+      for (final variant in variants['oneOf'] as List) {
+        final properties = (variant as Map<String, dynamic>)['properties']
+            as Map<String, dynamic>;
+        final type = properties['type']['const'] as String;
+        final accepted = v4UiNodeProps[type]!.toSet();
+        // `props` is structural for every node — the legacy nested shape — and
+        // a real prop of `hostWidget`. The type's own list decides which.
+        final declared = properties.keys
+            .toSet()
+            .difference(uiStructuralKeys.difference(accepted));
+        expect(
+          declared.difference(accepted),
+          isEmpty,
+          reason: '$type: the schema declares a prop the validator rejects',
+        );
+        expect(
+          accepted.difference(declared),
+          isEmpty,
+          reason: '$type: the schema hides a prop the validator accepts',
+        );
+      }
+    });
+
+    test('names the host widgets the host mounts', () {
+      // `hostWidget.id` is the one node prop that selects a whole surface, and
+      // the closed list lives in the code that mounts them.
+      final variants =
+          (document['definitions'] as Map<String, dynamic>)['uiNode']
+              as Map<String, dynamic>;
+      final branch = (variants['oneOf'] as List).cast<Map<String, dynamic>>().firstWhere(
+          (variant) =>
+              (variant['properties'] as Map<String, dynamic>)['type']['const'] ==
+              'hostWidget');
+      expect(
+        (branch['properties']['id'] as Map<String, dynamic>)['enum'],
+        unorderedEquals(v4HostWidgetProps.keys),
+      );
+    });
+
     test('publishes every slot and the page.<id> pattern', () {
       final anyOf =
           (document['properties']
@@ -101,16 +157,64 @@ void main() {
       expect(actions.toSet(), v4UiActionTypes.toSet());
     });
 
-    test('knows every exact binding, page scope and region binding', () {
-      final anyOf =
-          (document['definitions']
-                  as Map<String, dynamic>)['uiBinding']['anyOf']
-              as List;
-      final exact = (anyOf[0] as Map<String, dynamic>)['enum'] as List;
-      expect(exact.toSet().containsAll(v4UiBindings), isTrue);
-      expect((anyOf[1] as Map<String, dynamic>)['pattern'], isNotNull);
-      expect((anyOf[2] as Map<String, dynamic>)['pattern'], isNotNull);
-    });
+    test(
+      'accepts exactly the bindings the validator resolves, and no others',
+      () {
+        // A binding the schema rejects but the host resolves hides from an
+        // author's editor while working in the shipped theme, and the reverse
+        // builds clean then fails at runtime. `setting.*` did exactly that: the
+        // validator and the host both resolved it, and nothing compared the
+        // schema's branches to `isV4UiBinding` until a real theme tripped it.
+        final anyOf =
+            (document['definitions']
+                    as Map<String, dynamic>)['uiBinding']['anyOf']
+                as List;
+        final exact = ((anyOf.first as Map<String, dynamic>)['enum']
+                as List)
+            .cast<String>();
+        final patterns = <RegExp>[
+          for (final branch in anyOf.skip(1))
+            RegExp((branch as Map<String, dynamic>)['pattern'] as String),
+        ];
+
+        bool schemaAccepts(String name) =>
+            exact.contains(name) || patterns.any((p) => p.hasMatch(name));
+
+        final corpus = <String>{
+          ...v4UiBindings,
+          ...exact,
+          // Open-ended scopes, the two shapes a settings page and a shell
+          // descriptor rely on.
+          'item.title',
+          'item.artists.0.name',
+          'home.row.title',
+          'stats.week.count',
+          'library.playlist.name',
+          'setting.crt',
+          'setting.waveshaper.enabled',
+          'setting.a-b',
+          'app.region.sidebar.collapsed',
+          'app.region.player.size',
+          'app.region.custom.my-panel.collapsed',
+          // Nothing outside those grammars is a v4 binding.
+          'unknown.binding',
+          'player.titleTwo',
+          'setting.',
+          'setting.1abc',
+          'item.a.b.c.d.e.f',
+          'app.region.sidebar.width',
+          'app.region.1x.collapsed',
+        };
+
+        for (final name in corpus) {
+          expect(
+            schemaAccepts(name),
+            isV4UiBinding(name),
+            reason: '$name: schema and validator disagree',
+          );
+        }
+      },
+    );
 
     test('declares the closed capability and kit sets', () {
       final capabilities =

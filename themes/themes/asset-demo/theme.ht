@@ -10,7 +10,8 @@ class AssetDemoThemeApi {
   fun getTheme() {
     var schemes = ThemePalette.fromSeed('#e2574c')
     return {
-      'specVersion': 3,
+      'specVersion': 4,
+      'uiKit': 'shadcn',
       'light': schemes['light'],
       'dark': schemes['dark'],
       'assets': {

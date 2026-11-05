@@ -291,6 +291,8 @@
             "background": "@card",
             "radius": 12,
             "padding": 16,
+            "blur": 14,
+            "blurTint": "#0ea5e9",
             "children": [
               {
                 "type": "text",

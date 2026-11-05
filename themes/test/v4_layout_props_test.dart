@@ -220,6 +220,32 @@ void main() {
     expect(errorsEndingWith(report, '.columns'), isNotEmpty);
   });
 
+  // The lazy list is the node a long grid is supposed to use, so it has to
+  // take the count `list` takes — otherwise moving to it costs the layout.
+  test('virtualList takes the same column count as grid', () {
+    final report = validate([
+      {
+        'type': 'virtualList',
+        'bind': 'library.playlists',
+        'columns': 3,
+        'children': [
+          {'type': 'text', 'bind': 'item.title'},
+        ],
+      },
+      {
+        'type': 'virtualList',
+        'bind': 'library.playlists',
+        'columns': 13,
+        'children': [
+          {'type': 'text', 'bind': 'item.title'},
+        ],
+      },
+    ]);
+
+    expect(errorsEndingWith(report, '[0].columns'), isEmpty);
+    expect(errorsEndingWith(report, '[1].columns'), isNotEmpty);
+  });
+
   test('kitScope only accepts a known kit', () {
     final report = validate([
       {

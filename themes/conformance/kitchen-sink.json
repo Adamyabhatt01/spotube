@@ -1,5 +1,6 @@
 {
-  "specVersion": 3,
+  "specVersion": 4,
+  "uiKit": "shadcn",
   "light": {
     "background": "#fbfbfc",
     "foreground": "#1f1929",
@@ -498,11 +499,6 @@
     "splash": {
       "text": "Kitchen Sink"
     },
-    "enforce": [
-      "playerDock",
-      "libraryItems",
-      "navbarItems"
-    ],
     "responsive": {
       "compact": {
         "nav": "rail",
@@ -646,6 +642,13 @@
             "bind": "home.browse",
             "gap": 6,
             "limit": 12,
+            "columns": 2,
+            "filter": {
+              "bind": "search.query",
+              "fields": [
+                "title"
+              ]
+            },
             "children": [
               {
                 "type": "text",
@@ -830,6 +833,7 @@
             "type": "progress",
             "bind": "player.position",
             "maxBind": "player.duration",
+            "style": "wavy",
             "width": 480,
             "height": 8,
             "hitHeight": 26,
@@ -850,6 +854,8 @@
             "borderColor": "@border",
             "borderWidth": 2,
             "opacity": 1,
+            "blur": 14,
+            "blurTint": "@muted",
             "action": {
               "type": "openLyrics"
             },
@@ -991,8 +997,19 @@
                     ]
                   },
                   {
-                    "type": "search",
-                    "placeholder": "Search the kitchen"
+                    "type": "textField",
+                    "placeholder": "Search the kitchen",
+                    "icon": "search",
+                    "debounceMs": 200,
+                    "clearable": true,
+                    "bind": "search.query",
+                    "action": {
+                      "type": "setQuery",
+                      "args": {
+                        "scope": "default",
+                        "value": "$value"
+                      }
+                    }
                   },
                   {
                     "type": "align",

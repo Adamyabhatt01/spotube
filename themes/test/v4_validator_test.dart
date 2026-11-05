@@ -130,12 +130,25 @@ void main() {
       );
     });
 
-    test('the retired dynamic block is not a v4 key', () {
+    test('dynamic is a v4 key', () {
+      // Shell-synced themes have no other way to say where their colours come
+      // from, and the host reads this block on every version.
       final payload = validPayload()
-        ..['dynamic'] = {'source': 'albumArt'};
+        ..['dynamic'] = {'source': 'shell'};
+      final report = validateThemePayload(payload);
+      expect(
+        pathsOf(report, Severity.error),
+        isNot(contains('dynamic')),
+        reason: report.issues.join('\n'),
+      );
+    });
+
+    test('an unknown dynamic source is still an error', () {
+      final payload = validPayload()
+        ..['dynamic'] = {'source': 'gtkTheme'};
       expect(
         pathsOf(validateThemePayload(payload), Severity.error),
-        contains('dynamic'),
+        contains('dynamic.source'),
       );
     });
 
@@ -626,6 +639,26 @@ void main() {
       expect(
         pathsOf(report, Severity.error),
         contains('ui.slots.home.content[0].schmorder'),
+      );
+    });
+
+    test('box and card read the frost; a node that does not is a typo', () {
+      final accepted = validateThemePayload(
+        withUi([
+          {'type': 'box', 'blur': 12, 'blurTint': '@primary'},
+          {'type': 'card', 'blur': 24, 'blurTint': '#0f172a'},
+        ]),
+      );
+      expect(accepted.hasErrors, isFalse, reason: accepted.issues.join('\n'));
+
+      final typo = validateThemePayload(
+        withUi([
+          {'type': 'text', 'text': 'flat', 'blur': 6},
+        ]),
+      );
+      expect(
+        pathsOf(typo, Severity.error),
+        contains('ui.slots.home.content[0].blur'),
       );
     });
 

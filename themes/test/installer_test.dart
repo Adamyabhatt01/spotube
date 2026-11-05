@@ -8,7 +8,13 @@ import 'package:test/test.dart';
 
 const _themeName = 'Caelestia Shell Theme';
 const _themeAuthor = 'Adamya Bhatt';
-const _themeVersion = '1.2.0';
+const _themeVersion = '2.0.0';
+
+/// The real artifact these tests install. Pinning the current build rather
+/// than a copy in `dist/legacy/`: the installer's contract is what the catalog
+/// ships today, and the moved-out v2 archives are covered by the app-side
+/// caelestia tests.
+const _builtArtifact = 'dist/caelestia-$_themeVersion.smplug';
 
 /// An archive built in memory, so a test can hand the installer exactly the
 /// malformed manifest or entry it is about, without a zip encoder that cannot
@@ -68,7 +74,7 @@ void main() {
     test('writes the plugin where the app looks for it', () {
       createPluginTable(File(pluginDatabaseFile(profile.path)));
 
-      final artifact = File('dist/caelestia-1.2.0.smplug');
+      final artifact = File(_builtArtifact);
       expect(artifact.existsSync(), isTrue, reason: 'build the themes first');
 
       final result = installPlugin(
@@ -79,7 +85,7 @@ void main() {
       expect(result.registered, isTrue);
       expect(
         result.extractionDir.path,
-        endsWith('metadata-plugins/Adamya Bhatt-Caelestia Shell Theme-1.2.0'),
+        endsWith('metadata-plugins/Adamya Bhatt-Caelestia Shell Theme-2.0.0'),
       );
       expect(
         File('${result.extractionDir.path}/plugin.json').existsSync(),
@@ -95,7 +101,7 @@ void main() {
       createPluginTable(File(pluginDatabaseFile(profile.path)));
 
       installPlugin(
-        archive: PluginArchive.read(File('dist/caelestia-1.2.0.smplug')),
+        archive: PluginArchive.read(File(_builtArtifact)),
         profile: profile.path,
         select: true,
       );
@@ -109,7 +115,7 @@ void main() {
         expect(rows, hasLength(1));
         expect(rows.first['name'], 'Caelestia Shell Theme');
         expect(rows.first['author'], 'Adamya Bhatt');
-        expect(rows.first['version'], '1.2.0');
+        expect(rows.first['version'], _themeVersion);
         expect(rows.first['abilities'], contains('theme'));
         expect(rows.first['selected_for_theme'], 1);
       } finally {
@@ -123,11 +129,11 @@ void main() {
         createPluginTable(File(pluginDatabaseFile(profile.path)));
 
         installPlugin(
-          archive: PluginArchive.read(File('dist/caelestia-1.2.0.smplug')),
+          archive: PluginArchive.read(File(_builtArtifact)),
           profile: profile.path,
         );
         installPlugin(
-          archive: PluginArchive.read(File('dist/caelestia-1.2.0.smplug')),
+          archive: PluginArchive.read(File(_builtArtifact)),
           profile: profile.path,
         );
 
@@ -143,7 +149,7 @@ void main() {
 
     test('says what it would do without touching anything', () {
       final result = installPlugin(
-        archive: PluginArchive.read(File('dist/caelestia-1.2.0.smplug')),
+        archive: PluginArchive.read(File(_builtArtifact)),
         profile: profile.path,
         dryRun: true,
       );
@@ -156,10 +162,10 @@ void main() {
 
   group('the extraction directory name', () {
     test('is the one the host computes', () {
-      final archive = PluginArchive.read(File('dist/caelestia-1.2.0.smplug'));
+      final archive = PluginArchive.read(File(_builtArtifact));
       expect(
         archive.extractionDirName,
-        'Adamya Bhatt-Caelestia Shell Theme-1.2.0',
+        'Adamya Bhatt-Caelestia Shell Theme-2.0.0',
       );
     });
 

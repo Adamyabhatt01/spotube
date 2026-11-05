@@ -1,5 +1,6 @@
 {
-  "specVersion": 3,
+  "specVersion": 4,
+  "uiKit": "shadcn",
   "light": {
     "background": "#fbfbfc",
     "foreground": "#1a1f28",
@@ -205,9 +206,6 @@
         "about"
       ]
     },
-    "enforce": [
-      "playerDock"
-    ],
     "responsive": {
       "compact": {
         "nav": "rail",

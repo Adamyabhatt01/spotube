@@ -12,7 +12,8 @@ class KitchenSinkThemeApi {
     var schemes = ThemePalette.fromSeedFull('#7c3aed')
 
     return {
-      'specVersion': 3,
+      'specVersion': 4,
+      'uiKit': 'shadcn',
 
       'light': schemes['light'],
       'dark': schemes['dark'],
@@ -226,7 +227,6 @@ class KitchenSinkThemeApi {
         'splash': {
           'text': 'Kitchen Sink',
         },
-        'enforce': ['playerDock', 'libraryItems', 'navbarItems'],
         'responsive': {
           'compact': {
             'nav': 'rail',
@@ -352,6 +352,11 @@ class KitchenSinkThemeApi {
                 'bind': 'home.browse',
                 'gap': 6,
                 'limit': 12,
+                'columns': 2,
+                'filter': {
+                  'bind': 'search.query',
+                  'fields': ['title'],
+                },
                 'children': [
                   {'type': 'text', 'bind': 'item.title', 'size': 'lg'},
                 ],
@@ -496,6 +501,7 @@ class KitchenSinkThemeApi {
                 'type': 'progress',
                 'bind': 'player.position',
                 'maxBind': 'player.duration',
+                'style': 'wavy',
                 'width': 480,
                 'height': 8,
                 'hitHeight': 26,
@@ -516,6 +522,8 @@ class KitchenSinkThemeApi {
                 'borderColor': '@border',
                 'borderWidth': 2,
                 'opacity': 1,
+                'blur': 14,
+                'blurTint': '@muted',
                 'action': {'type': 'openLyrics'},
                 'children': [
                   {
@@ -612,8 +620,19 @@ class KitchenSinkThemeApi {
                         ],
                       },
                       {
-                        'type': 'search',
+                        'type': 'textField',
                         'placeholder': 'Search the kitchen',
+                        'icon': 'search',
+                        'debounceMs': 200,
+                        'clearable': true,
+                        'bind': 'search.query',
+                        'action': {
+                          'type': 'setQuery',
+                          'args': {
+                            'scope': 'default',
+                            'value': '$value',
+                          },
+                        },
                       },
                       {
                         'type': 'align',

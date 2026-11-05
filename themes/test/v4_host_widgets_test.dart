@@ -306,6 +306,74 @@ void main() {
         isEmpty,
       );
     });
+
+    // The collection row knobs a `library.*` widget takes. They are registered
+    // in _checkedProps, which only asks that each one be *said* to hold
+    // something; this is the saying.
+    test('row toggles must be booleans', () {
+      for (final prop in [
+        'showPin',
+        'showQueue',
+        'showPlay',
+        'coverPlays',
+        'showTitle',
+        'showSubtitle',
+        'showDividers',
+      ]) {
+        for (final value in ['true', 1]) {
+          expect(
+            _errors(_validate(_host('library.playlists', {prop: value}))),
+            contains('$_slotNode.props.$prop'),
+            reason: '$prop: $value',
+          );
+        }
+        expect(
+          _validate(_host('library.playlists', {prop: false})).issues,
+          isEmpty,
+          reason: prop,
+        );
+      }
+    });
+
+    test('row geometry shares the host clamp', () {
+      const clamps = {
+        'coverSize': (min: 32, max: 96),
+        'coverRadius': (min: 0, max: 24),
+        'rowSpacing': (min: 0, max: 24),
+      };
+      for (final entry in clamps.entries) {
+        final prop = entry.key;
+        final range = entry.value;
+        for (final good in [range.min, range.max]) {
+          expect(
+            _validate(_host('library.playlists', {prop: good})).issues,
+            isEmpty,
+            reason: '$prop: $good',
+          );
+        }
+        for (final bad in [range.min - 1, range.max + 1, 12.5, '24']) {
+          expect(
+            _errors(_validate(_host('library.playlists', {prop: bad}))),
+            contains('$_slotNode.props.$prop'),
+            reason: '$prop: $bad',
+          );
+        }
+      }
+    });
+
+    test('density is a closed vocabulary', () {
+      for (final bad in ['cozy', 'COMPACT', 1]) {
+        expect(
+          _errors(_validate(_host('library.albums', {'density': bad}))),
+          contains('$_slotNode.props.density'),
+          reason: '$bad',
+        );
+      }
+      expect(
+        _validate(_host('library.albums', {'density': 'compact'})).issues,
+        isEmpty,
+      );
+    });
   });
 
   group('pin targets', () {
@@ -405,4 +473,15 @@ const _checkedProps = <String>{
   'scope',
   'pinTarget',
   'target',
+  'showPin',
+  'showQueue',
+  'showPlay',
+  'coverPlays',
+  'showTitle',
+  'showSubtitle',
+  'showDividers',
+  'density',
+  'coverSize',
+  'coverRadius',
+  'rowSpacing',
 };

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 
 import '../lib/compile.dart';
@@ -15,12 +16,41 @@ import '../lib/validator.dart';
 /// one command, and the test suite fails when a committed golden does not
 /// match the theme it came from.
 Future<void> main(List<String> arguments) async {
+  final parser = ArgParser()
+    ..addMultiOption(
+      'theme',
+      help: 'Export only these theme ids (repeatable).',
+      abbr: 't',
+    );
+
+  final ArgResults options;
+  try {
+    options = parser.parse(arguments);
+  } on FormatException catch (error) {
+    stderr.writeln(error.message);
+    stderr.writeln(parser.usage);
+    exitCode = 64;
+    return;
+  }
+
   final repoRoot = p.dirname(p.dirname(p.absolute(Platform.script.toFilePath())));
   final outDir = Directory(p.join(repoRoot, 'conformance'));
+  final selected = options['theme'] as List<String>;
+
+  final themes = loadThemes(repoRoot)
+      .where((theme) => selected.isEmpty || selected.contains(theme.id))
+      .toList();
+  if (themes.isEmpty) {
+    stderr.writeln(selected.isEmpty
+        ? 'no themes found under themes/'
+        : 'no theme matched ${selected.join(', ')}');
+    exitCode = 1;
+    return;
+  }
 
   var failed = false;
 
-  for (final theme in loadThemes(repoRoot)) {
+  for (final theme in themes) {
     final byteCode = compileThemeSource(theme.source, sourceName: '${theme.id}_theme');
     final compiled = await evaluateTheme(byteCode, entryPoint: theme.entryPoint);
 

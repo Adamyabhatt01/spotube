@@ -3,9 +3,12 @@ import 'v3_validator.dart';
 
 /// The keys a v4 payload may carry at the top level.
 ///
-/// v4 is a breaking contract: the v3 escape-hatch key `dynamic` is not part of
-/// it, and every other key is listed here. `light` and `dark` remain from v2
-/// because every theme still has to carry both palettes.
+/// v4 is a breaking contract, and every key the host reads is listed here.
+/// `dynamic` is part of it: v4 first dropped it as a v3 escape hatch, but that
+/// was the one key themes genuinely needed and v4 had no replacement for —
+/// shell and artwork palette sync has no other spelling, and the host never
+/// stopped honouring it. `light` and `dark` remain from v2 because every theme
+/// still has to carry both palettes.
 const v4TopLevelKeys = <String>[
   'specVersion',
   'uiKit',
@@ -16,6 +19,7 @@ const v4TopLevelKeys = <String>[
   'radius',
   'density',
   'tokens',
+  'dynamic',
   'typography',
   'spacing',
   'motion',
@@ -132,6 +136,10 @@ const _v4NodeProps = <String, List<String>>{
     'clip',
     'padding',
     'opacity',
+    // `blur` is the node-level frost; `blurTint` keeps it reading as glass
+    // while the scroll freeze holds sigma at zero.
+    'blur',
+    'blurTint',
   ],
   'grid': ['columns', 'gap'],
   'resizable': ['direction', 'initial', 'min', 'max', 'storageKey'],
@@ -161,14 +169,24 @@ const _v4NodeProps = <String, List<String>>{
   'tabs': ['items', 'panels'],
   'menu': ['items', 'trigger', 'placement'],
   // `target` opts a theme-owned menu into the user's host-menu config.
-  'contextMenu': ['items', 'target'],
+  // `hostItem` hands the row to the host's own menu for the item it draws.
+  'contextMenu': ['items', 'target', 'hostItem'],
   'breadcrumb': ['items'],
   'pagination': ['pageBind', 'pageCount'],
   'dialog': ['title', 'description', 'openBind'],
   'sheet': ['side', 'width', 'openBind'],
   'popover': ['placement', 'trigger'],
   'tooltip': ['text', 'placement'],
-  'virtualList': ['itemTemplate', 'itemExtent', 'overscan', 'limit', 'filter'],
+  // `columns` matches what `list` took in phase 5B: a long grid belongs on the
+  // lazy list, and without the count the recommended node could not draw one.
+  'virtualList': [
+    'itemTemplate',
+    'itemExtent',
+    'overscan',
+    'limit',
+    'filter',
+    'columns',
+  ],
   'table': ['columns', 'rowTemplate', 'stickyHeader', 'sortable'],
   'tree': ['labelKey', 'childrenKey', 'expandedKey'],
   'accordion': ['items', 'multiple'],
@@ -182,8 +200,12 @@ const _v4NodeProps = <String, List<String>>{
 /// The v3 tables stay frozen: a v3 payload that carries one of these is still
 /// a typo, but a v4 theme may filter a `list` or draw a wavy `progress`.
 const _v4ExtraBaseProps = <String, List<String>>{
-  'list': ['filter'],
+  // `columns` keeps a vertical, data-bound list from becoming one endless
+  // column; the host fills a fixed grid instead of hard-coding shortcut rows.
+  'list': ['filter', 'columns'],
   'progress': ['style'],
+  // The frost `box` took, on the node that actually draws panels.
+  'card': ['blur', 'blurTint'],
 };
 
 /// The closed prop table a v4 node is checked against.
@@ -218,6 +240,8 @@ const v4UiBindings = <String>[
   'player.muted',
   'app.sidebarCollapsed',
   'app.asideOpen',
+  'app.pinnedPlaylistIds',
+  'app.pinnedStationIds',
   'library.pinTargets',
   'library.playlists',
   'library.pins',
@@ -642,10 +666,59 @@ const v4HostWidgetProps = <String, Set<String>>{
     'filter',
     'pinTarget',
     'direction',
+    'showPin',
+    'showQueue',
+    'showPlay',
+    'coverPlays',
+    'showTitle',
+    'showSubtitle',
+    'density',
+    'coverSize',
+    'coverRadius',
+    'showDividers',
+    'rowSpacing',
   },
-  'library.pins': {'compact', 'target', 'direction'},
-  'library.albums': {'compact'},
-  'library.artists': {'compact'},
+  'library.pins': {
+    'compact',
+    'target',
+    'direction',
+    'showPin',
+    'showQueue',
+    'showPlay',
+    'coverPlays',
+    'showTitle',
+    'showSubtitle',
+    'density',
+    'coverSize',
+    'coverRadius',
+    'showDividers',
+    'rowSpacing',
+  },
+  'library.albums': {
+    'compact',
+    'showQueue',
+    'showPlay',
+    'coverPlays',
+    'showTitle',
+    'showSubtitle',
+    'density',
+    'coverSize',
+    'coverRadius',
+    'showDividers',
+    'rowSpacing',
+  },
+  'library.artists': {
+    'compact',
+    'showPlay',
+    'coverPlays',
+    'showTitle',
+    'showSubtitle',
+    'density',
+    'coverSize',
+    'coverRadius',
+    'showDividers',
+    'rowSpacing',
+  },
   'player.controls': {'compact', 'showProgress', 'showVolume'},
   'audio.bass': {'compact'},
   'audio.equalizer': {'bands'},
@@ -663,6 +736,13 @@ const _hostWidgetBoolProps = <String>{
   'showCreate',
   'showProgress',
   'showVolume',
+  'showPin',
+  'showQueue',
+  'showPlay',
+  'coverPlays',
+  'showTitle',
+  'showSubtitle',
+  'showDividers',
 };
 
 /// Host widget props that must be whole numbers inside a range the host can
@@ -671,12 +751,16 @@ const _hostWidgetBoolProps = <String>{
 const _hostWidgetCountProps = <String, ({int min, int max})>{
   'limit': (min: 1, max: 200),
   'bands': (min: 1, max: 10),
+  'coverSize': (min: 32, max: 96),
+  'coverRadius': (min: 0, max: 24),
+  'rowSpacing': (min: 0, max: 24),
 };
 
 /// Host widget props whose value is a closed vocabulary.
 const _hostWidgetEnumProps = <String, Set<String>>{
   'filter': {'all', 'pins', 'recent'},
   'direction': {'vertical', 'horizontal'},
+  'density': {'standard', 'compact'},
 };
 
 /// Host widget props that must be strings, with their length cap.
@@ -2226,10 +2310,44 @@ void _capabilityUsage(
     }
   }
 
-  void walkNode(Object? raw, String path) {
+  // Templates named by `itemTemplate`/`rowTemplate` are item content: a blur
+  // inside one runs a backdrop filter per row, which is the per-row frost the
+  // host docs warn against. Collected during the walk, checked in a second
+  // pass over `ui.templates`.
+  final itemTemplateNames = <String>{};
+
+  /// Sigma of a node's `blur` prop (flat or under `props`), 0 when absent.
+  double _blurSigma(Map node) {
+    Object? raw = node['blur'];
+    final props = node['props'];
+    if (raw == null && props is Map) raw = props['blur'];
+    return raw is num && raw.isFinite ? raw.toDouble() : 0;
+  }
+
+  void walkNode(Object? raw, String path, {bool inItemTemplate = false}) {
     if (raw is! Map) return;
     final node = raw;
-    if (node['type'] == 'hostWidget') {
+    final type = node['type'];
+
+    final templateRef = node['itemTemplate'] ?? node['rowTemplate'];
+    if (templateRef is String && templateRef.trim().isNotEmpty) {
+      itemTemplateNames.add(templateRef.trim());
+    }
+
+    if (inItemTemplate &&
+        (type == 'box' || type == 'card') &&
+        _blurSigma(node) > 0) {
+      issues.add(
+        Issue(
+          Severity.warning,
+          path,
+          'blur inside an item template runs a backdrop filter per row — '
+              'frost the list container instead',
+        ),
+      );
+    }
+
+    if (type == 'hostWidget') {
       if (!granted.contains('ui.hostWidgets')) {
         issues.add(
           Issue(
@@ -2251,19 +2369,52 @@ void _capabilityUsage(
     }
     final children = node['children'];
     if (children is List) {
+      // The children of a repeating node ARE the item template: a list row,
+      // a carousel card, a table row. Everything below inherits the flag.
+      final childInItem = inItemTemplate ||
+          type == 'list' ||
+          type == 'virtualList' ||
+          type == 'carousel';
       for (var i = 0; i < children.length; i++) {
-        walkNode(children[i], '$path.children[$i]');
+        walkNode(children[i], '$path.children[$i]',
+            inItemTemplate: childInItem);
       }
     }
   }
 
-  void walkTree(Object? raw, String path) {
+  /// Blur-only pass for templates referenced by `itemTemplate`/`rowTemplate`.
+  /// Runs after the main walk so every referencing node has been seen; it
+  /// does not re-run the other checks, which the first pass already did.
+  void warnItemBlur(Object? raw, String path) {
+    if (raw is! Map) return;
+    final node = raw;
+    final type = node['type'];
+    if ((type == 'box' || type == 'card') && _blurSigma(node) > 0) {
+      issues.add(
+        Issue(
+          Severity.warning,
+          path,
+          'blur inside an item template runs a backdrop filter per row — '
+              'frost the list container instead',
+        ),
+      );
+    }
+    final children = node['children'];
+    if (children is List) {
+      for (var i = 0; i < children.length; i++) {
+        warnItemBlur(children[i], '$path.children[$i]');
+      }
+    }
+  }
+
+  void walkTree(Object? raw, String path,
+      {bool inItemTemplate = false}) {
     if (raw is List) {
       for (var i = 0; i < raw.length; i++) {
-        walkNode(raw[i], '$path[$i]');
+        walkNode(raw[i], '$path[$i]', inItemTemplate: inItemTemplate);
       }
     } else if (raw is Map) {
-      walkNode(raw, path);
+      walkNode(raw, path, inItemTemplate: inItemTemplate);
     }
   }
 
@@ -2293,6 +2444,10 @@ void _capabilityUsage(
         final template = entry.value;
         if (template is Map) {
           walkTree(template['children'], 'ui.templates.${entry.key}');
+          if (itemTemplateNames.contains(entry.key)) {
+            warnItemBlur(
+                template['children'], 'ui.templates.${entry.key}');
+          }
         }
       }
     }

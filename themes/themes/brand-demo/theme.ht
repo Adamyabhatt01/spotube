@@ -16,7 +16,8 @@ class AuroraThemeApi {
     var schemes = ThemePalette.fromSeedFull('#3f7ae0')
 
     return {
-      'specVersion': 3,
+      'specVersion': 4,
+      'uiKit': 'shadcn',
 
       // What a v2 host reads.
       'light': schemes['light'],
@@ -104,9 +105,6 @@ class AuroraThemeApi {
             'about',
           ],
         },
-        // The theme does not take the layout away from the user: only the
-        // player's dock is the theme's own.
-        'enforce': ['playerDock'],
         'responsive': {
           'compact': {
             'nav': 'rail',

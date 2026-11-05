@@ -2561,7 +2561,7 @@ void _uiProp(
     } else if (value.startsWith('asset://')) {
       _assetPath(path, value, issues);
     } else if (!uiImageSources.contains(value) &&
-        !(value.contains('.') && isUiBinding(value))) {
+        !(value.contains('.') && vocabulary.isBinding(value))) {
       issues.add(
         Issue(
           Severity.error,
@@ -2992,9 +2992,33 @@ void _uiProp(
       _uiTableColumns(path, value, issues);
       return;
     }
-    if (value is! int || value < 1 || value > 12) {
-      issues.add(Issue(Severity.error, path, 'must be an integer 1..12'));
+    if (value is int) {
+      if (value < 1 || value > 12) {
+        issues.add(Issue(Severity.error, path, 'must be an integer 1..12'));
+      }
+      return;
     }
+    if (value is Map) {
+      // A breakpoint map, e.g. {'compact': 2, 'medium': 2, 'expanded': 4}.
+      // Keys are breakpoint names (aliases are honoured at runtime) but are
+      // not rejected here; each value must be an integer 1..12.
+      for (final entry in value.entries) {
+        final v = entry.value;
+        if (v is! int || v < 1 || v > 12) {
+          issues.add(
+            Issue(
+              Severity.error,
+              '$path.${entry.key}',
+              'must be an integer 1..12',
+            ),
+          );
+        }
+      }
+      return;
+    }
+    issues.add(
+      Issue(Severity.error, path, 'must be an integer 1..12 or a breakpoint map'),
+    );
     return;
   }
 

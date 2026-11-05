@@ -1,0 +1,11 @@
+{
+  "name": "Neon Maximalist",
+  "description": "Every v4 contract feature turned up to eleven: all 12 host widgets, all 19 render points, all 8 context-menu targets, full audio-effects rig, library write, routed pages, nested shell, resizable panes, theme settings, and neon-on-neon everywhere.",
+  "version": "1.0.0",
+  "author": "Neon Labs",
+  "entryPoint": "NeonMaximalistTheme",
+  "pluginApiVersion": "2.0.0",
+  "apis": [],
+  "abilities": ["theme"],
+  "repository": "https://github.com/Adamyabhatt01/spotube/tree/master/themes"
+}

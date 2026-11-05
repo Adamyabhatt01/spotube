@@ -12,6 +12,7 @@
         "crypto",
         "hetu_script",
         "path",
+        "pub_semver",
         "sqlite3"
       ],
       "devDependencies": [
@@ -71,6 +72,13 @@
         "path",
         "typed_data",
         "web"
+      ]
+    },
+    {
+      "name": "pub_semver",
+      "version": "2.2.1",
+      "dependencies": [
+        "collection"
       ]
     },
     {
@@ -423,13 +431,6 @@
       "name": "recase",
       "version": "4.1.0",
       "dependencies": []
-    },
-    {
-      "name": "pub_semver",
-      "version": "2.2.1",
-      "dependencies": [
-        "collection"
-      ]
     },
     {
       "name": "quiver",

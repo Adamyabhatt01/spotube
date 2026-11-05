@@ -5,10 +5,11 @@ import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 import 'package:spotube_themes/v3_validator.dart';
+import 'package:spotube_themes/v4_validator.dart';
 import 'package:spotube_themes/validator.dart';
 import 'package:test/test.dart';
 
-/// The obsidian theme is the v3 contract under load: a stage, a gated
+/// The obsidian theme is the v4 contract under load: a stage, a gated
 /// animation, a tiled asset background, shipped fonts, a pixel icon set and
 /// two palettes that are not variants of the same hue.
 ///
@@ -22,6 +23,12 @@ void main() {
     File('$repoRoot/conformance/obsidian.json').readAsStringSync(),
   ) as Map<String, dynamic>;
   final ui = payload['ui'] as Map<String, dynamic>;
+
+  /// The payload the theme published before it moved to v4. Users still have
+  /// it installed, so the rejection and the migration path are pinned here.
+  final legacy = jsonDecode(
+    File('$repoRoot/conformance/legacy/obsidian.json').readAsStringSync(),
+  ) as Map<String, dynamic>;
 
   /// Every `asset://` string anywhere in a tree.
   Set<String> assetPaths(Object? node) {
@@ -83,8 +90,8 @@ void main() {
   }
 
   group('the obsidian payload', () {
-    test('validates with no errors and no warnings for the migration tools', () {
-      final report = validateLegacyThemePayload(payload);
+    test('is a clean v4 payload', () {
+      final report = validateThemePayload(payload);
       expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
       expect(
         report.issues.where((issue) => issue.severity == Severity.warning),
@@ -94,22 +101,31 @@ void main() {
       );
     });
 
-    test('the v4 host rejects it', () {
-      final report = validateThemePayload(payload);
+    test('the v3 it used to ship is what the host rejects', () {
+      final report = validateThemePayload(legacy);
       expect(report.issues, hasLength(1));
       expect(
         report.issues.single.message,
         'specVersion 3 is not supported; migrate to 4',
       );
+
+      // The migration tools still have to read the payload users hold.
+      final legacyReport = validateLegacyThemePayload(legacy);
+      expect(
+        legacyReport.issues
+            .where((issue) => issue.severity == Severity.warning),
+        isEmpty,
+        reason: legacyReport.issues.join('\n'),
+      );
     });
 
     test('its UI document validates on its own', () {
-      final issues = validateUiSpec(ui);
+      final issues = validateUiSpec(ui, vocabulary: v4UiVocabulary);
       expect(issues, isEmpty, reason: issues.join('\n'));
     });
 
-    test('is a v3 payload with a v2 UI', () {
-      expect(payload['specVersion'], 3);
+    test('is a v4 payload with a v2 UI', () {
+      expect(payload['specVersion'], 4);
       expect(ui['specVersion'], 2);
     });
 
@@ -347,7 +363,7 @@ void main() {
       ) as Map<String, dynamic>;
       expect(manifest['entryPoint'], 'ObsidianTheme');
       expect(manifest['abilities'], contains('theme'));
-      expect(manifest['version'], '1.0.0');
+      expect(manifest['version'], '2.0.0');
       expect((payload['branding'] as Map)['logo'], 'asset://images/logo.png');
     });
   });

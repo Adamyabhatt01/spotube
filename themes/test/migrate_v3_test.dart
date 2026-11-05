@@ -42,7 +42,7 @@ Map<String, dynamic> v3Payload() {
     'light': palette('#ffffff', '#121212'),
     'dark': palette('#121212', '#ffffff'),
     'capabilities': ['ui.pages'],
-    'dynamic': {'source': 'albumArt', 'algorithm': 'palette'},
+    'dynamic': {'source': 'albumArt', 'algorithm': 'material'},
     'layout': {
       'enforce': ['playerDock'],
       'player': {'dock': 'floating'},
@@ -90,10 +90,12 @@ void main() {
       expect(report.renamed, contains(contains('uiKit')));
     });
 
-    test('removes the v3-only dynamic block and layout gate', () {
-      expect(report.payload, isNot(contains('dynamic')));
+    test('keeps dynamic and drops the v3-only layout gate', () {
+      // v4 reads the same block the host always did: shell and artwork palette
+      // sync have no other spelling, so a migration must not strip it.
+      expect(report.payload['dynamic'], {'source': 'albumArt', 'algorithm': 'material'});
+      expect(report.removed, isNot(contains(contains('dynamic'))));
       expect((report.payload['layout'] as Map), isNot(contains('enforce')));
-      expect(report.removed, contains(contains('dynamic')));
       expect(report.removed, contains(contains('layout.enforce')));
     });
 
@@ -148,14 +150,16 @@ void main() {
     });
   });
 
-  // The published themes are still v3, so `migrate_v3.dart` is a live path
-  // rather than a historical one. Their goldens are the payloads the tool has
-  // to handle; a v3 key the mapper does not know about shows up here as an
-  // error or a warning instead of reaching an author as a broken theme.
+  // Every published theme is v4 now, so `migrate_v3.dart` serves the payloads
+  // users already installed rather than the ones in the catalogue. Those
+  // outgoing payloads are archived under `conformance/legacy/` and are exactly
+  // what the tool has to handle; a v3 key the mapper does not know about shows
+  // up here as an error or a warning instead of reaching an author as a broken
+  // theme.
   group('the shipped v3 payloads', () {
     final repoRoot = Directory.current.path;
     final v3Payloads =
-        (Directory('$repoRoot/conformance')
+        (Directory('$repoRoot/conformance/legacy')
                 .listSync()
                 .whereType<File>()
                 .where((file) => file.path.endsWith('.json')))

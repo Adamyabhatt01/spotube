@@ -1,0 +1,11 @@
+{
+  "name": "Neon Cabinet",
+  "description": "Arcade-CRT shell for Spotube: a custom marquee/coin rail shell tree, a theme-owned sidebar and turntable aside, three routed pages, pixel bevels, Silkscreen over VT323 and artwork-driven neon.",
+  "version": "1.0.0",
+  "author": "Adamya Bhatt",
+  "entryPoint": "NeonCabinetTheme",
+  "pluginApiVersion": "2.0.0",
+  "apis": [],
+  "abilities": ["theme"],
+  "repository": "https://github.com/Adamyabhatt01/spotube/tree/master/themes"
+}

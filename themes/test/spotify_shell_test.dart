@@ -4,10 +4,11 @@ import 'dart:math' as math;
 
 import 'package:path/path.dart' as p;
 import 'package:spotube_themes/v3_validator.dart';
+import 'package:spotube_themes/v4_validator.dart';
 import 'package:spotube_themes/validator.dart';
 import 'package:test/test.dart';
 
-/// The Spotify shell is the "no plugin texture, no bitmap" end of the v3
+/// The Spotify shell is the "no plugin texture, no bitmap" end of the v4
 /// contract: a palette, Inter, a labelled inset shell and page bodies drawn
 /// with the primitives. These tests pin the things a validator cannot see —
 /// that the text stays readable, that the theme is genuinely opaque, that the
@@ -23,6 +24,12 @@ void main() {
           as Map<String, dynamic>;
   final ui = payload['ui'] as Map<String, dynamic>;
   final slots = ui['slots'] as Map<String, dynamic>;
+
+  /// The payload the theme published before it moved to v4. Users still have
+  /// it installed, so the rejection and the migration path are pinned here.
+  final legacy = jsonDecode(
+    File('$repoRoot/conformance/legacy/spotify-shell.json').readAsStringSync(),
+  ) as Map<String, dynamic>;
 
   /// Every `asset://` string anywhere in a tree.
   Set<String> assetPaths(Object? node) {
@@ -106,8 +113,8 @@ void main() {
   }
 
   group('the spotify-shell payload', () {
-    test('validates with no errors and no warnings for the migration tools', () {
-      final report = validateLegacyThemePayload(payload);
+    test('is a clean v4 payload', () {
+      final report = validateThemePayload(payload);
       expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
       expect(
         report.issues.where((issue) => issue.severity == Severity.warning),
@@ -118,22 +125,32 @@ void main() {
       );
     });
 
-    test('the v4 host rejects it', () {
-      final report = validateThemePayload(payload);
+    test('the v3 it used to ship is what the host rejects', () {
+      final report = validateThemePayload(legacy);
       expect(report.issues, hasLength(1));
       expect(
         report.issues.single.message,
         'specVersion 3 is not supported; migrate to 4',
       );
+
+      // The migration tools still have to read the payload users hold.
+      final legacyReport = validateLegacyThemePayload(legacy);
+      expect(legacyReport.hasErrors, isFalse);
+      expect(
+        legacyReport.issues
+            .where((issue) => issue.severity == Severity.warning),
+        isEmpty,
+        reason: legacyReport.issues.join('\n'),
+      );
     });
 
     test('its UI document validates on its own', () {
-      final issues = validateUiSpec(ui);
+      final issues = validateUiSpec(ui, vocabulary: v4UiVocabulary);
       expect(issues, isEmpty, reason: issues.join('\n'));
     });
 
-    test('is a v3 payload with a v2 UI', () {
-      expect(payload['specVersion'], 3);
+    test('is a v4 payload with a v2 UI', () {
+      expect(payload['specVersion'], 4);
       expect(ui['specVersion'], 2);
     });
 
@@ -164,12 +181,23 @@ void main() {
             ...(node['actions'] as List).whereType<Map>(),
         ]) {
           expect(
-            uiActionTypes,
+            v4UiActionTypes,
             contains(action['type']),
             reason: '${node['type']} carries an unknown action',
           );
         }
       }
+      // The search field is wired, not decorative: it writes the query the
+      // search page reads back.
+      expect(
+        nodes(ui)
+            .where((node) => node['type'] == 'textField')
+            .expand((node) => [
+                  if (node['action'] is Map) node['action'] as Map,
+                ])
+            .map((action) => action['type']),
+        contains('setQuery'),
+      );
     });
   });
 
@@ -193,12 +221,11 @@ void main() {
       expect(background['transparent'], isFalse);
     });
 
-    test('claims the navigation it draws', () {
+    test('draws the navigation it names', () {
+      // v4 has no claim list: the layout keys themselves are the claim, and
+      // the host draws what is present.
       final layout = payload['layout'] as Map;
-      expect(
-        layout['enforce'],
-        containsAll(<String>['nav', 'navItems', 'navbarItems', 'libraryItems']),
-      );
+      expect(layout['nav'], 'labels');
       expect(layout['navItems'], ['home', 'search']);
       expect(layout['navbarItems'], ['home', 'search', 'library']);
       expect(layout['libraryItems'], [
@@ -393,7 +420,12 @@ void main() {
             .where((name) => name.contains('.') && !name.startsWith('item.'))
             .where((name) => !name.startsWith('player.'))
             .where((name) => !name.startsWith('user.'))
-            .where((name) => !name.startsWith('app.'));
+            .where((name) => !name.startsWith('app.'))
+            // The home top bar owns the app's search input, so it reads the
+            // global query. That is chrome, not the search page's data.
+            .where(
+              (name) => !(entry.key == 'home.content' && name == 'search.query'),
+            );
         expect(
           found.where((name) => !name.startsWith(entry.value)),
           isEmpty,
@@ -404,14 +436,17 @@ void main() {
 
     test('the home page draws its own top bar and links into the app', () {
       final home = nodes(slots['home.content']);
+      final field = home.where(
+        (node) =>
+            node['type'] == 'textField' &&
+            node['placeholder'] == 'What do you want to play?',
+      );
+      expect(field, isNotEmpty,
+          reason: 'the chrome field must focus in place, not navigate');
       expect(
-        home.where(
-          (node) =>
-              node['type'] == 'search' &&
-              node['placeholder'] == 'What do you want to play?',
-        ),
-        isNotEmpty,
-        reason: 'the chrome field must focus in place, not navigate',
+        field.map((node) => node['bind']),
+        everyElement('search.query'),
+        reason: 'a v4 input is only a search box if it reads the query back',
       );
       expect(
         home.where(
@@ -539,7 +574,7 @@ void main() {
               as Map<String, dynamic>;
       expect(manifest['entryPoint'], 'SpotifyTheme');
       expect(manifest['abilities'], contains('theme'));
-      expect(manifest['version'], '1.1.0');
+      expect(manifest['version'], '2.0.0');
       expect((payload['branding'] as Map)['wordmark'], isA<Map>());
       expect((payload['branding'] as Map)['appName'], 'Spotube');
     });

@@ -5,7 +5,8 @@
     "library.read",
     "player.control",
     "audio.effects",
-    "ui.pages"
+    "ui.pages",
+    "ui.hostWidgets"
   ],
   "light": {
     "background": "#ffffff",
@@ -192,20 +193,20 @@
         "fontFamily": "Inter"
       },
       "small": {
-        "fontSize": 13.0,
+        "fontSize": 14.0,
         "fontWeight": 400.0,
         "height": 1.4,
         "fontFamily": "Inter"
       },
       "muted": {
-        "fontSize": 13.0,
+        "fontSize": 14.0,
         "fontWeight": 400.0,
         "height": 1.4,
         "color": "@mutedForeground",
         "fontFamily": "Inter"
       },
       "xSmall": {
-        "fontSize": 11.0,
+        "fontSize": 12.0,
         "fontWeight": 400.0,
         "height": 1.3,
         "fontFamily": "Inter"
@@ -532,14 +533,16 @@
   "layout": {
     "chrome": "inset",
     "nav": "labels",
-    "progress": "below",
+    "progress": "inline",
+    "sidebar": "theme",
+    "sidebarWidth": 280.0,
     "aside": "theme",
     "asideWidth": 300.0,
     "player": {
       "dock": "full",
       "showTrackDetails": true,
-      "showActions": true,
-      "showVolume": true,
+      "showActions": false,
+      "showVolume": false,
       "showLyrics": true,
       "showProgress": true
     },
@@ -566,6 +569,7 @@
     "responsive": {
       "compact": {
         "nav": "labels",
+        "sidebarWidth": 220.0,
         "aside": "none",
         "titlebar": {
           "height": 40.0
@@ -576,6 +580,7 @@
         }
       },
       "medium": {
+        "sidebarWidth": 240.0,
         "aside": "none"
       }
     }
@@ -643,67 +648,652 @@
       }
     ],
     "slots": {
-      "sidebar.header": {
+      "sidebar.content": {
         "children": [
           {
-            "type": "row",
-            "gap": 10,
-            "align": "center",
+            "type": "conditional",
+            "bind": "app.sidebarCollapsed",
             "children": [
               {
-                "type": "card",
-                "width": 28,
-                "height": 28,
-                "radius": 999,
-                "padding": 0,
-                "background": "@primary",
-                "borderWidth": 0,
-                "action": {
-                  "type": "navigate",
-                  "args": {
-                    "target": "home"
+                "type": "box",
+                "background": "@sidebar",
+                "padding": 8,
+                "animate": 200,
+                "children": [
+                  {
+                    "type": "column",
+                    "gap": 8,
+                    "align": "stretch",
+                    "children": [
+                      {
+                        "type": "card",
+                        "width": 40,
+                        "height": 40,
+                        "radius": 999,
+                        "padding": 0,
+                        "background": "@primary",
+                        "borderWidth": 0,
+                        "children": [
+                          {
+                            "type": "align",
+                            "align": "center",
+                            "children": [
+                              {
+                                "type": "icon",
+                                "icon": "music",
+                                "size": 20,
+                                "color": "@primaryForeground"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "card",
+                        "padding": 8,
+                        "radius": 6,
+                        "background": "#00000000",
+                        "hoverBackground": "@sidebarAccent",
+                        "borderWidth": 0,
+                        "action": {
+                          "type": "navigate",
+                          "args": {
+                            "target": "home"
+                          }
+                        },
+                        "children": [
+                          {
+                            "type": "align",
+                            "align": "center",
+                            "children": [
+                              {
+                                "type": "icon",
+                                "icon": "home",
+                                "size": 20,
+                                "color": "@foreground"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "card",
+                        "padding": 8,
+                        "radius": 6,
+                        "background": "#00000000",
+                        "hoverBackground": "@sidebarAccent",
+                        "borderWidth": 0,
+                        "action": {
+                          "type": "navigate",
+                          "args": {
+                            "target": "search"
+                          }
+                        },
+                        "children": [
+                          {
+                            "type": "align",
+                            "align": "center",
+                            "children": [
+                              {
+                                "type": "icon",
+                                "icon": "search",
+                                "size": 20,
+                                "color": "@mutedForeground"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "expanded",
+                        "flex": 1,
+                        "children": [
+                          {
+                            "type": "scroll",
+                            "children": [
+                              {
+                                "type": "conditional",
+                                "bind": "user.name",
+                                "children": [
+                                  {
+                                    "type": "hostWidget",
+                                    "id": "library.playlists",
+                                    "props": {
+                                      "compact": true,
+                                      "showSearch": false,
+                                      "showCreate": false,
+                                      "limit": 40,
+                                      "showTitle": false,
+                                      "showPin": false,
+                                      "showQueue": false,
+                                      "showPlay": false,
+                                      "coverPlays": true,
+                                      "filter": "recent",
+                                      "showSubtitle": false,
+                                      "density": "compact",
+                                      "coverSize": 48,
+                                      "coverRadius": 4,
+                                      "showDividers": false
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "button",
+                        "icon": "chevronRight",
+                        "variant": "ghost",
+                        "size": "small",
+                        "action": {
+                          "type": "toggleSidebar"
+                        }
+                      }
+                    ]
                   }
-                }
+                ]
               },
               {
-                "type": "text",
-                "text": "Music",
-                "size": "lg",
-                "weight": 800,
-                "letterSpacing": -0.4
-              },
-              {
-                "type": "spacer",
-                "flex": 1
+                "type": "box",
+                "background": "@sidebar",
+                "padding": 8,
+                "animate": 200,
+                "children": [
+                  {
+                    "type": "column",
+                    "gap": 2,
+                    "children": [
+                      {
+                        "type": "card",
+                        "padding": 8,
+                        "radius": 6,
+                        "background": "#00000000",
+                        "hoverBackground": "@sidebarAccent",
+                        "borderWidth": 0,
+                        "action": {
+                          "type": "navigate",
+                          "args": {
+                            "target": "home"
+                          }
+                        },
+                        "children": [
+                          {
+                            "type": "row",
+                            "gap": 10,
+                            "align": "center",
+                            "children": [
+                              {
+                                "type": "icon",
+                                "icon": "home",
+                                "size": 20,
+                                "color": "@foreground"
+                              },
+                              {
+                                "type": "text",
+                                "text": "Home",
+                                "size": "md",
+                                "weight": 700
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "type": "card",
+                        "padding": 8,
+                        "radius": 6,
+                        "background": "#00000000",
+                        "hoverBackground": "@sidebarAccent",
+                        "borderWidth": 0,
+                        "action": {
+                          "type": "navigate",
+                          "args": {
+                            "target": "search"
+                          }
+                        },
+                        "children": [
+                          {
+                            "type": "row",
+                            "gap": 10,
+                            "align": "center",
+                            "children": [
+                              {
+                                "type": "icon",
+                                "icon": "search",
+                                "size": 20,
+                                "color": "@mutedForeground"
+                              },
+                              {
+                                "type": "text",
+                                "text": "Search",
+                                "size": "md",
+                                "weight": 700,
+                                "color": "@mutedForeground"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "gap",
+                    "size": 8
+                  },
+                  {
+                    "type": "expanded",
+                    "flex": 1,
+                    "children": [
+                      {
+                        "type": "box",
+                        "background": "@background",
+                        "radius": 8,
+                        "padding": 8,
+                        "children": [
+                          {
+                            "type": "column",
+                            "gap": 8,
+                            "children": [
+                              {
+                                "type": "row",
+                                "gap": 8,
+                                "align": "center",
+                                "children": [
+                                  {
+                                    "type": "icon",
+                                    "icon": "library",
+                                    "size": 20,
+                                    "color": "@mutedForeground"
+                                  },
+                                  {
+                                    "type": "text",
+                                    "text": "Your Library",
+                                    "size": "md",
+                                    "weight": 700
+                                  },
+                                  {
+                                    "type": "spacer",
+                                    "flex": 1
+                                  },
+                                  {
+                                    "type": "button",
+                                    "icon": "plus",
+                                    "variant": "ghost",
+                                    "size": "small",
+                                    "action": {
+                                      "type": "navigate",
+                                      "args": {
+                                        "target": "library"
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "wrap",
+                                "gap": 8,
+                                "runGap": 8,
+                                "children": [
+                                  {
+                                    "type": "chip",
+                                    "label": "Playlists",
+                                    "action": {
+                                      "type": "navigate",
+                                      "args": {
+                                        "target": "library"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "chip",
+                                    "label": "Artists",
+                                    "action": {
+                                      "type": "navigate",
+                                      "args": {
+                                        "target": "library"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "chip",
+                                    "label": "Albums",
+                                    "action": {
+                                      "type": "navigate",
+                                      "args": {
+                                        "target": "library"
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "chip",
+                                    "label": "Podcasts",
+                                    "action": {
+                                      "type": "navigate",
+                                      "args": {
+                                        "target": "library"
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "expanded",
+                                "flex": 1,
+                                "children": [
+                                  {
+                                    "type": "scroll",
+                                    "children": [
+                                      {
+                                        "type": "conditional",
+                                        "bind": "user.name",
+                                        "invert": true,
+                                        "children": [
+                                          {
+                                            "type": "column",
+                                            "gap": 8,
+                                            "align": "stretch",
+                                            "children": [
+                                              {
+                                                "type": "card",
+                                                "padding": 12,
+                                                "radius": 6,
+                                                "background": "@card",
+                                                "hoverBackground": "@accent",
+                                                "borderWidth": 0,
+                                                "action": {
+                                                  "type": "navigate",
+                                                  "args": {
+                                                    "target": "library"
+                                                  }
+                                                },
+                                                "children": [
+                                                  {
+                                                    "type": "column",
+                                                    "gap": 6,
+                                                    "align": "stretch",
+                                                    "children": [
+                                                      {
+                                                        "type": "text",
+                                                        "text": "Create your first playlist",
+                                                        "size": "sm",
+                                                        "weight": 700,
+                                                        "maxLines": 1,
+                                                        "overflow": "ellipsis"
+                                                      },
+                                                      {
+                                                        "type": "text",
+                                                        "text": "It's easy, we'll help you",
+                                                        "size": "xs",
+                                                        "color": "@mutedForeground",
+                                                        "maxLines": 1,
+                                                        "overflow": "ellipsis"
+                                                      },
+                                                      {
+                                                        "type": "gap",
+                                                        "size": 6
+                                                      },
+                                                      {
+                                                        "type": "row",
+                                                        "children": [
+                                                          {
+                                                            "type": "card",
+                                                            "padding": 8,
+                                                            "radius": 999,
+                                                            "background": "#ffffff",
+                                                            "hoverBackground": "#f6f6f6",
+                                                            "borderWidth": 0,
+                                                            "action": {
+                                                              "type": "navigate",
+                                                              "args": {
+                                                                "target": "library"
+                                                              }
+                                                            },
+                                                            "children": [
+                                                              {
+                                                                "type": "text",
+                                                                "text": "Create playlist",
+                                                                "size": "xs",
+                                                                "weight": 700,
+                                                                "color": "#000000"
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "spacer",
+                                                            "flex": 1
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "type": "card",
+                                                "padding": 12,
+                                                "radius": 6,
+                                                "background": "@card",
+                                                "hoverBackground": "@accent",
+                                                "borderWidth": 0,
+                                                "action": {
+                                                  "type": "navigate",
+                                                  "args": {
+                                                    "target": "library"
+                                                  }
+                                                },
+                                                "children": [
+                                                  {
+                                                    "type": "column",
+                                                    "gap": 6,
+                                                    "align": "stretch",
+                                                    "children": [
+                                                      {
+                                                        "type": "text",
+                                                        "text": "Let's find some podcasts to follow",
+                                                        "size": "sm",
+                                                        "weight": 700,
+                                                        "maxLines": 1,
+                                                        "overflow": "ellipsis"
+                                                      },
+                                                      {
+                                                        "type": "text",
+                                                        "text": "We'll keep you updated on new episodes",
+                                                        "size": "xs",
+                                                        "color": "@mutedForeground",
+                                                        "maxLines": 2,
+                                                        "overflow": "ellipsis"
+                                                      },
+                                                      {
+                                                        "type": "gap",
+                                                        "size": 6
+                                                      },
+                                                      {
+                                                        "type": "row",
+                                                        "children": [
+                                                          {
+                                                            "type": "card",
+                                                            "padding": 8,
+                                                            "radius": 999,
+                                                            "background": "#ffffff",
+                                                            "hoverBackground": "#f6f6f6",
+                                                            "borderWidth": 0,
+                                                            "action": {
+                                                              "type": "navigate",
+                                                              "args": {
+                                                                "target": "library"
+                                                              }
+                                                            },
+                                                            "children": [
+                                                              {
+                                                                "type": "text",
+                                                                "text": "Browse podcasts",
+                                                                "size": "xs",
+                                                                "weight": 700,
+                                                                "color": "#000000"
+                                                              }
+                                                            ]
+                                                          },
+                                                          {
+                                                            "type": "spacer",
+                                                            "flex": 1
+                                                          }
+                                                        ]
+                                                      }
+                                                    ]
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "conditional",
+                                        "bind": "user.name",
+                                        "children": [
+                                          {
+                                            "type": "hostWidget",
+                                            "id": "library.playlists",
+                                            "props": {
+                                              "compact": true,
+                                              "showSearch": false,
+                                              "showCreate": false,
+                                              "limit": 40,
+                                              "showPin": false,
+                                              "showQueue": false,
+                                              "showPlay": false,
+                                              "coverPlays": true,
+                                              "filter": "recent",
+                                              "showSubtitle": false,
+                                              "density": "compact",
+                                              "coverSize": 48,
+                                              "coverRadius": 4,
+                                              "showDividers": true
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "card",
+                                "padding": 4,
+                                "radius": 6,
+                                "background": "#00000000",
+                                "hoverBackground": "@sidebarAccent",
+                                "borderWidth": 0,
+                                "action": {
+                                  "type": "navigate",
+                                  "args": {
+                                    "target": "profile"
+                                  }
+                                },
+                                "children": [
+                                  {
+                                    "type": "row",
+                                    "gap": 8,
+                                    "align": "center",
+                                    "children": [
+                                      {
+                                        "type": "image",
+                                        "src": "user.avatar",
+                                        "width": 28,
+                                        "height": 28,
+                                        "radius": 999,
+                                        "shape": "circle",
+                                        "fit": "cover"
+                                      },
+                                      {
+                                        "type": "expanded",
+                                        "flex": 1,
+                                        "children": [
+                                          {
+                                            "type": "column",
+                                            "gap": 1,
+                                            "children": [
+                                              {
+                                                "type": "conditional",
+                                                "bind": "user.name",
+                                                "children": [
+                                                  {
+                                                    "type": "text",
+                                                    "bind": "user.name",
+                                                    "size": "sm",
+                                                    "weight": 700,
+                                                    "maxLines": 1,
+                                                    "overflow": "ellipsis"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "type": "conditional",
+                                                "bind": "user.name",
+                                                "invert": true,
+                                                "children": [
+                                                  {
+                                                    "type": "text",
+                                                    "text": "Sign in",
+                                                    "size": "sm",
+                                                    "weight": 700,
+                                                    "maxLines": 1,
+                                                    "overflow": "ellipsis"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "type": "text",
+                                                "text": "Free",
+                                                "size": "xs",
+                                                "color": "@mutedForeground"
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "type": "button",
+                                        "icon": "download",
+                                        "variant": "ghost",
+                                        "size": "small",
+                                        "action": {
+                                          "type": "openDownloads"
+                                        }
+                                      },
+                                      {
+                                        "type": "button",
+                                        "icon": "settings",
+                                        "variant": "ghost",
+                                        "size": "small",
+                                        "action": {
+                                          "type": "openSettings"
+                                        }
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "button",
+                    "icon": "chevronLeft",
+                    "variant": "ghost",
+                    "size": "small",
+                    "action": {
+                      "type": "toggleSidebar"
+                    }
+                  }
+                ]
               }
             ]
-          }
-        ]
-      },
-      "sidebar.footer": {
-        "children": [
-          {
-            "type": "button",
-            "label": "Downloads",
-            "icon": "download",
-            "variant": "outline",
-            "size": "small",
-            "action": {
-              "type": "openDownloads"
-            }
-          },
-          {
-            "type": "button",
-            "label": "Audio",
-            "icon": "equalizer",
-            "variant": "ghost",
-            "size": "small",
-            "action": {
-              "type": "openPage",
-              "args": {
-                "id": "audio"
-              }
-            }
           }
         ]
       },
@@ -712,68 +1302,391 @@
           {
             "type": "padding",
             "horizontal": 16,
-            "top": 16,
+            "top": 8,
             "bottom": 16,
             "children": [
               {
                 "type": "column",
-                "gap": 12,
+                "gap": 14,
                 "children": [
                   {
-                    "type": "text",
-                    "text": "Now playing",
-                    "size": "lg",
-                    "weight": 800
-                  },
-                  {
-                    "type": "card",
-                    "background": "@palette.darkMuted",
-                    "radius": 12,
-                    "padding": 12,
+                    "type": "row",
+                    "align": "center",
                     "children": [
                       {
-                        "type": "image",
-                        "src": "player.artwork",
-                        "width": 268,
-                        "height": 268,
-                        "radius": 8,
-                        "fit": "cover"
+                        "type": "text",
+                        "text": "Now playing",
+                        "size": "xl",
+                        "weight": 800,
+                        "letterSpacing": -0.4
+                      },
+                      {
+                        "type": "spacer",
+                        "flex": 1
+                      },
+                      {
+                        "type": "button",
+                        "icon": "queue",
+                        "variant": "ghost",
+                        "size": "small",
+                        "action": {
+                          "type": "openQueue"
+                        }
                       }
                     ]
                   },
                   {
-                    "type": "text",
+                    "type": "conditional",
                     "bind": "player.title",
-                    "size": "lg",
-                    "weight": 700,
-                    "maxLines": 1,
-                    "overflow": "ellipsis"
+                    "invert": true,
+                    "children": [
+                      {
+                        "type": "card",
+                        "radius": 8,
+                        "padding": 16,
+                        "background": "@card",
+                        "borderWidth": 0,
+                        "children": [
+                          {
+                            "type": "column",
+                            "gap": 4,
+                            "children": [
+                              {
+                                "type": "text",
+                                "text": "Nothing playing",
+                                "size": "md",
+                                "weight": 700
+                              },
+                              {
+                                "type": "text",
+                                "text": "Pick a song and the cover, credits and queue show up here.",
+                                "size": "sm",
+                                "color": "@mutedForeground"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
                   },
                   {
-                    "type": "text",
-                    "bind": "player.artist",
-                    "size": "sm",
-                    "color": "@mutedForeground",
-                    "maxLines": 1,
-                    "overflow": "ellipsis"
+                    "type": "conditional",
+                    "bind": "player.title",
+                    "children": [
+                      {
+                        "type": "column",
+                        "gap": 10,
+                        "align": "stretch",
+                        "children": [
+                          {
+                            "type": "align",
+                            "align": "center",
+                            "children": [
+                              {
+                                "type": "image",
+                                "src": "player.artwork",
+                                "width": 244,
+                                "height": 244,
+                                "radius": 8,
+                                "fit": "cover"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "bind": "player.title",
+                            "size": "xl",
+                            "weight": 800,
+                            "letterSpacing": -0.4,
+                            "maxLines": 2,
+                            "overflow": "ellipsis"
+                          },
+                          {
+                            "type": "text",
+                            "bind": "player.artist",
+                            "size": "sm",
+                            "color": "@mutedForeground",
+                            "maxLines": 1,
+                            "overflow": "ellipsis"
+                          },
+                          {
+                            "type": "row",
+                            "gap": 2,
+                            "align": "center",
+                            "children": [
+                              {
+                                "type": "button",
+                                "icon": "like",
+                                "variant": "ghost",
+                                "size": "small",
+                                "action": {
+                                  "type": "like"
+                                }
+                              },
+                              {
+                                "type": "button",
+                                "icon": "download",
+                                "variant": "ghost",
+                                "size": "small",
+                                "action": {
+                                  "type": "download"
+                                }
+                              },
+                              {
+                                "type": "button",
+                                "icon": "queue",
+                                "variant": "ghost",
+                                "size": "small",
+                                "action": {
+                                  "type": "openQueue"
+                                }
+                              },
+                              {
+                                "type": "spacer",
+                                "flex": 1
+                              }
+                            ]
+                          },
+                          {
+                            "type": "row",
+                            "gap": 8,
+                            "align": "center",
+                            "children": [
+                              {
+                                "type": "text",
+                                "bind": "player.position",
+                                "size": "xs",
+                                "color": "@mutedForeground"
+                              },
+                              {
+                                "type": "expanded",
+                                "flex": 1,
+                                "children": [
+                                  {
+                                    "type": "progress",
+                                    "bind": "player.position",
+                                    "maxBind": "player.duration",
+                                    "height": 4,
+                                    "hitHeight": 12,
+                                    "radius": 999,
+                                    "color": "@foreground",
+                                    "trackColor": "#4d4d4d",
+                                    "thumbColor": "@foreground",
+                                    "thumbSize": 10,
+                                    "interactive": true
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "text",
+                                "bind": "player.duration",
+                                "size": "xs",
+                                "color": "@mutedForeground"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
                   },
                   {
-                    "type": "progress",
-                    "bind": "player.position",
-                    "maxBind": "player.duration",
-                    "style": "wavy",
-                    "height": 4,
-                    "hitHeight": 12,
-                    "radius": 999,
-                    "color": "@primary",
-                    "trackColor": "#4d4d4d",
-                    "interactive": true
+                    "type": "conditional",
+                    "bind": "player.title",
+                    "children": [
+                      {
+                        "type": "column",
+                        "gap": 14,
+                        "align": "stretch",
+                        "children": [
+                          {
+                            "type": "divider",
+                            "orientation": "horizontal",
+                            "thickness": 1,
+                            "color": "@palette.darkMuted"
+                          },
+                          {
+                            "type": "column",
+                            "gap": 8,
+                            "children": [
+                              {
+                                "type": "text",
+                                "text": "Next up",
+                                "size": "xs",
+                                "color": "@mutedForeground",
+                                "uppercase": true,
+                                "letterSpacing": 1.2
+                              },
+                              {
+                                "type": "conditional",
+                                "bind": "queue.next",
+                                "children": [
+                                  {
+                                    "type": "card",
+                                    "padding": 6,
+                                    "radius": 6,
+                                    "background": "#00000000",
+                                    "hoverBackground": "@secondary",
+                                    "borderWidth": 0,
+                                    "action": {
+                                      "type": "openQueue"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "row",
+                                        "gap": 10,
+                                        "align": "center",
+                                        "children": [
+                                          {
+                                            "type": "image",
+                                            "src": "queue.next.artwork",
+                                            "width": 44,
+                                            "height": 44,
+                                            "radius": 4,
+                                            "fit": "cover"
+                                          },
+                                          {
+                                            "type": "expanded",
+                                            "flex": 1,
+                                            "children": [
+                                              {
+                                                "type": "column",
+                                                "gap": 2,
+                                                "children": [
+                                                  {
+                                                    "type": "text",
+                                                    "bind": "queue.next.title",
+                                                    "size": "sm",
+                                                    "weight": 600,
+                                                    "maxLines": 1,
+                                                    "overflow": "ellipsis"
+                                                  },
+                                                  {
+                                                    "type": "text",
+                                                    "bind": "queue.next.artist",
+                                                    "size": "xs",
+                                                    "color": "@mutedForeground",
+                                                    "maxLines": 1,
+                                                    "overflow": "ellipsis"
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "conditional",
+                                "bind": "queue.next",
+                                "invert": true,
+                                "children": [
+                                  {
+                                    "type": "text",
+                                    "text": "Nothing queued after this track.",
+                                    "size": "sm",
+                                    "color": "@mutedForeground"
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "row",
+                            "align": "center",
+                            "justify": "spaceBetween",
+                            "children": [
+                              {
+                                "type": "column",
+                                "gap": 2,
+                                "children": [
+                                  {
+                                    "type": "text",
+                                    "text": "In queue",
+                                    "size": "xs",
+                                    "color": "@mutedForeground",
+                                    "uppercase": true,
+                                    "letterSpacing": 1.2
+                                  },
+                                  {
+                                    "type": "row",
+                                    "gap": 4,
+                                    "align": "center",
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "bind": "queue.count",
+                                        "size": "sm",
+                                        "weight": 700
+                                      },
+                                      {
+                                        "type": "text",
+                                        "text": "songs",
+                                        "size": "sm",
+                                        "color": "@mutedForeground"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "button",
+                                "label": "Open queue",
+                                "variant": "outline",
+                                "size": "small",
+                                "action": {
+                                  "type": "openQueue"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
                   },
                   {
-                    "type": "text",
-                    "text": "Artwork accent",
-                    "size": "xs",
-                    "color": "@palette.dominant"
+                    "type": "conditional",
+                    "bind": "player.title",
+                    "children": [
+                      {
+                        "type": "box",
+                        "background": "@card",
+                        "radius": 8,
+                        "padding": 12,
+                        "children": [
+                          {
+                            "type": "column",
+                            "gap": 4,
+                            "children": [
+                              {
+                                "type": "text",
+                                "text": "About the artist",
+                                "size": "xs",
+                                "color": "@mutedForeground",
+                                "uppercase": true,
+                                "letterSpacing": 1.2
+                              },
+                              {
+                                "type": "text",
+                                "bind": "player.artist",
+                                "size": "lg",
+                                "weight": 800,
+                                "maxLines": 2,
+                                "overflow": "ellipsis"
+                              },
+                              {
+                                "type": "text",
+                                "text": "Artist",
+                                "size": "xs",
+                                "color": "@mutedForeground"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
               }
@@ -828,13 +1741,111 @@
           }
         ]
       },
-      "player.progress": {
+      "player.controls": {
         "children": [
           {
-            "type": "padding",
-            "horizontal": 16,
-            "bottom": 6,
+            "type": "column",
+            "gap": 6,
             "children": [
+              {
+                "type": "row",
+                "gap": 16,
+                "align": "center",
+                "justify": "center",
+                "children": [
+                  {
+                    "type": "button",
+                    "icon": "shuffle",
+                    "variant": "ghost",
+                    "size": "small",
+                    "action": {
+                      "type": "setShuffle"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "icon": "previous",
+                    "variant": "ghost",
+                    "size": "small",
+                    "action": {
+                      "type": "previous"
+                    }
+                  },
+                  {
+                    "type": "card",
+                    "width": 36,
+                    "height": 36,
+                    "padding": 0,
+                    "radius": 999,
+                    "background": "@primary",
+                    "hoverBackground": "#1fdf64",
+                    "borderWidth": 0,
+                    "action": {
+                      "type": "playPause"
+                    },
+                    "children": [
+                      {
+                        "type": "align",
+                        "align": "center",
+                        "children": [
+                          {
+                            "type": "conditional",
+                            "bind": "player.playing",
+                            "children": [
+                              {
+                                "type": "icon",
+                                "icon": "pause",
+                                "size": 18,
+                                "color": "@primaryForeground"
+                              },
+                              {
+                                "type": "icon",
+                                "icon": "play",
+                                "size": 18,
+                                "color": "@primaryForeground"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "button",
+                    "icon": "next",
+                    "variant": "ghost",
+                    "size": "small",
+                    "action": {
+                      "type": "next"
+                    }
+                  },
+                  {
+                    "type": "conditional",
+                    "bind": "player.loop",
+                    "equals": "single",
+                    "children": [
+                      {
+                        "type": "button",
+                        "icon": "repeatOne",
+                        "variant": "ghost",
+                        "size": "small",
+                        "action": {
+                          "type": "setLoopMode"
+                        }
+                      },
+                      {
+                        "type": "button",
+                        "icon": "repeat",
+                        "variant": "ghost",
+                        "size": "small",
+                        "action": {
+                          "type": "setLoopMode"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
               {
                 "type": "row",
                 "gap": 8,
@@ -860,7 +1871,7 @@
                         "color": "@foreground",
                         "trackColor": "#4d4d4d",
                         "thumbColor": "@foreground",
-                        "thumbSize": 12,
+                        "thumbSize": 10,
                         "interactive": true
                       }
                     ]
@@ -877,464 +1888,223 @@
           }
         ]
       },
+      "player.trailing": {
+        "children": [
+          {
+            "type": "row",
+            "gap": 2,
+            "align": "center",
+            "children": [
+              {
+                "type": "button",
+                "icon": "like",
+                "variant": "ghost",
+                "size": "small",
+                "action": {
+                  "type": "like"
+                }
+              },
+              {
+                "type": "button",
+                "icon": "download",
+                "variant": "ghost",
+                "size": "small",
+                "action": {
+                  "type": "download"
+                }
+              },
+              {
+                "type": "button",
+                "icon": "lyrics",
+                "variant": "ghost",
+                "size": "small",
+                "action": {
+                  "type": "openLyrics"
+                }
+              },
+              {
+                "type": "button",
+                "icon": "queue",
+                "variant": "ghost",
+                "size": "small",
+                "action": {
+                  "type": "openQueue"
+                }
+              },
+              {
+                "type": "button",
+                "icon": "volume",
+                "variant": "ghost",
+                "size": "small",
+                "action": {
+                  "type": "setMuted"
+                }
+              }
+            ]
+          }
+        ]
+      },
       "home.content": {
         "children": [
           {
-            "type": "padding",
-            "horizontal": 24,
-            "top": 12,
-            "bottom": 4,
+            "type": "column",
+            "align": "stretch",
             "children": [
               {
-                "type": "row",
-                "gap": 8,
-                "align": "center",
+                "type": "padding",
+                "horizontal": 24,
+                "top": 12,
+                "bottom": 4,
                 "children": [
                   {
-                    "type": "button",
-                    "icon": "home",
-                    "variant": "ghost",
-                    "size": "md",
-                    "action": {
-                      "type": "navigate",
-                      "args": {
-                        "target": "home"
-                      }
-                    }
-                  },
-                  {
-                    "type": "expanded",
-                    "flex": 1,
+                    "type": "row",
+                    "gap": 8,
+                    "align": "center",
                     "children": [
                       {
-                        "type": "card",
-                        "height": 40,
-                        "padding": 0,
-                        "radius": 999,
-                        "background": "@secondary",
-                        "hoverBackground": "@accent",
-                        "borderWidth": 0,
+                        "type": "button",
+                        "icon": "home",
+                        "variant": "ghost",
+                        "size": "md",
+                        "action": {
+                          "type": "navigate",
+                          "args": {
+                            "target": "home"
+                          }
+                        }
+                      },
+                      {
+                        "type": "spacer",
+                        "flex": 2
+                      },
+                      {
+                        "type": "expanded",
+                        "flex": 3,
                         "children": [
                           {
-                            "type": "search",
-                            "placeholder": "What do you want to play?"
+                            "type": "card",
+                            "height": 40,
+                            "padding": 0,
+                            "radius": 999,
+                            "background": "@secondary",
+                            "hoverBackground": "@accent",
+                            "borderWidth": 0,
+                            "children": [
+                              {
+                                "type": "search",
+                                "placeholder": "What do you want to play?"
+                              }
+                            ]
                           }
                         ]
+                      },
+                      {
+                        "type": "spacer",
+                        "flex": 2
+                      },
+                      {
+                        "type": "button",
+                        "icon": "settings",
+                        "variant": "ghost",
+                        "size": "md",
+                        "action": {
+                          "type": "openSettings"
+                        }
+                      },
+                      {
+                        "type": "image",
+                        "src": "user.avatar",
+                        "width": 32,
+                        "height": 32,
+                        "radius": 999,
+                        "shape": "circle",
+                        "fit": "cover",
+                        "action": {
+                          "type": "navigate",
+                          "args": {
+                            "target": "profile"
+                          }
+                        }
                       }
                     ]
-                  },
-                  {
-                    "type": "button",
-                    "icon": "settings",
-                    "variant": "ghost",
-                    "size": "md",
-                    "action": {
-                      "type": "openSettings"
-                    }
-                  },
-                  {
-                    "type": "image",
-                    "src": "user.avatar",
-                    "width": 32,
-                    "height": 32,
-                    "radius": 999,
-                    "shape": "circle",
-                    "fit": "cover",
-                    "action": {
-                      "type": "navigate",
-                      "args": {
-                        "target": "profile"
-                      }
-                    }
                   }
                 ]
-              }
-            ]
-          },
-          {
-            "type": "padding",
-            "horizontal": 24,
-            "top": 8,
-            "bottom": 4,
-            "children": [
-              {
-                "type": "text",
-                "bind": "app.greeting",
-                "size": "3xl",
-                "weight": 800,
-                "letterSpacing": -1.2
-              }
-            ]
-          },
-          {
-            "type": "conditional",
-            "bind": "user.name",
-            "invert": true,
-            "children": [
+              },
               {
                 "type": "padding",
                 "horizontal": 24,
                 "top": 8,
-                "children": [
-                  {
-                    "type": "card",
-                    "padding": 20,
-                    "radius": 8,
-                    "background": "@card",
-                    "borderWidth": 0,
-                    "children": [
-                      {
-                        "type": "column",
-                        "gap": 8,
-                        "children": [
-                          {
-                            "type": "text",
-                            "text": "Sign in to listen",
-                            "size": "xl",
-                            "weight": 800,
-                            "letterSpacing": -0.4
-                          },
-                          {
-                            "type": "text",
-                            "text": "Connect your Spotify account from Settings → Metadata plugins.",
-                            "size": "sm",
-                            "color": "@mutedForeground"
-                          },
-                          {
-                            "type": "gap",
-                            "size": 8
-                          },
-                          {
-                            "type": "button",
-                            "label": "Open settings",
-                            "variant": "primary",
-                            "size": "small",
-                            "action": {
-                              "type": "openSettings"
-                            }
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "conditional",
-            "bind": "home.hasRecent",
-            "equals": true,
-            "children": [
-              {
-                "type": "padding",
-                "horizontal": 24,
-                "top": 20,
                 "bottom": 4,
                 "children": [
                   {
-                    "type": "column",
-                    "gap": 12,
-                    "children": [
-                      {
-                        "type": "row",
-                        "align": "center",
-                        "justify": "spaceBetween",
-                        "children": [
-                          {
-                            "type": "text",
-                            "text": "Recents",
-                            "size": "xl",
-                            "weight": 800,
-                            "letterSpacing": -0.4
-                          }
-                        ]
-                      },
-                      {
-                        "type": "list",
-                        "bind": "home.recent",
-                        "direction": "horizontal",
-                        "gap": 20,
-                        "limit": 12,
-                        "align": "start",
-                        "children": [
-                          {
-                            "type": "card",
-                            "width": 180,
-                            "padding": 12,
-                            "radius": 8,
-                            "background": "#00000000",
-                            "borderWidth": 0,
-                            "action": {
-                              "type": "openItem"
-                            },
-                            "children": [
-                              {
-                                "type": "image",
-                                "src": "item.artwork",
-                                "width": 156,
-                                "height": 156,
-                                "radius": 4,
-                                "fit": "cover"
-                              },
-                              {
-                                "type": "gap",
-                                "size": 10
-                              },
-                              {
-                                "type": "text",
-                                "bind": "item.title",
-                                "size": "sm",
-                                "weight": 600,
-                                "maxLines": 1,
-                                "overflow": "ellipsis"
-                              },
-                              {
-                                "type": "gap",
-                                "size": 2
-                              },
-                              {
-                                "type": "conditional",
-                                "bind": "item.kind",
-                                "equals": "artist",
-                                "children": [
-                                  {
-                                    "type": "text",
-                                    "text": "Artist",
-                                    "size": "xs",
-                                    "color": "@mutedForeground",
-                                    "maxLines": 1,
-                                    "overflow": "ellipsis"
-                                  },
-                                  {
-                                    "type": "conditional",
-                                    "bind": "item.kind",
-                                    "equals": "playlist",
-                                    "children": [
-                                      {
-                                        "type": "text",
-                                        "bind": "item.owner",
-                                        "size": "xs",
-                                        "color": "@mutedForeground",
-                                        "maxLines": 1,
-                                        "overflow": "ellipsis"
-                                      },
-                                      {
-                                        "type": "text",
-                                        "bind": "item.artist",
-                                        "size": "xs",
-                                        "color": "@mutedForeground",
-                                        "maxLines": 1,
-                                        "overflow": "ellipsis"
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
+                    "type": "text",
+                    "bind": "app.greeting",
+                    "size": "2xl",
+                    "weight": 800,
+                    "letterSpacing": -0.8
                   }
                 ]
               },
               {
-                "type": "gap",
-                "size": 0
-              }
-            ]
-          },
-          {
-            "type": "conditional",
-            "bind": "home.hasNewReleases",
-            "equals": true,
-            "children": [
-              {
-                "type": "padding",
-                "horizontal": 24,
-                "top": 20,
-                "bottom": 4,
-                "children": [
-                  {
-                    "type": "column",
-                    "gap": 12,
-                    "children": [
-                      {
-                        "type": "text",
-                        "text": "New releases",
-                        "size": "xl",
-                        "weight": 800,
-                        "letterSpacing": -0.4
-                      },
-                      {
-                        "type": "list",
-                        "bind": "home.newReleases",
-                        "direction": "horizontal",
-                        "gap": 20,
-                        "limit": 20,
-                        "align": "start",
-                        "children": [
-                          {
-                            "type": "card",
-                            "width": 180,
-                            "padding": 12,
-                            "radius": 8,
-                            "background": "#00000000",
-                            "borderWidth": 0,
-                            "action": {
-                              "type": "openItem"
-                            },
-                            "children": [
-                              {
-                                "type": "image",
-                                "src": "item.artwork",
-                                "width": 156,
-                                "height": 156,
-                                "radius": 4,
-                                "fit": "cover"
-                              },
-                              {
-                                "type": "gap",
-                                "size": 10
-                              },
-                              {
-                                "type": "text",
-                                "bind": "item.title",
-                                "size": "sm",
-                                "weight": 600,
-                                "maxLines": 1,
-                                "overflow": "ellipsis"
-                              },
-                              {
-                                "type": "gap",
-                                "size": 2
-                              },
-                              {
-                                "type": "text",
-                                "bind": "item.artist",
-                                "size": "xs",
-                                "color": "@mutedForeground",
-                                "maxLines": 1,
-                                "overflow": "ellipsis"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "type": "gap",
-                "size": 0
-              }
-            ]
-          },
-          {
-            "type": "conditional",
-            "bind": "home.hasBrowse",
-            "equals": true,
-            "children": [
-              {
-                "type": "list",
-                "bind": "home.browse",
-                "gap": 4,
-                "limit": 16,
-                "align": "stretch",
+                "type": "conditional",
+                "bind": "home.hasRecent",
+                "equals": true,
                 "children": [
                   {
                     "type": "padding",
                     "horizontal": 24,
-                    "top": 20,
+                    "top": 8,
                     "bottom": 4,
                     "children": [
                       {
-                        "type": "column",
-                        "gap": 12,
+                        "type": "list",
+                        "bind": "home.recent",
+                        "columns": {
+                          "compact": 2,
+                          "medium": 2,
+                          "expanded": 4
+                        },
+                        "gap": 8,
+                        "limit": 4,
+                        "align": "stretch",
                         "children": [
                           {
-                            "type": "text",
-                            "bind": "item.title",
-                            "size": "xl",
-                            "weight": 800,
-                            "letterSpacing": -0.4
-                          },
-                          {
-                            "type": "list",
-                            "bind": "item.items",
-                            "direction": "horizontal",
-                            "gap": 20,
-                            "limit": 12,
-                            "align": "start",
+                            "type": "card",
+                            "height": 56,
+                            "padding": 0,
+                            "radius": 4,
+                            "background": "@card",
+                            "hoverBackground": "@accent",
+                            "borderWidth": 0,
+                            "action": {
+                              "type": "openItem"
+                            },
                             "children": [
                               {
-                                "type": "card",
-                                "width": 180,
-                                "padding": 12,
-                                "radius": 8,
-                                "background": "#00000000",
-                                "borderWidth": 0,
-                                "action": {
-                                  "type": "openItem"
-                                },
+                                "type": "row",
+                                "align": "center",
                                 "children": [
                                   {
                                     "type": "image",
                                     "src": "item.artwork",
-                                    "width": 156,
-                                    "height": 156,
+                                    "width": 56,
+                                    "height": 56,
                                     "radius": 4,
                                     "fit": "cover"
                                   },
                                   {
-                                    "type": "gap",
-                                    "size": 10
-                                  },
-                                  {
-                                    "type": "text",
-                                    "bind": "item.title",
-                                    "size": "sm",
-                                    "weight": 600,
-                                    "maxLines": 1,
-                                    "overflow": "ellipsis"
-                                  },
-                                  {
-                                    "type": "gap",
-                                    "size": 2
-                                  },
-                                  {
-                                    "type": "conditional",
-                                    "bind": "item.kind",
-                                    "equals": "artist",
+                                    "type": "expanded",
+                                    "flex": 1,
                                     "children": [
                                       {
-                                        "type": "text",
-                                        "text": "Artist",
-                                        "size": "xs",
-                                        "color": "@mutedForeground",
-                                        "maxLines": 1,
-                                        "overflow": "ellipsis"
-                                      },
-                                      {
-                                        "type": "conditional",
-                                        "bind": "item.kind",
-                                        "equals": "playlist",
+                                        "type": "padding",
+                                        "horizontal": 12,
                                         "children": [
                                           {
                                             "type": "text",
-                                            "bind": "item.owner",
-                                            "size": "xs",
-                                            "color": "@mutedForeground",
-                                            "maxLines": 1,
-                                            "overflow": "ellipsis"
-                                          },
-                                          {
-                                            "type": "text",
-                                            "bind": "item.artist",
-                                            "size": "xs",
-                                            "color": "@mutedForeground",
+                                            "bind": "item.title",
+                                            "size": "sm",
+                                            "weight": 700,
                                             "maxLines": 1,
                                             "overflow": "ellipsis"
                                           }
@@ -1353,24 +2123,839 @@
                 ]
               },
               {
+                "type": "conditional",
+                "bind": "user.name",
+                "invert": true,
+                "children": [
+                  {
+                    "type": "padding",
+                    "horizontal": 24,
+                    "top": 8,
+                    "children": [
+                      {
+                        "type": "card",
+                        "padding": 20,
+                        "radius": 8,
+                        "background": "@card",
+                        "borderWidth": 0,
+                        "children": [
+                          {
+                            "type": "column",
+                            "gap": 8,
+                            "children": [
+                              {
+                                "type": "text",
+                                "text": "Sign in to listen",
+                                "size": "xl",
+                                "weight": 800,
+                                "letterSpacing": -0.4
+                              },
+                              {
+                                "type": "text",
+                                "text": "Connect your Spotify account from Settings → Metadata plugins.",
+                                "size": "sm",
+                                "color": "@mutedForeground"
+                              },
+                              {
+                                "type": "gap",
+                                "size": 8
+                              },
+                              {
+                                "type": "button",
+                                "label": "Open settings",
+                                "variant": "primary",
+                                "size": "small",
+                                "action": {
+                                  "type": "openSettings"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "conditional",
+                "bind": "home.hasNewReleases",
+                "equals": true,
+                "children": [
+                  {
+                    "type": "padding",
+                    "horizontal": 24,
+                    "top": 20,
+                    "bottom": 4,
+                    "children": [
+                      {
+                        "type": "column",
+                        "gap": 12,
+                        "children": [
+                          {
+                            "type": "row",
+                            "align": "center",
+                            "justify": "spaceBetween",
+                            "children": [
+                              {
+                                "type": "text",
+                                "text": "New releases",
+                                "size": "xl",
+                                "weight": 800,
+                                "letterSpacing": -0.4
+                              },
+                              {
+                                "type": "button",
+                                "label": "Show all",
+                                "variant": "ghost",
+                                "size": "small",
+                                "action": {
+                                  "type": "navigate",
+                                  "args": {
+                                    "target": "library"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "type": "list",
+                            "bind": "home.newReleases",
+                            "direction": "horizontal",
+                            "gap": 20,
+                            "limit": 20,
+                            "align": "start",
+                            "children": [
+                              {
+                                "type": "contextMenu",
+                                "hostItem": true,
+                                "children": [
+                                  {
+                                    "type": "card",
+                                    "width": 180,
+                                    "padding": 12,
+                                    "radius": 8,
+                                    "background": "#00000000",
+                                    "hoverBackground": "@secondary",
+                                    "borderWidth": 0,
+                                    "action": {
+                                      "type": "openItem"
+                                    },
+                                    "children": [
+                                      {
+                                        "type": "image",
+                                        "src": "item.artwork",
+                                        "width": 156,
+                                        "height": 156,
+                                        "radius": 4,
+                                        "fit": "cover"
+                                      },
+                                      {
+                                        "type": "gap",
+                                        "size": 10
+                                      },
+                                      {
+                                        "type": "text",
+                                        "bind": "item.title",
+                                        "size": "md",
+                                        "weight": 700,
+                                        "maxLines": 1,
+                                        "overflow": "ellipsis"
+                                      },
+                                      {
+                                        "type": "gap",
+                                        "size": 2
+                                      },
+                                      {
+                                        "type": "text",
+                                        "bind": "item.artist",
+                                        "size": "xs",
+                                        "color": "@mutedForeground",
+                                        "maxLines": 1,
+                                        "overflow": "ellipsis"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "gap",
+                    "size": 0
+                  }
+                ]
+              },
+              {
+                "type": "conditional",
+                "bind": "home.hasBrowse",
+                "equals": true,
+                "children": [
+                  {
+                    "type": "list",
+                    "bind": "home.browse",
+                    "gap": 4,
+                    "limit": 16,
+                    "align": "stretch",
+                    "children": [
+                      {
+                        "type": "padding",
+                        "horizontal": 24,
+                        "top": 20,
+                        "bottom": 4,
+                        "children": [
+                          {
+                            "type": "column",
+                            "gap": 12,
+                            "children": [
+                              {
+                                "type": "text",
+                                "bind": "item.title",
+                                "size": "xl",
+                                "weight": 800,
+                                "letterSpacing": -0.4
+                              },
+                              {
+                                "type": "list",
+                                "bind": "item.items",
+                                "direction": "horizontal",
+                                "gap": 20,
+                                "limit": 12,
+                                "align": "start",
+                                "children": [
+                                  {
+                                    "type": "contextMenu",
+                                    "hostItem": true,
+                                    "children": [
+                                      {
+                                        "type": "card",
+                                        "width": 180,
+                                        "padding": 12,
+                                        "radius": 8,
+                                        "background": "#00000000",
+                                        "hoverBackground": "@secondary",
+                                        "borderWidth": 0,
+                                        "action": {
+                                          "type": "openItem"
+                                        },
+                                        "children": [
+                                          {
+                                            "type": "image",
+                                            "src": "item.artwork",
+                                            "width": 156,
+                                            "height": 156,
+                                            "radius": 4,
+                                            "fit": "cover"
+                                          },
+                                          {
+                                            "type": "gap",
+                                            "size": 10
+                                          },
+                                          {
+                                            "type": "text",
+                                            "bind": "item.title",
+                                            "size": "md",
+                                            "weight": 700,
+                                            "maxLines": 1,
+                                            "overflow": "ellipsis"
+                                          },
+                                          {
+                                            "type": "gap",
+                                            "size": 2
+                                          },
+                                          {
+                                            "type": "conditional",
+                                            "bind": "item.kind",
+                                            "equals": "artist",
+                                            "children": [
+                                              {
+                                                "type": "text",
+                                                "text": "Artist",
+                                                "size": "xs",
+                                                "color": "@mutedForeground",
+                                                "maxLines": 1,
+                                                "overflow": "ellipsis"
+                                              },
+                                              {
+                                                "type": "conditional",
+                                                "bind": "item.kind",
+                                                "equals": "playlist",
+                                                "children": [
+                                                  {
+                                                    "type": "text",
+                                                    "bind": "item.owner",
+                                                    "size": "xs",
+                                                    "color": "@mutedForeground",
+                                                    "maxLines": 1,
+                                                    "overflow": "ellipsis"
+                                                  },
+                                                  {
+                                                    "type": "text",
+                                                    "bind": "item.artist",
+                                                    "size": "xs",
+                                                    "color": "@mutedForeground",
+                                                    "maxLines": 1,
+                                                    "overflow": "ellipsis"
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "gap",
+                    "size": 0
+                  }
+                ]
+              },
+              {
+                "type": "padding",
+                "horizontal": 24,
+                "top": 28,
+                "bottom": 8,
+                "children": [
+                  {
+                    "type": "column",
+                    "gap": 14,
+                    "children": [
+                      {
+                        "type": "text",
+                        "text": "Browse all",
+                        "size": "xl",
+                        "weight": 800,
+                        "letterSpacing": -0.4
+                      },
+                      {
+                        "type": "grid",
+                        "columns": 4,
+                        "gap": 12,
+                        "children": [
+                          {
+                            "type": "card",
+                            "height": 150,
+                            "padding": 0,
+                            "radius": 8,
+                            "background": "@card",
+                            "hoverBackground": "@accent",
+                            "borderWidth": 0,
+                            "action": {
+                              "type": "navigate",
+                              "args": {
+                                "target": "search"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "box",
+                                "gradient": {
+                                  "colors": [
+                                    "#dc148c",
+                                    "#7a0b4e"
+                                  ],
+                                  "begin": "topLeft",
+                                  "end": "bottomRight"
+                                },
+                                "radius": 8,
+                                "padding": 16,
+                                "children": [
+                                  {
+                                    "type": "column",
+                                    "align": "stretch",
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "text": "Music",
+                                        "size": "lg",
+                                        "weight": 800
+                                      },
+                                      {
+                                        "type": "spacer",
+                                        "flex": 1
+                                      },
+                                      {
+                                        "type": "align",
+                                        "align": "bottomRight",
+                                        "children": [
+                                          {
+                                            "type": "icon",
+                                            "icon": "music",
+                                            "size": 44,
+                                            "color": "#ffffff"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "card",
+                            "height": 150,
+                            "padding": 0,
+                            "radius": 8,
+                            "background": "@card",
+                            "hoverBackground": "@accent",
+                            "borderWidth": 0,
+                            "action": {
+                              "type": "navigate",
+                              "args": {
+                                "target": "search"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "box",
+                                "gradient": {
+                                  "colors": [
+                                    "#006450",
+                                    "#003b2e"
+                                  ],
+                                  "begin": "topLeft",
+                                  "end": "bottomRight"
+                                },
+                                "radius": 8,
+                                "padding": 16,
+                                "children": [
+                                  {
+                                    "type": "column",
+                                    "align": "stretch",
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "text": "Podcasts",
+                                        "size": "lg",
+                                        "weight": 800
+                                      },
+                                      {
+                                        "type": "spacer",
+                                        "flex": 1
+                                      },
+                                      {
+                                        "type": "align",
+                                        "align": "bottomRight",
+                                        "children": [
+                                          {
+                                            "type": "icon",
+                                            "icon": "radio",
+                                            "size": 44,
+                                            "color": "#ffffff"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "card",
+                            "height": 150,
+                            "padding": 0,
+                            "radius": 8,
+                            "background": "@card",
+                            "hoverBackground": "@accent",
+                            "borderWidth": 0,
+                            "action": {
+                              "type": "navigate",
+                              "args": {
+                                "target": "search"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "box",
+                                "gradient": {
+                                  "colors": [
+                                    "#1e3264",
+                                    "#0f1a35"
+                                  ],
+                                  "begin": "topLeft",
+                                  "end": "bottomRight"
+                                },
+                                "radius": 8,
+                                "padding": 16,
+                                "children": [
+                                  {
+                                    "type": "column",
+                                    "align": "stretch",
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "text": "Charts",
+                                        "size": "lg",
+                                        "weight": 800
+                                      },
+                                      {
+                                        "type": "spacer",
+                                        "flex": 1
+                                      },
+                                      {
+                                        "type": "align",
+                                        "align": "bottomRight",
+                                        "children": [
+                                          {
+                                            "type": "icon",
+                                            "icon": "stats",
+                                            "size": 44,
+                                            "color": "#ffffff"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "card",
+                            "height": 150,
+                            "padding": 0,
+                            "radius": 8,
+                            "background": "@card",
+                            "hoverBackground": "@accent",
+                            "borderWidth": 0,
+                            "action": {
+                              "type": "navigate",
+                              "args": {
+                                "target": "search"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "box",
+                                "gradient": {
+                                  "colors": [
+                                    "#e8115b",
+                                    "#7a0a30"
+                                  ],
+                                  "begin": "topLeft",
+                                  "end": "bottomRight"
+                                },
+                                "radius": 8,
+                                "padding": 16,
+                                "children": [
+                                  {
+                                    "type": "column",
+                                    "align": "stretch",
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "text": "New releases",
+                                        "size": "lg",
+                                        "weight": 800
+                                      },
+                                      {
+                                        "type": "spacer",
+                                        "flex": 1
+                                      },
+                                      {
+                                        "type": "align",
+                                        "align": "bottomRight",
+                                        "children": [
+                                          {
+                                            "type": "icon",
+                                            "icon": "plus",
+                                            "size": 44,
+                                            "color": "#ffffff"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "card",
+                            "height": 150,
+                            "padding": 0,
+                            "radius": 8,
+                            "background": "@card",
+                            "hoverBackground": "@accent",
+                            "borderWidth": 0,
+                            "action": {
+                              "type": "navigate",
+                              "args": {
+                                "target": "search"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "box",
+                                "gradient": {
+                                  "colors": [
+                                    "#8400e7",
+                                    "#4c0085"
+                                  ],
+                                  "begin": "topLeft",
+                                  "end": "bottomRight"
+                                },
+                                "radius": 8,
+                                "padding": 16,
+                                "children": [
+                                  {
+                                    "type": "column",
+                                    "align": "stretch",
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "text": "Live events",
+                                        "size": "lg",
+                                        "weight": 800
+                                      },
+                                      {
+                                        "type": "spacer",
+                                        "flex": 1
+                                      },
+                                      {
+                                        "type": "align",
+                                        "align": "bottomRight",
+                                        "children": [
+                                          {
+                                            "type": "icon",
+                                            "icon": "queue",
+                                            "size": 44,
+                                            "color": "#ffffff"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "card",
+                            "height": 150,
+                            "padding": 0,
+                            "radius": 8,
+                            "background": "@card",
+                            "hoverBackground": "@accent",
+                            "borderWidth": 0,
+                            "action": {
+                              "type": "navigate",
+                              "args": {
+                                "target": "search"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "box",
+                                "gradient": {
+                                  "colors": [
+                                    "#af2896",
+                                    "#5e154f"
+                                  ],
+                                  "begin": "topLeft",
+                                  "end": "bottomRight"
+                                },
+                                "radius": 8,
+                                "padding": 16,
+                                "children": [
+                                  {
+                                    "type": "column",
+                                    "align": "stretch",
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "text": "Discover",
+                                        "size": "lg",
+                                        "weight": 800
+                                      },
+                                      {
+                                        "type": "spacer",
+                                        "flex": 1
+                                      },
+                                      {
+                                        "type": "align",
+                                        "align": "bottomRight",
+                                        "children": [
+                                          {
+                                            "type": "icon",
+                                            "icon": "search",
+                                            "size": 44,
+                                            "color": "#ffffff"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "card",
+                            "height": 150,
+                            "padding": 0,
+                            "radius": 8,
+                            "background": "@card",
+                            "hoverBackground": "@accent",
+                            "borderWidth": 0,
+                            "action": {
+                              "type": "navigate",
+                              "args": {
+                                "target": "library"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "box",
+                                "gradient": {
+                                  "colors": [
+                                    "#450af5",
+                                    "#28047e"
+                                  ],
+                                  "begin": "topLeft",
+                                  "end": "bottomRight"
+                                },
+                                "radius": 8,
+                                "padding": 16,
+                                "children": [
+                                  {
+                                    "type": "column",
+                                    "align": "stretch",
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "text": "Liked Songs",
+                                        "size": "lg",
+                                        "weight": 800
+                                      },
+                                      {
+                                        "type": "spacer",
+                                        "flex": 1
+                                      },
+                                      {
+                                        "type": "align",
+                                        "align": "bottomRight",
+                                        "children": [
+                                          {
+                                            "type": "icon",
+                                            "icon": "liked",
+                                            "size": 44,
+                                            "color": "#ffffff"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "type": "card",
+                            "height": 150,
+                            "padding": 0,
+                            "radius": 8,
+                            "background": "@card",
+                            "hoverBackground": "@accent",
+                            "borderWidth": 0,
+                            "action": {
+                              "type": "navigate",
+                              "args": {
+                                "target": "library"
+                              }
+                            },
+                            "children": [
+                              {
+                                "type": "box",
+                                "gradient": {
+                                  "colors": [
+                                    "#158a08",
+                                    "#0a4d05"
+                                  ],
+                                  "begin": "topLeft",
+                                  "end": "bottomRight"
+                                },
+                                "radius": 8,
+                                "padding": 16,
+                                "children": [
+                                  {
+                                    "type": "column",
+                                    "align": "stretch",
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "text": "Your Library",
+                                        "size": "lg",
+                                        "weight": 800
+                                      },
+                                      {
+                                        "type": "spacer",
+                                        "flex": 1
+                                      },
+                                      {
+                                        "type": "align",
+                                        "align": "bottomRight",
+                                        "children": [
+                                          {
+                                            "type": "icon",
+                                            "icon": "library",
+                                            "size": 44,
+                                            "color": "#ffffff"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
                 "type": "gap",
-                "size": 0
+                "size": 40
               }
             ]
-          },
-          {
-            "type": "gap",
-            "size": 40
           }
         ]
       },
       "collection.content": {
         "children": [
           {
-            "type": "padding",
-            "horizontal": 24,
-            "top": 16,
-            "bottom": 8,
+            "type": "box",
+            "gradient": {
+              "colors": [
+                "@palette.darkMuted",
+                "@background"
+              ],
+              "begin": "topCenter",
+              "end": "bottomCenter",
+              "stops": [
+                0.0,
+                1.0
+              ]
+            },
+            "padding": 24,
             "children": [
               {
                 "type": "row",
@@ -1735,224 +3320,233 @@
                 "align": "stretch",
                 "children": [
                   {
-                    "type": "padding",
-                    "top": 8,
-                    "bottom": 8,
+                    "type": "contextMenu",
+                    "hostItem": true,
                     "children": [
                       {
-                        "type": "row",
-                        "gap": 12,
-                        "align": "center",
-                        "action": {
-                          "type": "playItem"
-                        },
+                        "type": "card",
+                        "padding": 8,
+                        "radius": 4,
+                        "background": "#00000000",
+                        "hoverBackground": "@secondary",
+                        "borderWidth": 0,
                         "children": [
                           {
-                            "type": "card",
-                            "width": 28,
-                            "height": 28,
-                            "radius": 999,
-                            "padding": 0,
-                            "background": "#00000000",
-                            "borderWidth": 0,
+                            "type": "row",
+                            "gap": 12,
+                            "align": "center",
+                            "action": {
+                              "type": "playItem"
+                            },
                             "children": [
                               {
-                                "type": "align",
-                                "align": "center",
+                                "type": "card",
+                                "width": 28,
+                                "height": 28,
+                                "radius": 999,
+                                "padding": 0,
+                                "background": "#00000000",
+                                "borderWidth": 0,
                                 "children": [
                                   {
-                                    "type": "conditional",
-                                    "bind": "item.playing",
-                                    "equals": true,
+                                    "type": "align",
+                                    "align": "center",
                                     "children": [
                                       {
-                                        "type": "icon",
-                                        "icon": "volume",
-                                        "size": 14,
-                                        "color": "@primary"
-                                      },
-                                      {
-                                        "type": "text",
-                                        "bind": "item.number",
-                                        "size": "sm",
-                                        "color": "@mutedForeground",
-                                        "align": "center"
+                                        "type": "conditional",
+                                        "bind": "item.playing",
+                                        "equals": true,
+                                        "children": [
+                                          {
+                                            "type": "icon",
+                                            "icon": "volume",
+                                            "size": 14,
+                                            "color": "@primary"
+                                          },
+                                          {
+                                            "type": "text",
+                                            "bind": "item.number",
+                                            "size": "sm",
+                                            "color": "@mutedForeground",
+                                            "align": "center"
+                                          }
+                                        ]
                                       }
                                     ]
                                   }
                                 ]
-                              }
-                            ]
-                          },
-                          {
-                            "type": "conditional",
-                            "bind": "collection.kind",
-                            "equals": "album",
-                            "invert": true,
-                            "children": [
+                              },
                               {
-                                "type": "image",
-                                "src": "item.artwork",
-                                "width": 40,
-                                "height": 40,
-                                "radius": 4,
-                                "fit": "cover"
-                              }
-                            ]
-                          },
-                          {
-                            "type": "expanded",
-                            "flex": 5,
-                            "children": [
-                              {
-                                "type": "column",
-                                "gap": 2,
+                                "type": "conditional",
+                                "bind": "collection.kind",
+                                "equals": "album",
+                                "invert": true,
                                 "children": [
                                   {
-                                    "type": "row",
-                                    "gap": 6,
-                                    "align": "center",
+                                    "type": "image",
+                                    "src": "item.artwork",
+                                    "width": 40,
+                                    "height": 40,
+                                    "radius": 4,
+                                    "fit": "cover"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "expanded",
+                                "flex": 5,
+                                "children": [
+                                  {
+                                    "type": "column",
+                                    "gap": 2,
                                     "children": [
                                       {
-                                        "type": "expanded",
-                                        "flex": 1,
+                                        "type": "row",
+                                        "gap": 6,
+                                        "align": "center",
                                         "children": [
                                           {
-                                            "type": "text",
-                                            "bind": "item.title",
-                                            "size": "sm",
-                                            "weight": 500,
-                                            "maxLines": 1,
-                                            "overflow": "ellipsis"
-                                          }
-                                        ]
-                                      },
-                                      {
-                                        "type": "conditional",
-                                        "bind": "item.explicit",
-                                        "equals": true,
-                                        "children": [
-                                          {
-                                            "type": "card",
-                                            "width": 16,
-                                            "height": 16,
-                                            "radius": 2,
-                                            "padding": 0,
-                                            "background": "#1affffff",
-                                            "borderWidth": 0,
+                                            "type": "expanded",
+                                            "flex": 1,
                                             "children": [
                                               {
-                                                "type": "align",
-                                                "align": "center",
+                                                "type": "text",
+                                                "bind": "item.title",
+                                                "size": "md",
+                                                "weight": 500,
+                                                "maxLines": 1,
+                                                "overflow": "ellipsis"
+                                              }
+                                            ]
+                                          },
+                                          {
+                                            "type": "conditional",
+                                            "bind": "item.explicit",
+                                            "equals": true,
+                                            "children": [
+                                              {
+                                                "type": "card",
+                                                "width": 16,
+                                                "height": 16,
+                                                "radius": 2,
+                                                "padding": 0,
+                                                "background": "#1affffff",
+                                                "borderWidth": 0,
                                                 "children": [
                                                   {
-                                                    "type": "text",
-                                                    "text": "E",
-                                                    "size": "xs",
-                                                    "weight": 700,
-                                                    "color": "@mutedForeground"
+                                                    "type": "align",
+                                                    "align": "center",
+                                                    "children": [
+                                                      {
+                                                        "type": "text",
+                                                        "text": "E",
+                                                        "size": "xs",
+                                                        "weight": 700,
+                                                        "color": "@mutedForeground"
+                                                      }
+                                                    ]
                                                   }
                                                 ]
                                               }
                                             ]
                                           }
                                         ]
+                                      },
+                                      {
+                                        "type": "text",
+                                        "bind": "item.artist",
+                                        "size": "xs",
+                                        "color": "@mutedForeground",
+                                        "maxLines": 1,
+                                        "overflow": "ellipsis"
                                       }
                                     ]
-                                  },
-                                  {
-                                    "type": "text",
-                                    "bind": "item.artist",
-                                    "size": "xs",
-                                    "color": "@mutedForeground",
-                                    "maxLines": 1,
-                                    "overflow": "ellipsis"
                                   }
                                 ]
-                              }
-                            ]
-                          },
-                          {
-                            "type": "conditional",
-                            "bind": "collection.kind",
-                            "equals": "album",
-                            "invert": true,
-                            "children": [
-                              {
-                                "type": "expanded",
-                                "flex": 3,
-                                "children": [
-                                  {
-                                    "type": "text",
-                                    "bind": "item.album",
-                                    "size": "xs",
-                                    "color": "@mutedForeground",
-                                    "maxLines": 1,
-                                    "overflow": "ellipsis"
-                                  }
-                                ]
-                              }
-                            ]
-                          },
-                          {
-                            "type": "row",
-                            "gap": 4,
-                            "align": "center",
-                            "children": [
-                              {
-                                "type": "button",
-                                "icon": "download",
-                                "variant": "ghost",
-                                "size": "small",
-                                "action": {
-                                  "type": "downloadItem"
-                                }
                               },
                               {
                                 "type": "conditional",
                                 "bind": "collection.kind",
-                                "equals": "liked",
+                                "equals": "album",
+                                "invert": true,
+                                "children": [
+                                  {
+                                    "type": "expanded",
+                                    "flex": 3,
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "bind": "item.album",
+                                        "size": "xs",
+                                        "color": "@mutedForeground",
+                                        "maxLines": 1,
+                                        "overflow": "ellipsis"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "row",
+                                "gap": 4,
+                                "align": "center",
                                 "children": [
                                   {
                                     "type": "button",
-                                    "icon": "liked",
+                                    "icon": "download",
                                     "variant": "ghost",
                                     "size": "small",
                                     "action": {
-                                      "type": "likeItem"
+                                      "type": "downloadItem"
                                     }
                                   },
                                   {
-                                    "type": "button",
-                                    "icon": "like",
-                                    "variant": "ghost",
-                                    "size": "small",
-                                    "action": {
-                                      "type": "likeItem"
-                                    }
+                                    "type": "conditional",
+                                    "bind": "collection.kind",
+                                    "equals": "liked",
+                                    "children": [
+                                      {
+                                        "type": "button",
+                                        "icon": "liked",
+                                        "variant": "ghost",
+                                        "size": "small",
+                                        "action": {
+                                          "type": "likeItem"
+                                        }
+                                      },
+                                      {
+                                        "type": "button",
+                                        "icon": "like",
+                                        "variant": "ghost",
+                                        "size": "small",
+                                        "action": {
+                                          "type": "likeItem"
+                                        }
+                                      }
+                                    ]
                                   }
                                 ]
-                              }
-                            ]
-                          },
-                          {
-                            "type": "card",
-                            "width": 48,
-                            "radius": 0,
-                            "padding": 0,
-                            "background": "#00000000",
-                            "borderWidth": 0,
-                            "children": [
+                              },
                               {
-                                "type": "align",
-                                "align": "centerRight",
+                                "type": "card",
+                                "width": 48,
+                                "radius": 0,
+                                "padding": 0,
+                                "background": "#00000000",
+                                "borderWidth": 0,
                                 "children": [
                                   {
-                                    "type": "text",
-                                    "bind": "item.duration",
-                                    "size": "xs",
-                                    "color": "@mutedForeground",
-                                    "align": "right"
+                                    "type": "align",
+                                    "align": "centerRight",
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "bind": "item.duration",
+                                        "size": "xs",
+                                        "color": "@mutedForeground",
+                                        "align": "right"
+                                      }
+                                    ]
                                   }
                                 ]
                               }
@@ -1975,10 +3569,20 @@
       "artist.content": {
         "children": [
           {
-            "type": "padding",
-            "horizontal": 24,
-            "top": 16,
-            "bottom": 8,
+            "type": "box",
+            "gradient": {
+              "colors": [
+                "@palette.darkMuted",
+                "@background"
+              ],
+              "begin": "topCenter",
+              "end": "bottomCenter",
+              "stops": [
+                0.0,
+                1.0
+              ]
+            },
+            "padding": 24,
             "children": [
               {
                 "type": "row",
@@ -2159,118 +3763,127 @@
                 "align": "stretch",
                 "children": [
                   {
-                    "type": "padding",
-                    "top": 8,
-                    "bottom": 8,
+                    "type": "contextMenu",
+                    "hostItem": true,
                     "children": [
                       {
-                        "type": "row",
-                        "gap": 16,
-                        "align": "center",
-                        "action": {
-                          "type": "playItem"
-                        },
+                        "type": "card",
+                        "padding": 8,
+                        "radius": 4,
+                        "background": "#00000000",
+                        "hoverBackground": "@secondary",
+                        "borderWidth": 0,
                         "children": [
                           {
-                            "type": "card",
-                            "width": 28,
-                            "height": 28,
-                            "radius": 999,
-                            "padding": 0,
-                            "background": "#00000000",
-                            "borderWidth": 0,
+                            "type": "row",
+                            "gap": 16,
+                            "align": "center",
+                            "action": {
+                              "type": "playItem"
+                            },
                             "children": [
                               {
-                                "type": "align",
-                                "align": "center",
+                                "type": "card",
+                                "width": 28,
+                                "height": 28,
+                                "radius": 999,
+                                "padding": 0,
+                                "background": "#00000000",
+                                "borderWidth": 0,
                                 "children": [
                                   {
-                                    "type": "conditional",
-                                    "bind": "item.playing",
-                                    "equals": true,
+                                    "type": "align",
+                                    "align": "center",
                                     "children": [
                                       {
-                                        "type": "icon",
-                                        "icon": "volume",
-                                        "size": 14,
-                                        "color": "@primary"
-                                      },
-                                      {
-                                        "type": "text",
-                                        "bind": "item.number",
-                                        "size": "sm",
-                                        "color": "@mutedForeground",
-                                        "align": "center"
+                                        "type": "conditional",
+                                        "bind": "item.playing",
+                                        "equals": true,
+                                        "children": [
+                                          {
+                                            "type": "icon",
+                                            "icon": "volume",
+                                            "size": 14,
+                                            "color": "@primary"
+                                          },
+                                          {
+                                            "type": "text",
+                                            "bind": "item.number",
+                                            "size": "sm",
+                                            "color": "@mutedForeground",
+                                            "align": "center"
+                                          }
+                                        ]
                                       }
                                     ]
                                   }
                                 ]
-                              }
-                            ]
-                          },
-                          {
-                            "type": "image",
-                            "src": "item.artwork",
-                            "width": 40,
-                            "height": 40,
-                            "radius": 4,
-                            "fit": "cover"
-                          },
-                          {
-                            "type": "expanded",
-                            "flex": 1,
-                            "children": [
+                              },
                               {
-                                "type": "column",
-                                "gap": 2,
+                                "type": "image",
+                                "src": "item.artwork",
+                                "width": 40,
+                                "height": 40,
+                                "radius": 4,
+                                "fit": "cover"
+                              },
+                              {
+                                "type": "expanded",
+                                "flex": 1,
                                 "children": [
                                   {
-                                    "type": "text",
-                                    "bind": "item.title",
-                                    "size": "sm",
-                                    "weight": 500,
-                                    "maxLines": 1,
-                                    "overflow": "ellipsis"
-                                  },
-                                  {
-                                    "type": "text",
-                                    "bind": "item.artist",
-                                    "size": "xs",
-                                    "color": "@mutedForeground",
-                                    "maxLines": 1,
-                                    "overflow": "ellipsis"
+                                    "type": "column",
+                                    "gap": 2,
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "bind": "item.title",
+                                        "size": "md",
+                                        "weight": 500,
+                                        "maxLines": 1,
+                                        "overflow": "ellipsis"
+                                      },
+                                      {
+                                        "type": "text",
+                                        "bind": "item.artist",
+                                        "size": "xs",
+                                        "color": "@mutedForeground",
+                                        "maxLines": 1,
+                                        "overflow": "ellipsis"
+                                      }
+                                    ]
                                   }
                                 ]
-                              }
-                            ]
-                          },
-                          {
-                            "type": "button",
-                            "icon": "like",
-                            "variant": "ghost",
-                            "size": "small",
-                            "action": {
-                              "type": "likeItem"
-                            }
-                          },
-                          {
-                            "type": "card",
-                            "width": 48,
-                            "radius": 0,
-                            "padding": 0,
-                            "background": "#00000000",
-                            "borderWidth": 0,
-                            "children": [
+                              },
                               {
-                                "type": "align",
-                                "align": "centerRight",
+                                "type": "button",
+                                "icon": "like",
+                                "variant": "ghost",
+                                "size": "small",
+                                "action": {
+                                  "type": "likeItem"
+                                }
+                              },
+                              {
+                                "type": "card",
+                                "width": 48,
+                                "radius": 0,
+                                "padding": 0,
+                                "background": "#00000000",
+                                "borderWidth": 0,
                                 "children": [
                                   {
-                                    "type": "text",
-                                    "bind": "item.duration",
-                                    "size": "xs",
-                                    "color": "@mutedForeground",
-                                    "align": "right"
+                                    "type": "align",
+                                    "align": "centerRight",
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "bind": "item.duration",
+                                        "size": "xs",
+                                        "color": "@mutedForeground",
+                                        "align": "right"
+                                      }
+                                    ]
                                   }
                                 ]
                               }
@@ -2317,6 +3930,7 @@
                     "padding": 12,
                     "radius": 8,
                     "background": "#00000000",
+                    "hoverBackground": "@secondary",
                     "borderWidth": 0,
                     "action": {
                       "type": "openItem"
@@ -2337,8 +3951,8 @@
                       {
                         "type": "text",
                         "bind": "item.title",
-                        "size": "sm",
-                        "weight": 600,
+                        "size": "md",
+                        "weight": 700,
                         "maxLines": 1,
                         "overflow": "ellipsis"
                       },
@@ -2407,6 +4021,7 @@
                     "padding": 12,
                     "radius": 8,
                     "background": "#00000000",
+                    "hoverBackground": "@secondary",
                     "borderWidth": 0,
                     "action": {
                       "type": "openItem"
@@ -2428,8 +4043,8 @@
                       {
                         "type": "text",
                         "bind": "item.title",
-                        "size": "sm",
-                        "weight": 600,
+                        "size": "md",
+                        "weight": 700,
                         "maxLines": 1,
                         "overflow": "ellipsis"
                       },
@@ -2535,87 +4150,96 @@
                 "align": "stretch",
                 "children": [
                   {
-                    "type": "padding",
-                    "top": 8,
-                    "bottom": 8,
+                    "type": "contextMenu",
+                    "hostItem": true,
                     "children": [
                       {
-                        "type": "row",
-                        "gap": 16,
-                        "align": "center",
-                        "action": {
-                          "type": "playItem"
-                        },
+                        "type": "card",
+                        "padding": 8,
+                        "radius": 4,
+                        "background": "#00000000",
+                        "hoverBackground": "@secondary",
+                        "borderWidth": 0,
                         "children": [
                           {
-                            "type": "image",
-                            "src": "item.artwork",
-                            "width": 40,
-                            "height": 40,
-                            "radius": 4,
-                            "fit": "cover"
-                          },
-                          {
-                            "type": "expanded",
-                            "flex": 1,
+                            "type": "row",
+                            "gap": 16,
+                            "align": "center",
+                            "action": {
+                              "type": "playItem"
+                            },
                             "children": [
                               {
-                                "type": "column",
-                                "gap": 2,
+                                "type": "image",
+                                "src": "item.artwork",
+                                "width": 40,
+                                "height": 40,
+                                "radius": 4,
+                                "fit": "cover"
+                              },
+                              {
+                                "type": "expanded",
+                                "flex": 1,
                                 "children": [
                                   {
-                                    "type": "text",
-                                    "bind": "item.title",
-                                    "size": "sm",
-                                    "weight": 500,
-                                    "maxLines": 1,
-                                    "overflow": "ellipsis"
-                                  },
-                                  {
-                                    "type": "text",
-                                    "bind": "item.artist",
-                                    "size": "xs",
-                                    "color": "@mutedForeground",
-                                    "maxLines": 1,
-                                    "overflow": "ellipsis"
+                                    "type": "column",
+                                    "gap": 2,
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "bind": "item.title",
+                                        "size": "md",
+                                        "weight": 500,
+                                        "maxLines": 1,
+                                        "overflow": "ellipsis"
+                                      },
+                                      {
+                                        "type": "text",
+                                        "bind": "item.artist",
+                                        "size": "xs",
+                                        "color": "@mutedForeground",
+                                        "maxLines": 1,
+                                        "overflow": "ellipsis"
+                                      }
+                                    ]
                                   }
                                 ]
-                              }
-                            ]
-                          },
-                          {
-                            "type": "text",
-                            "text": "Song",
-                            "size": "xs",
-                            "color": "@mutedForeground"
-                          },
-                          {
-                            "type": "button",
-                            "icon": "like",
-                            "variant": "ghost",
-                            "size": "small",
-                            "action": {
-                              "type": "likeItem"
-                            }
-                          },
-                          {
-                            "type": "card",
-                            "width": 48,
-                            "radius": 0,
-                            "padding": 0,
-                            "background": "#00000000",
-                            "borderWidth": 0,
-                            "children": [
+                              },
                               {
-                                "type": "align",
-                                "align": "centerRight",
+                                "type": "text",
+                                "text": "Song",
+                                "size": "xs",
+                                "color": "@mutedForeground"
+                              },
+                              {
+                                "type": "button",
+                                "icon": "like",
+                                "variant": "ghost",
+                                "size": "small",
+                                "action": {
+                                  "type": "likeItem"
+                                }
+                              },
+                              {
+                                "type": "card",
+                                "width": 48,
+                                "radius": 0,
+                                "padding": 0,
+                                "background": "#00000000",
+                                "borderWidth": 0,
                                 "children": [
                                   {
-                                    "type": "text",
-                                    "bind": "item.duration",
-                                    "size": "xs",
-                                    "color": "@mutedForeground",
-                                    "align": "right"
+                                    "type": "align",
+                                    "align": "centerRight",
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "bind": "item.duration",
+                                        "size": "xs",
+                                        "color": "@mutedForeground",
+                                        "align": "right"
+                                      }
+                                    ]
                                   }
                                 ]
                               }
@@ -2662,6 +4286,7 @@
                     "padding": 12,
                     "radius": 8,
                     "background": "#00000000",
+                    "hoverBackground": "@secondary",
                     "borderWidth": 0,
                     "action": {
                       "type": "openItem"
@@ -2683,8 +4308,8 @@
                       {
                         "type": "text",
                         "bind": "item.title",
-                        "size": "sm",
-                        "weight": 600,
+                        "size": "md",
+                        "weight": 700,
                         "maxLines": 1,
                         "overflow": "ellipsis"
                       },
@@ -2737,6 +4362,7 @@
                     "padding": 12,
                     "radius": 8,
                     "background": "#00000000",
+                    "hoverBackground": "@secondary",
                     "borderWidth": 0,
                     "action": {
                       "type": "openItem"
@@ -2757,8 +4383,8 @@
                       {
                         "type": "text",
                         "bind": "item.title",
-                        "size": "sm",
-                        "weight": 600,
+                        "size": "md",
+                        "weight": 700,
                         "maxLines": 1,
                         "overflow": "ellipsis"
                       },
@@ -2813,6 +4439,7 @@
                     "padding": 12,
                     "radius": 8,
                     "background": "#00000000",
+                    "hoverBackground": "@secondary",
                     "borderWidth": 0,
                     "action": {
                       "type": "openItem"
@@ -2833,8 +4460,8 @@
                       {
                         "type": "text",
                         "bind": "item.title",
-                        "size": "sm",
-                        "weight": 600,
+                        "size": "md",
+                        "weight": 700,
                         "maxLines": 1,
                         "overflow": "ellipsis"
                       },
@@ -2870,11 +4497,27 @@
             "top": 8,
             "children": [
               {
-                "type": "text",
-                "text": "Queue",
-                "size": "2xl",
-                "weight": 800,
-                "letterSpacing": -0.6
+                "type": "row",
+                "gap": 12,
+                "align": "center",
+                "children": [
+                  {
+                    "type": "button",
+                    "icon": "chevronLeft",
+                    "variant": "ghost",
+                    "size": "small",
+                    "action": {
+                      "type": "closePage"
+                    }
+                  },
+                  {
+                    "type": "text",
+                    "text": "Queue",
+                    "size": "2xl",
+                    "weight": 800,
+                    "letterSpacing": -0.6
+                  }
+                ]
               }
             ]
           },
@@ -2988,118 +4631,127 @@
                 "align": "stretch",
                 "children": [
                   {
-                    "type": "padding",
-                    "top": 8,
-                    "bottom": 8,
+                    "type": "contextMenu",
+                    "hostItem": true,
                     "children": [
                       {
-                        "type": "row",
-                        "gap": 16,
-                        "align": "center",
-                        "action": {
-                          "type": "playItem"
-                        },
+                        "type": "card",
+                        "padding": 8,
+                        "radius": 4,
+                        "background": "#00000000",
+                        "hoverBackground": "@secondary",
+                        "borderWidth": 0,
                         "children": [
                           {
-                            "type": "card",
-                            "width": 28,
-                            "height": 28,
-                            "radius": 999,
-                            "padding": 0,
-                            "background": "#00000000",
-                            "borderWidth": 0,
+                            "type": "row",
+                            "gap": 16,
+                            "align": "center",
+                            "action": {
+                              "type": "playItem"
+                            },
                             "children": [
                               {
-                                "type": "align",
-                                "align": "center",
+                                "type": "card",
+                                "width": 28,
+                                "height": 28,
+                                "radius": 999,
+                                "padding": 0,
+                                "background": "#00000000",
+                                "borderWidth": 0,
                                 "children": [
                                   {
-                                    "type": "conditional",
-                                    "bind": "item.playing",
-                                    "equals": true,
+                                    "type": "align",
+                                    "align": "center",
                                     "children": [
                                       {
-                                        "type": "icon",
-                                        "icon": "volume",
-                                        "size": 14,
-                                        "color": "@primary"
-                                      },
-                                      {
-                                        "type": "text",
-                                        "bind": "item.number",
-                                        "size": "sm",
-                                        "color": "@mutedForeground",
-                                        "align": "center"
+                                        "type": "conditional",
+                                        "bind": "item.playing",
+                                        "equals": true,
+                                        "children": [
+                                          {
+                                            "type": "icon",
+                                            "icon": "volume",
+                                            "size": 14,
+                                            "color": "@primary"
+                                          },
+                                          {
+                                            "type": "text",
+                                            "bind": "item.number",
+                                            "size": "sm",
+                                            "color": "@mutedForeground",
+                                            "align": "center"
+                                          }
+                                        ]
                                       }
                                     ]
                                   }
                                 ]
-                              }
-                            ]
-                          },
-                          {
-                            "type": "image",
-                            "src": "item.artwork",
-                            "width": 40,
-                            "height": 40,
-                            "radius": 4,
-                            "fit": "cover"
-                          },
-                          {
-                            "type": "expanded",
-                            "flex": 1,
-                            "children": [
+                              },
                               {
-                                "type": "column",
-                                "gap": 2,
+                                "type": "image",
+                                "src": "item.artwork",
+                                "width": 40,
+                                "height": 40,
+                                "radius": 4,
+                                "fit": "cover"
+                              },
+                              {
+                                "type": "expanded",
+                                "flex": 1,
                                 "children": [
                                   {
-                                    "type": "text",
-                                    "bind": "item.title",
-                                    "size": "sm",
-                                    "weight": 500,
-                                    "maxLines": 1,
-                                    "overflow": "ellipsis"
-                                  },
-                                  {
-                                    "type": "text",
-                                    "bind": "item.artist",
-                                    "size": "xs",
-                                    "color": "@mutedForeground",
-                                    "maxLines": 1,
-                                    "overflow": "ellipsis"
+                                    "type": "column",
+                                    "gap": 2,
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "bind": "item.title",
+                                        "size": "md",
+                                        "weight": 500,
+                                        "maxLines": 1,
+                                        "overflow": "ellipsis"
+                                      },
+                                      {
+                                        "type": "text",
+                                        "bind": "item.artist",
+                                        "size": "xs",
+                                        "color": "@mutedForeground",
+                                        "maxLines": 1,
+                                        "overflow": "ellipsis"
+                                      }
+                                    ]
                                   }
                                 ]
-                              }
-                            ]
-                          },
-                          {
-                            "type": "button",
-                            "icon": "like",
-                            "variant": "ghost",
-                            "size": "small",
-                            "action": {
-                              "type": "likeItem"
-                            }
-                          },
-                          {
-                            "type": "card",
-                            "width": 48,
-                            "radius": 0,
-                            "padding": 0,
-                            "background": "#00000000",
-                            "borderWidth": 0,
-                            "children": [
+                              },
                               {
-                                "type": "align",
-                                "align": "centerRight",
+                                "type": "button",
+                                "icon": "like",
+                                "variant": "ghost",
+                                "size": "small",
+                                "action": {
+                                  "type": "likeItem"
+                                }
+                              },
+                              {
+                                "type": "card",
+                                "width": 48,
+                                "radius": 0,
+                                "padding": 0,
+                                "background": "#00000000",
+                                "borderWidth": 0,
                                 "children": [
                                   {
-                                    "type": "text",
-                                    "bind": "item.duration",
-                                    "size": "xs",
-                                    "color": "@mutedForeground",
-                                    "align": "right"
+                                    "type": "align",
+                                    "align": "centerRight",
+                                    "children": [
+                                      {
+                                        "type": "text",
+                                        "bind": "item.duration",
+                                        "size": "xs",
+                                        "color": "@mutedForeground",
+                                        "align": "right"
+                                      }
+                                    ]
                                   }
                                 ]
                               }
@@ -3193,7 +4845,7 @@
                               {
                                 "type": "text",
                                 "bind": "item.title",
-                                "size": "sm",
+                                "size": "md",
                                 "weight": 500,
                                 "maxLines": 1,
                                 "overflow": "ellipsis"
@@ -3422,7 +5074,7 @@
                                   {
                                     "type": "text",
                                     "bind": "item.title",
-                                    "size": "sm",
+                                    "size": "md",
                                     "weight": 500,
                                     "maxLines": 1,
                                     "overflow": "ellipsis"
@@ -3495,6 +5147,7 @@
                     "padding": 12,
                     "radius": 8,
                     "background": "#00000000",
+                    "hoverBackground": "@secondary",
                     "borderWidth": 0,
                     "action": {
                       "type": "openItem"
@@ -3515,8 +5168,8 @@
                       {
                         "type": "text",
                         "bind": "item.title",
-                        "size": "sm",
-                        "weight": 600,
+                        "size": "md",
+                        "weight": 700,
                         "maxLines": 1,
                         "overflow": "ellipsis"
                       },
@@ -3571,6 +5224,7 @@
                     "padding": 12,
                     "radius": 8,
                     "background": "#00000000",
+                    "hoverBackground": "@secondary",
                     "borderWidth": 0,
                     "action": {
                       "type": "openItem"
@@ -3591,8 +5245,8 @@
                       {
                         "type": "text",
                         "bind": "item.title",
-                        "size": "sm",
-                        "weight": 600,
+                        "size": "md",
+                        "weight": 700,
                         "maxLines": 1,
                         "overflow": "ellipsis"
                       },
@@ -3645,40 +5299,156 @@
                     "color": "@mutedForeground"
                   },
                   {
+                    "type": "text",
+                    "text": "Playback",
+                    "size": "sm",
+                    "weight": 700,
+                    "color": "@mutedForeground"
+                  },
+                  {
                     "type": "card",
                     "background": "@card",
                     "radius": 12,
                     "padding": 16,
                     "children": [
                       {
-                        "type": "slider",
-                        "bind": "audio.bass",
-                        "min": -12,
-                        "max": 12,
-                        "step": 1,
-                        "label": "Bass",
-                        "showValue": true,
-                        "action": {
-                          "type": "setBass",
-                          "args": {
-                            "value": "$value"
+                        "type": "column",
+                        "gap": 16,
+                        "children": [
+                          {
+                            "type": "slider",
+                            "bind": "audio.speed",
+                            "min": 0.5,
+                            "max": 2.0,
+                            "step": 0.25,
+                            "label": "Playback speed",
+                            "showValue": true,
+                            "action": {
+                              "type": "setSpeed",
+                              "args": {
+                                "value": "$value"
+                              }
+                            }
+                          },
+                          {
+                            "type": "slider",
+                            "bind": "player.volume",
+                            "min": 0,
+                            "max": 1,
+                            "step": 0.05,
+                            "label": "Volume",
+                            "showValue": true,
+                            "action": {
+                              "type": "setVolume",
+                              "args": {
+                                "volume": "$value"
+                              }
+                            }
+                          },
+                          {
+                            "type": "switch",
+                            "bind": "player.muted",
+                            "label": "Mute",
+                            "action": {
+                              "type": "setMuted",
+                              "args": {
+                                "value": "$value"
+                              }
+                            }
+                          },
+                          {
+                            "type": "slider",
+                            "bind": "audio.sleepTimer",
+                            "min": 0,
+                            "max": 120,
+                            "step": 15,
+                            "label": "Sleep timer (min)",
+                            "showValue": true,
+                            "action": {
+                              "type": "setSleepTimer",
+                              "args": {
+                                "value": "$value"
+                              }
+                            }
                           }
-                        }
-                      },
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "text": "Effects",
+                    "size": "sm",
+                    "weight": 700,
+                    "color": "@mutedForeground"
+                  },
+                  {
+                    "type": "card",
+                    "background": "@card",
+                    "radius": 12,
+                    "padding": 16,
+                    "children": [
                       {
-                        "type": "slider",
-                        "bind": "audio.treble",
-                        "min": -12,
-                        "max": 12,
-                        "step": 1,
-                        "label": "Treble",
-                        "showValue": true,
-                        "action": {
-                          "type": "setTreble",
-                          "args": {
-                            "value": "$value"
+                        "type": "column",
+                        "gap": 16,
+                        "children": [
+                          {
+                            "type": "slider",
+                            "bind": "audio.bass",
+                            "min": -12,
+                            "max": 12,
+                            "step": 1,
+                            "label": "Bass",
+                            "showValue": true,
+                            "action": {
+                              "type": "setBass",
+                              "args": {
+                                "value": "$value"
+                              }
+                            }
+                          },
+                          {
+                            "type": "slider",
+                            "bind": "audio.treble",
+                            "min": -12,
+                            "max": 12,
+                            "step": 1,
+                            "label": "Treble",
+                            "showValue": true,
+                            "action": {
+                              "type": "setTreble",
+                              "args": {
+                                "value": "$value"
+                              }
+                            }
+                          },
+                          {
+                            "type": "switch",
+                            "bind": "audio.normalization",
+                            "label": "Audio normalization",
+                            "action": {
+                              "type": "setNormalization",
+                              "args": {
+                                "value": "$value"
+                              }
+                            }
+                          },
+                          {
+                            "type": "slider",
+                            "bind": "audio.crossfade",
+                            "min": 0,
+                            "max": 15,
+                            "step": 1,
+                            "label": "Crossfade (s)",
+                            "showValue": true,
+                            "action": {
+                              "type": "setCrossfade",
+                              "args": {
+                                "value": "$value"
+                              }
+                            }
                           }
-                        }
+                        ]
                       }
                     ]
                   }

@@ -1,7 +1,7 @@
 {
   "name": "Kitchen Sink Theme",
   "description": "Every field the v3 payload has, in one theme. The contract's reference example — it is not published.",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "author": "Adamya Bhatt",
   "entryPoint": "KitchenSinkTheme",
   "pluginApiVersion": "2.0.0",

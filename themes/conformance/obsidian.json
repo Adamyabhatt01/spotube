@@ -1,5 +1,6 @@
 {
-  "specVersion": 3,
+  "specVersion": 4,
+  "uiKit": "shadcn",
   "light": {
     "background": "#f3eefb",
     "foreground": "#1b1229",
@@ -698,9 +699,6 @@
       "logo": "asset://images/logo.png",
       "text": "OBSIDIAN"
     },
-    "enforce": [
-      "playerDock"
-    ],
     "responsive": {
       "compact": {
         "nav": "rail",

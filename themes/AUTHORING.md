@@ -71,6 +71,12 @@ A v4 payload declares the contract version at the top:
 - `uiKit` is `shadcn` (default), `material` or `cupertino`. It chooses the kit
   behind kit-aware nodes; `components.<kit>.<group>` overrides a component for
   one kit.
+- `dynamic` says where the palette *comes from*: `{"source": "shell"}` takes the
+  desktop's live colours and `{"source": "albumArt"}` follows the playing
+  track's artwork. `algorithm` is optional (`material`). It is orthogonal to
+  `background.source`, which only decides what gets *painted* behind the app — a
+  theme can borrow the shell's colours and still paint nothing itself (declare
+  `background.source: "none"`), which is what the Caelestia themes do.
 - `ui.specVersion` stays `2`: the UI envelope is the v3 one, while the v4 node
   set and features are gated by the top-level version. A v4 theme can still
   answer `getUi()` and `onUiAction()`; nothing about the document shape changed.
@@ -168,17 +174,19 @@ fvm dart run tools/migrate_v3.dart \
 
 The report separates `renamed`, `removed` and `needs a human`. The tool adds
 `uiKit: shadcn`, drops `layout.enforce` (v4 reads presence) and validates the
-result through the v4 validator. A `search` node is reported for a human
-decision: v4 keeps it for compatibility, but new work should use a
-`textField` bound to `setQuery`/`clearQuery` (see the search render points).
-Migration operates on a payload; if the theme is Hetu source, make the same
-change it reports in the source and rebuild, so the golden payload stays in
-sync.
+result through the v4 validator. A `search` node is renamed to `textField` and
+reported for a human decision, because the rename alone leaves a dead input: v4
+has no host-wired search box, so the field has to read the query back and write
+it — `bind: 'search.query'` with `action: {'type': 'setQuery', 'args':
+{'scope': 'default', 'value': '$value'}}`. Migration operates on a payload; if
+the theme is Hetu source, make the same change it reports in the source and
+rebuild, so the golden payload stays in sync.
 
-Against the six published v3 payloads the report is: `uiKit` added for every
-one, `layout.enforce` removed from four, `search → textField` flagged for
-`kitchen-sink` and `spotify-shell`, and all six then validate with 0 errors and
-0 warnings. `test/migrate_v3_test.dart` pins exactly that, so a v3 key the
+The six themes that shipped as v3 are v4 now, and their outgoing payloads are
+archived in `conformance/legacy/`. Against those the report is: `uiKit` added
+for every one, `layout.enforce` removed from four, `search → textField` flagged
+for `kitchen-sink` and `spotify-shell`, and all six then validate with 0 errors
+and 0 warnings. `test/migrate_v3_test.dart` pins exactly that, so a v3 key the
 mapper does not know about fails here instead of reaching an author.
 
 ### Checking the result
@@ -488,8 +496,9 @@ stays around it, so a stage theme is still a player, not a splash screen.
 host's default footer and defer to the user's own dock preference.
 
 **The v4 host reads intent from what the theme sends, not from `enforce`.**
-`enforce` was the v3 opt-in gate and is ignored by the v4 host; keep the list
-if the same payload also ships to v3 hosts, and omit it from a v4-only build.
+`enforce` was the v3 opt-in gate. A v4 payload must omit it: it is not in the v4
+`layout` key set, so carrying it is a build error rather than an ignored field.
+`tools/migrate_v3.dart` drops it and says so in the report.
 Two preferences still belong to the user: a theme can hide the volume control
 with `"showVolume": false`, but cannot force it back onto a user who chose to
 keep it hidden, and cannot take the footer dock away from a user who chose
@@ -635,7 +644,7 @@ into the flat one, but every theme in this repository writes the flat form.)
 | `icon` | `icon`, `size`, `color` |
 | `image` | `src`, `bind`, `width`, `height`, `radius`, `shape`, `fit`, `filter`, `tile`, `opacity` |
 | `button` | `label`, `icon`, `variant`, `size`, `disabledWhen`, plus `action`/`actions` |
-| `card` | `padding`, `radius`, `background`, `hoverBackground`, `borderColor`, `borderWidth`, `opacity`, `width`, `height` |
+| `card` | `padding`, `radius`, `background`, `hoverBackground`, `borderColor`, `borderWidth`, `opacity`, `width`, `height`, `blur`, `blurTint` |
 | `search` | `placeholder` |
 | `divider` | `orientation`, `thickness`, `color` |
 | `spacer` | `flex` |
@@ -644,8 +653,8 @@ into the flat one, but every theme in this repository writes the flat form.)
 | `template` | `name`, `args` |
 | `animate` | `kind`, `duration`, `curve`, `bind`, `reverse` |
 | `progress` | `bind`, `maxBind`, `width`, `height`, `hitHeight`, `radius`, `borderWidth`, `borderColor`, `color`, `trackColor`, `thumbColor`, `thumbSize`, `interactive`, `style` (`linear`/`wavy`) |
-| `list` | `bind`, `gap`, `limit`, `align`, `direction`, `filter`, plus `children` (the row template) |
-| `virtualList` | `bind`, `itemTemplate` (or `children`), `itemExtent` (8..400), `overscan` (0..64), `limit` (1..10000), `filter` |
+| `list` | `bind`, `gap`, `limit`, `align`, `direction`, `filter`, `columns` (1..12, or a breakpoint map `{compact, medium, expanded}`), plus `children` (the row template) |
+| `virtualList` | `bind`, `itemTemplate` (or `children`), `itemExtent` (8..400), `overscan` (0..64), `limit` (1..10000), `filter`, `columns` (1..12, or a breakpoint map) |
 | `table` | `bind`, `columns: [{key, label, width, align}]` (1..32), `rowTemplate` (or `children`), `stickyHeader`, `sortable` |
 | `tree` | `bind`, `labelKey`, `childrenKey`, `expandedKey` |
 | `accordion` | `items: [{title, children}]` (max 32), `multiple` |
@@ -658,8 +667,8 @@ into the flat one, but every theme in this repository writes the flat form.)
 | `spinner` | `size` (8..256), `color` |
 | `breadcrumb` | `items: [{label, id, action}]` (max 16) |
 | `pagination` | `pageBind`, `pageCount` (1..1000), plus `action`/`actions` |
-| `box` | `background`, `gradient`, `border`, `radius`, `width`, `height`, `clip`, `padding`, `opacity`, plus `children` |
-| `grid` | `columns` (1..12), `gap`, plus `children` |
+| `box` | `background`, `gradient`, `border`, `radius`, `width`, `height`, `clip`, `padding`, `opacity`, `blur`, `blurTint`, plus `children` |
+| `grid` | `columns` (1..12, or a breakpoint map `{compact, medium, expanded}`), `gap`, plus `children` |
 | `resizable` | `direction` (`horizontal`/`vertical`), `initial`, `min`, `max` (0..4000), `storageKey`, plus exactly two panes |
 | `safeArea` | `edges` (`top`/`right`/`bottom`/`left`; omit for all four), plus `children` |
 | `aspectRatio` | `ratio`, plus `children` |
@@ -673,17 +682,32 @@ into the flat one, but every theme in this repository writes the flat form.)
 | `segmented` | `options` (a bare string or `{value, label, icon}`), `valueBind` |
 | `tabs` | `items: [{id, label, icon}]`, `panels` (one node list per item) |
 | `menu` | `items: [{label, icon, checked, disabled, action/actions}]` (max 32), `trigger`, `placement` |
-| `contextMenu` | the `menu` item list; wraps its `children` |
+| `contextMenu` | the `menu` item list; wraps its `children`; `hostItem` hands the row to the host's own item menu |
 | `popover` | `trigger`, `placement`, plus `children` |
 | `tooltip` | `text`, `placement`, plus `children` |
 | `dialog` | `title`, `description`, `openBind`, `actions: [{label, action/actions}]` (max 4), plus `children` |
 | `sheet` | `side` (`bottom`/`top`/`left`/`right`/`start`/`end`), `width`, `openBind`, plus `children` |
 
+`columns` accepts either a single count or a breakpoint map. The host picks the
+value for the active window tier — `compact` (≤820 px, also `xs`/`sm`),
+`medium` (821–1024 px, also `md`) or `expanded` (>1024 px, also `lg`/`xl`/`2xl`):
+
+```json
+"columns": {"compact": 2, "medium": 2, "expanded": 4}
+```
+
+That renders two across on a narrow window, two on a mid window and four when
+wide. A bare integer such as `"columns": 3` still works exactly as before and
+applies at every width. Breakpoint names beyond the three tiers (`xs`, `sm`,
+`md`, `lg`, `xl`, `2xl`) are aliases of `compact`, `medium` and `expanded`
+respectively; any other key is ignored at runtime.
+
 An unknown prop is an error, not a silent no-op: the build fails rather than
 shipping a theme that does not do what you wrote.
 
 **Kits (v4).** Every node also accepts `kit` (`shadcn`, `material`,
-`cupertino`) and `variant`. Resolution runs node `kit` → nearest `kitScope` →
+`cupertino`), `variant`, and `anchor` — a unique name a `scrollTo` action can
+target (§ actions). Resolution runs node `kit` → nearest `kitScope` →
 theme `uiKit` → `shadcn`. The theme's `uiKit` only sets the default: a
 `kitScope` or a node can override it, and an unknown name falls through to the
 enclosing choice. A kit that does not implement a component falls back to the
@@ -742,6 +766,24 @@ the host rows and obey the user's order/hidden settings like any host action.
 A theme-owned `contextMenu` node may carry a host `target` and per-item `id`;
 with a target, the same user settings filter and reorder its items.
 
+**The host's own item menu (v4).** A `contextMenu` node with `hostItem: true`
+wraps its children in the menu the host already owns for the entry the row is
+drawing — the track menu, with play-next, queue, like, download and the rest.
+Use it inside a `list` whose rows are tracks:
+
+```json
+{
+  "type": "contextMenu",
+  "hostItem": true,
+  "children": [
+    {"type": "card", "children": [{"type": "text", "bind": "item.title"}]}
+  ]
+}
+```
+
+The menu is built when it opens, so a long list carries no per-row work. A row
+that is not a track keeps its children as they are.
+
 **Boxes and grids.** `box.border` is a colour (`"@border"`, one logical pixel)
 or `{"color": "@border", "width": 2}` (0..8). `box.gradient` is
 `{"colors": [..2..8], "begin": "topCenter", "end": "bottomCenter", "stops":
@@ -749,6 +791,18 @@ or `{"color": "@border", "width": 2}` (0..8). `box.gradient` is
 fixed-column `Wrap`: cells take the width the columns leave and keep their
 intrinsic height, so rows can differ in height. `aspectRatio` sizes its child
 from the incoming width and `ratio`.
+
+**Frost.** `blur` (0..100, sigma in logical px) puts a real backdrop filter
+behind a `box` or `card`, so the surface blurs whatever the app paints under it —
+the wallpaper, an album art, another card. `blurTint` is the colour laid over
+that blur; without it a frosted panel over light art reads as greyed-out rather
+than as glass. Use a translucent `background` on the same node, or the blur
+shows nothing: the box's own colour paints over the frost. While any scroll is in
+flight the host drops the filter rather than keep it mounted at sigma zero (a
+zero-sigma `BackdropFilter` still costs a backdrop pass every frame) and keeps
+the tint, so a frosted panel stays a panel through a drag. Treat `blur` as
+expensive: a hundred frosted rows is a hundred filters, and a long list should
+frost its container, not each row.
 
 **Splits.** `resizable` takes exactly two children: a fixed first pane and a
 second pane that takes the rest. `direction` defaults to `horizontal` (the
@@ -796,7 +850,7 @@ still, which is a graceful fallback rather than an error.
 `player.shuffled`, `player.speed`, `player.position`, `player.duration`,
 `player.volume`, `player.muted`, `user.name`, `user.avatar`, `app.version`,
 `app.brightness`, `app.themeMode`, `app.greeting`, `app.sidebarCollapsed`,
-`app.asideOpen`, `clock.now`,
+`app.asideOpen`, `app.pinnedPlaylistIds`, `app.pinnedStationIds`, `clock.now`,
 `theme.id`, `theme.name`, `theme.version`, `queue.tracks`, `queue.count`,
 `queue.currentIndex`, `queue.next`, `library.playlists`, `library.pinTargets`,
 `library.pins`, `library.albums`, `library.artists`, `library.folders`,
@@ -863,7 +917,7 @@ entry. The host publishes `item.index` (0-based), `item.number` (1-based),
 | Entry | Fields |
 |---|---|
 | track / download | `id`, `title`, `name`, `artist`, `artistId`, `album`, `albumId`, `artwork`, `duration`, `uri`, `explicit`; downloads add `status`, `size` |
-| album | `id`, `title`, `name`, `artist`, `artistId`, `artwork`, `uri`, `releaseDate`, `year`, `trackCount`, `label`, `genres` |
+| album | `id`, `title`, `name`, `artist`, `artistId`, `artwork`, `uri`, `releaseDate`, `year`, plus `trackCount`, `label`, `genres` when full |
 | artist | `id`, `title`, `name`, `artwork`, `uri`, `followers`, `genres` |
 | playlist | `id`, `title`, `name`, `description`, `owner`, `ownerId`, `artwork`, `uri`, plus `collaborative`, `public` when full |
 
@@ -873,6 +927,13 @@ entry itself: `playItem` queues the bound list and starts at the tapped row
 entry's page, `likeItem` toggles a track's favourite, and `downloadItem`
 queues it for download. The host injects `item`, `index` and `items` into the
 action's args; a theme does not write them.
+
+The rows of `library.playlists`, `library.albums` and `library.pins` report
+`trackCount` as `null` rather than a number, and a simple album publishes no
+`item.trackCount` at all: the saved-collection endpoints do not return totals,
+and the host will not spend one request per row to fill them. A `text` node
+bound to a `null` renders empty. Use `collection.trackCount`, which is the
+page's own real total.
 
 **Filtering a collection.** `list` and `virtualList` take a `filter` spec:
 `{"bind": "search.query", "fields": ["title", "artist"]}`. The host filters
@@ -885,7 +946,10 @@ the list on every keystroke. `limit` applies after filtering.
 `itemExtent` (the fixed row height, so it measures without laying out every
 row) and mounts `overscan` extra rows beyond the edge. Up to 10 000 rows are
 addressable and only the visible window is built, so a long queue costs the
-same as a short one. `table` draws `columns` from item fields (`title`,
+same as a short one. Both take `columns`: a count greater than one lays the
+entries into that many equal-width cells, and for `virtualList` the extent is
+then per *row* of cells, not per entry — a grid of 3 over 10 000 albums is
+still lazy, in about 3400 rows. `table` draws `columns` from item fields (`title`,
 `artist`, `duration`, …) unless a `rowTemplate` takes over the row;
 `stickyHeader` pins the header inside the table's own scroll view and
 `sortable` sorts host-side on a column key — one click ascending, the next
@@ -942,8 +1006,12 @@ image URL (`item.artwork`, `collection.artwork`, `artist.artwork`, …).
 `playCollection`, `openItem`, `likeItem`, `downloadItem`, `setQuery`,
 `clearQuery`, `setSetting`, `toggleSetting`, `copy`, `refresh`,
 `pinItem`, `unpinItem`,
-`toggleSidebar`, `toggleAside`, `toggleRegion`, and the UI-local `dismiss`.
-`toggleSidebar` flips `app.sidebarCollapsed` (Ctrl/Cmd+B); `toggleAside` flips
+`toggleSidebar`, `toggleAside`, `toggleRegion`, `scrollTo`, and the UI-local
+`dismiss`.
+`scrollTo` takes `{target}` (also `anchor`/`id`/`value`) and scrolls the
+nearest scrollable ancestor of the node carrying `anchor: '<target>'` into
+view; anchor names must be unique per document, and a missing target is a
+no-op. `toggleSidebar` flips `app.sidebarCollapsed` (Ctrl/Cmd+B); `toggleAside` flips
 `app.asideOpen` (Ctrl/Cmd+Shift+B); `toggleRegion` takes `{id: "sidebar" |
 "aside"}` and routes to the same two preferences so a theme's own chrome does
 not need to know which region the user means. `pinItem`/`unpinItem` take
@@ -1177,10 +1245,10 @@ Declare the capability, then name the widget:
 
 | id | props | needs besides `ui.hostWidgets` |
 |---|---|---|
-| `library.playlists` | `compact`, `showSearch`, `showCreate`, `limit` 1..200, `filter` `all`/`pins`/`recent`, `pinTarget`, `direction` `vertical`/`horizontal` | |
-| `library.pins` | `compact`, `target`, `direction` | |
-| `library.albums` | `compact` | |
-| `library.artists` | `compact` | |
+| `library.playlists` | `compact`, `showSearch`, `showCreate`, `limit` 1..200, `filter` `all`/`pins`/`recent`, `pinTarget`, `direction` `vertical`/`horizontal`, plus row-chrome: `showPin`, `showQueue`, `showPlay`, `coverPlays`, `showTitle`, `showSubtitle`, `density` `standard`/`compact`, `coverSize` 32..96, `coverRadius` 0..24, `showDividers`, `rowSpacing` 0..24 | |
+| `library.pins` | `compact`, `target`, `direction`, plus the same row-chrome props forwarded into the playlist rows | |
+| `library.albums` | `compact`, `showQueue`, `showPlay`, `coverPlays`, `showTitle`, `showSubtitle`, `density`, `coverSize` 32..96, `coverRadius` 0..24, `showDividers`, `rowSpacing` 0..24 | |
+| `library.artists` | `compact`, `showPlay`, `coverPlays`, `showTitle`, `showSubtitle`, `density`, `coverSize` 32..96, `coverRadius` 0..24, `showDividers`, `rowSpacing` 0..24 | |
 | `player.controls` | `compact`, `showProgress`, `showVolume` | |
 | `audio.bass` | `compact` | `audio.effects` |
 | `audio.equalizer` | `bands` 1..10 | `audio.effects` |
@@ -1192,6 +1260,7 @@ Declare the capability, then name the widget:
 
 What the host does with them:
 
+- **Row chrome is opt-in.** `showPin`, `showQueue`, `showPlay`, and `coverPlays` describe how the trailing buttons and the cover behave. All four default to the historical presentation: every trailing button renders, and the cover navigates. Set any of them `false` to hide a button, or `coverPlays: true` to make the cover a play/pause hit target instead of opening the collection. `density: "compact"`, `coverSize`, `coverRadius`, `rowSpacing`, `showSubtitle` and `showDividers` shrink the row for Spotify-style sidebar lists. `showTitle: false` drops the title line and leaves the cover alone — the collapsed-sidebar rail draws one cover per playlist.
 - **An id outside the table is a warning, not an error.** The build reports
   `not a host widget the host mounts — ignored at runtime`, the slot renders
   nothing, and the rest of the theme still loads. A *prop* outside the row is an
@@ -1306,7 +1375,8 @@ a different theme than the one it wrote. The build reports every clamp:
 - a UI tree: 16 levels deep, 200 nodes per slot, 1000 in total, 4 actions per
   node, 500 characters of text; `list.limit`: 1..500 (200 when absent),
   `virtualList.limit`: 1..10000, table rows: 500 static / 10000 sticky,
-  table columns: 32, tree nodes: 500, accordion items: 32, carousel items: 50,
+  table columns: 32, `grid`/`list`/`virtualList` columns: 1..12,
+  tree nodes: 500, accordion items: 32, carousel items: 50,
   breadcrumb items: 16, skeleton blocks: 50
 - up to 48 slots (a theme only names the ones it fills)
 

@@ -9,7 +9,8 @@
 class SpotifyThemeApi {
   fun getTheme() {
     return {
-      'specVersion': 3,
+      'specVersion': 4,
+      'uiKit': 'shadcn',
 
       // ------------------------------------------------------------ palettes
       'light': {
@@ -378,7 +379,6 @@ class SpotifyThemeApi {
         'navItems': ['home', 'search'],
         'navbarItems': ['home', 'search', 'library'],
         'libraryItems': ['playlists', 'albums', 'artists', 'local_library'],
-        'enforce': ['nav', 'navItems', 'navbarItems', 'libraryItems'],
         'titlebar': {
           'height': 44.0,
           'padding': 16.0,
@@ -603,8 +603,19 @@ class SpotifyThemeApi {
                             'borderWidth': 0,
                             'children': [
                               {
-                                'type': 'search',
+                                'type': 'textField',
                                 'placeholder': 'What do you want to play?',
+                                'icon': 'search',
+                                'debounceMs': 300,
+                                'clearable': true,
+                                'bind': 'search.query',
+                                'action': {
+                                  'type': 'setQuery',
+                                  'args': {
+                                    'scope': 'default',
+                                    'value': '$value',
+                                  },
+                                },
                               },
                             ],
                           },

@@ -161,7 +161,7 @@ Future<void> main(List<String> arguments) async {
       final indexFile = File(p.join(outDir.path, 'index.json'));
       indexFile.parent.createSync(recursive: true);
       indexFile.writeAsStringSync(
-        const JsonEncoder.withIndent('  ').convert(index),
+        '${const JsonEncoder.withIndent('  ').convert(index)}\n',
       );
     }
   }

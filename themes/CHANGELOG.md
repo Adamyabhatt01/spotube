@@ -3,6 +3,105 @@
 The themes and the tool that builds them. The payload contract is versioned
 here; the app's reader is versioned with the app.
 
+## 2.3.0 — the node frost, and the schema meets the prop table
+
+`box` and `card` take `blur` (sigma, 0..100) and `blurTint` (the colour laid
+over the blur). This is the wallpaper blur handed to one surface: a hero panel,
+a player bar, a single card can now sit on the artwork behind it without the
+whole window being frosted. `card` gets the pair through `_v4ExtraBaseProps`, so
+the v3 tables stay frozen. The host drops the filter rather than keep it mounted
+while a scroll is in flight — a zero-sigma `BackdropFilter` still costs a
+backdrop pass every frame, which is the bug `.ai/PERFORMANCE.md` records for the
+title bar — and keeps the tint, so a frosted panel stays a panel through a drag.
+`AUTHORING.md` says plainly that the prop is expensive and that a long list
+frosts its container, not each row.
+
+- `test/v4_schema_test.dart` now compares every `uiNode` branch's declared
+  props with `v4UiNodeProps`. It found one real hole: the published schema's
+  `hostWidget` branch declared neither `id` nor `props` under
+  `additionalProperties: false`, so an editor built on the schema rejected the
+  only node that mounts a host surface while the validator and the host both
+  required it. The branch now lists the widget ids, and a second test pins that
+  list to `v4HostWidgetProps.keys` — hand-copying it went three widgets short
+  before the pin existed, which is exactly why it is a test and not a comment.
+- The same sweep found that no fixture had ever drawn `list.filter`,
+  `list.columns` or `progress.style`, three props v4 added to types v3 already
+  had. The kitchen sink draws them now, and its prop test requires every v4
+  added prop of any type it uses — a prop no fixture draws is a prop nothing
+  proves the host reads.
+- `conformance/draft/v4-kitchen-sink.json` carries a frosted sidebar panel, so
+  the new props are schema-checked in a payload and not only in a unit test.
+
+## 2.2.0 — the last six themes move to v4
+
+Nothing in the catalogue is v3 any more. `asset-demo`, `brand-demo`,
+`kitchen-sink`, `obsidian`, `spotify-shell` and `ui-demo` go to **2.0.0** with
+`specVersion: 4` and `uiKit: shadcn`, by way of `tools/migrate_v3.dart` — the
+report was run, its notes applied to the Hetu source, and the payload rebuilt,
+so each golden still is what its theme produces.
+
+This was not cosmetic. The host refuses `specVersion: 3` outright: it nulls the
+`ui` block and never asks the plugin for a tree, so all six were drawing their
+palettes inside the default shell and telling the user "This theme was built
+for an older interface contract" — `obsidian` and `spotify-shell` doing it with
+a 15 KB and a 32 KB UI document behind that message. Colours, layout keys, UI
+trees and assets are otherwise byte-identical, so nothing else changes.
+
+- `layout.enforce` left four of them. v4 reads presence rather than a claim
+  list, so the key that named which parts a theme owned has no meaning; the
+  lists themselves stay and are what the host draws.
+- `kitchen-sink` and `spotify-shell` each carried one `search` node. It was a
+  v3 node the host wired by itself, and the v4 host has no renderer for it, so
+  the migration's rename to `textField` alone would have produced a field that
+  accepts keystrokes and tells no one. Both are now bound to `search.query` and
+  write it back with `setQuery`, which is the path `spotify-shell`'s own
+  `search.content` page reads.
+- The superseded artifacts moved to `themes/dist/legacy/` and their payloads to
+  `themes/conformance/legacy/`. That keeps two things honest: the v3 rejection
+  gate and the migration mapper stay pinned against real published payloads
+  rather than synthetic ones, and `test/conformance_test.dart` can now require
+  every golden to validate through the host's own entry point — a v3 payload
+  landing back in `conformance/` fails there instead of quietly taking the
+  legacy path.
+
+## 2.1.0 — `dynamic` is a v4 key; the Caelestia themes move to v4
+
+v4 opened by deleting `dynamic` as a v3 escape hatch, but that key was the only
+way a theme could say where its colours come from, and the host still read it on
+every version. It is restored to the v4 vocabulary: added to `v4TopLevelKeys`
+and to `schemas/theme.v4.schema.json`, and `tools/migrate_v3.dart` now carries
+`dynamic` through instead of deleting it. No payload resolution changed — the
+validator already parsed and re-emitted the block for every version; only the
+v4 top-level sweep rejected it.
+
+- `caelestia`, `caelestia-glassier`, `caelestia-plain` and `caelestia-shell` go
+  to **2.0.0** with `specVersion: 4` and `uiKit: shadcn`. Their colours,
+  surfaces, background (including `overlay` and `transparent`) and `dynamic`
+  block are byte-identical to the v2 builds, so the look is unchanged — what
+  changes is that they now sit inside the current contract. The superseded
+  artifacts moved to `themes/dist/legacy/` and stay pinned by the app's tests,
+  so the v2 path keeps its coverage.
+- `test/v4_schema_test.dart` now asserts the schema's top-level properties and
+  `v4TopLevelKeys` are the same set. The two had no cross-check, which is
+  precisely how a contract drifts: an editor would offer a key the build then
+  rejects, or hide one it accepts.
+- `AUTHORING.md` documents `dynamic` and corrects the `layout.enforce` advice —
+  a v4 payload must omit it, since it is not in the v4 `layout` key set.
+- `themes/neon-maximalist`: `background.scale` 1.2 → 1.0, the value the host
+  already rounded to. `make check` is now silent across the catalogue.
+- Three more schema/validator drifts, all found by the new cross-check and by
+  the goldens: the published schema did not accept `setting.*` bindings or a
+  `button` with `variant: "default"` (both of which the validator and the host
+  have supported), and `kitComponents.buttons` lacked the `default` key. A theme
+  using any of them built and shipped fine while an editor called it invalid.
+- `virtualList` takes `columns` (1..12), the count `list` and `grid` already
+  took. Moving a long collection to the recommended lazy node no longer costs
+  the grid; the app renders it as rows of equal-width cells, one `itemExtent`
+  per row.
+- `test/v4_schema_test.dart` now matches every `uiBinding` branch against
+  `isV4UiBinding` over a corpus, instead of only checking that a pattern exists.
+  That weaker assertion is what let the `setting.*` gap through.
+
 ## 2.0.0 — v4, the whole contract
 
 `specVersion: 4` is the current contract and it is breaking: the host rejects

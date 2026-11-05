@@ -49,13 +49,10 @@ void main() {
     test('they are payloads the app accepts', () {
       for (final file in Directory('$repoRoot/conformance').listSync()) {
         if (file is! File || !file.path.endsWith('.json')) continue;
-        final payload = readJson(file.path);
-        // The bundled themes are still v3 and stay that way: the host refuses
-        // v3, so the tooling validates them through the legacy path while a v4
-        // payload goes through the host's own entry point.
-        final report = payload['specVersion'] == 3
-            ? validateLegacyThemePayload(payload)
-            : validateThemePayload(payload);
+        // Every published theme is v4, so every golden is checked through the
+        // host's own entry point. A v3 payload landing here would fail, and
+        // should: the outgoing v3 payloads belong in `legacy/`.
+        final report = validateThemePayload(readJson(file.path));
         expect(report.hasErrors, isFalse, reason: file.path);
         expect(report.warningCount, 0, reason: file.path);
       }
@@ -86,9 +83,9 @@ void main() {
     });
   });
 
-  group('the v3 themes', () {
+  group('the archived v3 payloads', () {
     test('the brand demo is inert on a v2 host and complete on a v3 one', () {
-      final payload = readJson('$repoRoot/conformance/brand-demo.json');
+      final payload = readJson('$repoRoot/conformance/legacy/brand-demo.json');
 
       // As a v3 payload: complete, and every rule satisfied. The legacy entry
       // point exists for the migration tools; the host itself rejects v3.
@@ -112,7 +109,7 @@ void main() {
 
     test('the host rejects them until they are migrated', () {
       final report = validateThemePayload(
-        readJson('$repoRoot/conformance/brand-demo.json'),
+        readJson('$repoRoot/conformance/legacy/brand-demo.json'),
       );
       expect(report.hasErrors, isTrue);
       expect(report.issues, hasLength(1));

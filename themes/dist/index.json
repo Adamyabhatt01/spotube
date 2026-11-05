@@ -1,18 +1,18 @@
 {
-  "generatedAt": "2026-11-04T05:29:26.073889Z",
+  "generatedAt": "2026-11-05T12:23:34.999951Z",
   "themes": [
     {
       "id": "asset-demo",
       "name": "Asset Demo Theme",
       "author": "Adamya Bhatt",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "entryPoint": "AssetDemoTheme",
       "abilities": [
         "theme"
       ],
-      "file": "asset-demo-1.0.0.smplug",
-      "bytes": 11354,
-      "sha256": "1ffeedf60f6b00fc7d1736af21cfc1fe6eb9a053ff16c9bda6688c4b99dd42bb",
+      "file": "asset-demo-2.0.0.smplug",
+      "bytes": 11367,
+      "sha256": "774c8d284935aac3b7a56eaf585473e58588055b739a80a7aca4e0e04bd07c95",
       "optionalMethods": [],
       "hasUiSpec": false
     },
@@ -20,14 +20,14 @@
       "id": "brand-demo",
       "name": "Aurora Demo Theme",
       "author": "Adamya Bhatt",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "entryPoint": "AuroraTheme",
       "abilities": [
         "theme"
       ],
-      "file": "brand-demo-1.0.0.smplug",
-      "bytes": 6984,
-      "sha256": "7a7502cfadd96aa7e70e11b21b4d6dbbb413aaa99ca87d8a75ce502db76a38ef",
+      "file": "brand-demo-2.0.0.smplug",
+      "bytes": 6980,
+      "sha256": "8663120fbcfa7c79662c1c5465528067b46fe1b438af57b3ae14e970e9541d0e",
       "optionalMethods": [],
       "hasUiSpec": false
     },
@@ -35,14 +35,14 @@
       "id": "caelestia",
       "name": "Caelestia Shell Theme",
       "author": "Adamya Bhatt",
-      "version": "1.2.0",
+      "version": "2.0.0",
       "entryPoint": "CaelestiaTheme",
       "abilities": [
         "theme"
       ],
-      "file": "caelestia-1.2.0.smplug",
-      "bytes": 1258,
-      "sha256": "cdb6db728895ebd7df761a944a6b64b89a6c0a7f85c5da22f3c4a9db40344556",
+      "file": "caelestia-2.0.0.smplug",
+      "bytes": 1297,
+      "sha256": "bd835ac115b7275d53d8ea07f0055b992b6047bd3c9d52def8afd77dfdb29748",
       "optionalMethods": [],
       "hasUiSpec": false,
       "published": "caelestia/plugin.smplug"
@@ -51,14 +51,14 @@
       "id": "caelestia-glassier",
       "name": "Caelestia Shell Theme (Glassier)",
       "author": "Adamya Bhatt",
-      "version": "1.3.0",
+      "version": "2.0.0",
       "entryPoint": "CaelestiaTheme",
       "abilities": [
         "theme"
       ],
-      "file": "caelestia-glassier-1.3.0.smplug",
-      "bytes": 1290,
-      "sha256": "c177eb18c397e7b456b2bd37c04d959891e4932419b7ac6d44bb8feee00c4b9b",
+      "file": "caelestia-glassier-2.0.0.smplug",
+      "bytes": 1328,
+      "sha256": "82e48b41c3441f6769a6d9b1237e97c75885fea930e2b3f54ba9a989bf5ae459",
       "optionalMethods": [],
       "hasUiSpec": false,
       "published": "caelestia-glassier/plugin.smplug"
@@ -67,14 +67,14 @@
       "id": "caelestia-plain",
       "name": "Caelestia Plain Theme",
       "author": "Adamya Bhatt",
-      "version": "1.1.0",
+      "version": "2.0.0",
       "entryPoint": "CaelestiaTheme",
       "abilities": [
         "theme"
       ],
-      "file": "caelestia-plain-1.1.0.smplug",
-      "bytes": 1243,
-      "sha256": "1b10af4d57539c395445b20c08e5a2e8478e17d2ab5a9edf76b5000a0b23b12f",
+      "file": "caelestia-plain-2.0.0.smplug",
+      "bytes": 1283,
+      "sha256": "d12640418ad75e3fee578e60c5b5ae21c678992fc59d2c66df4b035acd7dbce8",
       "optionalMethods": [],
       "hasUiSpec": false,
       "published": "caelestia-plain/plugin.smplug"
@@ -83,14 +83,14 @@
       "id": "caelestia-shell",
       "name": "Caelestia Shell Theme (Balanced)",
       "author": "Adamya Bhatt",
-      "version": "1.4.0",
+      "version": "2.0.0",
       "entryPoint": "CaelestiaTheme",
       "abilities": [
         "theme"
       ],
-      "file": "caelestia-shell-1.4.0.smplug",
-      "bytes": 1292,
-      "sha256": "17963c91ea63f5f65ae99edba922e7e74949235148e888a1a3a2c3b903d3d3e2",
+      "file": "caelestia-shell-2.0.0.smplug",
+      "bytes": 1330,
+      "sha256": "7c0ecf974d56f6c33905896193b5a2f6903dcbc40eca850f45b24500b6e79c29",
       "optionalMethods": [],
       "hasUiSpec": false,
       "published": "caelestia-shell/plugin.smplug"
@@ -99,14 +99,14 @@
       "id": "kitchen-sink",
       "name": "Kitchen Sink Theme",
       "author": "Adamya Bhatt",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "entryPoint": "KitchenSinkTheme",
       "abilities": [
         "theme"
       ],
-      "file": "kitchen-sink-1.0.0.smplug",
-      "bytes": 10499,
-      "sha256": "0ee00112b44fea4df852d7ed776839eba46a288e9ae02fdad7c82a1f3772f5f3",
+      "file": "kitchen-sink-2.0.0.smplug",
+      "bytes": 10634,
+      "sha256": "30c7dcd3afad7737496661b36e82361bc26d20515ae4e18201e02250e35fbf60",
       "optionalMethods": [],
       "hasUiSpec": false
     },
@@ -126,17 +126,49 @@
       "hasUiSpec": false
     },
     {
+      "id": "neon-cabinet",
+      "name": "Neon Cabinet",
+      "author": "Adamya Bhatt",
+      "version": "1.0.0",
+      "entryPoint": "NeonCabinetTheme",
+      "abilities": [
+        "theme"
+      ],
+      "file": "neon-cabinet-1.0.0.smplug",
+      "bytes": 96672,
+      "sha256": "3a013c6db29787aa5ed7983bb7cfdf688b149f33d5968c2c556a3ecedb250331",
+      "optionalMethods": [],
+      "hasUiSpec": false,
+      "published": "neon-cabinet/plugin.smplug"
+    },
+    {
+      "id": "neon-maximalist",
+      "name": "Neon Maximalist",
+      "author": "Neon Labs",
+      "version": "1.0.0",
+      "entryPoint": "NeonMaximalistTheme",
+      "abilities": [
+        "theme"
+      ],
+      "file": "neon-maximalist-1.0.0.smplug",
+      "bytes": 357130,
+      "sha256": "27284637a256025f8d3f199728b29539d8e38ad77443e91f1c1079e018295a10",
+      "optionalMethods": [],
+      "hasUiSpec": false,
+      "published": "neon-maximalist/plugin.smplug"
+    },
+    {
       "id": "obsidian",
       "name": "Obsidian",
       "author": "Adamya Bhatt",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "entryPoint": "ObsidianTheme",
       "abilities": [
         "theme"
       ],
-      "file": "obsidian-1.0.0.smplug",
-      "bytes": 95417,
-      "sha256": "7b5524d4afa10ba388e8baba929826d5cb725fceaa802120fedee95ddd9bcb83",
+      "file": "obsidian-2.0.0.smplug",
+      "bytes": 95411,
+      "sha256": "f5c025c5e851e637f392a5e00b4adb9620371f8f48116ecd7a632433760f2ccd",
       "optionalMethods": [],
       "hasUiSpec": false,
       "published": "obsidian/plugin.smplug"
@@ -145,14 +177,14 @@
       "id": "spotify-shell",
       "name": "Spotify Shell Theme",
       "author": "Adamya Bhatt",
-      "version": "1.1.0",
+      "version": "2.0.0",
       "entryPoint": "SpotifyTheme",
       "abilities": [
         "theme"
       ],
-      "file": "spotify-shell-1.1.0.smplug",
-      "bytes": 562637,
-      "sha256": "9639ee6e4ce5d017f2b7b13fc7d7cbd7890dcee3287509466a96597691980103",
+      "file": "spotify-shell-2.0.0.smplug",
+      "bytes": 562740,
+      "sha256": "4ede393fb86656bdc34b35b69d06f3c7bede9f68a98d9b715851f56d17f1b47b",
       "optionalMethods": [],
       "hasUiSpec": false,
       "published": "spotify-shell/plugin.smplug"
@@ -167,8 +199,8 @@
         "theme"
       ],
       "file": "spotify-shell-v4-1.0.0.smplug",
-      "bytes": 563219,
-      "sha256": "02c9b76eca2c7737af7e44196a3592967678946f2cafb4aef49d4bc7b7a595a4",
+      "bytes": 566001,
+      "sha256": "3592e08d9f39fd238b4233777ae0d56f7ebb528bad4adcc574ef90578b23951c",
       "optionalMethods": [],
       "hasUiSpec": false,
       "published": "spotify-shell-v4/plugin.smplug"
@@ -177,14 +209,14 @@
       "id": "ui-demo",
       "name": "UI Demo Theme",
       "author": "Adamya Bhatt",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "entryPoint": "UiDemoTheme",
       "abilities": [
         "theme"
       ],
-      "file": "ui-demo-1.0.0.smplug",
-      "bytes": 6235,
-      "sha256": "075255dc01b9ff6f6a3210fc81f0bbd0abf0e5710b50f0b45f00d2843d3efa3c",
+      "file": "ui-demo-2.0.0.smplug",
+      "bytes": 6253,
+      "sha256": "da7621aa4389e44ab8236ef873e0fe2c5d64b4d80673e1fa0c5799e8b5b4affb",
       "optionalMethods": [
         "getUi",
         "onUiAction"

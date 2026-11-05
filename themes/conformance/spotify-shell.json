@@ -1,5 +1,6 @@
 {
-  "specVersion": 3,
+  "specVersion": 4,
+  "uiKit": "shadcn",
   "light": {
     "background": "#ffffff",
     "foreground": "#000000",
@@ -549,12 +550,6 @@
       "artists",
       "local_library"
     ],
-    "enforce": [
-      "nav",
-      "navItems",
-      "navbarItems",
-      "libraryItems"
-    ],
     "titlebar": {
       "height": 44.0,
       "padding": 16.0,
@@ -804,8 +799,19 @@
                         "borderWidth": 0,
                         "children": [
                           {
-                            "type": "search",
-                            "placeholder": "What do you want to play?"
+                            "type": "textField",
+                            "placeholder": "What do you want to play?",
+                            "icon": "search",
+                            "debounceMs": 300,
+                            "clearable": true,
+                            "bind": "search.query",
+                            "action": {
+                              "type": "setQuery",
+                              "args": {
+                                "scope": "default",
+                                "value": "$value"
+                              }
+                            }
                           }
                         ]
                       }
