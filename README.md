@@ -407,6 +407,22 @@ Android builds run on Impeller. Flutter 3.38 includes the engine fix for the bac
 ([flutter/flutter#173622](https://github.com/flutter/flutter/issues/173622)), so the frosted bottom
 chrome stays stable without the temporary Skia fallback.
 
+## 🔐 Installing plugins and themes
+
+Installing a plugin or theme runs its Hetu bytecode in the app. Treat a trustworthy source like an
+extension install in a browser: only install ones you'd run with your account logged in.
+
+Two guardrails also run before any bytes are extracted:
+
+- **Archive safety (hard fails).** Entry paths can't escape the install directory, symlinks are
+  refused, and archives past ~2,000 entries or ~50 MB unpacked are rejected. A failed extraction
+  never touches the live plugin directory.
+- **Byte verification (hard fail when a hash is published).** When the publisher's release declares
+  a SHA-256 for the `.smplug` asset, the download is verified byte-for-byte before extraction,
+  and the install is refused if it doesn't match — before anything is even written. No declared
+  hash (third-party publishers and raw plugin URLs have none) means the install proceeds, so
+  that case remains the user's explicit trust in the source.
+
 ## ⚠️ Status and caveats
 
 - **Unofficial and unsupported.** I'm not maintaining this for anyone else's benefit. If something

@@ -9,6 +9,7 @@ enum MetadataPluginErrorCode {
   pluginDownloadFailed,
   duplicatePlugin,
   pluginByteCodeFileNotFound,
+  pluginChecksumMismatch,
   noDefaultMetadataPlugin,
   noDefaultAudiSourcePlugin,
 }
@@ -90,6 +91,20 @@ class MetadataPluginException implements Exception {
       : this._(
           'Plugin byte code file, plugin.out not found. Please ensure the plugin is correctly packaged.',
           errorCode: MetadataPluginErrorCode.pluginByteCodeFileNotFound,
+        );
+
+  /// The downloaded bytes did not match the publisher's published hash.
+  ///
+  /// Verification only ever rejects; an absent hash is install-allowed
+  /// (third-party publishers and raw plugin URLs carry no declared hash).
+  /// A mismatch means the bytes are not what the release listed, so the
+  /// download is dropped before extraction — nothing is written.
+  MetadataPluginException.pluginChecksumMismatch(
+    String expectedSha256,
+    String actualSha256,
+  ) : this._(
+          'SHA-256 checksum mismatch. Expected $expectedSha256, got $actualSha256. The download was not installed.',
+          errorCode: MetadataPluginErrorCode.pluginChecksumMismatch,
         );
   MetadataPluginException.noDefaultMetadataPlugin()
       : this._(

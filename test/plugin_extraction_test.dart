@@ -8,18 +8,28 @@
 //  - archives missing the bytecode entry (plugin.out) are rejected
 //    before anything is written, so no partial install lingers.
 //  - a valid archive extracts all entries under the plugin directory.
+//  - downloaded bytes are verified against the publisher's checksum
+//    before extraction: a mismatch throws and nothing is written, while
+//    an absent checksum installs as before (third-party trust).
 
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/provider/database/database.dart';
+import 'package:spotube/provider/dio/dio_provider.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/plugin_storage.dart';
 import 'package:spotube/services/metadata/errors/exceptions.dart';
+
+import 'support/common_fakes.dart';
 
 List<int> _buildArchive(Map<String, String> files) {
   final archive = Archive();
@@ -678,4 +688,149 @@ void main() {
       );
     });
   });
+
+  // The download path verifies bytes against the publisher's declared
+  // checksum before extraction. A mismatch must stop the install with
+  // nothing written; an absent checksum installs as before — that stays
+  // the user's explicit trust in the source (third-party plugins).
+  String digestOf(List<int> bytes) => sha256.convert(bytes).toString();
+
+  Future<List<int>> archiveBytes({String version = '1.0.0'}) async =>
+      _buildArchive(_validPluginFiles(name: 'checksum-plugin', version: version));
+
+  Future<ProviderContainer> downloadContainer(List<int> bytes) async {
+    final db = newMemoryDatabase();
+    addTearDown(db.close);
+    final container = ProviderContainer(overrides: [
+      databaseProvider.overrideWithValue(db),
+      appDioProvider.overrideWithValue(
+        Dio()
+          ..httpClientAdapter = _BytesAdapter(bytes),
+      ),
+    ]);
+    addTearDown(container.dispose);
+    return container;
+  }
+
+  group('plugin checksum verification', () {
+    test('verifyPluginBytesIntegrity accepts a matching checksum', () async {
+      final bytes = await archiveBytes();
+      final expected = digestOf(bytes);
+      expect(() => verifyPluginBytesIntegrity(bytes, expected), returnsNormally);
+      expect(
+        () => verifyPluginBytesIntegrity(bytes, ' ${expected.toUpperCase()} '),
+        returnsNormally,
+        reason: 'case and surrounding whitespace are cosmetic',
+      );
+    });
+
+    test('verifyPluginBytesIntegrity rejects a mismatch', () async {
+      final bytes = await archiveBytes();
+      final expected = digestOf(utf8.encode('different bytes'));
+      expect(
+        () => verifyPluginBytesIntegrity(bytes, expected),
+        throwsA(
+          isA<MetadataPluginException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            MetadataPluginErrorCode.pluginChecksumMismatch,
+          ),
+        ),
+      );
+    });
+
+    test('no declared checksum installs as before', () async {
+      final bytes = await archiveBytes();
+      expect(() => verifyPluginBytesIntegrity(bytes, null), returnsNormally);
+    });
+
+    test('a download with the publisher checksum installs normally', () async {
+      // Distinct version per integration test: both hit the same
+      // extraction root, and the mismatch case asserts its own dir
+      // was not written.
+      final bytes = await archiveBytes(version: '1.2.3');
+      final container = await downloadContainer(bytes);
+      final config = await container
+          .read(metadataPluginsProvider.notifier)
+          .downloadAndCachePlugin(
+            'https://example.test/plugins/checksum-plugin.smplug',
+            expectedSha256: digestOf(bytes),
+          );
+      expect(config.name, 'checksum-plugin');
+      final dir = Directory(
+        p.join(
+          supportDir.path,
+          'metadata-plugins',
+          'tester-checksum-plugin-1.2.3',
+        ),
+      );
+      expect(await File(p.join(dir.path, 'plugin.out')).exists(), isTrue);
+    });
+
+    test('a tampered download throws and extracts nothing', () async {
+      final bytes = await archiveBytes(version: '2.0.0');
+      final container = await downloadContainer(bytes);
+      const declared = '0000000000000000000000000000000000000000000000000000000000000000';
+      await expectLater(
+        container
+            .read(metadataPluginsProvider.notifier)
+            .downloadAndCachePlugin(
+              'https://example.test/plugins/checksum-plugin.smplug',
+              expectedSha256: declared,
+            ),
+        throwsA(
+          isA<MetadataPluginException>().having(
+            (e) => e.errorCode,
+            'errorCode',
+            MetadataPluginErrorCode.pluginChecksumMismatch,
+          ),
+        ),
+      );
+
+      final dir = Directory(
+        p.join(
+          supportDir.path,
+          'metadata-plugins',
+          'tester-checksum-plugin-2.0.0',
+        ),
+      );
+      expect(
+        await dir.exists(),
+        isFalse,
+        reason: 'a checksum mismatch must never reach extraction',
+      );
+    });
+
+    test('updates carrying a hash verify the same way', () async {
+      final parsed = PluginUpdateAvailable.fromJson(const {
+        'downloadUrl': 'https://example.test/plugins/checksum-plugin.smplug',
+        'version': '2.0.0',
+        'sha256': '0000000000000000000000000000000000000000000000000000000000000000',
+      });
+      expect(parsed.expectedSha256, '0' * 64);
+      final without = PluginUpdateAvailable.fromJson(const {
+        'downloadUrl': 'https://example.test/plugins/checksum-plugin.smplug',
+        'version': '2.0.0',
+      });
+      expect(without.expectedSha256, isNull);
+    });
+  });
+}
+
+class _BytesAdapter implements HttpClientAdapter {
+  _BytesAdapter(this.bytes);
+
+  final List<int> bytes;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<List<int>>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    return ResponseBody.fromBytes(bytes, 200);
+  }
+
+  @override
+  void close({bool force = false}) {}
 }

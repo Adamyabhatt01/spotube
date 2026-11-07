@@ -588,6 +588,7 @@ _$PluginUpdateAvailableImpl _$$PluginUpdateAvailableImplFromJson(Map json) =>
       downloadUrl: json['downloadUrl'] as String,
       version: json['version'] as String,
       changelog: json['changelog'] as String?,
+      expectedSha256: json['sha256'] as String?,
     );
 
 Map<String, dynamic> _$$PluginUpdateAvailableImplToJson(
@@ -596,6 +597,7 @@ Map<String, dynamic> _$$PluginUpdateAvailableImplToJson(
       'downloadUrl': instance.downloadUrl,
       'version': instance.version,
       'changelog': instance.changelog,
+      'sha256': instance.expectedSha256,
     };
 
 _$MetadataPluginRepositoryImpl _$$MetadataPluginRepositoryImplFromJson(

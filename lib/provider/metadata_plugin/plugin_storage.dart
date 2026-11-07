@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:collection/collection.dart';
+import 'package:crypto/crypto.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pub_semver/pub_semver.dart';
@@ -306,7 +307,6 @@ class PluginStorage {
   }
 
   /// True when [name] cannot escape the plugin extraction directory.
-  ///
   /// Both separator styles are normalized first: a Windows-style
   /// `..\evil` entry only traverses on Windows, so a substring check
   /// for `..` alone would miss platform differences, and `a/../../b`
@@ -320,5 +320,23 @@ class PluginStorage {
     if (normalized == '..' || normalized.startsWith('../')) return false;
     if (RegExp(r'^[a-zA-Z]:').hasMatch(normalized)) return false;
     return true;
+  }
+}
+
+/// Verifies downloaded plugin bytes against a publisher-declared checksum.
+///
+/// A checksum mismatch is a hard failure — the bytes are not what the
+/// publisher listed — and must be checked before [PluginStorage.extractArchive]
+/// so nothing is ever written. A missing hash is not a failure: raw plugin
+/// URLs and older publishers declare none, and that remains the user's
+/// explicit trust in the source (installing a plugin is code execution by
+/// design). Case-insensitive and whitespace-tolerant compared.
+void verifyPluginBytesIntegrity(List<int> bytes, String? expectedSha256) {
+  if (expectedSha256 == null) return;
+  final expected = expectedSha256.trim().toLowerCase();
+  if (expected.isEmpty) return;
+  final actual = sha256.convert(bytes).toString();
+  if (actual != expected) {
+    throw MetadataPluginException.pluginChecksumMismatch(expected, actual);
   }
 }

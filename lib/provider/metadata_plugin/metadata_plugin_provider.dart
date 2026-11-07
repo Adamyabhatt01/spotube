@@ -263,7 +263,17 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
   /// Downloads, extracts & caches the plugin from the given URL and returns the plugin config.
   /// If only a text/html URL is provided, it will try to get the latest release from
   /// the URL for supported websites (github.com, codeberg.org).
-  Future<PluginConfiguration> downloadAndCachePlugin(String url) async {
+  ///
+  /// When a publisher's release declares a checksum for its `.smplug`
+  /// asset (GitHub and Forgejo release assets both do), the download is
+  /// verified against it before extraction: a mismatch throws and nothing
+  /// is written. No declared checksum → the download proceeds (raw plugin
+  /// URLs and older publishers carry none — that remains the user's
+  /// explicit trust in the source, as before).
+  Future<PluginConfiguration> downloadAndCachePlugin(
+    String url, {
+    String? expectedSha256,
+  }) async {
     final res = await ref.read(appDioProvider).head(url);
     final isSupportedWebsite =
         (res.headers["Content-Type"]?.first)?.startsWith("text/html") == true &&
@@ -272,10 +282,14 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     if (isSupportedWebsite) {
       if (url.contains("github.com")) {
         final uri = _getGithubReleasesUrl(url);
-        pluginDownloadUrl = await _getPluginDownloadUrl(uri);
+        final resolved = await _getPluginDownloadUrl(uri);
+        pluginDownloadUrl = resolved.url;
+        expectedSha256 = resolved.sha256;
       } else if (url.contains("codeberg.org")) {
         final uri = _getCodebergeReleasesUrl(url);
-        pluginDownloadUrl = await _getPluginDownloadUrl(uri);
+        final resolved = await _getPluginDownloadUrl(uri);
+        pluginDownloadUrl = resolved.url;
+        expectedSha256 = resolved.sha256;
       } else {
         throw MetadataPluginException.unsupportedPluginDownloadWebsite();
       }
@@ -297,6 +311,8 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     if ((pluginRes.statusCode ?? 500) > 299) {
       throw MetadataPluginException.pluginDownloadFailed();
     }
+
+    verifyPluginBytesIntegrity(pluginRes.data, expectedSha256);
 
     return await _storage.extractArchive(pluginRes.data);
   }
@@ -559,8 +575,10 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     PluginConfiguration plugin,
     PluginUpdateAvailable update,
   ) async {
-    final pluginUpdatedConfig =
-        await downloadAndCachePlugin(update.downloadUrl);
+    final pluginUpdatedConfig = await downloadAndCachePlugin(
+      update.downloadUrl,
+      expectedSha256: update.expectedSha256,
+    );
 
     try {
       if (pluginUpdatedConfig.name != plugin.name ||

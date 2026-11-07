@@ -6345,6 +6345,17 @@ mixin _$PluginUpdateAvailable {
   String get version => throw _privateConstructorUsedError;
   String? get changelog => throw _privateConstructorUsedError;
 
+  /// Optional integrity pin for the `downloadUrl` bytes.
+  ///
+  /// Plugin-authored: a plugin's own `checkUpdate` returns what the
+  /// release metadata says, so the host trusts this only as a
+  /// tamper/corruption check, never as a signature — a publisher that
+  /// re-signs a compromise re-signs its checksum with it. Plugins that
+  /// publish none leave this null; the download then proceeds as
+  /// before.
+  @JsonKey(name: 'sha256')
+  String? get expectedSha256 => throw _privateConstructorUsedError;
+
   /// Serializes this PluginUpdateAvailable to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -6361,7 +6372,11 @@ abstract class $PluginUpdateAvailableCopyWith<$Res> {
           $Res Function(PluginUpdateAvailable) then) =
       _$PluginUpdateAvailableCopyWithImpl<$Res, PluginUpdateAvailable>;
   @useResult
-  $Res call({String downloadUrl, String version, String? changelog});
+  $Res call(
+      {String downloadUrl,
+      String version,
+      String? changelog,
+      @JsonKey(name: 'sha256') String? expectedSha256});
 }
 
 /// @nodoc
@@ -6383,6 +6398,7 @@ class _$PluginUpdateAvailableCopyWithImpl<$Res,
     Object? downloadUrl = null,
     Object? version = null,
     Object? changelog = freezed,
+    Object? expectedSha256 = freezed,
   }) {
     return _then(_value.copyWith(
       downloadUrl: null == downloadUrl
@@ -6397,6 +6413,10 @@ class _$PluginUpdateAvailableCopyWithImpl<$Res,
           ? _value.changelog
           : changelog // ignore: cast_nullable_to_non_nullable
               as String?,
+      expectedSha256: freezed == expectedSha256
+          ? _value.expectedSha256
+          : expectedSha256 // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -6410,7 +6430,11 @@ abstract class _$$PluginUpdateAvailableImplCopyWith<$Res>
       __$$PluginUpdateAvailableImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String downloadUrl, String version, String? changelog});
+  $Res call(
+      {String downloadUrl,
+      String version,
+      String? changelog,
+      @JsonKey(name: 'sha256') String? expectedSha256});
 }
 
 /// @nodoc
@@ -6430,6 +6454,7 @@ class __$$PluginUpdateAvailableImplCopyWithImpl<$Res>
     Object? downloadUrl = null,
     Object? version = null,
     Object? changelog = freezed,
+    Object? expectedSha256 = freezed,
   }) {
     return _then(_$PluginUpdateAvailableImpl(
       downloadUrl: null == downloadUrl
@@ -6444,6 +6469,10 @@ class __$$PluginUpdateAvailableImplCopyWithImpl<$Res>
           ? _value.changelog
           : changelog // ignore: cast_nullable_to_non_nullable
               as String?,
+      expectedSha256: freezed == expectedSha256
+          ? _value.expectedSha256
+          : expectedSha256 // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -6452,7 +6481,10 @@ class __$$PluginUpdateAvailableImplCopyWithImpl<$Res>
 @JsonSerializable()
 class _$PluginUpdateAvailableImpl implements _PluginUpdateAvailable {
   _$PluginUpdateAvailableImpl(
-      {required this.downloadUrl, required this.version, this.changelog});
+      {required this.downloadUrl,
+      required this.version,
+      this.changelog,
+      @JsonKey(name: 'sha256') this.expectedSha256});
 
   factory _$PluginUpdateAvailableImpl.fromJson(Map<String, dynamic> json) =>
       _$$PluginUpdateAvailableImplFromJson(json);
@@ -6464,9 +6496,21 @@ class _$PluginUpdateAvailableImpl implements _PluginUpdateAvailable {
   @override
   final String? changelog;
 
+  /// Optional integrity pin for the `downloadUrl` bytes.
+  ///
+  /// Plugin-authored: a plugin's own `checkUpdate` returns what the
+  /// release metadata says, so the host trusts this only as a
+  /// tamper/corruption check, never as a signature — a publisher that
+  /// re-signs a compromise re-signs its checksum with it. Plugins that
+  /// publish none leave this null; the download then proceeds as
+  /// before.
+  @override
+  @JsonKey(name: 'sha256')
+  final String? expectedSha256;
+
   @override
   String toString() {
-    return 'PluginUpdateAvailable(downloadUrl: $downloadUrl, version: $version, changelog: $changelog)';
+    return 'PluginUpdateAvailable(downloadUrl: $downloadUrl, version: $version, changelog: $changelog, expectedSha256: $expectedSha256)';
   }
 
   @override
@@ -6478,12 +6522,15 @@ class _$PluginUpdateAvailableImpl implements _PluginUpdateAvailable {
                 other.downloadUrl == downloadUrl) &&
             (identical(other.version, version) || other.version == version) &&
             (identical(other.changelog, changelog) ||
-                other.changelog == changelog));
+                other.changelog == changelog) &&
+            (identical(other.expectedSha256, expectedSha256) ||
+                other.expectedSha256 == expectedSha256));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, downloadUrl, version, changelog);
+  int get hashCode =>
+      Object.hash(runtimeType, downloadUrl, version, changelog, expectedSha256);
 
   /// Create a copy of PluginUpdateAvailable
   /// with the given fields replaced by the non-null parameter values.
@@ -6504,9 +6551,11 @@ class _$PluginUpdateAvailableImpl implements _PluginUpdateAvailable {
 
 abstract class _PluginUpdateAvailable implements PluginUpdateAvailable {
   factory _PluginUpdateAvailable(
-      {required final String downloadUrl,
-      required final String version,
-      final String? changelog}) = _$PluginUpdateAvailableImpl;
+          {required final String downloadUrl,
+          required final String version,
+          final String? changelog,
+          @JsonKey(name: 'sha256') final String? expectedSha256}) =
+      _$PluginUpdateAvailableImpl;
 
   factory _PluginUpdateAvailable.fromJson(Map<String, dynamic> json) =
       _$PluginUpdateAvailableImpl.fromJson;
@@ -6517,6 +6566,18 @@ abstract class _PluginUpdateAvailable implements PluginUpdateAvailable {
   String get version;
   @override
   String? get changelog;
+
+  /// Optional integrity pin for the `downloadUrl` bytes.
+  ///
+  /// Plugin-authored: a plugin's own `checkUpdate` returns what the
+  /// release metadata says, so the host trusts this only as a
+  /// tamper/corruption check, never as a signature — a publisher that
+  /// re-signs a compromise re-signs its checksum with it. Plugins that
+  /// publish none leave this null; the download then proceeds as
+  /// before.
+  @override
+  @JsonKey(name: 'sha256')
+  String? get expectedSha256;
 
   /// Create a copy of PluginUpdateAvailable
   /// with the given fields replaced by the non-null parameter values.
