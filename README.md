@@ -419,9 +419,9 @@ chrome stays stable without the temporary Skia fallback.
   made from working trees, which is why that caveat used to apply to every release here.
 - **No signature continuity.** The test key means this fork's builds are only interchangeable with
   each other, never with official releases.
-- **The full regression suite is local; a curated subset is published.** About 2,250 tests guard
-  this fork's own code — the VPN lease logic, download reconciliation, source ranking, snapshot
-  revalidation — and most live in the gitignored `test/` tree. `test/ci_suite.txt` lists the
+- **The full regression suite is local; a curated subset is published.** About
+  2,280 tests guard this fork's own code — the VPN lease logic, download reconciliation,
+  source ranking, snapshot revalidation — and most live in the gitignored `test/` tree. `test/ci_suite.txt` lists the
   hermetic host tests that are committed and run by CI (`make test-ci`); run `make check` before a
   push to exercise the full suite, including plugin, device and network paths.
 
