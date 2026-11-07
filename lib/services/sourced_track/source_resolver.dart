@@ -126,6 +126,12 @@ class SourceResolver {
 
     return modes
         .where((mode) => mode.isAvailableForPlatform())
+        // ytdlpFlutter's getStreamManifest always returns an empty manifest
+        // and searchVideos returns empty, so it can never resolve a source —
+        // keeping it in the order only burns a fallback-cascade slot and an
+        // engine init per attempt. It stays a selectable preference value;
+        // it is just never scheduled as a candidate until it can answer.
+        .where((mode) => mode != YoutubeClientEngine.ytdlpFlutter)
         .toSet()
         .toList();
   }
