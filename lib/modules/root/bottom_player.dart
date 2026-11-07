@@ -197,7 +197,11 @@ class BottomPlayer extends HookConsumerWidget {
                       ),
                     ),
                   )
-                : PlayerControls(progressInline: !progressBelow),
+                : PlayerControls(
+                    // A theme-owned `player.progress` slot replaces the seek
+                    // line entirely; drawing the inline one too gives two.
+                    progressInline: !progressBelow && !hasThemeProgress,
+                  ),
           ),
         ),
         // add to saved tracks

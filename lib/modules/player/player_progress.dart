@@ -8,8 +8,10 @@ import 'package:spotube/extensions/context.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/duration.dart';
 import 'package:spotube/modules/player/use_progress.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_node.dart';
 import 'package:spotube/provider/audio_player/querying_track_info.dart';
 import 'package:spotube/provider/audio_player/audio_player_port.dart';
+import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 
 /// The content width a docked player can use, when it is not full-window.
 ///
@@ -88,6 +90,11 @@ typedef SeekToPosition = void Function(double fraction);
 /// `Scaffold` footer and ask it the question shadcn will ask.
 class PlayerSeekLine extends HookWidget {
   final bool inline;
+  final bool wavy;
+
+  /// The theme's `components.progress` style map — honored by the wavy bar
+  /// for `height`, `radius`, `foreground`, `trackColor`, `thumbColor`.
+  final Map<String, dynamic>? progressStyle;
   final double value;
   final double buffered;
   final String elapsed;
@@ -99,6 +106,8 @@ class PlayerSeekLine extends HookWidget {
   const PlayerSeekLine({
     required this.inline,
     required this.value,
+    this.wavy = false,
+    this.progressStyle,
     required this.buffered,
     required this.elapsed,
     required this.total,
@@ -125,23 +134,35 @@ class PlayerSeekLine extends HookWidget {
 
     // A pointer that leaves the bar (canceled, or a release the slider deemed
     // unmoved and therefore never dispatched) ends the gesture without seeking.
-    final slider = Listener(
-      behavior: HitTestBehavior.translucent,
-      onPointerCancel: (_) => clearGesture(),
-      onPointerUp: (_) => clearGesture(),
-      child: Slider(
-        hintValue: SliderValue.single(buffered),
-        value: SliderValue.single(anchor.value ?? value),
-        onChangeStart: enabled ? (v) => anchor.value = v.value : null,
-        onChanged: enabled ? (v) => held.value = v.value : null,
-        onChangeEnd: enabled
-            ? (v) {
-                clearGesture();
-                onSeek(v.value);
-              }
-            : null,
-      ),
-    );
+    // `wavy` swaps the stock slider for the theme's animated ribbon; the
+    // gesture contract (local drag, commit on release) is the same.
+    final bar = wavy
+        ? ThemeUiWavyProgress(
+            fraction: anchor.value ?? value,
+            enabled: enabled,
+            onSeek: onSeek,
+            onHeldChanged: (fraction) => held.value = fraction,
+            style: progressStyle,
+          )
+        : Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerCancel: (_) => clearGesture(),
+            onPointerUp: (_) => clearGesture(),
+            child: Slider(
+              hintValue: SliderValue.single(buffered),
+              value: SliderValue.single(anchor.value ?? value),
+              onChangeStart:
+                  enabled ? (v) => anchor.value = v.value : null,
+              onChanged: enabled ? (v) => held.value = v.value : null,
+              onChangeEnd: enabled
+                  ? (v) {
+                      clearGesture();
+                      onSeek(v.value);
+                    }
+                  : null,
+            ),
+          );
+    final slider = bar;
 
     String elapsedLabel() {
       final fraction = held.value;
@@ -227,6 +248,9 @@ class PlayerProgress extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isResolvingActiveTrack = ref.watch(isResolvingActiveTrackProvider);
+    final themeDefinition = ref.watch(themeDefinitionProvider).asData?.value;
+    final progressStyle = themeDefinition?.components['progress'];
+    final wavy = progressStyle is Map && progressStyle['style'] == 'wavy';
 
     final (:bufferProgress, :duration, :position, :progressStatic) =
         useProgress(ref);
@@ -242,6 +266,10 @@ class PlayerProgress extends HookConsumerWidget {
 
     return PlayerSeekLine(
       inline: inline,
+      wavy: wavy,
+      progressStyle: progressStyle is Map
+          ? progressStyle.cast<String, dynamic>()
+          : null,
       value: displayed.value.toDouble(),
       buffered: bufferProgress,
       elapsed: position.toHumanReadableString(),

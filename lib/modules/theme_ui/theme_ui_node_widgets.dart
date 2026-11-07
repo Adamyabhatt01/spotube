@@ -58,6 +58,7 @@ class _ThemeUiProgress extends StatefulWidget {
   final bool enabled;
   final bool wavy;
   final ValueChanged<double> onSeek;
+  final ValueChanged<double?>? onHeldChanged;
 
   const _ThemeUiProgress({
     required this.fraction,
@@ -73,6 +74,7 @@ class _ThemeUiProgress extends StatefulWidget {
     required this.width,
     required this.enabled,
     required this.onSeek,
+    this.onHeldChanged,
     this.wavy = false,
   });
 
@@ -84,6 +86,26 @@ class _ThemeUiProgressState extends State<_ThemeUiProgress>
     with SingleTickerProviderStateMixin {
   double? _drag;
   late final AnimationController _wave;
+
+  /// The fraction currently on screen. The binding only reports position
+  /// about once a second; painting it raw makes the fill jump in steps while
+  /// the wave ribbon animates every frame. Easing toward the target on each
+  /// tick keeps the two in step — this is the "smoothly progressing" part.
+  double _shown = -1;
+
+  /// Eases [_shown] toward [target] on each animation tick. ~8% per frame
+  /// at 60fps settles in well under a second — fast enough to feel attached
+  /// to the finger while dragging, slow enough to hide the once-a-second
+  /// position ticks the binding reports.
+  double _eased(double target) {
+    if (_shown < 0) {
+      _shown = target;
+    } else {
+      _shown += (target - _shown) * 0.08;
+      if ((_shown - target).abs() < 0.0005) _shown = target;
+    }
+    return _shown;
+  }
 
   @override
   void initState() {
@@ -127,14 +149,22 @@ class _ThemeUiProgressState extends State<_ThemeUiProgress>
 
   void _update(Offset position) {
     if (!widget.enabled) return;
-    setState(() => _drag = _valueAt(position, _barWidth()));
+    final value = _valueAt(position, _barWidth());
+    setState(() => _drag = value);
+    widget.onHeldChanged?.call(value);
   }
 
   void _commit() {
     final value = _drag;
     if (!widget.enabled || value == null) return;
+    widget.onHeldChanged?.call(null);
     widget.onSeek(value);
     setState(() => _drag = null);
+  }
+
+  void _cancel() {
+    setState(() => _drag = null);
+    widget.onHeldChanged?.call(null);
   }
 
   @override
@@ -157,31 +187,137 @@ class _ThemeUiProgressState extends State<_ThemeUiProgress>
         onHorizontalDragUpdate:
             widget.enabled ? (details) => _update(details.localPosition) : null,
         onHorizontalDragEnd: widget.enabled ? (_) => _commit() : null,
-        onHorizontalDragCancel:
-            widget.enabled ? () => setState(() => _drag = null) : null,
+        onHorizontalDragCancel: widget.enabled ? _cancel : null,
         child: SizedBox(
           width: widget.width ?? double.infinity,
           height: widget.hitHeight,
           child: AnimatedBuilder(
             animation: _wave,
-            builder: (context, _) => CustomPaint(
-              painter: _ThemeUiProgressPainter(
-                fraction: (_drag ?? widget.fraction).clamp(0.0, 1.0).toDouble(),
-                height: widget.height,
-                radius: widget.radius,
-                borderWidth: widget.borderWidth,
-                borderColor: widget.borderColor,
-                color: widget.color,
-                trackColor: widget.trackColor,
-                thumbColor: widget.thumbColor,
-                thumbSize: widget.thumbSize,
-                wavy: widget.wavy,
-                phase: widget.wavy ? _wave.value : 0,
-              ),
-            ),
+            builder: (context, _) {
+              final target =
+                  (_drag ?? widget.fraction).clamp(0.0, 1.0).toDouble();
+              // Only the wavy path has a running ticker to ease on; the
+              // linear bar repaints on rebuild and paints the target as-is.
+              final shown = widget.wavy ? _eased(target) : target;
+              return CustomPaint(
+                painter: _ThemeUiProgressPainter(
+                  fraction: shown,
+                  height: widget.height,
+                  radius: widget.radius,
+                  borderWidth: widget.borderWidth,
+                  borderColor: widget.borderColor,
+                  color: widget.color,
+                  trackColor: widget.trackColor,
+                  thumbColor: widget.thumbColor,
+                  thumbSize: widget.thumbSize,
+                  wavy: widget.wavy,
+                  phase: widget.wavy ? _wave.value : 0,
+                ),
+              );
+            },
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A wavy seek bar for host surfaces that want the theme's
+/// `progress` `style: "wavy"` look without a theme node — the player
+/// seek line reads `components.progress.style` and mounts this in place of
+/// the stock slider. Same gesture contract as [_ThemeUiProgress]: drag
+/// tracks locally, release commits once.
+class ThemeUiWavyProgress extends StatelessWidget {
+  final double fraction;
+  final double? width;
+  final double height;
+  final double hitHeight;
+  final bool enabled;
+  final ValueChanged<double> onSeek;
+
+  /// The held fraction while a drag is in flight, or null when it ends.
+  /// The player seek line uses it to move the elapsed label with the finger.
+  final ValueChanged<double?>? onHeldChanged;
+
+  /// The theme's `components.progress` style map, when the host surface
+  /// (the player seek line) wants every allowed key honored — `height`,
+  /// `radius`, `foreground`, `trackColor`, `thumbColor`.
+  final Map<String, dynamic>? style;
+
+  const ThemeUiWavyProgress({
+    required this.fraction,
+    required this.onSeek,
+    this.width,
+    this.height = 6,
+    this.hitHeight = 20,
+    this.enabled = true,
+    this.onHeldChanged,
+    this.style,
+    super.key,
+  });
+
+  /// Resolves a component colour: `@role` against the theme scheme, anything
+  /// else as a literal colour string. Same rules as the player surface.
+  static Color? _styleColor(BuildContext context, Object? raw) {
+    if (raw is! String || raw.isEmpty) return null;
+    if (raw.startsWith('@')) {
+      final scheme = Theme.of(context).colorScheme;
+      return switch (raw.substring(1)) {
+        'background' => scheme.background,
+        'foreground' => scheme.foreground,
+        'card' => scheme.card,
+        'cardForeground' => scheme.cardForeground,
+        'primary' => scheme.primary,
+        'primaryForeground' => scheme.primaryForeground,
+        'secondary' => scheme.secondary,
+        'secondaryForeground' => scheme.secondaryForeground,
+        'muted' => scheme.muted,
+        'mutedForeground' => scheme.mutedForeground,
+        'accent' => scheme.accent,
+        'accentForeground' => scheme.accentForeground,
+        'destructive' => scheme.destructive,
+        // ignore: deprecated_member_use
+        'destructiveForeground' => scheme.destructiveForeground,
+        'border' => scheme.border,
+        'input' => scheme.input,
+        'ring' => scheme.ring,
+        'sidebar' => scheme.sidebar,
+        'sidebarForeground' => scheme.sidebarForeground,
+        _ => null,
+      };
+    }
+    try {
+      return ThemeConverter.parseColor(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static double? _styleNumber(Object? raw) =>
+      raw is num && raw.isFinite ? raw.toDouble() : null;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final style = this.style;
+    return _ThemeUiProgress(
+      fraction: fraction.clamp(0.0, 1.0).toDouble(),
+      height: _styleNumber(style?['height']) ?? height,
+      hitHeight: hitHeight,
+      radius: _styleNumber(style?['radius']) ?? 3,
+      borderWidth: 0,
+      borderColor: scheme.border,
+      color: _styleColor(context, style?['foreground']) ?? scheme.primary,
+      trackColor:
+          _styleColor(context, style?['trackColor']) ?? scheme.muted,
+      thumbColor:
+          _styleColor(context, style?['thumbColor']) ?? scheme.primary,
+      thumbSize: 0,
+      width: width,
+      enabled: enabled,
+      wavy: true,
+      onSeek: onSeek,
+      onHeldChanged: onHeldChanged,
     );
   }
 }
@@ -521,6 +657,12 @@ extension _ThemeUiDisplayNodes on ThemeUiNodeView {
     final text = props['text'] is String ? props['text'] as String : '';
     if (text.isEmpty) return const SizedBox.shrink();
     final label = text.length > 64 ? text.substring(0, 64) : text;
+    final kit = _kitForComponent(
+      context,
+      component: 'badge',
+      nodeType: 'badge',
+      nodeKit: props['kit'],
+    );
     final scheme = Theme.of(context).colorScheme;
     final (background, foreground, border) = switch (props['variant']) {
       'secondary' => (scheme.secondary, scheme.secondaryForeground, null),
@@ -532,6 +674,25 @@ extension _ThemeUiDisplayNodes on ThemeUiNodeView {
         ),
       _ => (scheme.primary, scheme.primaryForeground, null),
     };
+
+    if (kit == ThemeUiKit.material) {
+      final mScheme = material.Theme.of(context).colorScheme;
+      return material.Badge(
+        label: Text(label),
+        backgroundColor: switch (props['variant']) {
+          'secondary' => mScheme.secondaryContainer,
+          'outline' => Colors.transparent,
+          'destructive' => mScheme.errorContainer,
+          _ => mScheme.primary,
+        },
+        textColor: switch (props['variant']) {
+          'secondary' => mScheme.onSecondaryContainer,
+          'outline' => mScheme.onSurface,
+          'destructive' => mScheme.onErrorContainer,
+          _ => mScheme.onPrimary,
+        },
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -563,6 +724,24 @@ extension _ThemeUiDisplayNodes on ThemeUiNodeView {
     final selected = bind != null && runtime.bindings.isTruthy(bind);
     final scheme = Theme.of(context).colorScheme;
     final foreground = selected ? scheme.primaryForeground : scheme.foreground;
+    final kit = _kitForComponent(
+      context,
+      component: 'chip',
+      nodeType: 'chip',
+      nodeKit: props['kit'],
+    );
+
+    if (kit == ThemeUiKit.material) {
+      return material.FilterChip(
+        label: Text(label),
+        selected: selected,
+        showCheckmark: false,
+        visualDensity: material.VisualDensity.compact,
+        materialTapTargetSize: material.MaterialTapTargetSize.shrinkWrap,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        onSelected: (_) {},
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -622,6 +801,12 @@ extension _ThemeUiDisplayNodes on ThemeUiNodeView {
       );
     }
 
+    final kit = _kitForComponent(
+      context,
+      component: 'avatar',
+      nodeType: 'avatar',
+      nodeKit: props['kit'],
+    );
     final content = provider == null
         ? placeholder()
         : Image(
@@ -632,6 +817,31 @@ extension _ThemeUiDisplayNodes on ThemeUiNodeView {
             gaplessPlayback: true,
             errorBuilder: (_, __, ___) => placeholder(),
           );
+
+    if (kit == ThemeUiKit.material) {
+      final mScheme = material.Theme.of(context).colorScheme;
+      return material.CircleAvatar(
+        radius: size / 2,
+        backgroundColor: mScheme.surfaceContainerHighest,
+        backgroundImage: provider,
+        child: provider == null
+            ? (fallback.isEmpty
+                ? Icon(
+                    Icons.person,
+                    size: size * 0.55,
+                    color: mScheme.onSurfaceVariant,
+                  )
+                : Text(
+                    String.fromCharCode(fallback.runes.first).toUpperCase(),
+                    style: TextStyle(
+                      fontSize: size * 0.4,
+                      fontWeight: FontWeight.w600,
+                      color: mScheme.onSurfaceVariant,
+                    ),
+                  ))
+            : null,
+      );
+    }
 
     return ClipOval(
       child: SizedBox(width: size, height: size, child: content),
