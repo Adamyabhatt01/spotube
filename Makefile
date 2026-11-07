@@ -51,6 +51,22 @@ apk:
 		done
 		ls -lh build/Spotube-android-*.apk
 
+# Debian package (fastforge stage + pure-Python packer; no dpkg host needed).
+# `flutter build linux --release` produces the bundle; fastforge's deb
+# maker stages a full DEBIAN/ tree in dist/<ver>/spotube-<ver>-linux_deb
+# but then requires dpkg-deb to bundle it, which Arch and minimal CI
+# images don't ship. scripts/make-deb.py packs the same tree itself.
+# AppImage/rpm need appimagetool/rpmbuild and are not built here.
+.PHONY: deb
+deb:
+		$(FLUTTER) build linux --release
+		@export PATH="$(HOME)/.local/bin:$(HOME)/.pub-cache/bin:$$PATH"; \
+		fastforge package --platform linux --target deb; \
+		ver=$$(grep '^version:' pubspec.yaml | awk '{print $$2}' | tr -d '+'); \
+		pkgver=$$(grep '^version:' pubspec.yaml | awk '{print $$2}'); \
+		dir="dist/$$pkgver/spotube-$$pkgver-linux_deb"; \
+		python3 scripts/make-deb.py $$dir dist/Spotube-linux-x86_64.deb
+
 # Arm64-v8a only APK.
 #
 # `--target-platform android-arm64` alone is NOT enough: it narrows the Dart
