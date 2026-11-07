@@ -10,7 +10,6 @@
 // Local-only (test/ is gitignored): it boots Hetu from the pub-cache
 // bytecode and binds a loopback server.
 
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -104,11 +103,11 @@ void main() {
 
     test('everything else is preserved', () {
       final filled = applyPluginHttpTimeoutDefaults(
-        HttpBaseOptions(
+        const HttpBaseOptions(
           baseUrl: 'https://example.test/api',
           followRedirects: false,
-          headers: const {'User-Agent': 'probe'},
-          queryParameters: const {'q': 'x'},
+          headers: {'User-Agent': 'probe'},
+          queryParameters: {'q': 'x'},
         ),
       );
       expect(filled.baseUrl, 'https://example.test/api');
