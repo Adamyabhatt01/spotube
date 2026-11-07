@@ -435,6 +435,18 @@ Two guardrails also run before any bytes are extracted:
   made from working trees, which is why that caveat used to apply to every release here.
 - **No signature continuity.** The test key means this fork's builds are only interchangeable with
   each other, never with official releases.
+- **Linux packaging is thin.** Only the portable bundle is published; `.deb`, `.rpm` and `.AppImage` need `fastforge`, which isn't installed in the environment that builds these binaries.
+
+## 📦 Linux package (.deb)
+
+```bash
+make deb
+sudo dpkg -i dist/Spotube-linux-x86_64.deb
+```
+
+Builds the release bundle with fastforge and packs it as a `.deb`
+without needing `dpkg` on the host. The README's stale workflow for
+AppImage/rpm is out of scope for this fork's release pipeline.
 - **The full regression suite is local; a curated subset is published.** About
   2,280 tests guard this fork's own code — the VPN lease logic, download reconciliation,
   source ranking, snapshot revalidation — and most live in the gitignored `test/` tree. `test/ci_suite.txt` lists the
