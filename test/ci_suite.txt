@@ -1,0 +1,31 @@
+# Curated host tests that are safe to publish and run in CI.
+#
+# The rest of test/ stays local (see .gitignore): it reaches real plugins,
+# native libraries, devices and the network. These files are pure host tests
+# or widget tests with local fakes, and they run in the Lint workflow after
+# build_runner has generated the Drift/l10n/env outputs.
+#
+# Run exactly this subset locally with:
+#   make test-ci
+# Run the full local suite (including the unpublished tests) with:
+#   make check
+test/architecture_boundaries_test.dart
+test/string_list_converter_test.dart
+test/list_unique_test.dart
+test/rate_limit_test.dart
+test/source_query_variants_test.dart
+test/source_length_rules_test.dart
+test/source_quality_fallback_test.dart
+test/source_resolver_test.dart
+test/context_menu_builder_test.dart
+test/dep_drift_pins_test.dart
+test/l10n_placeholder_parity_test.dart
+test/server_loopback_guard_test.dart
+test/source_engine_fallback_test.dart
+test/theme_ui_palette_test.dart
+test/theme_ui_context_menu_config_test.dart
+test/theme_ui_document_test.dart
+test/player_progress_intrinsic_test.dart
+test/theme_ui_kit_test.dart
+test/audio_filter_chain_test.dart
+test/music_cache_policy_test.dart

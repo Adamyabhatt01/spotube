@@ -81,8 +81,14 @@ apk-arm64:
 		cp build/app/outputs/flutter-apk/app-arm64-v8a-stable-release.apk build/Spotube-android-arm64-v8a.apk
 		ls -lh build/Spotube-android-arm64-v8a.apk
 
-# Local gate. `test/` is gitignored, so CI cannot run the regression suite;
-# this is what keeps it honest before a push.
+# Curated host tests that are published (test/ci_suite.txt) and run in CI.
+# The rest of `test/` stays local, so this is the subset a clean clone has.
+.PHONY: test-ci
+test-ci:
+		$(FLUTTER) test $$(grep -v '^#' test/ci_suite.txt)
+
+# Full local gate, including the unpublished tests. CI runs `test-ci`; run
+# this before a push so the plugin/device/network paths stay covered too.
 .PHONY: check
 check:
 		$(FLUTTER) analyze

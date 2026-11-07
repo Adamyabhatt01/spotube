@@ -20,9 +20,8 @@ Future<MetadataPluginThemeEndpoint> _endpoint(
 ) async {
   final zip = ZipDecoder().decodeBytes(archive.readAsBytesSync());
   final byteCode = Uint8List.fromList(
-    zip
-        .firstWhere((file) => file.isFile && file.name == 'plugin.out')
-        .content as List<int>,
+    zip.firstWhere((file) => file.isFile && file.name == 'plugin.out').content
+        as List<int>,
   );
   final hetu = Hetu();
   hetu.init();
@@ -131,9 +130,7 @@ void main() {
       expect(definition.dark, raw.dark);
       expect(definition.background, raw.background);
     });
-  },
-  skip: !obsidianArchive.existsSync() ||
-      !obsidianLegacyGolden.existsSync());
+  }, skip: !obsidianArchive.existsSync() || !obsidianLegacyGolden.existsSync());
 
   group('ui-demo answers from getUi()', () {
     late MetadataPluginThemeEndpoint endpoint;
@@ -174,8 +171,7 @@ void main() {
 
     test('keeps a valid tree through a JSON round trip', () {
       final definition = ThemeDefinition.fromJson(payload());
-      final roundTripped =
-          ThemeDefinition.fromJson(definition.toJson());
+      final roundTripped = ThemeDefinition.fromJson(definition.toJson());
 
       expect(roundTripped.ui, isNotNull);
       expect(roundTripped.ui!.slots, hasLength(15));

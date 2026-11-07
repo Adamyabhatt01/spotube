@@ -96,5 +96,6 @@ android/app/.cxx
 /.qoder/
 /.kilo/
 
-# Local regression suite (per-machine; not published)
+# Local regression suite (per-machine). Only test/ci_suite.txt and the files it
+# lists are force-added and published for CI; everything else stays local.
 /test/

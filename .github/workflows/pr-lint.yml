@@ -2,6 +2,8 @@ name: Lint
 
 on:
   pull_request:
+  push:
+    branches: [master, main]
 
 env:
   FLUTTER_VERSION: 3.38.10
@@ -46,3 +48,14 @@ jobs:
         run: |
           dart run drift_dev make-migrations
           git diff --exit-code -- drift_schemas lib/models/database
+
+      # The rest of test/ is local-only; these are the hermetic tests a clean
+      # clone actually has. Keep the list in test/ci_suite.txt.
+      - name: Check the published test subset is formatted
+        run: |
+          dart format --output=none --set-exit-if-changed \
+            $(grep -v '^#' test/ci_suite.txt)
+
+      - name: Host regression subset
+        run: |
+          flutter test $(grep -v '^#' test/ci_suite.txt)

@@ -363,12 +363,12 @@ under Settings → Appearance.
 
 ### Plumbing
 
-Database schema through **v27** with per-step migration guards (each step re-checks the live column
+Database schema through **v30** with per-step migration guards (each step re-checks the live column
 set, so a half-applied migration can be finished rather than only retried), dependency pinning with
 a CI job that detects drift, and a reproducible build script. APKs are versioned
-`5.1.2+4506` — upstream's build `45` plus the fork's own `06` — and per-ABI builds get Flutter's
-`abiIndex * 1000 + versionCode` override, which is why arm64 reports 6506 while universal reports
-4506.
+`5.1.2+4507` — upstream's build `45` plus the fork's own `07` — and per-ABI builds get Flutter's
+`abiIndex * 1000 + versionCode` override, which is why arm64 reports 6507 while universal reports
+4507.
 
 ## 🛠 Build from source
 
@@ -419,11 +419,11 @@ chrome stays stable without the temporary Skia fallback.
   made from working trees, which is why that caveat used to apply to every release here.
 - **No signature continuity.** The test key means this fork's builds are only interchangeable with
   each other, never with official releases.
-- **The regression suite is not published.** About 1,500 tests guard this fork's own code — the VPN
-  lease logic, download reconciliation, source ranking, snapshot revalidation — and none of them are
-  in this repo; `test/` is gitignored on purpose. So a clone has nothing to run, and the CI test gate
-  passes because it finds zero tests. Treat the shipped binary as better tested than the source
-  tree looks.
+- **The full regression suite is local; a curated subset is published.** About 2,250 tests guard
+  this fork's own code — the VPN lease logic, download reconciliation, source ranking, snapshot
+  revalidation — and most live in the gitignored `test/` tree. `test/ci_suite.txt` lists the
+  hermetic host tests that are committed and run by CI (`make test-ci`); run `make check` before a
+  push to exercise the full suite, including plugin, device and network paths.
 
 ## 📄 License
 
