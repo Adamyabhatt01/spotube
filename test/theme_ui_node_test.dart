@@ -861,7 +861,8 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('spacer and expanded keep their Flex parent data', (tester) async {
+  testWidgets('spacer and expanded keep their Flex parent data',
+      (tester) async {
     final runtime = _runtime();
 
     await tester.pumpWidget(_app(
@@ -892,6 +893,46 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.byType(material.Switch), findsOneWidget);
+  });
+
+  testWidgets('action and semantics wrappers stay inside expanded content',
+      (tester) async {
+    final fired = <ThemeUiAction>[];
+    final runtime = _runtime(
+      onAction: fired.add,
+    );
+
+    await tester.pumpWidget(_app(
+      Row(
+        children: [
+          ThemeUiNodeView(
+            runtime: runtime,
+            node: const {
+              'type': 'expanded',
+              'action': {'type': 'playPause'},
+              'children': [
+                {'type': 'text', 'text': 'Tap me'},
+              ],
+            },
+          ),
+          ThemeUiNodeView(
+            runtime: runtime,
+            node: const {
+              'type': 'expanded',
+              'semantics': {'label': 'spoken content'},
+              'children': [
+                {'type': 'text', 'text': 'Spoken'},
+              ],
+            },
+          ),
+        ],
+      ),
+    ));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Tap me'));
+    expect(fired.map((action) => action.type), ['playPause']);
   });
 
   testWidgets(

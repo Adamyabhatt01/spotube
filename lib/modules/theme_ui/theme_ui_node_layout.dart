@@ -98,9 +98,7 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
       props['left'] != null
           ? left
           : (props['horizontal'] != null ? horizontal : all),
-      props['top'] != null
-          ? top
-          : (props['vertical'] != null ? vertical : all),
+      props['top'] != null ? top : (props['vertical'] != null ? vertical : all),
       props['right'] != null
           ? right
           : (props['horizontal'] != null ? horizontal : all),
@@ -126,11 +124,15 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
   }
 
   Widget _expanded(
-      Map<String, dynamic> props, List<Map<String, dynamic>> children) {
+    Map<String, dynamic> props,
+    List<Map<String, dynamic>> children, {
+    Widget Function(Widget child)? wrapChild,
+  }) {
     final flex = _int(props['flex'], fallback: 1, min: 1, max: 12);
+    final content = _columnOfWithoutContext(children);
     return Expanded(
       flex: flex,
-      child: _columnOfWithoutContext(children),
+      child: wrapChild == null ? content : wrapChild(content),
     );
   }
 
@@ -438,10 +440,14 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
     return ThemeUiKitScope(kit: kit, child: child);
   }
 
-  Widget _spacer(Map<String, dynamic> props) {
+  Widget _spacer(
+    Map<String, dynamic> props, {
+    Widget Function(Widget child)? wrapChild,
+  }) {
+    const content = SizedBox.shrink();
     return Expanded(
       flex: _int(props['flex'], fallback: 1, min: 1, max: 12),
-      child: const SizedBox.shrink(),
+      child: wrapChild == null ? content : wrapChild(content),
     );
   }
 
@@ -470,7 +476,8 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
           color: color,
         );
       }
-      return material.Divider(height: thickness, thickness: thickness, color: color);
+      return material.Divider(
+          height: thickness, thickness: thickness, color: color);
     }
     if (props['orientation'] == 'vertical') {
       return Container(
@@ -693,8 +700,7 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
       return LayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.maxWidth;
-          final columns =
-              _resolveColumns(props['columns'], width, fallback: 1);
+          final columns = _resolveColumns(props['columns'], width, fallback: 1);
           if (!width.isFinite || width <= 0 || columns <= 1) {
             final rows = <Widget>[];
             for (var i = 0; i < items.length; i++) {
@@ -838,8 +844,9 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
       return SliverList.builder(
         itemCount: rowCount,
         itemBuilder: (context, index) {
-          Widget cell(int item) =>
-              item < items.length ? itemAt(context, item) : const SizedBox.shrink();
+          Widget cell(int item) => item < items.length
+              ? itemAt(context, item)
+              : const SizedBox.shrink();
           return Padding(
             padding: EdgeInsets.only(
               bottom: index == rowCount - 1 ? 0 : gap,

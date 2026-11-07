@@ -171,6 +171,39 @@ class ThemeUiNodeView extends StatelessWidget {
       runtime.bindings,
       props['disabledWhen'],
     );
+    final isFlexNode = type == 'expanded' || type == 'spacer';
+
+    // Pointer, anchor and semantics wrappers must stay inside an
+    // `Expanded`/`Spacer`: wrapping the `Expanded` itself puts a non-Flex
+    // parent between it and the Flex, which throws `ParentData` at mount.
+    Widget wrapFlexContent(Widget child) {
+      var wrapped = child;
+      if (actions.isNotEmpty && !_selfActionTypes.contains(type)) {
+        wrapped = MouseRegion(
+          cursor:
+              disabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: disabled ? null : () => _fire(context, actions),
+            child: wrapped,
+          ),
+        );
+      }
+      if (disabled) {
+        wrapped = IgnorePointer(ignoring: true, child: wrapped);
+      }
+      final anchor = props['anchor'];
+      if (anchor is String && anchor.trim().isNotEmpty) {
+        final registry = ThemeUiAnchorRegistryScope.maybeOf(context);
+        if (registry != null) {
+          wrapped = KeyedSubtree(
+            key: registry.keyFor(anchor.trim()),
+            child: wrapped,
+          );
+        }
+      }
+      return _applySemantics(props, wrapped);
+    }
 
     Widget result = switch (type) {
       'row' => _row(context, props, children),
@@ -179,7 +212,7 @@ class ThemeUiNodeView extends StatelessWidget {
       'wrap' => _wrap(context, props, children),
       'padding' => _padding(context, props, children),
       'align' => _align(context, props, children),
-      'expanded' => _expanded(props, children),
+      'expanded' => _expanded(props, children, wrapChild: wrapFlexContent),
       'scroll' => _scroll(context, props, children),
       'box' => _box(context, props, children),
       'grid' => _grid(context, props, children),
@@ -194,7 +227,7 @@ class ThemeUiNodeView extends StatelessWidget {
       'card' => _card(context, props, children),
       'search' => _search(context, props),
       'divider' => _divider(context, props),
-      'spacer' => _spacer(props),
+      'spacer' => _spacer(props, wrapChild: wrapFlexContent),
       'gap' => _gap(context, props),
       'conditional' => _conditional(context, props, children),
       'template' => _template(context, props, children),
@@ -234,11 +267,9 @@ class ThemeUiNodeView extends StatelessWidget {
       _ => const SizedBox.shrink(),
     };
 
-    if (actions.isNotEmpty && !_selfActionTypes.contains(type)) {
+    if (!isFlexNode && actions.isNotEmpty && !_selfActionTypes.contains(type)) {
       result = MouseRegion(
-        cursor: disabled
-            ? SystemMouseCursors.basic
-            : SystemMouseCursors.click,
+        cursor: disabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: disabled ? null : () => _fire(context, actions),
@@ -247,7 +278,7 @@ class ThemeUiNodeView extends StatelessWidget {
       );
     }
 
-    if (disabled && type != 'expanded' && type != 'spacer') {
+    if (disabled && !isFlexNode) {
       result = IgnorePointer(ignoring: true, child: result);
     }
 
@@ -255,7 +286,7 @@ class ThemeUiNodeView extends StatelessWidget {
     // is outermost so the anchor's context sits below every scrollable the
     // node itself might introduce.
     final anchor = props['anchor'];
-    if (anchor is String && anchor.trim().isNotEmpty) {
+    if (!isFlexNode && anchor is String && anchor.trim().isNotEmpty) {
       final registry = ThemeUiAnchorRegistryScope.maybeOf(context);
       if (registry != null) {
         result = KeyedSubtree(
@@ -264,11 +295,11 @@ class ThemeUiNodeView extends StatelessWidget {
         );
       }
     }
-    // `Expanded` and `Spacer` carry parent data for their Flex; inserting a
-    // Material between them and that Flex is a layout error. Their children
-    // are separate nodes and get their own Material ancestor.
-    if (type == 'expanded' || type == 'spacer') {
-      return _applySemantics(props, result);
+    // `Expanded` and `Spacer` carry parent data for their Flex. Their node
+    // chrome is already wrapped around the content by `wrapFlexContent`;
+    // returning the flex widget directly keeps its parent data on the Flex.
+    if (isFlexNode) {
+      return result;
     }
 
     // Material kit widgets (Switch, TextField, buttons…) need a Material
@@ -296,15 +327,12 @@ class ThemeUiNodeView extends StatelessWidget {
     if (semantics['excludeSemantics'] == true) {
       return ExcludeSemantics(child: child);
     }
-    final label = semantics['label'] is String
-        ? (semantics['label'] as String)
-        : null;
-    final hint = semantics['hint'] is String
-        ? (semantics['hint'] as String)
-        : null;
-    final value = semantics['value'] is String
-        ? (semantics['value'] as String)
-        : null;
+    final label =
+        semantics['label'] is String ? (semantics['label'] as String) : null;
+    final hint =
+        semantics['hint'] is String ? (semantics['hint'] as String) : null;
+    final value =
+        semantics['value'] is String ? (semantics['value'] as String) : null;
     if (label == null && hint == null && value == null) return child;
     return Semantics(
       label: label,
