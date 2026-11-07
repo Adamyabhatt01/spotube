@@ -239,6 +239,17 @@ class ThemeSlot extends ConsumerWidget {
   /// a slot without standing up the audio player, database and plugin stack.
   final ThemeUiBindings? bindings;
 
+  /// Render the slot as a scrollable sliver list.
+  ///
+  /// Page content uses this so a top-level vertical `list` can be a lazy
+  /// `SliverList` instead of an eagerly built `Column` inside a
+  /// `SingleChildScrollView`. Slots that are not page bodies keep the
+  /// shrink-wrapped box layout.
+  final bool sliver;
+
+  /// Padding applied inside the sliver viewport when [sliver] is true.
+  final EdgeInsetsGeometry sliverPadding;
+
   const ThemeSlot(
     this.name, {
     this.fallback,
@@ -246,6 +257,8 @@ class ThemeSlot extends ConsumerWidget {
     this.mainAxisAlignment = MainAxisAlignment.start,
     this.stretch = false,
     this.bindings,
+    this.sliver = false,
+    this.sliverPadding = EdgeInsets.zero,
     super.key,
   });
 
@@ -254,7 +267,51 @@ class ThemeSlot extends ConsumerWidget {
     final live = _liveUi(context, ref, bindings: bindings);
     final slot = live?.ui.slots[name];
     if (live == null || slot == null || slot.children.isEmpty) {
-      return fallback ?? const SizedBox.shrink();
+      final empty = fallback ?? const SizedBox.shrink();
+      if (sliver) {
+        return LayoutBuilder(
+          builder: (context, constraints) => constraints.hasBoundedHeight
+              ? CustomScrollView(
+                  slivers: [SliverToBoxAdapter(child: empty)],
+                )
+              : empty,
+        );
+      }
+      return empty;
+    }
+
+    if (sliver) {
+      // A page body is normally bounded by the scaffold, so the sliver
+      // viewport can own the scroll. A caller that nests page content inside
+      // another scrollable has no bounded height to give; falling back to the
+      // box layout keeps that (rare) composition working instead of throwing
+      // "Vertical viewport was given unbounded height".
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          if (!constraints.hasBoundedHeight) {
+            return Padding(
+              padding: sliverPadding,
+              child: ThemeUiNodes(
+                nodes: slot.children,
+                runtime: live.runtime,
+                crossAxisAlignment: crossAxisAlignment,
+                mainAxisAlignment: mainAxisAlignment,
+              ),
+            );
+          }
+          return CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: sliverPadding,
+                sliver: ThemeUiSliverNodes(
+                  nodes: slot.children,
+                  runtime: live.runtime,
+                ),
+              ),
+            ],
+          );
+        },
+      );
     }
 
     return ThemeUiNodes(
@@ -263,6 +320,35 @@ class ThemeSlot extends ConsumerWidget {
       crossAxisAlignment: crossAxisAlignment,
       mainAxisAlignment: mainAxisAlignment,
       stretch: stretch,
+    );
+  }
+}
+
+/// Renders a theme node list as slivers.
+///
+/// Only a vertical `list` (optionally wrapped in `padding`) is actually lazy;
+/// every other node keeps its box layout and is wrapped in a
+/// [SliverToBoxAdapter]. This is the page-body counterpart of [ThemeUiNodes].
+class ThemeUiSliverNodes extends StatelessWidget {
+  final List<Map<String, dynamic>> nodes;
+  final ThemeUiRuntime runtime;
+
+  const ThemeUiSliverNodes({
+    required this.nodes,
+    required this.runtime,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (nodes.isEmpty) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+    return SliverMainAxisGroup(
+      slivers: [
+        for (final node in nodes)
+          ThemeUiNodeView(node: node, runtime: runtime).buildSliver(context),
+      ],
     );
   }
 }
@@ -358,12 +444,29 @@ class ThemePageContent extends ConsumerWidget {
       return ThemeUiPageBindings(values: bindings, child: fallback);
     }
 
-    Widget content = Padding(
-      padding: padding,
-      child: ThemeSlot(slot, bindings: liveBindings),
+    if (scroll) {
+      // The sliver viewport lives in the slot so a top-level vertical `list`
+      // can be lazy. Padding is applied as a sliver too, which keeps it
+      // scrolling with the content exactly as the old
+      // `SingleChildScrollView(Padding(...))` did.
+      return ThemeUiPageBindings(
+        values: bindings,
+        child: ThemeSlot(
+          slot,
+          bindings: liveBindings,
+          sliver: true,
+          sliverPadding: padding,
+        ),
+      );
+    }
+
+    return ThemeUiPageBindings(
+      values: bindings,
+      child: Padding(
+        padding: padding,
+        child: ThemeSlot(slot, bindings: liveBindings),
+      ),
     );
-    if (scroll) content = SingleChildScrollView(child: content);
-    return ThemeUiPageBindings(values: bindings, child: content);
   }
 }
 

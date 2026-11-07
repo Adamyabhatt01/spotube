@@ -73,6 +73,20 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
     Map<String, dynamic> props,
     List<Map<String, dynamic>> children,
   ) {
+    return Padding(
+      padding: _paddingInsets(context, props),
+      child: _columnOf(context, children),
+    );
+  }
+
+  /// The edge insets a `padding` node describes.
+  ///
+  /// Shared with the sliver path so a `padding` wrapping a lazy list keeps
+  /// exactly the same geometry it had when the whole page was one box.
+  EdgeInsets _paddingInsets(
+    BuildContext context,
+    Map<String, dynamic> props,
+  ) {
     final all = _px(context, props['all']);
     final horizontal = _px(context, props['horizontal']);
     final vertical = _px(context, props['vertical']);
@@ -80,22 +94,19 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
     final right = _px(context, props['right']);
     final bottom = _px(context, props['bottom']);
     final left = _px(context, props['left']);
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        props['left'] != null
-            ? left
-            : (props['horizontal'] != null ? horizontal : all),
-        props['top'] != null
-            ? top
-            : (props['vertical'] != null ? vertical : all),
-        props['right'] != null
-            ? right
-            : (props['horizontal'] != null ? horizontal : all),
-        props['bottom'] != null
-            ? bottom
-            : (props['vertical'] != null ? vertical : all),
-      ),
-      child: _columnOf(context, children),
+    return EdgeInsets.fromLTRB(
+      props['left'] != null
+          ? left
+          : (props['horizontal'] != null ? horizontal : all),
+      props['top'] != null
+          ? top
+          : (props['vertical'] != null ? vertical : all),
+      props['right'] != null
+          ? right
+          : (props['horizontal'] != null ? horizontal : all),
+      props['bottom'] != null
+          ? bottom
+          : (props['vertical'] != null ? vertical : all),
     );
   }
 
@@ -624,9 +635,16 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
           ? all
           : _filterItems(all, query, filter?.fields ?? const []);
       final items = visible.take(limit).toList();
+      final wantsPalette = _subtreeWantsPalette(node, children);
 
       Widget itemAt(int index) {
-        final itemRuntime = _itemRuntime(runtime, items[index], index, items);
+        final itemRuntime = _itemRuntime(
+          runtime,
+          items[index],
+          index,
+          items,
+          palette: wantsPalette,
+        );
         return children.length == 1
             ? ThemeUiNodeView(
                 node: children.first,
@@ -706,6 +724,99 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
     return _ThemeUiDebouncedText(
       value: runtime.bindings.display(spec.bind),
       builder: (context, settled) => buildRows(settled),
+    );
+  }
+
+  /// The lazy form of [_list] for a page-level vertical list.
+  ///
+  /// A `list` inside a page slot used to become a `Column` inside one
+  /// `SingleChildScrollView`, so a 300-track collection built every row (and
+  /// every row's palette and image) before the first frame. This renders the
+  /// same rows through a `SliverList`, which builds only the viewport and its
+  /// cache. The node vocabulary does not change: a vertical `list` is lazy
+  /// when the host can give it a sliver viewport.
+  ///
+  /// Returns null for shapes the sliver path cannot preserve: a horizontal
+  /// shelf, a filtered list (its debounce is a widget), or a multi-column
+  /// wrap. Those keep the eager renderer.
+  Widget? _listSliver(
+    BuildContext context,
+    Map<String, dynamic> props,
+    List<Map<String, dynamic>> children,
+  ) {
+    if (props['direction'] == 'horizontal') return null;
+    if (_listFilter(props) != null) return null;
+
+    // A fixed column count of one is still a single column. A responsive map
+    // is left to the eager path because the count depends on the width.
+    final columns = props['columns'];
+    if (columns is num && columns > 1) return null;
+    if (columns is Map &&
+        columns.values.any((value) => value is num && value > 1)) {
+      return null;
+    }
+
+    final source = props['bind'] is String
+        ? runtime.bindings.raw(props['bind'] as String)
+        : null;
+    if (source is! List || source.isEmpty || children.isEmpty) return null;
+
+    final limit = _int(props['limit'], fallback: 200, min: 1, max: 500);
+    final items = source.cast<Object?>().take(limit).toList();
+    if (items.isEmpty) return null;
+
+    final gap = _gapSize(context, props['gap']);
+    final crossAxisAlignment = _cross(props['align']);
+    final wantsPalette = _subtreeWantsPalette(node, children);
+
+    Widget alignItem(Widget child) {
+      return switch (crossAxisAlignment) {
+        CrossAxisAlignment.center =>
+          Align(alignment: Alignment.center, child: child),
+        CrossAxisAlignment.end =>
+          Align(alignment: Alignment.centerRight, child: child),
+        _ => child,
+      };
+    }
+
+    Widget itemAt(int index) {
+      final itemRuntime = _itemRuntime(
+        runtime,
+        items[index],
+        index,
+        items,
+        palette: wantsPalette,
+      );
+      return children.length == 1
+          ? ThemeUiNodeView(
+              node: children.first,
+              runtime: itemRuntime,
+              depth: depth + 1,
+            )
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: crossAxisAlignment,
+              children: [
+                for (final child in children)
+                  ThemeUiNodeView(
+                    node: child,
+                    runtime: itemRuntime,
+                    depth: depth + 1,
+                  ),
+              ],
+            );
+    }
+
+    return SliverList.builder(
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = alignItem(itemAt(index));
+        if (gap <= 0 || index == items.length - 1) return item;
+        return Padding(
+          padding: EdgeInsets.only(bottom: gap),
+          child: item,
+        );
+      },
     );
   }
 }

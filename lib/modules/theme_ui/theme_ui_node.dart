@@ -257,6 +257,48 @@ class ThemeUiNodeView extends StatelessWidget {
     );
   }
 
+  /// Renders this node as a sliver.
+  ///
+  /// A vertical `list` (or a `padding` that wraps one) becomes a lazy
+  /// `SliverList`; every other node keeps its box layout and is wrapped in a
+  /// [SliverToBoxAdapter]. This is what lets `ThemePageContent` preserve the
+  /// theme's page composition without eagerly building a 300-row `Column`.
+  Widget buildSliver(BuildContext context) {
+    return _asSliver(context) ??
+        SliverToBoxAdapter(
+          child: ThemeUiNodeView(
+            node: node,
+            runtime: runtime,
+            depth: depth,
+          ),
+        );
+  }
+
+  Widget? _asSliver(BuildContext context) {
+    if (depth > _maxDepth) return null;
+    final type = node['type'];
+    if (type is! String) return null;
+    final props = _props(node);
+    final children = _children(node);
+
+    if (type == 'list') {
+      return _listSliver(context, props, children);
+    }
+    if (type == 'padding' && children.length == 1) {
+      final inner = ThemeUiNodeView(
+        node: children.first,
+        runtime: runtime,
+        depth: depth + 1,
+      )._asSliver(context);
+      if (inner == null) return null;
+      return SliverPadding(
+        padding: _paddingInsets(context, props),
+        sliver: inner,
+      );
+    }
+    return null;
+  }
+
   /// Reads both the flat shape and the original `props` object. The build
   /// validator rejects unknown props; the host still ignores them rather
   /// than assuming the installed plugin was built by this checkout.

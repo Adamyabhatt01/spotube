@@ -50,9 +50,17 @@ extension _ThemeUiDataNodes on ThemeUiNodeView {
       final items = visible.take(limit).toList();
       if (items.isEmpty) return const SizedBox.shrink();
 
+      final wantsPalette = _subtreeWantsPalette(node, nodes);
+
       Widget row(int index) {
-        final rowRuntime =
-            _rowRuntime(runtime, items[index], index, items, templateName);
+        final rowRuntime = _rowRuntime(
+          runtime,
+          items[index],
+          index,
+          items,
+          templateName,
+          palette: wantsPalette,
+        );
         return _itemNodeView(rowRuntime, nodes, depth);
       }
 
@@ -128,6 +136,7 @@ extension _ThemeUiDataNodes on ThemeUiNodeView {
       templateName: templateName,
       stickyHeader: sticky,
       sortable: props['sortable'] == true,
+      palette: _subtreeWantsPalette(node, nodes),
       depth: depth,
     );
   }
@@ -218,6 +227,7 @@ extension _ThemeUiDataNodes on ThemeUiNodeView {
       templateName: templateName,
       height: height,
       autoplay: props['autoplay'] == true,
+      palette: _subtreeWantsPalette(node, nodes),
       depth: depth,
     );
   }
@@ -396,6 +406,7 @@ class _ThemeUiTable extends StatefulWidget {
   final String? templateName;
   final bool stickyHeader;
   final bool sortable;
+  final bool palette;
   final int depth;
 
   const _ThemeUiTable({
@@ -406,6 +417,7 @@ class _ThemeUiTable extends StatefulWidget {
     required this.templateName,
     required this.stickyHeader,
     required this.sortable,
+    required this.palette,
     required this.depth,
   });
 
@@ -543,8 +555,14 @@ class _ThemeUiTableState extends State<_ThemeUiTable> {
     final scheme = Theme.of(context).colorScheme;
     Widget content;
     if (widget.rowNodes.isNotEmpty) {
-      final rowRuntime =
-          _rowRuntime(widget.runtime, item, index, items, widget.templateName);
+      final rowRuntime = _rowRuntime(
+        widget.runtime,
+        item,
+        index,
+        items,
+        widget.templateName,
+        palette: widget.palette,
+      );
       content = _itemNodeView(rowRuntime, widget.rowNodes, widget.depth);
     } else {
       content = _defaultRow(context, item);
@@ -973,6 +991,7 @@ class _ThemeUiCarousel extends StatefulWidget {
   final String? templateName;
   final double height;
   final bool autoplay;
+  final bool palette;
   final int depth;
 
   const _ThemeUiCarousel({
@@ -982,6 +1001,7 @@ class _ThemeUiCarousel extends StatefulWidget {
     required this.templateName,
     required this.height,
     required this.autoplay,
+    required this.palette,
     required this.depth,
   });
 
@@ -1047,6 +1067,7 @@ class _ThemeUiCarouselState extends State<_ThemeUiCarousel> {
                 index,
                 widget.items,
                 widget.templateName,
+                palette: widget.palette,
               );
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -1230,9 +1251,10 @@ ThemeUiRuntime _rowRuntime(
   Object? item,
   int index,
   List<Object?> items,
-  String? templateName,
-) {
-  final scoped = _itemRuntime(runtime, item, index, items);
+  String? templateName, {
+  bool palette = true,
+}) {
+  final scoped = _itemRuntime(runtime, item, index, items, palette: palette);
   if (templateName != null && runtime.templates.containsKey(templateName)) {
     return scoped.descendTemplate(templateName);
   }

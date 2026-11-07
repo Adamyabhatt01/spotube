@@ -394,6 +394,36 @@ extension _ThemeUiNodeHelpers on ThemeUiNodeView {
       };
 }
 
+/// Whether a repeated subtree reads `palette.*`.
+///
+/// The document-level demand answers "does the theme use a palette
+/// somewhere"; a list row needs the narrower "does *this row* read one".
+/// Scanning the row subtree once per list (cached by the node map, which is
+/// stable for the life of the document) is what lets a 300-track list skip
+/// 300 palette lookups and extraction requests when only the page header
+/// uses a palette.
+final _paletteSubtreeCache = Expando<bool>('themeUiPaletteSubtree');
+
+bool _subtreeWantsPalette(
+  Map<String, dynamic> node,
+  List<Map<String, dynamic>> nodes,
+) {
+  final cached = _paletteSubtreeCache[node];
+  if (cached != null) return cached;
+  final result = nodes.any(_walkPalette);
+  _paletteSubtreeCache[node] = result;
+  return result;
+}
+
+bool _walkPalette(Object? value) {
+  if (value is String) {
+    return value.startsWith('palette.') || value.contains('@palette.');
+  }
+  if (value is Map) return value.values.any(_walkPalette);
+  if (value is Iterable) return value.any(_walkPalette);
+  return false;
+}
+
 /// The runtime one collection entry renders with.
 ///
 /// Shared by every data node so `item.*` bindings and item actions behave the
@@ -404,8 +434,9 @@ ThemeUiRuntime _itemRuntime(
   ThemeUiRuntime runtime,
   Object? item,
   int index,
-  List<Object?> items,
-) {
+  List<Object?> items, {
+  bool palette = true,
+}) {
   final activeTrackId = runtime.bindings.raw('player.trackId');
   final merged = ThemeUiBindings({
     ...runtime.bindings.values,
@@ -417,8 +448,10 @@ ThemeUiRuntime _itemRuntime(
   });
   // Nearest artwork scope: the row's own `item.palette` (or its artwork)
   // overrides the page's and the player's palette. Only wired when the
-  // document actually binds `palette.*`.
-  final bindings = runtime.paletteFor == null
+  // document actually binds `palette.*` AND the repeated subtree references
+  // it. A page that only uses `palette.*` in its header must not make every
+  // row extract a palette the row never reads.
+  final bindings = !palette || runtime.paletteFor == null
       ? merged
       : withArtworkPalette(
           merged,
