@@ -357,6 +357,13 @@ class KitchenSinkThemeApi {
                   'bind': 'search.query',
                   'fields': ['title'],
                 },
+                'onEndReached': {
+                  'type': 'plugin',
+                  'args': {'id': 'loadMore'},
+                },
+                'hasMoreBind': 'queue.hasMore',
+                'loadingBind': 'queue.loading',
+                'endThreshold': 5,
                 'children': [
                   {'type': 'text', 'bind': 'item.title', 'size': 'lg'},
                 ],
@@ -659,6 +666,14 @@ class KitchenSinkThemeApi {
                                     'bind': 'player.playing',
                                     'equals': true,
                                     'invert': false,
+                                    'allOf': [
+                                      {'bind': 'player.trackId'},
+                                      {'bind': 'queue.count', 'gte': 1},
+                                    ],
+                                    'anyOf': [
+                                      {'bind': 'player.loop', 'equals': 'loop'},
+                                      {'bind': 'player.shuffled'},
+                                    ],
                                     'children': [
                                       {'type': 'text', 'text': 'Playing'},
                                       {'type': 'text', 'text': 'Paused'},

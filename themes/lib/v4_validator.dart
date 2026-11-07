@@ -110,7 +110,8 @@ const v4UiNodeTypes = <String>[...uiNodeTypes, ...v4NewUiNodeTypes];
 ///
 /// These come from the common node envelope in the contract: a node can be
 /// hidden, forced into a kit, animated, or given a kit variant wherever it
-/// appears.
+/// appears. `semantics` is the accessibility envelope: a `{label, hint,
+/// value, excludeSemantics}` object the host renders as a [Semantics] unit.
 const v4EnvelopeProps = <String>[
   'bind',
   'disabledWhen',
@@ -118,6 +119,7 @@ const v4EnvelopeProps = <String>[
   'kit',
   'variant',
   'animate',
+  'semantics',
 ];
 
 /// The props the v4-only nodes read.
@@ -186,6 +188,14 @@ const _v4NodeProps = <String, List<String>>{
     'limit',
     'filter',
     'columns',
+    // Paginated paging of an arbitrarily long collection: when the viewport
+    // nears the end the host fires this action with `$value` the visible
+    // item count, gated by `hasMoreBind` (truthy to fire) and `loadingBind`
+    // (truthy to stay quiet).
+    'onEndReached',
+    'hasMoreBind',
+    'loadingBind',
+    'endThreshold',
   ],
   'table': ['columns', 'rowTemplate', 'stickyHeader', 'sortable'],
   'tree': ['labelKey', 'childrenKey', 'expandedKey'],
@@ -202,10 +212,20 @@ const _v4NodeProps = <String, List<String>>{
 const _v4ExtraBaseProps = <String, List<String>>{
   // `columns` keeps a vertical, data-bound list from becoming one endless
   // column; the host fills a fixed grid instead of hard-coding shortcut rows.
-  'list': ['filter', 'columns'],
+  'list': [
+    'filter',
+    'columns',
+    'onEndReached',
+    'hasMoreBind',
+    'loadingBind',
+    'endThreshold',
+  ],
   'progress': ['style'],
   // The frost `box` took, on the node that actually draws panels.
   'card': ['blur', 'blurTint'],
+  // `conditional` composes nested conditions; the plain bind/equals/invert
+  // shape predates them.
+  'conditional': ['allOf', 'anyOf'],
 };
 
 /// The closed prop table a v4 node is checked against.
@@ -238,6 +258,9 @@ const v4UiBindings = <String>[
   ...uiBindings,
   'player.speed',
   'player.muted',
+  'player.buffering',
+  'player.completed',
+  'player.error',
   'app.sidebarCollapsed',
   'app.asideOpen',
   'app.pinnedPlaylistIds',
@@ -253,6 +276,23 @@ const v4UiBindings = <String>[
   'queue.currentIndex',
   'queue.next',
   'queue.count',
+  'downloads.active',
+  'downloads.queued',
+  'downloads.failed',
+  'downloads.completed',
+  'downloads.progress',
+  'lyrics.available',
+  'lyrics.synced',
+  'lyrics.line',
+  'radio.active',
+  'radio.playing',
+  'radio.buffering',
+  'radio.station',
+  'radio.liveTitle',
+  'radio.error',
+  'connect.available',
+  'connect.clients',
+  'connect.clientCount',
   'palette.dominant',
   'palette.vibrant',
   'palette.muted',
@@ -284,8 +324,15 @@ bool isV4UiBinding(String name) {
   if (RegExp(r'^setting\.[A-Za-z][A-Za-z0-9_.-]{0,63}$').hasMatch(name)) {
     return true;
   }
+  // Ephemeral theme-local state, written by `setLocal`/`toggleLocal` and
+  // published by the host's `state` namespace. Session-scoped, never
+  // persisted — the dialog/filter/expanded-section half of a theme.
+  if (RegExp(r'^state\.[A-Za-z][A-Za-z0-9_.-]{0,63}$').hasMatch(name)) {
+    return true;
+  }
   return RegExp(
-    r'^(item|home|collection|artist|search|library|queue|downloads|stats)\.'
+    r'^(item|home|collection|artist|search|library|queue|downloads|stats|'
+    r'lyrics|radio|connect)\.'
     r'[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*){0,4}$',
   ).hasMatch(name);
 }
@@ -310,6 +357,9 @@ const v4UiActionTypes = <String>[
   'clearQuery',
   'setSetting',
   'toggleSetting',
+  'setLocal',
+  'toggleLocal',
+  'clearLocal',
   'openPage',
   'closePage',
   'toggleSidebar',
@@ -850,6 +900,9 @@ const v4ActionVerbs = <String>{
   'clearQuery',
   'setSetting',
   'toggleSetting',
+  'setLocal',
+  'toggleLocal',
+  'clearLocal',
   'copy',
   'refresh',
   'toggleSidebar',
@@ -2284,6 +2337,49 @@ void _capabilityUsage(
   final pinTargets = _declaredPinTargets(payload);
 
   void checkBinding(Map node, String path) {
+    void checkName(String? name, String key) {
+      if (name == null) return;
+      final resolved = name.startsWith('!') ? name.substring(1) : name;
+      if (resolved.startsWith('audio.') && !granted.contains('audio.effects')) {
+        issues.add(
+          Issue(
+            Severity.error,
+            '$path.$key',
+            'reading $resolved requires the audio.effects capability',
+          ),
+        );
+      }
+      if ((resolved.startsWith('library.') || resolved.startsWith('item.')) &&
+          !granted.contains('library.read')) {
+        issues.add(
+          Issue(
+            Severity.error,
+            '$path.$key',
+            'reading $resolved requires the library.read capability',
+          ),
+        );
+      }
+    }
+
+    void checkCondition(Object? raw, String key) {
+      if (raw is String) {
+        checkName(raw, key);
+        return;
+      }
+      if (raw is! Map) return;
+      final bind = raw['bind'];
+      if (bind is String) checkName(bind, '$key.bind');
+      for (final listKey in const ['allOf', 'anyOf']) {
+        final entries = raw[listKey];
+        if (entries is! List) continue;
+        for (var i = 0; i < entries.length; i++) {
+          if (entries[i] is Map || entries[i] is String) {
+            checkCondition(entries[i], '$key.$listKey[$i]');
+          }
+        }
+      }
+    }
+
     for (final key in const [
       'bind',
       'maxBind',
@@ -2295,26 +2391,11 @@ void _capabilityUsage(
       'valueBind',
     ]) {
       final raw = node[key];
-      if (raw is! String) continue;
-      final name = raw.startsWith('!') ? raw.substring(1) : raw;
-      if (name.startsWith('audio.') && !granted.contains('audio.effects')) {
-        issues.add(
-          Issue(
-            Severity.error,
-            '$path.$key',
-            'reading $name requires the audio.effects capability',
-          ),
-        );
-      }
-      if ((name.startsWith('library.') || name.startsWith('item.')) &&
-          !granted.contains('library.read')) {
-        issues.add(
-          Issue(
-            Severity.error,
-            '$path.$key',
-            'reading $name requires the library.read capability',
-          ),
-        );
+      if (raw == null) continue;
+      if (key == 'disabledWhen' || key == 'hiddenWhen') {
+        checkCondition(raw, key);
+      } else if (raw is String) {
+        checkName(raw, key);
       }
     }
   }

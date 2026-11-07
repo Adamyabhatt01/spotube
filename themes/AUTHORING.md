@@ -102,6 +102,12 @@ guarded binding or action:
 | `settings.write` | `setSetting`/`toggleSetting` and the `setting.<key>` bindings |
 | `clipboard.write` | the `copy` action |
 
+`state.<key>`/`setLocal`/`toggleLocal`/`clearLocal`, the system-truth
+bindings (`player.buffering`/`completed`/`error`, `downloads.*`, `lyrics.*`,
+`radio.*`, `connect.*`) and every condition/guard need no capability:
+ephemeral state and read-only status are host-side and static-payload
+expressible.
+
 Declare exactly what the theme uses; an unknown name fails the build.
 
 ### Pages, regions and the shell
@@ -649,12 +655,12 @@ into the flat one, but every theme in this repository writes the flat form.)
 | `divider` | `orientation`, `thickness`, `color` |
 | `spacer` | `flex` |
 | `gap` | `size` |
-| `conditional` | `bind`, `equals`, `invert` |
+| `conditional` | `bind`, `equals`, `invert`, `allOf`/`anyOf` (lists of conditions) |
 | `template` | `name`, `args` |
 | `animate` | `kind`, `duration`, `curve`, `bind`, `reverse` |
 | `progress` | `bind`, `maxBind`, `width`, `height`, `hitHeight`, `radius`, `borderWidth`, `borderColor`, `color`, `trackColor`, `thumbColor`, `thumbSize`, `interactive`, `style` (`linear`/`wavy`) |
-| `list` | `bind`, `gap`, `limit`, `align`, `direction`, `filter`, `columns` (1..12, or a breakpoint map `{compact, medium, expanded}`), plus `children` (the row template) |
-| `virtualList` | `bind`, `itemTemplate` (or `children`), `itemExtent` (8..400), `overscan` (0..64), `limit` (1..10000), `filter`, `columns` (1..12, or a breakpoint map) |
+| `list` | `bind`, `gap`, `limit`, `align`, `direction`, `filter`, `columns` (1..12, or a breakpoint map `{compact, medium, expanded}`), `onEndReached`, `hasMoreBind`, `loadingBind`, `endThreshold`, plus `children` (the row template) |
+| `virtualList` | `bind`, `itemTemplate` (or `children`), `itemExtent` (8..400), `overscan` (0..64), `limit` (1..10000), `filter`, `columns` (1..12, or a breakpoint map), `onEndReached`, `hasMoreBind`, `loadingBind`, `endThreshold` |
 | `table` | `bind`, `columns: [{key, label, width, align}]` (1..32), `rowTemplate` (or `children`), `stickyHeader`, `sortable` |
 | `tree` | `bind`, `labelKey`, `childrenKey`, `expandedKey` |
 | `accordion` | `items: [{title, children}]` (max 32), `multiple` |
@@ -1029,6 +1035,56 @@ so a theme can own its own search field and read it back with `bind`.
 causes. `copy` puts `{text}` on the clipboard. `refresh` takes
 `{scope: "library" | "theme" | "all"}` and re-reads the saved library or the
 theme definition.
+
+**Conditions and guards.** A condition is a binding name, `!binding` to
+negate it, or an object `{bind, equals?, invert?, gt?, gte?, lt?, lte?,
+allOf?, anyOf?}` that composes equality/range tests and lists of nested
+conditions — no expressions. `equals` coerces like the `conditional` node's
+check does (string/number/bool); range keys compare numerically. A malformed
+condition evaluates to false rather than ever throwing. `hiddenWhen` and
+`disabledWhen` accept this condition language and are enforced on every node,
+including list rows with their item-scoped bindings: a node whose
+`hiddenWhen` holds is not laid out at all; a node whose `disabledWhen` holds
+is pointer-inert (controls keep their own disabled visuals on top). The
+`conditional` node picks `children[0]` when its condition holds and
+`children[1]` when it does not — `bind`/`equals`/`invert` as before, plus
+`allOf`/`anyOf` lists of the same conditions.
+
+**Ephemeral state (`state.*`).** `setLocal`/`toggleLocal`/`clearLocal` write
+`{key, value}` published as `state.<key>` — the same write/read-back shape as
+`setting.*` but never persisted and scoped to the active theme, reset when
+the theme changes. A dialog does not close itself when its `openBind` goes
+false underneath it (the host cannot write a binding), so a state-backed
+control pairs them: `openBind: "state.dialogOpen"` plus a close action
+`{"setLocal", args: {key: "dialogOpen", value: false}}` — exactly how the
+`setting.*`-backed controls in the reference themes work.
+
+**System truth `0b` bindings:** `player.buffering`, `player.completed`,
+`player.error` (latest backend error text, `""` when none), `downloads.active`
+/ `queued` / `failed` / `completed` (counts) and `downloads.progress` (a
+track-id → 0..1 fraction map for downloading tasks), `lyrics.available`,
+`lyrics.synced`, `lyrics.line` (the synced line at the playhead — pair with
+`player.position`), `radio.active`, `radio.playing`, `radio.buffering`,
+`radio.station`, `radio.liveTitle`, `radio.error`, and `connect.available`,
+`connect.clients` (names), `connect.clientCount`. All are read-only demand-
+scoped subscriptions — nothing is watched unless the document names it.
+
+**Paging.** `list` and `virtualList` page an arbitrarily long source with
+`onEndReached` (any action — the host fires it with `$value` the visible
+item count), `hasMoreBind` (truthy to fire), `loadingBind` (truthy to stay
+quiet), and `endThreshold` (how many items from the visible count's end
+count as near the end, default 5). The fire is once per distinct visible
+count, so a scroll bounce at the same count does not spam it, and a refetch
+that grows the count re-arms it. In a page slot the lazy paths cover
+filtered, fixed-multi-column and breakpoint-responsive lists too; a
+horizontal shelf stays eager by design.
+
+**Accessibility.** Every node accepts a `semantics` envelope:
+`{label, hint, value, excludeSemantics}`. The host wraps the node's
+subtree as one `Semantics` unit so a screen reader speaks the authored
+text; `excludeSemantics: true` hides the subtree from the semantic tree.
+It is part of the static payload — like everything else on this page it
+needs no VM.
 
 **Slots** (the only names a theme may use): `sidebar.content`,
 `sidebar.library`, `sidebar.header`, `sidebar.footer`, `sidebar.nav.before`,

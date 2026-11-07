@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/Adamyabhatt01/spotube/blob/master/themes/schemas/theme.v4.schema.json",
   "title": "Spotube theme payload, v4",
-  "description": "The full v3 payload: everything a theme may decide about the app's appearance, its components, its shell and the content it puts in them. A v2 host ignores the v3 blocks and draws the two colour schemes, which is what lets a v3 theme ship to an older app.",
+  "description": "The full v3 payload: everything a theme may decide about the app's appearance, its components, its shell and the content it puts in them. A v2 host ignores the v3 blocks and draws the two colour schemes, which is what lets a v3 theme ship to an older app. Later additions — ephemeral state.* bindings (setLocal/toggleLocal/clearLocal), object-form uiCondition (equals/invert/range/all/any), semantics envelope, list/virtualList onEndReached paging, and system-truth bindings (player.buffering/completed/error, downloads.*, lyrics.*, radio.*, connect.*) — are host-side and static-payload expressible: a theme using only them still boots from theme.json with no VM.",
   "type": "object",
   "required": [
     "specVersion",
@@ -537,12 +537,36 @@
             "audio.speed",
             "theme.id",
             "theme.name",
-            "theme.version"
+            "theme.version",
+            "player.buffering",
+            "player.completed",
+            "player.error",
+            "downloads.active",
+            "downloads.queued",
+            "downloads.failed",
+            "downloads.completed",
+            "downloads.progress",
+            "lyrics.available",
+            "lyrics.synced",
+            "lyrics.line",
+            "radio.active",
+            "radio.playing",
+            "radio.buffering",
+            "radio.station",
+            "radio.liveTitle",
+            "radio.error",
+            "connect.available",
+            "connect.clients",
+            "connect.clientCount"
           ]
         },
         {
           "type": "string",
-          "pattern": "^(item|home|collection|artist|search|library|queue|downloads|stats)\\.[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*){0,4}$"
+          "pattern": "^(item|home|collection|artist|search|library|queue|downloads|stats|lyrics|radio|connect)\\.[A-Za-z][A-Za-z0-9_]*(\\.[A-Za-z][A-Za-z0-9_]*){0,4}$"
+        },
+        {
+          "type": "string",
+          "pattern": "^state\\.[A-Za-z][A-Za-z0-9_.-]{0,63}$"
         },
         {
           "type": "string",
@@ -617,6 +641,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -698,6 +725,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -773,6 +803,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -858,6 +891,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -951,6 +987,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -1031,6 +1070,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -1092,6 +1134,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -1160,6 +1205,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -1291,6 +1339,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -1359,6 +1410,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -1474,6 +1528,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -1558,6 +1615,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -1659,6 +1719,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -1719,6 +1782,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -1791,6 +1857,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -1853,6 +1922,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -1914,6 +1986,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -1988,6 +2063,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -2003,6 +2081,20 @@
             "variant": {
               "type": "string",
               "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "allOf": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/definitions/uiCondition"
+              }
+            },
+            "anyOf": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/definitions/uiCondition"
+              }
             }
           }
         },
@@ -2051,6 +2143,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -2135,6 +2230,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -2229,6 +2327,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -2375,6 +2476,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -2390,6 +2494,21 @@
             "variant": {
               "type": "string",
               "pattern": "^[a-z][a-z0-9-]{0,31}$"
+            },
+            "onEndReached": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "hasMoreBind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "loadingBind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "endThreshold": {
+              "description": "How many items from the visible count's end count as \"near the end\" for onEndReached.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000
             }
           }
         },
@@ -2411,6 +2530,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -2518,6 +2640,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -2660,6 +2785,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -2696,6 +2824,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -2754,6 +2885,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -2803,6 +2937,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -2846,6 +2983,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -2900,6 +3040,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -2957,6 +3100,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -3031,6 +3177,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -3091,6 +3240,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -3138,6 +3290,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -3217,6 +3372,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -3271,6 +3429,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -3324,6 +3485,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -3404,6 +3568,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -3469,6 +3636,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -3545,6 +3715,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -3628,6 +3801,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -3720,6 +3896,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -3807,6 +3986,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -3941,6 +4123,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -4037,6 +4222,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -4130,6 +4318,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -4187,6 +4378,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -4277,6 +4471,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -4351,6 +4548,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -4438,6 +4638,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -4516,6 +4719,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -4635,6 +4841,21 @@
             },
             "filter": {
               "$ref": "#/definitions/uiFilter"
+            },
+            "onEndReached": {
+              "$ref": "#/definitions/uiAction"
+            },
+            "hasMoreBind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "loadingBind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "endThreshold": {
+              "description": "How many items from the visible count's end count as \"near the end\" for onEndReached.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000
             }
           }
         },
@@ -4656,6 +4877,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -4733,6 +4957,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -4801,6 +5028,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -4890,6 +5120,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -4954,6 +5187,9 @@
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
             },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
+            },
             "kit": {
               "enum": [
                 "shadcn",
@@ -5009,7 +5245,8 @@
           "type": "object",
           "additionalProperties": true,
           "required": [
-            "type"
+            "type",
+            "id"
           ],
           "properties": {
             "type": {
@@ -5023,6 +5260,9 @@
             },
             "hiddenWhen": {
               "$ref": "#/definitions/uiCondition"
+            },
+            "semantics": {
+              "$ref": "#/definitions/uiSemantics"
             },
             "kit": {
               "enum": [
@@ -5060,11 +5300,7 @@
               "type": "object",
               "maxProperties": 32
             }
-          },
-          "required": [
-            "type",
-            "id"
-          ]
+          }
         }
       ]
     },
@@ -5277,6 +5513,9 @@
             "clearQuery",
             "setSetting",
             "toggleSetting",
+            "clearLocal",
+            "toggleLocal",
+            "setLocal",
             "openPage",
             "closePage",
             "toggleSidebar",
@@ -5301,8 +5540,81 @@
         {
           "type": "string",
           "pattern": "^![A-Za-z][A-Za-z0-9_.]{0,79}$"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "bind": {
+              "$ref": "#/definitions/uiBinding"
+            },
+            "equals": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "invert": {
+              "type": "boolean"
+            },
+            "gt": {
+              "type": "number"
+            },
+            "gte": {
+              "type": "number"
+            },
+            "lt": {
+              "type": "number"
+            },
+            "lte": {
+              "type": "number"
+            },
+            "allOf": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/definitions/uiCondition"
+              }
+            },
+            "anyOf": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/definitions/uiCondition"
+              }
+            }
+          }
         }
       ]
+    },
+    "uiSemantics": {
+      "description": "Accessibility envelope for a node: a screen-reader label, a hint, a value, or exclusion from the semantic tree. Host-side only — static payloads can declare it with no VM.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "hint": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "value": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "excludeSemantics": {
+          "type": "boolean"
+        }
+      }
     },
     "themePage": {
       "type": "object",
