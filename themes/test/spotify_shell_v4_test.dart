@@ -10,6 +10,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:spotube_themes/v4_validator.dart';
 import 'package:spotube_themes/validator.dart';
 import 'package:test/test.dart';
 
@@ -64,11 +65,13 @@ void main() {
   });
 
   test('the manifest advertises the v4 contract the payload carries', () {
-    final manifest = jsonDecode(
-      File(
-        '$repoRoot/themes/spotify-shell-v4/plugin.json',
-      ).readAsStringSync(),
-    ) as Map<String, dynamic>;
+    final manifest =
+        jsonDecode(
+              File(
+                '$repoRoot/themes/spotify-shell-v4/plugin.json',
+              ).readAsStringSync(),
+            )
+            as Map<String, dynamic>;
 
     // The plugin format version stays on the app's major; the v4 contract is
     // the payload specVersion, and the manifest advertises it without
@@ -119,6 +122,88 @@ void main() {
         '@palette.lightMuted',
         '@palette.onDominant',
       }, contains(colour));
+    }
+  });
+
+  test('keeps its core shell layout and navigation targets', () {
+    expect(slots.keys.toSet(), {
+      'sidebar.content',
+      'aside.content',
+      'player.leading',
+      'player.controls',
+      'player.trailing',
+      'home.content',
+      'collection.content',
+      'artist.content',
+      'search.content',
+      'queue.content',
+      'downloads.content',
+      'stats.content',
+      'page.audio',
+    });
+    expect(layout['sidebar'], 'theme');
+    expect(layout['asideWidth'], greaterThan(0));
+    expect(layout['sidebarWidth'], greaterThan(0));
+    expect(layout['navItems'], ['home', 'search']);
+    expect(layout['navbarItems'], ['home', 'search', 'library']);
+    expect(layout['libraryItems'], [
+      'playlists',
+      'albums',
+      'artists',
+      'local_library',
+    ]);
+    expect(
+      (layout['responsive'] as Map)['compact'],
+      containsPair('aside', 'none'),
+    );
+    expect(
+      (layout['responsive'] as Map)['medium'],
+      containsPair('aside', 'none'),
+    );
+  });
+
+  test('pins its host-item context menus and font declarations', () {
+    final typedNodes = nodes(slots).toList();
+    final contextMenus = typedNodes
+        .where((node) => node['type'] == 'contextMenu')
+        .toList();
+    expect(contextMenus, isNotEmpty);
+    expect(contextMenus.every((node) => node['hostItem'] == true), isTrue);
+
+    final assetFonts =
+        (((payload['assets'] as Map)['fonts'] as List).cast<Map>()).toList();
+    final typographyFonts =
+        (((payload['typography'] as Map)['fonts'] as List).cast<Map>())
+            .toList();
+    final assetPaths = assetFonts
+        .map((font) => font['path'] as String)
+        .toList();
+    final typographyPaths = typographyFonts
+        .map((font) => font['asset'] as String)
+        .toList();
+    expect(assetPaths.toSet(), typographyPaths.toSet());
+    expect(assetPaths.toSet(), hasLength(assetPaths.length));
+    expect(typographyPaths.toSet(), hasLength(typographyPaths.length));
+  });
+
+  test('keeps host widgets inside their documented prop surface', () {
+    final widgets = nodes(
+      slots,
+    ).where((node) => node['type'] == 'hostWidget').toList();
+    final allowedProps = v4HostWidgetProps['library.playlists']!;
+
+    expect(
+      widgets.map((widget) => widget['id']),
+      everyElement('library.playlists'),
+    );
+    for (final widget in widgets) {
+      final props = (widget['props'] as Map).cast<String, dynamic>();
+      expect(
+        props.keys.every(allowedProps.contains),
+        isTrue,
+        reason:
+            'reference-theme host-widget props must not drift outside the contract',
+      );
     }
   });
 
