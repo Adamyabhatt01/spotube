@@ -51,8 +51,9 @@ extension _ThemeUiDataNodes on ThemeUiNodeView {
       if (items.isEmpty) return const SizedBox.shrink();
 
       final wantsPalette = _subtreeWantsPalette(node, nodes);
+      final endLatch = _endLatch(props);
 
-      Widget row(int index) {
+      Widget row(BuildContext context, int index) {
         final rowRuntime = _rowRuntime(
           runtime,
           items[index],
@@ -61,7 +62,13 @@ extension _ThemeUiDataNodes on ThemeUiNodeView {
           templateName,
           palette: wantsPalette,
         );
-        return _itemNodeView(rowRuntime, nodes, depth);
+        final child = _itemNodeView(rowRuntime, nodes, depth);
+        endLatch.maybeFire(
+          index,
+          items.length,
+          (action) => _fire(context, [action]),
+        );
+        return child;
       }
 
       if (columns > 1) {
@@ -69,8 +76,8 @@ extension _ThemeUiDataNodes on ThemeUiNodeView {
         // fixed-height assumption. A short last row pads with empty cells to
         // keep the columns aligned.
         final rowCount = (items.length / columns).ceil();
-        Widget cell(int item) =>
-            item < items.length ? row(item) : const SizedBox.shrink();
+        Widget cell(BuildContext context, int item) =>
+            item < items.length ? row(context, item) : const SizedBox.shrink();
         return ListView.builder(
           itemCount: rowCount,
           itemExtent: extent,
@@ -80,7 +87,7 @@ extension _ThemeUiDataNodes on ThemeUiNodeView {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 for (var column = 0; column < columns; column++)
-                  Expanded(child: cell(index * columns + column)),
+                  Expanded(child: cell(context, index * columns + column)),
               ],
             );
           },
@@ -91,7 +98,7 @@ extension _ThemeUiDataNodes on ThemeUiNodeView {
         itemCount: items.length,
         itemExtent: extent,
         cacheExtent: overscan * extent,
-        itemBuilder: (context, index) => row(index),
+        itemBuilder: (context, index) => row(context, index),
       );
     }
 
@@ -100,6 +107,121 @@ extension _ThemeUiDataNodes on ThemeUiNodeView {
     return _ThemeUiDebouncedText(
       value: runtime.bindings.display(spec.bind),
       builder: (context, settled) => buildList(settled),
+    );
+  }
+
+  /// The sliver form of [_virtualList] for a page-level vertical list.
+  ///
+  /// Same node vocabulary, same fixed-extent grid vocabulary, but the rows
+  /// join the page's scroll instead of fighting it inside their own
+  /// viewport.
+  Widget? _virtualListSliver(
+    BuildContext context,
+    Map<String, dynamic> props,
+    List<Map<String, dynamic>> children,
+  ) {
+    final raw = props['bind'] is String
+        ? runtime.bindings.raw(props['bind'] as String)
+        : null;
+    if (raw is! List || raw.isEmpty) return null;
+
+    final nodes = _itemTemplateNodes(runtime, props, children);
+    if (nodes.isEmpty) return null;
+
+    final limit = _int(
+      props['limit'],
+      fallback: _themeUiMaxVirtualItems,
+      min: 1,
+      max: _themeUiMaxVirtualItems,
+    );
+
+    final filter = _listFilter(props);
+    final all = raw.cast<Object?>().toList();
+    final visible = filter == null
+        ? all
+        : _filterItems(
+            all,
+            runtime.bindings.display(filter.bind),
+            filter.fields,
+          );
+    final items = visible.take(limit).toList();
+    if (items.isEmpty) return null;
+
+    final wantsPalette = _subtreeWantsPalette(node, nodes);
+    final columns = _int(props['columns'], fallback: 1, min: 1, max: 12);
+    final templateName = props['itemTemplate'] is String
+        ? props['itemTemplate'] as String
+        : null;
+    final endLatch = _endLatch(props);
+
+    Widget row(BuildContext context, int index) {
+      final rowRuntime = _rowRuntime(
+        runtime,
+        items[index],
+        index,
+        items,
+        templateName,
+        palette: wantsPalette,
+      );
+      final child = _itemNodeView(rowRuntime, nodes, depth);
+      endLatch.maybeFire(
+        index,
+        items.length,
+        (action) => _fire(context, [action]),
+      );
+      return child;
+    }
+
+    if (columns > 1) {
+      final rowCount = (items.length / columns).ceil();
+      return SliverList.builder(
+        itemCount: rowCount,
+        itemBuilder: (context, index) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var column = 0; column < columns; column++)
+                Expanded(
+                  child: index * columns + column < items.length
+                      ? row(context, index * columns + column)
+                      : const SizedBox.shrink(),
+                ),
+            ],
+          );
+        },
+      );
+    }
+
+    return SliverList.builder(
+      itemCount: items.length,
+      itemBuilder: (context, index) => row(context, index),
+    );
+  }
+
+  /// Builds the near-end latch from this node's paging props
+  /// (`onEndReached`, `hasMoreBind`, `loadingBind`, `endThreshold`).
+  ///
+  /// `endThreshold` counts items from the end: rows within that many of the
+  /// visible count are "near the end". `onEndReached`'s action fires once
+  /// per visible count with `$value` the count, when `hasMoreBind` is
+  /// truthy (or unset) and `loadingBind` is falsy (or unset).
+  _ThemeUiEndLatch _endLatch(Map<String, dynamic> props) {
+    final threshold = _int(
+      props['endThreshold'],
+      fallback: 5,
+      min: 0,
+      max: 2000,
+    );
+    return _ThemeUiEndLatch(
+      action: ThemeUiAction.tryParse(props['onEndReached']),
+      bindings: runtime.bindings,
+      hasMoreBind: props['hasMoreBind'] is String
+          ? props['hasMoreBind'] as String
+          : null,
+      loadingBind: props['loadingBind'] is String
+          ? props['loadingBind'] as String
+          : null,
+      threshold: threshold,
     );
   }
 
@@ -378,6 +500,47 @@ class _ThemeUiTableColumn {
     this.width,
     this.align,
   });
+}
+
+/// Near-end firing for a list's `onEndReached` action.
+///
+/// The latch observes item builds: when a row within [threshold] items of the
+/// visible count is built, the action fires once per visible-item count —
+/// a `loadMore` refetch delivers a new count and re-arms it, a scroll
+/// bounce at the same count does not. Gated by [hasMoreBind] (truthy to
+/// fire) and [loadingBind] (truthy to stay quiet), evaluated at fire time.
+class _ThemeUiEndLatch {
+  int? _firedFor;
+  final ThemeUiAction? action;
+  final ThemeUiBindings bindings;
+  final String? hasMoreBind;
+  final String? loadingBind;
+
+  /// Items from the end that count as "near the end".
+  final int threshold;
+
+  _ThemeUiEndLatch({
+    required this.action,
+    required this.bindings,
+    required this.hasMoreBind,
+    required this.loadingBind,
+    required this.threshold,
+  });
+
+  void maybeFire(
+    int index,
+    int visibleCount,
+    void Function(ThemeUiAction action) fire,
+  ) {
+    final act = action;
+    if (act == null) return;
+    if (index < visibleCount - threshold) return;
+    if (_firedFor == visibleCount) return;
+    if (hasMoreBind != null && !bindings.isTruthy(hasMoreBind)) return;
+    if (loadingBind != null && bindings.isTruthy(loadingBind)) return;
+    _firedFor = visibleCount;
+    fire(act.withValue(visibleCount));
+  }
 }
 
 List<_ThemeUiTableColumn> _tableColumns(Map<String, dynamic> props) {

@@ -665,7 +665,10 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
               );
       }
 
-      // A horizontal shelf is always a single column.
+      // A horizontal shelf is always a single column. It stays eager: a
+      // horizontal sliver inside a vertical page cannot scroll sideways on
+      // its own, and a ListView inside a shrink-wrapped column fights for
+      // height. Shelves are typically a handful of cards.
       if (horizontal) {
         final rows = <Widget>[];
         for (var i = 0; i < items.length; i++) {
@@ -736,25 +739,17 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
   /// cache. The node vocabulary does not change: a vertical `list` is lazy
   /// when the host can give it a sliver viewport.
   ///
-  /// Returns null for shapes the sliver path cannot preserve: a horizontal
-  /// shelf, a filtered list (its debounce is a widget), or a multi-column
-  /// wrap. Those keep the eager renderer.
+  /// Returns null for the one shape the sliver path cannot preserve: a
+  /// horizontal shelf (its scroll axis fights the page's). Filtered lists
+  /// filter eagerly-in-snapshot — the debounced box path only exists so
+  /// typing does not rebuild a long row list per keystroke, and a sliver
+  /// snapshot is already the cheap path.
   Widget? _listSliver(
     BuildContext context,
     Map<String, dynamic> props,
     List<Map<String, dynamic>> children,
   ) {
     if (props['direction'] == 'horizontal') return null;
-    if (_listFilter(props) != null) return null;
-
-    // A fixed column count of one is still a single column. A responsive map
-    // is left to the eager path because the count depends on the width.
-    final columns = props['columns'];
-    if (columns is num && columns > 1) return null;
-    if (columns is Map &&
-        columns.values.any((value) => value is num && value > 1)) {
-      return null;
-    }
 
     final source = props['bind'] is String
         ? runtime.bindings.raw(props['bind'] as String)
@@ -762,7 +757,17 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
     if (source is! List || source.isEmpty || children.isEmpty) return null;
 
     final limit = _int(props['limit'], fallback: 200, min: 1, max: 500);
-    final items = source.cast<Object?>().take(limit).toList();
+
+    final filter = _listFilter(props);
+    final all = source.cast<Object?>().toList();
+    final visible = filter == null
+        ? all
+        : _filterItems(
+            all,
+            runtime.bindings.display(filter.bind),
+            filter.fields,
+          );
+    final items = visible.take(limit).toList();
     if (items.isEmpty) return null;
 
     final gap = _gapSize(context, props['gap']);
@@ -779,7 +784,9 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
       };
     }
 
-    Widget itemAt(int index) {
+    final endLatch = _endLatch(props);
+
+    Widget itemAt(BuildContext context, int index) {
       final itemRuntime = _itemRuntime(
         runtime,
         items[index],
@@ -787,7 +794,7 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
         items,
         palette: wantsPalette,
       );
-      return children.length == 1
+      final child = children.length == 1
           ? ThemeUiNodeView(
               node: children.first,
               runtime: itemRuntime,
@@ -805,19 +812,65 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
                   ),
               ],
             );
+      endLatch.maybeFire(
+        index,
+        items.length,
+        (action) => _fire(context, [action]),
+      );
+      return child;
     }
 
-    return SliverList.builder(
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = alignItem(itemAt(index));
-        if (gap <= 0 || index == items.length - 1) return item;
-        return Padding(
-          padding: EdgeInsets.only(bottom: gap),
-          child: item,
+    Widget sliverRows(int columns) {
+      if (columns <= 1) {
+        return SliverList.builder(
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final item = alignItem(itemAt(context, index));
+            if (gap <= 0 || index == items.length - 1) return item;
+            return Padding(
+              padding: EdgeInsets.only(bottom: gap),
+              child: item,
+            );
+          },
         );
-      },
-    );
+      }
+      final rowCount = (items.length / columns).ceil();
+      return SliverList.builder(
+        itemCount: rowCount,
+        itemBuilder: (context, index) {
+          Widget cell(int item) =>
+              item < items.length ? itemAt(context, item) : const SizedBox.shrink();
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: index == rowCount - 1 ? 0 : gap,
+            ),
+            child: Row(
+              // start, not stretch: a sliver item has no bounded height to
+              // stretch the cells to.
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (var column = 0; column < columns; column++) ...[
+                  if (column > 0) SizedBox(width: gap),
+                  Expanded(child: cell(index * columns + column)),
+                ],
+              ],
+            ),
+          );
+        },
+      );
+    }
+
+    // A fixed count is known up front; a responsive map resolves inside the
+    // SliverLayoutBuilder where the viewport width is.
+    final rawColumns = props['columns'];
+    if (rawColumns is Map) {
+      return SliverLayoutBuilder(
+        builder: (context, constraints) => sliverRows(
+          _resolveColumns(rawColumns, constraints.crossAxisExtent, fallback: 1),
+        ),
+      );
+    }
+    return sliverRows(_int(rawColumns, fallback: 1, min: 1, max: 12));
   }
 }
 
