@@ -322,9 +322,12 @@ Future<_BuildResult> _buildTheme({
     );
   }
 
+  // `theme.json` is the resolved payload the host reads without booting
+  // the VM: a static theme costs a file read instead of a Hetu boot.
   final entries = <String, Uint8List>{
     'plugin.json': Uint8List.fromList(theme.manifestBytes),
     'plugin.out': byteCode,
+    'theme.json': staticThemeBytes(compiled),
   };
   for (final entry in theme.assets.entries) {
     entries['assets/${entry.key}'] = entry.value.readAsBytesSync();
@@ -362,6 +365,7 @@ Future<_BuildResult> _buildTheme({
       'sha256': sha256OfFile(outputFile),
       'optionalMethods': compiled.optionalMethods,
       'hasUiSpec': compiled.uiSpec != null,
+      'hasStaticTheme': true,
       if (publishedPath != null)
         'published': p.relative(publishedPath, from: repoRootOf(theme)),
     },

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:hetu_script/hetu_script.dart';
@@ -36,6 +37,69 @@ class CompiledTheme {
 
   /// The optional methods this theme implements.
   final List<String> optionalMethods;
+}
+
+/// The format version written into every `theme.json` entry.
+///
+/// Bump when the envelope changes shape. The host reader refuses anything
+/// else and falls back to booting the VM, so a future format never silently
+/// produces a half-loaded theme.
+const staticThemeFormatVersion = 1;
+
+/// The resolved payload written as `theme.json` inside the `.smplug`.
+///
+/// The host reads it straight off disk and skips `getTheme()` (and the Hetu
+/// VM behind it) for themes whose payload is static. Three things travel
+/// together:
+///
+/// - the `getTheme()` map, with the `getUi()` document merged inline when
+///   the payload carries no tree of its own (an inline tree always wins,
+///   exactly like the host prefers it at runtime);
+/// - [CompiledTheme.optionalMethods], so the host knows whether `getUi()`,
+///   `showSettings()` or `onUiAction()` exist without booting the VM to
+///   find out;
+/// - the envelope version, so older hosts can reject the file outright.
+Map<String, dynamic> staticThemePayload(CompiledTheme compiled) {
+  final theme = Map<String, dynamic>.from(compiled.payload);
+  if (theme['ui'] == null && compiled.uiSpec != null) {
+    theme['ui'] = compiled.uiSpec;
+  }
+  return {
+    'formatVersion': staticThemeFormatVersion,
+    'optionalMethods': compiled.optionalMethods,
+    'theme': theme,
+  };
+}
+
+/// The bytes of `theme.json`, encoded with sorted map keys.
+///
+/// Build reproducibility is a committed-artifact property: the same source
+/// must produce the same bytes. Hetu's map iteration order is stable in
+/// practice, but sorting makes the bytes a function of the map contents
+/// alone, so a key-ordering change anywhere upstream cannot churn every
+/// artifact.
+Uint8List staticThemeBytes(CompiledTheme compiled) {
+  final payload = staticThemePayload(compiled);
+  return Uint8List.fromList(
+    utf8.encode(jsonEncode(_sortedValue(payload))),
+  );
+}
+
+/// A deep copy of [value] with every map's keys sorted.
+///
+/// Lists keep their order; only map keys move. Numbers, strings, bools and
+/// nulls pass through unchanged.
+Object? _sortedValue(Object? value) {
+  if (value is Map) {
+    final keys = value.keys.map((key) => key.toString()).toList()..sort();
+    return <String, dynamic>{
+      for (final key in keys) key: _sortedValue(value[key]),
+    };
+  }
+  if (value is List) {
+    return [for (final entry in value) _sortedValue(entry)];
+  }
+  return value;
 }
 
 /// Compiles theme source to Hetu bytecode.

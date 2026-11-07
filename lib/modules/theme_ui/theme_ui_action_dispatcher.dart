@@ -639,6 +639,10 @@ Future<void> _askPlugin(
     ProviderContainer ref, Map<String, dynamic> args) async {
   final id = args['id'];
   if (id is! String || id.isEmpty || id.length > 64) return;
+  // A static payload that declares no `onUiAction()` means the theme
+  // cannot answer; the VM stays unbooted instead of answering "nothing".
+  final staticPayload = await ref.read(themeStaticPayloadProvider.future);
+  if (staticPayload != null && !staticPayload.needsVmForActions) return;
   final payload = args['payload'];
   final result = await ref
       .read(themePluginProvider.future)

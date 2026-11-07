@@ -53,6 +53,20 @@ final audioSourcePluginProvider = FutureProvider<MetadataPlugin?>(
   },
 );
 
+/// The build-time static theme payload, when the selected theme shipped one.
+///
+/// Read off disk, never through Hetu: a theme whose payload is static costs
+/// a file read instead of a VM boot. Null when the selected theme has no
+/// `theme.json` (third-party or older builds), when nothing is recorded as
+/// the theme default, or when the file does not decode — every miss just
+/// falls back to the live `getTheme()` path.
+final themeStaticPayloadProvider = FutureProvider<StaticThemePayload?>(
+  (ref) async {
+    final pluginKey = await ref.watch(storedThemePluginKeyProvider.future);
+    return readStaticThemePayload(pluginKey);
+  },
+);
+
 final themeDefinitionProvider = FutureProvider<ThemeDefinition?>(
   (ref) async {
     try {
@@ -61,20 +75,27 @@ final themeDefinitionProvider = FutureProvider<ThemeDefinition?>(
       // the plugin theme loads, and scheme changes are rare.
       ref.watch(shellThemeSignalProvider);
 
-      // Reuses a memoized plugin instance instead of spinning a fresh Hetu
-      // VM on every recompute (the previous code created one per signal,
-      // and Hetu VMs are never released). The instance only rebuilds when
-      // the default theme plugin changes.
-      final plugin = await ref.watch(themePluginProvider.future);
-      if (plugin == null) return null;
-
       final defaultPlugin = await ref.watch(
         metadataPluginsProvider
             .selectAsync((data) => data.defaultThemePluginConfig),
       );
-      if (defaultPlugin == null) return null;
 
-      final definition = await plugin.theme.getTheme();
+      // The static payload wins: no Hetu VM is created when the theme
+      // shipped one. The VM boots only for themes that did not, and then
+      // only to ask `getTheme()` what the build already knew.
+      final staticPayload = await ref.watch(themeStaticPayloadProvider.future);
+      final ThemeDefinition? definition;
+      if (staticPayload != null) {
+        definition = staticPayload.definition;
+      } else {
+        // Reuses a memoized plugin instance instead of spinning a fresh Hetu
+        // VM on every recompute (the previous code created one per signal,
+        // and Hetu VMs are never released). The instance only rebuilds when
+        // the default theme plugin changes.
+        final plugin = await ref.watch(themePluginProvider.future);
+        if (plugin == null) return null;
+        definition = await plugin.theme.getTheme();
+      }
 
       // Generic shell handoff: no shell names or paths here. When the
       // plugin declares `dynamic.source == shell`, the host shell source
@@ -90,7 +111,7 @@ final themeDefinitionProvider = FutureProvider<ThemeDefinition?>(
 
       // Cache only successful resolutions for instant warm startup.
       // Null (failure) outcomes never touch the cache.
-      if (resolved != null) {
+      if (resolved != null && defaultPlugin != null) {
         unawaited(
           writeThemeCache(
             pluginKey: themePluginKey(defaultPlugin),
@@ -110,6 +131,10 @@ final themeDefinitionProvider = FutureProvider<ThemeDefinition?>(
 /// Memoized theme plugin instance. Rebuilds only when the default theme
 /// plugin changes, so theme recomputes reuse the same Hetu VM instead of
 /// creating a new one each time (Hetu VMs are never disposed).
+///
+/// The VM boots lazily: [themeDefinitionProvider] prefers the static
+/// payload, so this is only reached for themes that shipped none, or for a
+/// `showSettings()`/`onUiAction()`/`getUi()` call that still needs one.
 final themePluginProvider = FutureProvider<MetadataPlugin?>(
   (ref) async {
     final defaultPlugin = await ref.watch(
@@ -123,11 +148,22 @@ final themePluginProvider = FutureProvider<MetadataPlugin?>(
         await pluginsNotifier.getPluginByteCode(defaultPlugin);
     final youtubeEngine = ref.read(youtubeEngineProvider);
 
-    return MetadataPlugin.create(
+    final plugin = await MetadataPlugin.create(
       youtubeEngine,
       defaultPlugin,
       pluginByteCode,
     );
+
+    // A lazily booted VM has not run `getTheme()`, so its capability grant
+    // is empty. The static payload already knows it; seed it so documents
+    // from `showSettings()`/`onUiAction()` keep their permissions.
+    final staticPayload = await ref.read(themeStaticPayloadProvider.future);
+    if (staticPayload != null) {
+      plugin.theme.seedPayloadCapabilities(
+        staticPayload.definition.capabilities,
+      );
+    }
+    return plugin;
   },
 );
 
@@ -148,6 +184,13 @@ final pluginThemeUiProvider = FutureProvider<ThemeUiDocument?>((ref) async {
 /// document's `settings.content` slot and persists values through the
 /// per-theme settings namespace.
 final pluginThemeSettingsProvider = FutureProvider<ThemeUiDocument?>((ref) async {
+  // A static payload that declares no `showSettings()` means the theme has
+  // no settings; the VM stays unbooted instead of answering "nothing"
+  // from a fresh process.
+  final staticPayload = await ref.watch(themeStaticPayloadProvider.future);
+  if (staticPayload != null && !staticPayload.needsVmForSettings) {
+    return null;
+  }
   final plugin = await ref.watch(themePluginProvider.future);
   if (plugin == null) return null;
   return plugin.theme.getSettings();
@@ -180,6 +223,11 @@ final themeUiProvider = FutureProvider<ThemeUiDocument?>((ref) async {
   if (definition == null) return null;
   if (definition.specVersion == 3) return null;
   if (definition.ui != null) return definition.ui;
+  // A static payload that declares no `getUi()` answers "no UI" without
+  // booting the VM at all. Only a payload that declares it (and shipped
+  // no tree) — or a theme with no static payload — reaches the plugin.
+  final staticPayload = await ref.watch(themeStaticPayloadProvider.future);
+  if (staticPayload != null && !staticPayload.needsVmForUi) return null;
   return ref.watch(pluginThemeUiProvider.future);
 });
 

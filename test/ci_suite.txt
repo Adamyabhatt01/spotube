@@ -27,6 +27,7 @@ test/l10n_placeholder_parity_test.dart
 test/server_loopback_guard_test.dart
 test/source_engine_fallback_test.dart
 test/theme_ui_palette_test.dart
+test/theme_static_payload_test.dart
 test/theme_ui_context_menu_config_test.dart
 test/theme_ui_document_test.dart
 test/player_progress_intrinsic_test.dart

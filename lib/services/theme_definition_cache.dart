@@ -21,6 +21,24 @@ const _pluginKeyKey = 'spotube.theme_default_plugin_key.v1';
 String themePluginKey(PluginConfiguration plugin) =>
     '${plugin.author}::${plugin.name}::${plugin.version}';
 
+/// The recorded default theme plugin identity, or null when no theme was
+/// ever selected (or the store is unreachable).
+///
+/// DB-free by design: it is what lets a later lookup resolve a static
+/// `theme.json` payload without pulling the metadata provider (and the
+/// database behind it) into the theme-ui path.
+final storedThemePluginKeyProvider =
+    FutureProvider<String?>((ref) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_pluginKeyKey);
+  } catch (_) {
+    // A missing store is a fallback, not a failure: the live plugin path
+    // still resolves the theme.
+    return null;
+  }
+});
+
 /// Records which plugin is the theme default. Called from
 /// `setDefaultThemePlugin` (covers promotion paths that route through
 /// it). Removal of the default clears it (see `removePlugin`).

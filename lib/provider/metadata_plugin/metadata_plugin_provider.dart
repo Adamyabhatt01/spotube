@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:dio/dio.dart';
@@ -8,6 +9,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart';
 import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/services/metadata/static_theme.dart';
 import 'package:spotube/services/theme_definition_cache.dart';
 import 'package:spotube/modules/theme_background/theme_shell_source.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_screen_stack.dart';

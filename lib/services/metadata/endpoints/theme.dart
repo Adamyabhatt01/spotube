@@ -53,6 +53,17 @@ class MetadataPluginThemeEndpoint {
     );
   }
 
+  /// Grants for a VM that booted without running `getTheme()` (the static
+  /// `theme.json` path).
+  ///
+  /// The capability grant normally comes from the last `getTheme()` call.
+  /// When the VM boots lazily for `showSettings()` or `onUiAction()`, the
+  /// build-time payload already knows the grant, so it is seeded here
+  /// instead of asking the plugin to say it again.
+  void seedPayloadCapabilities(List<String> capabilities) {
+    _payloadCapabilities = capabilities.toList(growable: false);
+  }
+
   /// The theme's optional declarative UI, or null when it carries no
   /// `getUi()` method.
   ///
