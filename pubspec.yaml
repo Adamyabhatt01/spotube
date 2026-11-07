@@ -29,8 +29,8 @@ dependencies:
   bonsoir: ">=6.0.2 <6.1.0"
   cached_network_image: ^3.3.1
   connectivity_plus: ^6.1.2
-  # Promoted from dev_dependencies for voice-model sha256 verification at
-  # runtime (also still used by cli/commands/build/windows.dart, ISSUE.8).
+  # Promoted from dev_dependencies for runtime sha256 verification (also
+  # used by cli/commands/build/windows.dart, ISSUE.8).
   crypto: ^3.0.7
   # Vendored from KRTirtho/flutter-plugins @ f261ff20 (DEP.4) with a Linux
   # fix: closing the login webview hides its window instead of destroying the
@@ -98,10 +98,6 @@ dependencies:
   path: ^1.9.0
   path_provider: ^2.1.3
   permission_handler: ^11.3.1
-  # Voice commands: mic PCM stream (Android capture; Linux uses our own
-  # parec subprocess, per lib/services/voice/engine/pcm_capture_port.dart).
-  # <7.0.0: record 7.x requires Dart >=3.12 (toolchain here is 3.10.9).
-  record: ">=6.1.0 <7.0.0"
   riverpod: ^2.5.1
   scrobblenaut:
     git:
@@ -109,9 +105,6 @@ dependencies:
       ref: d90cb75d71737f3cfa2de4469d48080c0f3eedc2
       url: https://github.com/KRTirtho/scrobblenaut.git
   scroll_to_index: ^3.0.1
-  # Voice commands: offline streaming ASR + VAD (synchronous FFI bindings;
-  # inference runs in a worker isolate, never on the UI thread).
-  sherpa_onnx: ^2.0.1
   shadcn_flutter: 0.0.47
   shared_preferences: ^2.2.3
   shelf: ^1.4.1
@@ -252,7 +245,7 @@ dependency_overrides:
   flutter_secure_storage_linux:
     git:
       url: https://github.com/m-berto/flutter_secure_storage.git
-      ref: patch-2
+      ref: f076cbb65b075afd6e3b648122987a67306dc298
       path: flutter_secure_storage_linux
   # DEP.2: platform libs must track the same tested media-kit commit as the
   # main dependency above — never float these independently.

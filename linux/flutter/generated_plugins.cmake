@@ -11,7 +11,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   local_notifier
   media_kit_libs_linux
   open_file_linux
-  record_linux
   screen_retriever_linux
   sqlite3_flutter_libs
   tray_manager
@@ -22,7 +21,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
   flutter_discord_rpc
   metadata_god
-  sherpa_onnx_linux
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

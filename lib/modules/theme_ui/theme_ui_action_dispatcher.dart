@@ -140,10 +140,10 @@ Future<void> dispatchThemeUiAction(
   }
 }
 
-/// Hands a transport verb to the service the voice executor uses too.
+/// Hands a transport verb to the shared player-actions service.
 ///
-/// The args travel as a map because that is what a theme's JSON gives and what
-/// a spoken command's slots produce; the service does the parsing.
+/// The args travel as a map because that is what a theme's JSON gives; the
+/// service does the parsing.
 Future<void> _transport(ProviderContainer ref, ThemeUiAction action) async {
   final actions = ref.read(playerActionsServiceProvider);
   switch (action.type) {

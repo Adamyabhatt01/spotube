@@ -60,10 +60,9 @@ class PlayerActionsService {
   /// Moves the playhead by [step] from where it is, clamped inside the track.
   ///
   /// A relative command cannot be expressed as a `seek` argument because the
-  /// caller would have to read the position itself — and a voice command hears
-  /// "ten seconds" as a number long before anything knows where the playhead
-  /// is. The clamp lives here so "forward" at the end of a song stays at the
-  /// end instead of seeking past it.
+  /// caller would have to read the position itself. The clamp lives here so
+  /// "forward" at the end of a song stays at the end instead of seeking past
+  /// it.
   Future<void> seekBy(Duration step) async {
     if (!_hasActiveTrack) return;
     final player = ref.read(audioPlayerPortProvider);
