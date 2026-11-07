@@ -58,8 +58,24 @@ void main() {
         'player.control',
         'audio.effects',
         'ui.pages',
+        'ui.hostWidgets',
       ]),
     );
+  });
+
+  test('the manifest advertises the v4 contract the payload carries', () {
+    final manifest = jsonDecode(
+      File(
+        '$repoRoot/themes/spotify-shell-v4/plugin.json',
+      ).readAsStringSync(),
+    ) as Map<String, dynamic>;
+
+    // The plugin format version stays on the app's major; the v4 contract is
+    // the payload specVersion, and the manifest advertises it without
+    // claiming a format major the installer would reject.
+    expect(manifest['pluginApiVersion'], '2.0.0');
+    expect(manifest['specVersion'], payload['specVersion']);
+    expect(manifest['capabilities'], payload['capabilities']);
   });
 
   test('ships a routed page and its slot', () {

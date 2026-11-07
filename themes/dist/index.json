@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-07T16:45:56.044236Z",
+  "generatedAt": "2026-11-07T17:15:04.702232Z",
   "themes": [
     {
       "id": "asset-demo",
@@ -222,14 +222,14 @@
       "id": "spotify-shell-v4",
       "name": "Spotify Shell v4",
       "author": "Adamya Bhatt",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "entryPoint": "SpotifyTheme",
       "abilities": [
         "theme"
       ],
-      "file": "spotify-shell-v4-1.0.0.smplug",
-      "bytes": 575465,
-      "sha256": "822fa60c5d003107526c103c8fd3ce19fd4b37439e9063c7b6cf9e0061c726a2",
+      "file": "spotify-shell-v4-1.0.1.smplug",
+      "bytes": 575533,
+      "sha256": "343958f1ede759e15c11f0747959d5d692c89b6cdc5a34476d9a09b16cda733d",
       "optionalMethods": [],
       "hasUiSpec": false,
       "hasStaticTheme": true,

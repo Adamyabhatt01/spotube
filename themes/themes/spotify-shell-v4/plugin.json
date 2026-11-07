@@ -1,10 +1,18 @@
 {
   "name": "Spotify Shell v4",
   "description": "The v4 reference theme: the Spotify-shaped shell plus a theme-owned aside, a routed Audio page, and artwork-palette accents. Ships Inter.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Adamya Bhatt",
   "entryPoint": "SpotifyTheme",
   "pluginApiVersion": "2.0.0",
+  "specVersion": 4,
+  "capabilities": [
+    "library.read",
+    "player.control",
+    "audio.effects",
+    "ui.pages",
+    "ui.hostWidgets"
+  ],
   "apis": [],
   "abilities": ["theme"],
   "repository": "https://github.com/Adamyabhatt01/spotube/tree/master/themes"
