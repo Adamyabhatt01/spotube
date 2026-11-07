@@ -1,0 +1,286 @@
+//#include "sdk/palette.ht"
+
+// Material 3 — built from scratch.
+//
+// One M3 seed colour derives both schemes; the host's own shell (sidebar,
+// aside, player bar) stays in charge of layout, and `uiKit: "material"` makes
+// the semantic nodes render with real Material widgets.
+//
+// The rest of the payload is the M3 spec applied literally: the 2021 type
+// scale on Roboto, the shape scale (4/8/12/16/28/full), the 4dp spacing grid,
+// the motion duration buckets and standard decelerate easing, and the M3
+// component shapes (20dp buttons, 28dp dialogs, 4dp text fields, 12dp cards).
+class Material3ThemeApi {
+  fun getTheme() {
+    var schemes = ThemePalette.fromSeed('#6750A4')
+    return {
+      "specVersion": 4,
+      "uiKit": "material",
+      "capabilities": [
+        "library.read",
+        "player.control",
+        "settings.write"
+      ],
+      "light": schemes['light'],
+      "dark": schemes['dark'],
+      "radius": {
+        "small": 8.0,
+        "medium": 12.0,
+        "large": 16.0,
+        "pill": 999.0
+      },
+      "density": 1.0,
+      "tokens": {
+        "fontFamily": "Roboto",
+        "gutter": 16.0
+      },
+      "typography": {
+        "family": "Roboto",
+        "monoFamily": "Roboto Mono",
+        "styles": {
+          // M3 type scale: display / headline / title / body / label.
+          'h1': {'fontSize': 32.0, 'fontWeight': 400.0, 'height': 1.25, 'letterSpacing': 0.0},
+          'h2': {'fontSize': 28.0, 'fontWeight': 400.0, 'height': 1.29, 'letterSpacing': 0.0},
+          'h3': {'fontSize': 24.0, 'fontWeight': 400.0, 'height': 1.33, 'letterSpacing': 0.0},
+          'h4': {'fontSize': 22.0, 'fontWeight': 400.0, 'height': 1.27, 'letterSpacing': 0.0},
+          'p': {'fontSize': 16.0, 'fontWeight': 400.0, 'height': 1.5, 'letterSpacing': 0.5},
+          'lead': {'fontSize': 16.0, 'fontWeight': 400.0, 'height': 1.5, 'letterSpacing': 0.5},
+          'large': {'fontSize': 16.0, 'fontWeight': 500.0, 'height': 1.5, 'letterSpacing': 0.1},
+          'small': {'fontSize': 14.0, 'fontWeight': 400.0, 'height': 1.43, 'letterSpacing': 0.25},
+          'muted': {'fontSize': 14.0, 'fontWeight': 400.0, 'height': 1.43, 'letterSpacing': 0.25, 'color': '@mutedForeground'},
+          'xSmall': {'fontSize': 12.0, 'fontWeight': 400.0, 'height': 1.33, 'letterSpacing': 0.4},
+          'xLarge': {'fontSize': 22.0, 'fontWeight': 400.0, 'height': 1.27, 'letterSpacing': 0.0},
+          'x2Large': {'fontSize': 28.0, 'fontWeight': 400.0, 'height': 1.29, 'letterSpacing': 0.0},
+          'x3Large': {'fontSize': 36.0, 'fontWeight': 400.0, 'height': 1.22, 'letterSpacing': 0.0},
+          'brand': {'fontSize': 22.0, 'fontWeight': 400.0, 'height': 1.27, 'letterSpacing': 0.0, 'color': '@foreground'},
+          'label': {'fontSize': 14.0, 'fontWeight': 500.0, 'height': 1.43, 'letterSpacing': 0.1, 'color': '@mutedForeground'},
+        },
+      },
+
+      'spacing': {
+        'xs': 4.0,
+        'sm': 8.0,
+        'md': 12.0,
+        'lg': 16.0,
+        'xl': 24.0,
+        'xxl': 32.0,
+        'page': 24.0,
+        'section': 24.0,
+        'cardGap': 16.0,
+        'pageHorizontal': 24.0,
+      },
+
+      // M3 motion: short1..4 (50/100/150/200), medium (250..400), long
+      // (450..600) collapse onto the host's three buckets; the standard
+      // decelerate curve is the M3 default for most transitions.
+      'motion': {
+        'fast': 100.0,
+        'normal': 200.0,
+        'slow': 400.0,
+        'pageTransition': 300.0,
+        'sheet': 350.0,
+        'easing': 'easeOutCubic',
+      },
+
+      'scale': {
+        'size': 1.0,
+        'text': 1.0,
+        'radius': 1.0,
+        'icon': 1.0,
+        'spacing': 1.0,
+      },
+
+      // M3 icon rhythm: 20dp default, 24dp prominent, 40dp large.
+      'icons': {
+        'sm': 20.0,
+        'md': 24.0,
+        'lg': 24.0,
+        'xl': 40.0,
+      },
+
+      // ---------------------------------------------------------- components
+      'components': {
+        // M3 buttons are fully rounded (20dp on a 40dp control reads as a
+        // stadium); secondary maps to the tonal button.
+        'buttons': {
+          'primary': {
+            'background': '@primary',
+            'foreground': '@primaryForeground',
+            'borderColor': '@primary',
+            'borderWidth': 0.0,
+            'radius': 20.0,
+            'height': 40.0,
+            'padding': 24.0,
+            'gap': 8.0,
+            'fontSize': 14.0,
+            'fontWeight': 500.0,
+            'letterSpacing': 0.1,
+            'iconSize': 18.0,
+          },
+          'secondary': {
+            'background': '@secondary',
+            'foreground': '@secondaryForeground',
+            'borderColor': '@secondary',
+            'borderWidth': 0.0,
+            'radius': 20.0,
+            'height': 40.0,
+            'padding': 24.0,
+            'gap': 8.0,
+            'fontSize': 14.0,
+            'fontWeight': 500.0,
+            'letterSpacing': 0.1,
+            'iconSize': 18.0,
+          },
+          'outline': {
+            'background': '#00000000',
+            'foreground': '@primary',
+            'borderColor': '@border',
+            'borderWidth': 1.0,
+            'radius': 20.0,
+            'height': 40.0,
+            'padding': 24.0,
+            'gap': 8.0,
+            'fontSize': 14.0,
+            'fontWeight': 500.0,
+            'letterSpacing': 0.1,
+            'iconSize': 18.0,
+          },
+          'ghost': {
+            'background': '#00000000',
+            'foreground': '@primary',
+            'borderWidth': 0.0,
+            'radius': 20.0,
+            'padding': 12.0,
+            'gap': 8.0,
+            'fontSize': 14.0,
+            'fontWeight': 500.0,
+            'letterSpacing': 0.1,
+            'iconSize': 18.0,
+          },
+          'destructive': {
+            'background': '@destructive',
+            'foreground': '@destructiveForeground',
+            'borderColor': '@destructive',
+            'borderWidth': 0.0,
+            'radius': 20.0,
+            'height': 40.0,
+            'padding': 24.0,
+            'gap': 8.0,
+            'fontSize': 14.0,
+            'fontWeight': 500.0,
+            'letterSpacing': 0.1,
+            'iconSize': 18.0,
+          },
+          'link': {
+            'background': '#00000000',
+            'foreground': '@primary',
+            'borderWidth': 0.0,
+            'radius': 0.0,
+            'padding': 2.0,
+            'fontSize': 14.0,
+            'fontWeight': 500.0,
+            'letterSpacing': 0.1,
+          },
+          'fixed': {
+            'background': '@secondary',
+            'foreground': '@secondaryForeground',
+            'borderColor': '@secondary',
+            'borderWidth': 0.0,
+            'radius': 20.0,
+            'height': 40.0,
+            'padding': 24.0,
+            'fontSize': 14.0,
+            'fontWeight': 500.0,
+            'iconSize': 18.0,
+          },
+          'muted': {
+            'background': '@muted',
+            'foreground': '@foreground',
+            'borderColor': '@muted',
+            'borderWidth': 0.0,
+            'radius': 20.0,
+            'padding': 24.0,
+            'fontSize': 14.0,
+            'fontWeight': 500.0,
+            'letterSpacing': 0.1,
+            'iconSize': 18.0,
+          },
+        },
+        // M3 card = 12dp shape on surface-container-low.
+        'card': {
+          'radius': 12.0,
+          'padding': 16.0,
+          'background': '@card',
+          'borderColor': '@border',
+          'borderWidth': 0.0,
+        },
+        // Material kit owns the player surface; keep it quiet.
+        'material': {
+          'card': {
+            'radius': 12.0,
+            'borderWidth': 0.0
+          }
+        },
+        'player': {
+          'background': '@card',
+          'borderColor': '@card',
+          'borderWidth': 0.0,
+        },
+        // M3 text field = 4dp shape, filled style on surfaceContainerHighest.
+        'input': {
+          'radius': 4.0,
+          'height': 56.0,
+          'borderColor': '@border',
+          'background': '@muted',
+        },
+        'tabs': {'indicatorColor': '@primary', 'radius': 999.0},
+        'nav': {'radius': 12.0, 'padding': 8.0},
+        'tooltip': {'radius': 4.0, 'padding': 8.0, 'surfaceOpacity': 1.0},
+        'badge': {'radius': 999.0, 'padding': 4.0, 'fontSize': 11.0},
+        'select': {'radius': 4.0, 'height': 56.0},
+        'switch': {'thumbColor': '@primary'},
+        'slider': {'thumbColor': '@primary', 'trackColor': '@muted'},
+        'scrollbar': {'radius': 999.0},
+        'avatar': {'radius': 999.0},
+        'skeleton': {'radius': 4.0, 'surfaceOpacity': 1.0},
+        // M3 linear progress indicator: 4dp track, rounded ends.
+        'progress': {
+          'style': 'linear',
+          'height': 4,
+          'radius': 2,
+          'foreground': '@primary',
+          'trackColor': '@muted',
+          'thumbColor': '@primary'
+        },
+        'divider': {'borderColor': '@border'},
+        'menu': {'radius': 4.0, 'padding': 4.0},
+        'dropdown': {'radius': 4.0},
+        // M3 dialogs are the largest shape in the system: 28dp.
+        'modal': {'radius': 28.0},
+        'dialog': {'radius': 28.0, 'padding': 24.0},
+        'sheet': {'radius': 28.0},
+        'table': {'radius': 12.0},
+        'checkbox': {'radius': 2.0},
+        'radio': {'radius': 999.0},
+        'toggle': {'radius': 999.0},
+        'toggleGroup': {'radius': 999.0},
+        'accordion': {'radius': 12.0},
+        'alert': {'radius': 12.0, 'padding': 16.0},
+        'breadcrumb': {'gap': 8.0},
+        'carousel': {'radius': 12.0},
+        'collapsible': {'radius': 12.0},
+        'command': {'radius': 12.0, 'padding': 12.0},
+      },
+
+      'layout': {
+        'chrome': 'inset',
+        'nav': 'labels',
+        'progress': 'inline'
+      }
+    }
+  }
+}
+
+class Material3Theme {
+  var theme = Material3ThemeApi();
+}

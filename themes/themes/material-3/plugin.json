@@ -1,0 +1,11 @@
+{
+  "name": "Material 3",
+  "description": "A clean Material 3 theme: M3 tonal palette from a single seed, native Material widgets for buttons, sliders, inputs, tabs and chips, host-owned sidebar and player.",
+  "version": "1.0.0",
+  "author": "Material Labs",
+  "entryPoint": "Material3Theme",
+  "pluginApiVersion": "2.0.0",
+  "apis": [],
+  "abilities": ["theme"],
+  "repository": "https://github.com/Adamyabhatt01/spotube/tree/master/themes"
+}

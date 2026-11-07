@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-05T12:23:34.999951Z",
+  "generatedAt": "2026-11-07T05:41:38.862709Z",
   "themes": [
     {
       "id": "asset-demo",
@@ -27,7 +27,7 @@
       ],
       "file": "brand-demo-2.0.0.smplug",
       "bytes": 6980,
-      "sha256": "8663120fbcfa7c79662c1c5465528067b46fe1b438af57b3ae14e970e9541d0e",
+      "sha256": "ea46229b7b261725fda05da853bcf0c5b1c7554cb15380380171ae81c40275c3",
       "optionalMethods": [],
       "hasUiSpec": false
     },
@@ -106,9 +106,25 @@
       ],
       "file": "kitchen-sink-2.0.0.smplug",
       "bytes": 10634,
-      "sha256": "30c7dcd3afad7737496661b36e82361bc26d20515ae4e18201e02250e35fbf60",
+      "sha256": "8dad41c4a6dfad2293125b0b3f1cfb6f657e2d61d7466d4c22db012b0991817e",
       "optionalMethods": [],
       "hasUiSpec": false
+    },
+    {
+      "id": "material-3",
+      "name": "Material 3",
+      "author": "Material Labs",
+      "version": "1.0.0",
+      "entryPoint": "Material3Theme",
+      "abilities": [
+        "theme"
+      ],
+      "file": "material-3-1.0.0.smplug",
+      "bytes": 7157,
+      "sha256": "58d71b7a48ad499118d28c8b97c23d974f438e811be00d2e1cebdc1119bcb39f",
+      "optionalMethods": [],
+      "hasUiSpec": false,
+      "published": "material-3/plugin.smplug"
     },
     {
       "id": "minimal",
@@ -121,7 +137,7 @@
       ],
       "file": "minimal-1.0.0.smplug",
       "bytes": 5448,
-      "sha256": "5c32a1188a055db5c39460f759189d6fcfb0c968f2f6bcd74613d92ea56d8176",
+      "sha256": "bba079c9a5332e3a2d7159d39cc863368be5647b4be88484d866f2e0adde9023",
       "optionalMethods": [],
       "hasUiSpec": false
     },
@@ -199,8 +215,8 @@
         "theme"
       ],
       "file": "spotify-shell-v4-1.0.0.smplug",
-      "bytes": 566001,
-      "sha256": "3592e08d9f39fd238b4233777ae0d56f7ebb528bad4adcc574ef90578b23951c",
+      "bytes": 565839,
+      "sha256": "f2d9eb96571decfb4abbf54f8fb09108341c8fdb69b163342a9e861b8d26d32b",
       "optionalMethods": [],
       "hasUiSpec": false,
       "published": "spotify-shell-v4/plugin.smplug"
@@ -216,7 +232,7 @@
       ],
       "file": "ui-demo-2.0.0.smplug",
       "bytes": 6253,
-      "sha256": "da7621aa4389e44ab8236ef873e0fe2c5d64b4d80673e1fa0c5799e8b5b4affb",
+      "sha256": "ede12e8cfe7bf1129bc7e0c1c8f7d3f836a7363ab738d50de95b6e1f8ed8079e",
       "optionalMethods": [
         "getUi",
         "onUiAction"

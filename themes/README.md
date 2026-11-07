@@ -287,8 +287,7 @@ authoring a v4 theme. The short version:
   resolver, the `box`/`grid`/`safeArea`/`aspectRatio`/`kitScope` nodes, and the
   input/overlay set (`slider`, `switch`, `checkbox`, `radioGroup`, `textField`,
   `textArea`, `select`, `segmented`, `tabs`, `menu`, `contextMenu`, `popover`,
-  `tooltip`, `dialog`, `sheet`). Material and Cupertino render `button`,
-  `progress` and `slider` natively and fall back to shadcn for everything else.
+  `tooltip`, `dialog`, `sheet`). Material renders `button`, `progress`, `slider`, the form controls (`switch`, `checkbox`, `radioGroup`, `textField`, `textArea`, `select`, `segmented`, `tabs`) and `divider`, `badge`, `chip`, `avatar` natively; Cupertino renders `button`, `progress` and `slider`. Everything else falls back to shadcn.
 - `capabilities` declares what the theme may use (`library.read`,
   `player.control`, `theme.assets` are defaults; `library.write`,
   `audio.effects`, `ui.pages`, `ui.hostWidgets`, `settings.write`,
