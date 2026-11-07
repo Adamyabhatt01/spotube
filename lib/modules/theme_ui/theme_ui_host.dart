@@ -28,8 +28,8 @@ _LiveUi? _liveUi(
   WidgetRef ref, {
   ThemeUiBindings? bindings,
 }) {
-  final definition = ref.watch(themeDefinitionProvider).asData?.value;
-  final ui = ref.watch(themeUiProvider).asData?.value;
+  final definition = ref.watch(effectiveThemeDefinitionProvider);
+  final ui = ref.watch(effectiveThemeUiProvider);
   if (definition == null || ui == null) return null;
 
   // Starts the font load and rebuilds the subtree once the faces are ready;
@@ -115,8 +115,8 @@ class ThemeUiRuntimeScopeHost extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final debug = ref.watch(themeUiDebugOverlayProvider);
-    final definition = ref.watch(themeDefinitionProvider).asData?.value;
-    final ui = ref.watch(themeUiProvider).asData?.value;
+    final definition = ref.watch(effectiveThemeDefinitionProvider);
+    final ui = ref.watch(effectiveThemeUiProvider);
     if (definition == null || ui == null) {
       return debug ? _withDebugOverlay(child) : child;
     }
@@ -211,7 +211,7 @@ class _ThemeUiAnchorRegistryHostState
 /// fall back to the widget the app shipped with, without building a widget
 /// just to find out it is empty.
 bool themeUiSlotExists(WidgetRef ref, String name) {
-  final ui = ref.watch(themeUiProvider).asData?.value;
+  final ui = ref.watch(effectiveThemeUiProvider);
   return ui?.slots[name]?.children.isNotEmpty ?? false;
 }
 

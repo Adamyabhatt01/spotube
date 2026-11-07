@@ -24,6 +24,7 @@ import 'package:spotube/modules/theme_ui/theme_ui_fonts.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
+import 'package:spotube/services/theme_definition_cache.dart';
 import 'package:spotube/utils/built_in_theme_colors.dart';
 
 import 'support/common_fakes.dart';
@@ -92,6 +93,7 @@ ProviderContainer _container({
     overrides: [
       themeDefinitionProvider.overrideWith((ref) async => _theme()),
       themeUiProvider.overrideWith((ref) async => ui),
+      cachedThemeDefinitionProvider.overrideWith((ref) async => null),
       themeUiAssetsProvider.overrideWith((ref) async => const ThemeUiAssets()),
       themeUiFontsProvider.overrideWith((ref) async {}),
       userPreferencesProvider.overrideWith(
@@ -136,6 +138,10 @@ void main() {
 
       expect(find.text('THEME SIDEBAR'), findsOneWidget);
       expect(find.text('HOST SIDEBAR'), findsNothing);
+      // The first container is unmounted by the next pumpWidget; dispose
+      // it now so a late provider refresh cannot schedule a timer
+      // against the second container's frame.
+      container.dispose();
 
       final empty = _container(ui: const ThemeUiDocument());
       addTearDown(empty.dispose);
@@ -151,9 +157,13 @@ void main() {
         ),
       );
       await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('THEME SIDEBAR'), findsNothing);
       expect(find.text('HOST SIDEBAR'), findsOneWidget);
+      // Flush the scheduler tick the effective providers schedule when
+      // cached/live settle, otherwise the fake-async timer stays pending
+      // after the double-pump.
     });
 
     testWidgets('sidebar.library replaces the host group', (tester) async {

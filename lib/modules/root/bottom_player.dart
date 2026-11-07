@@ -115,7 +115,7 @@ class BottomPlayer extends HookConsumerWidget {
 
     // A theme may give the footer its own surface (Spotify's player is black
     // against a #121212 page). No component means the host surface stands.
-    final themeDefinition = ref.watch(themeDefinitionProvider).asData?.value;
+    final themeDefinition = ref.watch(effectiveThemeDefinitionProvider);
     final rawPlayerStyle = themeDefinition?.components['player'];
     final playerStyle = rawPlayerStyle is Map
         ? rawPlayerStyle.cast<String, dynamic>()

@@ -78,7 +78,7 @@ class SpotubeNavigationBar extends HookConsumerWidget {
     final layoutMode =
         ref.watch(userPreferencesProvider.select((s) => s.layoutMode));
     final layout = context.layout;
-    final themeUi = ref.watch(themeUiProvider).asData?.value;
+    final themeUi = ref.watch(effectiveThemeUiProvider);
 
     final screens = useMemoized(
       () => themeScreenTiles(themeUi),

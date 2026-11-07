@@ -250,7 +250,8 @@ class DownloadProgressTracker extends AutoDisposeNotifier<Map<String, double>> {
           if (_disposed) return;
           state = {
             ...state,
-            if (total > 0) entry.key: (bytes / total).clamp(0.0, 1.0).toDouble(),
+            if (total > 0)
+              entry.key: (bytes / total).clamp(0.0, 1.0).toDouble(),
           };
         },
       );
@@ -274,7 +275,7 @@ class DownloadProgressTracker extends AutoDisposeNotifier<Map<String, double>> {
 /// Recomputes on a theme switch and on a `plugin` action that replaces the
 /// UI; every slot in that document then shares one scan.
 final themeUiBindingDemandProvider = Provider<ThemeUiBindingDemand>((ref) {
-  final ui = ref.watch(themeUiProvider).asData?.value;
+  final ui = ref.watch(effectiveThemeUiProvider);
   return ThemeUiBindingDemand.scan(ui);
 });
 
@@ -333,7 +334,9 @@ class ThemeUiLocalState extends Notifier<Map<String, Object?>> {
   /// be mistaken for one of the current theme's keys.
   String _scopeKey(String key) {
     final namespace = _namespace;
-    return namespace == null ? 'none.$key' : '${namespace.author}.${namespace.name}.$key';
+    return namespace == null
+        ? 'none.$key'
+        : '${namespace.author}.${namespace.name}.$key';
   }
 
   void set(String key, Object? value) {
@@ -485,8 +488,7 @@ ThemeUiBindings buildThemeUiBindings(
   if (wants.wants('app.greeting')) {
     values['app.greeting'] = greetingFor(now);
   }
-  final wantsAppPins =
-      wants.wants('app.pinnedPlaylistIds') ||
+  final wantsAppPins = wants.wants('app.pinnedPlaylistIds') ||
       wants.wants('app.pinnedStationIds');
   if (wantsAppPins) {
     final prefs = ref.watch(userPreferencesProvider);
@@ -604,9 +606,8 @@ ThemeUiBindings buildThemeUiBindings(
   // -------------------------------------------------------- ephemeral
   if (wants.wantsNamespace('state')) {
     final namespace = ref.watch(themeSettingsNamespaceProvider);
-    final prefix = namespace == null
-        ? 'none.'
-        : '${namespace.author}.${namespace.name}.';
+    final prefix =
+        namespace == null ? 'none.' : '${namespace.author}.${namespace.name}.';
     for (final entry in ref.watch(themeUiLocalStateProvider).entries) {
       if (!entry.key.startsWith(prefix)) continue;
       values['state.${entry.key.substring(prefix.length)}'] = entry.value;
@@ -643,12 +644,10 @@ ThemeUiBindings buildThemeUiBindings(
   // ---------------------------------------------------------- downloads
   if (wants.wantsNamespace('downloads')) {
     final tasks = ref.watch(downloadManagerProvider);
-    values['downloads.active'] = tasks
-        .where((task) => task.status == DownloadStatus.downloading)
-        .length;
-    values['downloads.queued'] = tasks
-        .where((task) => task.status == DownloadStatus.queued)
-        .length;
+    values['downloads.active'] =
+        tasks.where((task) => task.status == DownloadStatus.downloading).length;
+    values['downloads.queued'] =
+        tasks.where((task) => task.status == DownloadStatus.queued).length;
     values['downloads.failed'] = tasks
         .where(
           (task) =>
@@ -656,9 +655,8 @@ ThemeUiBindings buildThemeUiBindings(
               task.status == DownloadStatus.canceled,
         )
         .length;
-    values['downloads.completed'] = tasks
-        .where((task) => task.status == DownloadStatus.completed)
-        .length;
+    values['downloads.completed'] =
+        tasks.where((task) => task.status == DownloadStatus.completed).length;
     if (wants.wants('downloads.progress')) {
       values['downloads.progress'] = ref.watch(downloadProgressProvider);
     }

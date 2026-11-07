@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -14,6 +15,7 @@ import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_node.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_screen_stack.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+import 'package:spotube/services/theme_definition_cache.dart';
 import 'package:spotube/utils/built_in_theme_colors.dart';
 
 /// The Spotify home slot mounts the real search bar, which reads recents from
@@ -47,6 +49,7 @@ ProviderContainer _container({
     overrides: [
       themeDefinitionProvider.overrideWith((ref) async => theme),
       themeUiProvider.overrideWith((ref) async => ui),
+      cachedThemeDefinitionProvider.overrideWith((ref) async => null),
       themeUiAssetsProvider.overrideWith((ref) async => const ThemeUiAssets()),
       themeUiFontsProvider.overrideWith((ref) async {}),
       recentSearchesProvider.overrideWith(_EmptyRecents.new),
@@ -337,8 +340,7 @@ void main() {
     expect(find.text('SHELL'), findsOneWidget);
   });
 
-  testWidgets('a page-level list builds only the visible rows',
-      (tester) async {
+  testWidgets('a page-level list builds only the visible rows', (tester) async {
     const ui = ThemeUiDocument(slots: {
       'collection.content': ThemeUiSlot(children: [
         {'type': 'text', 'text': 'COLLECTION HEADER'},
@@ -392,5 +394,167 @@ void main() {
       reason: 'only the viewport and its cache should be built',
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('effective providers prefer live over cached', (tester) async {
+    const cachedUi = ThemeUiDocument(slots: {
+      'sidebar.header': ThemeUiSlot(children: [
+        {'type': 'text', 'text': 'CACHED HEADER'},
+      ]),
+    });
+    const liveUi = ThemeUiDocument(slots: {
+      'sidebar.header': ThemeUiSlot(children: [
+        {'type': 'text', 'text': 'LIVE HEADER'},
+      ]),
+    });
+    final cachedTheme = ThemeDefinition(
+      specVersion: 4,
+      light: builtInLightThemeColors(),
+      dark: builtInDarkThemeColors(),
+      ui: cachedUi,
+    );
+    final liveTheme = ThemeDefinition(
+      specVersion: 4,
+      light: builtInLightThemeColors(),
+      dark: builtInDarkThemeColors(),
+      ui: liveUi,
+    );
+    final container = ProviderContainer(
+      overrides: [
+        themeDefinitionProvider.overrideWith((ref) async => liveTheme),
+        themeUiProvider.overrideWith((ref) async => liveUi),
+        cachedThemeDefinitionProvider.overrideWith((ref) async => cachedTheme),
+        themeUiAssetsProvider
+            .overrideWith((ref) async => const ThemeUiAssets()),
+        themeUiFontsProvider.overrideWith((ref) async {}),
+        recentSearchesProvider.overrideWith(_EmptyRecents.new),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: _app(
+          const ThemeSlot(
+            'sidebar.header',
+            fallback: Text('HOST HEADER'),
+            bindings: bindings,
+          ),
+          scroll: true,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('LIVE HEADER'), findsOneWidget);
+    expect(find.text('CACHED HEADER'), findsNothing);
+    expect(container.read(effectiveThemeDefinitionProvider), liveTheme);
+    expect(container.read(effectiveThemeUiProvider), liveUi);
+  });
+
+  testWidgets('slots paint the cached tree while live is still loading',
+      (tester) async {
+    const cachedUi = ThemeUiDocument(slots: {
+      'sidebar.header': ThemeUiSlot(children: [
+        {'type': 'text', 'text': 'CACHED HEADER'},
+        {'type': 'text', 'bind': 'player.title'},
+      ]),
+    });
+    final cachedTheme = ThemeDefinition(
+      specVersion: 4,
+      light: builtInLightThemeColors(),
+      dark: builtInDarkThemeColors(),
+      ui: cachedUi,
+    );
+    final liveDefCompleter = Completer<ThemeDefinition?>();
+    final liveUiCompleter = Completer<ThemeUiDocument?>();
+    final container = ProviderContainer(
+      overrides: [
+        themeDefinitionProvider.overrideWith((ref) => liveDefCompleter.future),
+        themeUiProvider.overrideWith((ref) => liveUiCompleter.future),
+        cachedThemeDefinitionProvider.overrideWith((ref) async => cachedTheme),
+        themeUiAssetsProvider
+            .overrideWith((ref) async => const ThemeUiAssets()),
+        themeUiFontsProvider.overrideWith((ref) async {}),
+        recentSearchesProvider.overrideWith(_EmptyRecents.new),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: _app(
+          const ThemeSlot(
+            'sidebar.header',
+            fallback: Text('HOST HEADER'),
+            bindings: bindings,
+          ),
+          scroll: true,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('CACHED HEADER'), findsOneWidget);
+    expect(find.text('HOST HEADER'), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    // The demand scan follows the cached document too: a cached binding
+    // is subscribed before live lands.
+    final demand = container.read(themeUiBindingDemandProvider);
+    expect(demand.names, contains('player.title'));
+    expect(demand.sources, contains('audioPlayer'));
+  });
+
+  testWidgets('cached slot does not leak into the next theme identity',
+      (tester) async {
+    const cachedUi = ThemeUiDocument(slots: {
+      'sidebar.header': ThemeUiSlot(children: [
+        {'type': 'text', 'text': 'CACHED HEADER'},
+      ]),
+    });
+    final cachedTheme = ThemeDefinition(
+      specVersion: 4,
+      light: builtInLightThemeColors(),
+      dark: builtInDarkThemeColors(),
+      ui: cachedUi,
+    );
+    final container = ProviderContainer(
+      overrides: [
+        // Live settled to null (no theme / removed theme) and the cache
+        // miss matches the new identity — nothing should paint.
+        themeDefinitionProvider.overrideWith((ref) async => null),
+        themeUiProvider.overrideWith((ref) async => null),
+        cachedThemeDefinitionProvider.overrideWith((ref) async => null),
+        themeUiAssetsProvider
+            .overrideWith((ref) async => const ThemeUiAssets()),
+        themeUiFontsProvider.overrideWith((ref) async {}),
+        recentSearchesProvider.overrideWith(_EmptyRecents.new),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: _app(
+          const ThemeSlot(
+            'sidebar.header',
+            fallback: Text('HOST HEADER'),
+            bindings: bindings,
+          ),
+          scroll: true,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('HOST HEADER'), findsOneWidget);
+    expect(find.text('CACHED HEADER'), findsNothing);
+    expect(tester.takeException(), isNull);
+    // Avoid an unused-variable lint for the seeded theme shape used above.
+    expect(cachedTheme.ui?.slots.length, 1);
   });
 }

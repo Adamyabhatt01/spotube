@@ -78,8 +78,8 @@ class Sidebar extends HookConsumerWidget {
     // face's value. Recreate the sidebar once the faces land (the key flips
     // from false to true) to force a fresh measure with Inter.
     final fontsLoaded = ref.watch(themeUiFontsProvider).hasValue;
-    final themeUi = ref.watch(themeUiProvider).asData?.value;
-    final themeDefinition = ref.watch(themeDefinitionProvider).asData?.value;
+    final themeUi = ref.watch(effectiveThemeUiProvider);
+    final themeDefinition = ref.watch(effectiveThemeDefinitionProvider);
     final branding = useMemoized(
       () => ThemeBranding.from(themeDefinition),
       [themeDefinition],
@@ -113,11 +113,10 @@ class Sidebar extends HookConsumerWidget {
     final screens = useMemoized(
       () => {
         ...themeScreenTiles(themeUi),
-        for (final parent in themePageParents)
-          ...{
-            for (final tile in themePageTiles(themeUi, parent: parent))
-              tile.id: tile,
-          },
+        for (final parent in themePageParents) ...{
+          for (final tile in themePageTiles(themeUi, parent: parent))
+            tile.id: tile,
+        },
       },
       [themeUi],
     );

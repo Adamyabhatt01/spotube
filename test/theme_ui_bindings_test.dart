@@ -15,6 +15,7 @@ import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/audio_player/state.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
+import 'package:spotube/services/theme_definition_cache.dart';
 import 'package:spotube/services/theme_ui/artwork_palette.dart';
 import 'package:spotube/utils/built_in_theme_colors.dart';
 
@@ -459,6 +460,7 @@ void main() {
             ),
           ),
           themeUiProvider.overrideWith((ref) async => document),
+          cachedThemeDefinitionProvider.overrideWith((ref) async => null),
           themeUiAssetsProvider.overrideWith(
             (ref) async => const ThemeUiAssets(),
           ),

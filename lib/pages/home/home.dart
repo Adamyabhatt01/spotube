@@ -48,7 +48,7 @@ class HomePage extends HookConsumerWidget {
     final searching =
         ref.watch(searchTermStateProvider.select((s) => s.trim().isNotEmpty));
     final showInlineSearch = !isBottomNavVisible(mediaQuery.size, layoutMode);
-    final themeDefinition = ref.watch(themeDefinitionProvider).asData?.value;
+    final themeDefinition = ref.watch(effectiveThemeDefinitionProvider);
     final isStage = context.layout.player.dock == ThemePlayerDock.stage;
     final hasHomeBefore = themeUiSlotExists(ref, 'home.before_sections');
     final hasHomeAfter = themeUiSlotExists(ref, 'home.after_sections');
@@ -76,9 +76,8 @@ class HomePage extends HookConsumerWidget {
     // `dynamic`, and an extension getter (`entry.playlist`) is not visible
     // through dynamic dispatch. That turned every non-empty history into a
     // NoSuchMethodError at build time.
-    final recentHistory =
-        ref.watch(recentlyPlayedItems).asData?.value ??
-            const <HistoryTableData>[];
+    final recentHistory = ref.watch(recentlyPlayedItems).asData?.value ??
+        const <HistoryTableData>[];
     final recentItems = hasHomeContent
         ? [
             for (final entry in recentHistory)

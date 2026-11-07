@@ -151,8 +151,7 @@ class PlayerSeekLine extends HookWidget {
             child: Slider(
               hintValue: SliderValue.single(buffered),
               value: SliderValue.single(anchor.value ?? value),
-              onChangeStart:
-                  enabled ? (v) => anchor.value = v.value : null,
+              onChangeStart: enabled ? (v) => anchor.value = v.value : null,
               onChanged: enabled ? (v) => held.value = v.value : null,
               onChangeEnd: enabled
                   ? (v) {
@@ -248,7 +247,7 @@ class PlayerProgress extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isResolvingActiveTrack = ref.watch(isResolvingActiveTrackProvider);
-    final themeDefinition = ref.watch(themeDefinitionProvider).asData?.value;
+    final themeDefinition = ref.watch(effectiveThemeDefinitionProvider);
     final progressStyle = themeDefinition?.components['progress'];
     final wavy = progressStyle is Map && progressStyle['style'] == 'wavy';
 
@@ -267,9 +266,8 @@ class PlayerProgress extends HookConsumerWidget {
     return PlayerSeekLine(
       inline: inline,
       wavy: wavy,
-      progressStyle: progressStyle is Map
-          ? progressStyle.cast<String, dynamic>()
-          : null,
+      progressStyle:
+          progressStyle is Map ? progressStyle.cast<String, dynamic>() : null,
       value: displayed.value.toDouble(),
       buffered: bufferProgress,
       elapsed: position.toHumanReadableString(),

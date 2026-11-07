@@ -1,10 +1,13 @@
 import 'dart:io';
 
+// ignore: depend_on_referenced_packages
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:path/path.dart';
+import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/plugin_storage.dart';
 import 'package:spotube/services/logger/logger.dart';
+import 'package:spotube/services/theme_definition_cache.dart';
 
 /// Resolves a theme's `asset://` paths inside the theme plugin's own,
 /// versioned extraction directory.
@@ -49,6 +52,34 @@ class ThemeUiAssets {
 /// installed. Keeping the provider success-shaped means a missing theme is
 /// "no assets", not a widget-tree error.
 final themeUiAssetsProvider = FutureProvider<ThemeUiAssets>((ref) async {
+  // Fast path: the stored plugin key names the versioned directory
+  // directly, so assets do not wait for the plugin database to build.
+  // A stale or removed theme simply misses the directory and falls
+  // through to the database path below, which answers inert.
+  try {
+    final pluginKey = await ref.watch(storedThemePluginKeyProvider.future);
+    if (pluginKey != null) {
+      final parts = pluginKey.split('::');
+      if (parts.length == 3) {
+        final config = PluginConfiguration(
+          name: parts[1],
+          description: '',
+          version: parts[2],
+          author: parts[0],
+          entryPoint: 'Theme',
+          pluginApiVersion: '2.0.0',
+        );
+        final directory = await PluginStorage().extractionDir(config);
+        if (await directory.exists()) {
+          return ThemeUiAssets(pluginDirectory: directory.path);
+        }
+      }
+    }
+  } catch (_) {
+    // Fall through to the database path; a missing store or directory
+    // must not make a missing theme an error.
+  }
+
   final plugin = await ref.watch(
     metadataPluginsProvider.selectAsync(
       (data) => data.defaultThemePluginConfig,

@@ -75,15 +75,21 @@ final themeDefinitionProvider = FutureProvider<ThemeDefinition?>(
       // the plugin theme loads, and scheme changes are rare.
       ref.watch(shellThemeSignalProvider);
 
-      final defaultPlugin = await ref.watch(
+      // The static payload does not need the plugin database (it resolves
+      // from the stored plugin key alone), so watch both up front and let
+      // them start in parallel instead of waiting for the database to
+      // list plugins before even starting the file read.
+      final defaultPluginFuture = ref.watch(
         metadataPluginsProvider
             .selectAsync((data) => data.defaultThemePluginConfig),
       );
+      final staticPayloadFuture = ref.watch(themeStaticPayloadProvider.future);
+      final defaultPlugin = await defaultPluginFuture;
 
       // The static payload wins: no Hetu VM is created when the theme
       // shipped one. The VM boots only for themes that did not, and then
       // only to ask `getTheme()` what the build already knew.
-      final staticPayload = await ref.watch(themeStaticPayloadProvider.future);
+      final staticPayload = await staticPayloadFuture;
       final ThemeDefinition? definition;
       if (staticPayload != null) {
         definition = staticPayload.definition;
@@ -183,7 +189,8 @@ final pluginThemeUiProvider = FutureProvider<ThemeUiDocument?>((ref) async {
 /// settings dialog twice must not spin the Hetu VM twice. The host uses the
 /// document's `settings.content` slot and persists values through the
 /// per-theme settings namespace.
-final pluginThemeSettingsProvider = FutureProvider<ThemeUiDocument?>((ref) async {
+final pluginThemeSettingsProvider =
+    FutureProvider<ThemeUiDocument?>((ref) async {
   // A static payload that declares no `showSettings()` means the theme has
   // no settings; the VM stays unbooted instead of answering "nothing"
   // from a fresh process.
@@ -229,6 +236,34 @@ final themeUiProvider = FutureProvider<ThemeUiDocument?>((ref) async {
   final staticPayload = await ref.watch(themeStaticPayloadProvider.future);
   if (staticPayload != null && !staticPayload.needsVmForUi) return null;
   return ref.watch(pluginThemeUiProvider.future);
+});
+
+/// The theme definition to paint with right now: live wins, the warm-start
+/// cache seeds the first paint.
+///
+/// Mirrors `main.dart`'s shell choice so slots paint their structure
+/// immediately instead of waiting for the database + static-file + shell
+/// resolution to finish. The cache is already plugin-identity checked
+/// (`cachedThemeDefinitionProvider`), so a stale entry can only describe
+/// the selected theme, and it is overwritten silently when live resolves.
+final effectiveThemeDefinitionProvider = Provider<ThemeDefinition?>((ref) {
+  return ref.watch(themeDefinitionProvider).asData?.value ??
+      ref.watch(cachedThemeDefinitionProvider).asData?.value;
+});
+
+/// The UI document to paint with right now: live wins, the cached inline
+/// tree seeds the first paint.
+///
+/// Themes that answer from `getUi()` ship no inline tree, so their cached
+/// definitions carry no UI and this is simply the live document — they
+/// still wait for the VM, by design. A `specVersion: 3` cache never
+/// contributes (sanitizer already strips its tree, and live rejects it).
+final effectiveThemeUiProvider = Provider<ThemeUiDocument?>((ref) {
+  final live = ref.watch(themeUiProvider).asData?.value;
+  if (live != null) return live;
+  final cached = ref.watch(cachedThemeDefinitionProvider).asData?.value;
+  if (cached == null || cached.specVersion == 3) return null;
+  return cached.ui;
 });
 
 /// In-memory cache for MetadataPlugin instances (Hetu VMs).
