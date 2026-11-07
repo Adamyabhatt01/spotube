@@ -15,6 +15,7 @@ import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/components/titlebar/titlebar.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/services/metadata/apis/localstorage.dart';
+import 'package:spotube/services/metadata/http_timeout_binding.dart';
 import 'package:spotube/services/metadata/endpoints/album.dart';
 import 'package:spotube/services/metadata/endpoints/artist.dart';
 import 'package:spotube/services/metadata/endpoints/audio_source.dart';
@@ -47,6 +48,9 @@ class MetadataPlugin {
     hetu.init();
 
     HetuStdLoader.loadBindings(hetu);
+    // Finite HTTP timeouts when the plugin declared none (the stdlib
+    // binding would pass null to Dio, which waits forever).
+    bindPluginHttpTimeoutDefaults(hetu);
     HetuSpotubePluginLoader.loadBindings(
       hetu,
       localStorageImpl: SharedPreferencesLocalStorage(
