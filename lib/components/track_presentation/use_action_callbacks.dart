@@ -70,7 +70,7 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
       final initialTracks = options.tracks;
       if (!context.mounted) return;
 
-      final isRemoteDevice = await showSelectDeviceDialog(context, ref);
+      final isRemoteDevice = await showSelectDeviceDialog(context, ref.read);
       if (isRemoteDevice == null) return;
       if (isRemoteDevice) {
         final allTracks = await options.pagination.onFetchAll();
@@ -150,7 +150,7 @@ UseActionCallbacks useActionCallbacks(WidgetRef ref) {
 
       if (!context.mounted) return;
 
-      final isRemoteDevice = await showSelectDeviceDialog(context, ref);
+      final isRemoteDevice = await showSelectDeviceDialog(context, ref.read);
       if (isRemoteDevice == null) return;
       if (isRemoteDevice) {
         final allTracks = await options.pagination.onFetchAll();

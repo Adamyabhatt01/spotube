@@ -36,7 +36,7 @@ class TrackPresentationTopSection extends HookConsumerWidget {
     String playlistId,
   ) async {
     final deleted =
-        await deletePlaylistWithConfirmation(context, ref, playlistId);
+        await deletePlaylistWithConfirmation(context, ref.read, playlistId);
     if (deleted && context.mounted) {
       context.router.maybePop();
     }

@@ -66,7 +66,7 @@ class SearchPageTracksTab extends HookConsumerWidget {
             isPlaying: activeTrackId == track.id,
             index: index,
             onTap: () async {
-              final isRemoteDevice = await showSelectDeviceDialog(context, ref);
+              final isRemoteDevice = await showSelectDeviceDialog(context, ref.read);
 
               if (isRemoteDevice == null) return;
 

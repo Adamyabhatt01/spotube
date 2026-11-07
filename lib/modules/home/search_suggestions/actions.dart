@@ -146,7 +146,7 @@ Future<void> playLibrarySuggestion(
           .toList();
       if (topTracks.isEmpty || !context.mounted) return;
 
-      final isRemoteDevice = await showSelectDeviceDialog(context, ref);
+      final isRemoteDevice = await showSelectDeviceDialog(context, ref.read);
       if (isRemoteDevice == null) return;
 
       if (isRemoteDevice) {
@@ -194,7 +194,7 @@ Future<void> _playCollection(
   final initialTracks = await fetchInitial();
   if (initialTracks.isEmpty || !context.mounted) return;
 
-  final isRemoteDevice = await showSelectDeviceDialog(context, ref);
+  final isRemoteDevice = await showSelectDeviceDialog(context, ref.read);
   if (isRemoteDevice == null) return;
 
   if (isRemoteDevice) {

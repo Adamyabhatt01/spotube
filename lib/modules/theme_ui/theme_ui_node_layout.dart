@@ -445,6 +445,22 @@ extension _ThemeUiLayoutNodes on ThemeUiNodeView {
         .toDouble();
     final color = _color(context, props['color'],
         fallback: Theme.of(context).colorScheme.border);
+    final kit = _kitForComponent(
+      context,
+      component: 'divider',
+      nodeType: 'divider',
+      nodeKit: props['kit'],
+    );
+    if (kit == ThemeUiKit.material) {
+      if (props['orientation'] == 'vertical') {
+        return material.VerticalDivider(
+          width: thickness,
+          thickness: thickness,
+          color: color,
+        );
+      }
+      return material.Divider(height: thickness, thickness: thickness, color: color);
+    }
     if (props['orientation'] == 'vertical') {
       return Container(
           width: thickness,

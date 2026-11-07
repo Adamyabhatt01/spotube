@@ -12,6 +12,7 @@ import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 
 import 'package:spotube/provider/blacklist_provider.dart';
+import 'package:spotube/modules/theme_ui/host_item_context_menu.dart';
 import 'package:spotube/utils/primitive_utils.dart';
 
 class ArtistCard extends HookConsumerWidget {
@@ -39,7 +40,11 @@ class ArtistCard extends HookConsumerWidget {
       blacklistedIdsProvider.select((ids) => ids.contains(artist.id)),
     );
 
-    return SizedBox(
+    // Self-wrap like PlaylistCard/AlbumCard: right-click (desktop) and
+    // long-press (touch) get the shared artist menu on every surface.
+    return HostItemContextMenu(
+      item: artist,
+      child: SizedBox(
       width: context.artistCardWidth,
       child: Button.card(
         onPressed: () {
@@ -81,6 +86,7 @@ class ArtistCard extends HookConsumerWidget {
             )
           ],
         ),
+      ),
       ),
     );
   }

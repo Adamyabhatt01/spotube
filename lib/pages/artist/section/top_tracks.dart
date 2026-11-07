@@ -70,7 +70,7 @@ class ArtistPageTopTracks extends HookConsumerWidget {
 
       currentTrack ??= tracks.first;
       try {
-        final isRemoteDevice = await showSelectDeviceDialog(context, ref);
+        final isRemoteDevice = await showSelectDeviceDialog(context, ref.read);
 
         if (isRemoteDevice == null) return;
 

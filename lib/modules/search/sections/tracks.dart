@@ -51,7 +51,7 @@ class SearchTracksSection extends HookConsumerWidget {
               isPlaying: activeTrackId == track.id,
               onTap: () async {
                 final isRemoteDevice =
-                    await showSelectDeviceDialog(context, ref);
+                    await showSelectDeviceDialog(context, ref.read);
 
                 if (isRemoteDevice == null) return;
 

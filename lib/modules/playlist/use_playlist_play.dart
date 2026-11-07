@@ -165,7 +165,7 @@ UsePlaylistPlay usePlaylistPlay(
 
       if (fetchedInitialTracks.isEmpty || !context.mounted) return;
 
-      final isRemoteDevice = await showSelectDeviceDialog(context, ref);
+      final isRemoteDevice = await showSelectDeviceDialog(context, ref.read);
       if (isRemoteDevice == null) return;
       if (isRemoteDevice) {
         final remotePlayback = ref.read(connectProvider.notifier);

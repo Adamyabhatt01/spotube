@@ -19,6 +19,7 @@ import 'package:spotube/provider/history/history.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/metadata_plugin/tracks/album.dart';
 import 'package:spotube/provider/audio_player/audio_player_port.dart';
+import 'package:spotube/modules/theme_ui/host_item_context_menu.dart';
 
 extension FormattedAlbumType on SpotubeAlbumType {
   String get formatted => name.replaceFirst(name[0], name[0].toUpperCase());
@@ -110,7 +111,7 @@ class AlbumCard extends HookConsumerWidget {
 
         if (fetchedInitialTracks.isEmpty || !context.mounted) return;
 
-        final isRemoteDevice = await showSelectDeviceDialog(context, ref);
+        final isRemoteDevice = await showSelectDeviceDialog(context, ref.read);
         if (isRemoteDevice == null) return;
         if (isRemoteDevice) {
           final remotePlayback = ref.read(connectProvider.notifier);
@@ -202,8 +203,26 @@ class AlbumCard extends HookConsumerWidget {
     // The cover stays part of the card's navigation target, like playlist
     // cards. A theme host widget may route cover taps through
     // `coverPlays: true` instead.
+    final Widget card;
     if (_isTile) {
-      return PlaybuttonTile(
+      card = PlaybuttonTile(
+        imageUrl: imageUrl,
+        isPlaying: isPlaylistPlaying,
+        // The icon follows the audio, not the queue membership: pausing
+        // from elsewhere left the button showing "pause".
+        isActuallyPlaying: isPlaylistPlaying && playing,
+        isLoading: isLoading,
+        isQueueLoading: queueUpdating.value,
+        title: album.name,
+        description: description,
+        onTap: onTap,
+        onCoverTap: rowPolicy.coverPlays ? onPlaybuttonPressed : null,
+        rowPolicy: rowPolicy,
+        onPlaybuttonPressed: onPlaybuttonPressed,
+        onAddToQueuePressed: onAddToQueuePressed,
+      );
+    } else {
+      card = PlaybuttonCard(
         imageUrl: imageUrl,
         isPlaying: isPlaylistPlaying,
         // The icon follows the audio, not the queue membership: pausing
@@ -221,21 +240,9 @@ class AlbumCard extends HookConsumerWidget {
       );
     }
 
-    return PlaybuttonCard(
-      imageUrl: imageUrl,
-      isPlaying: isPlaylistPlaying,
-      // The icon follows the audio, not the queue membership: pausing
-      // from elsewhere left the button showing "pause".
-      isActuallyPlaying: isPlaylistPlaying && playing,
-      isLoading: isLoading,
-      isQueueLoading: queueUpdating.value,
-      title: album.name,
-      description: description,
-      onTap: onTap,
-      onCoverTap: rowPolicy.coverPlays ? onPlaybuttonPressed : null,
-      rowPolicy: rowPolicy,
-      onPlaybuttonPressed: onPlaybuttonPressed,
-      onAddToQueuePressed: onAddToQueuePressed,
-    );
+    // Self-wrap like PlaylistCard: every surface that draws an album cover —
+    // search, library, home shelves, theme host widgets — gets the shared
+    // item menu without each call site remembering to add one.
+    return HostItemContextMenu(item: album, child: card);
   }
 }

@@ -16,6 +16,7 @@ import 'package:spotube/provider/history/history.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
+import 'package:spotube/services/logger/logger.dart';
 
 class PlaylistCard extends HookConsumerWidget {
   final SpotubeSimplePlaylistObject playlist;
@@ -69,9 +70,9 @@ class PlaylistCard extends HookConsumerWidget {
 
         if (fetchedInitialTracks.isEmpty) return;
 
-        playlistNotifier.addTracks(fetchedInitialTracks);
-        playlistNotifier.addCollection(playlist.id);
-        historyNotifier.addPlaylists([playlist]);
+        await playlistNotifier.addTracks(fetchedInitialTracks);
+        await playlistNotifier.addCollection(playlist.id);
+        await historyNotifier.addPlaylists([playlist]);
         if (context.mounted) {
           showToast(
             context: context,
@@ -94,6 +95,8 @@ class PlaylistCard extends HookConsumerWidget {
             },
           );
         }
+      } catch (e, stack) {
+        AppLogger.reportError(e, stack);
       } finally {
         queueUpdating.value = false;
       }
@@ -206,7 +209,7 @@ class PlaylistCard extends HookConsumerWidget {
       onPlayPause: onPlaybuttonPressed,
       onAddToQueue: onAddToQueuePressed,
       onTogglePin: onPinPressed,
-      onDelete: () => deletePlaylistWithConfirmation(context, ref, playlist.id),
+      onDelete: () => deletePlaylistWithConfirmation(context, ref.read, playlist.id),
       child: card,
     );
   }

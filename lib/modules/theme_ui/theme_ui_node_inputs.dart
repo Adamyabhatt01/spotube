@@ -116,6 +116,37 @@ extension _ThemeUiInputNodes on ThemeUiNodeView {
       props['bind'] is String ? props['bind'] as String : null,
     );
     final label = props['label'] is String ? props['label'] as String : null;
+    final kit = _kitForComponent(
+      context,
+      component: 'switch',
+      nodeType: 'switch',
+      nodeKit: props['kit'],
+    );
+    if (kit == ThemeUiKit.material) {
+      final disabled = _inputDisabled(props);
+      return Opacity(
+        opacity: disabled ? 0.5 : 1,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (label != null) ...[
+              Text(label),
+              const SizedBox(width: 8),
+            ],
+            Transform.scale(
+              scale: 0.8,
+              alignment: Alignment.centerLeft,
+              child: material.Switch(
+                value: value,
+                onChanged: disabled
+                    ? null
+                    : (next) => _fireValue(context, actions, next),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Opacity(
       opacity: _inputDisabled(props) ? 0.5 : 1,
       child: Switch(
@@ -136,6 +167,35 @@ extension _ThemeUiInputNodes on ThemeUiNodeView {
       props['bind'] is String ? props['bind'] as String : null,
     );
     final label = props['label'] is String ? props['label'] as String : null;
+    final kit = _kitForComponent(
+      context,
+      component: 'checkbox',
+      nodeType: 'checkbox',
+      nodeKit: props['kit'],
+    );
+    if (kit == ThemeUiKit.material) {
+      final disabled = _inputDisabled(props);
+      return Opacity(
+        opacity: disabled ? 0.5 : 1,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Transform.scale(
+              scale: 0.8,
+              alignment: Alignment.centerLeft,
+              child: material.Checkbox(
+                value: value,
+                onChanged: disabled
+                    ? null
+                    : (next) =>
+                        _fireValue(context, actions, next ?? false),
+              ),
+            ),
+            if (label != null) Text(label),
+          ],
+        ),
+      );
+    }
     return Opacity(
       opacity: _inputDisabled(props) ? 0.5 : 1,
       child: Checkbox(
@@ -163,6 +223,40 @@ extension _ThemeUiInputNodes on ThemeUiNodeView {
           .raw(props['bind'] is String ? props['bind'] as String : null),
     );
     final values = options.map((option) => option.value).toSet();
+    final kit = _kitForComponent(
+      context,
+      component: 'radioGroup',
+      nodeType: 'radioGroup',
+      nodeKit: props['kit'],
+    );
+    if (kit == ThemeUiKit.material) {
+      final disabled = _inputDisabled(props);
+      return Opacity(
+        opacity: disabled ? 0.5 : 1,
+        child: material.RadioGroup<String>(
+          groupValue:
+              current != null && values.contains(current) ? current : null,
+          onChanged: (next) {
+            if (!disabled) _fireValue(context, actions, next);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final option in options)
+                material.RadioListTile<String>(
+                  value: option.value,
+                  title: Text(option.label),
+                  controlAffinity: material.ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  visualDensity: material.VisualDensity.compact,
+                  materialTapTargetSize: material.MaterialTapTargetSize.shrinkWrap,
+                ),
+            ],
+          ),
+        ),
+      );
+    }
     return RadioGroup<String>(
       value: current != null && values.contains(current) ? current : null,
       enabled: !_inputDisabled(props),
@@ -197,7 +291,14 @@ extension _ThemeUiInputNodes on ThemeUiNodeView {
             : 150)
         .clamp(0, 5000);
     final icon = props['icon'] is String ? props['icon'] as String : null;
+    final kit = _kitForComponent(
+      context,
+      component: area ? 'textArea' : 'textField',
+      nodeType: area ? 'textArea' : 'textField',
+      nodeKit: props['kit'],
+    );
     return _ThemeUiTextInput(
+      kit: kit,
       initial: initial,
       placeholder: props['placeholder'] is String
           ? props['placeholder'] as String
@@ -237,6 +338,52 @@ extension _ThemeUiInputNodes on ThemeUiNodeView {
     final placeholder = props['placeholder'] is String
         ? props['placeholder'] as String
         : 'Select';
+
+    final kit = _kitForComponent(
+      context,
+      component: 'select',
+      nodeType: 'select',
+      nodeKit: props['kit'],
+    );
+    if (kit == ThemeUiKit.material) {
+      final disabled = _inputDisabled(props);
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Opacity(
+          opacity: disabled ? 0.5 : 1,
+          child: material.DropdownButtonFormField<String>(
+            initialValue: selected?.value,
+            decoration: material.InputDecoration(
+              hintText: placeholder,
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              border: const material.OutlineInputBorder(),
+            ),
+            items: [
+              for (final option in options)
+                material.DropdownMenuItem<String>(
+                  value: option.value,
+                  child: Row(
+                    children: [
+                      if (option.icon != null) ...[
+                        Icon(_fallbackIcon(option.icon!), size: 16),
+                        const SizedBox(width: 8),
+                      ],
+                      Flexible(child: Text(option.label)),
+                    ],
+                  ),
+                ),
+            ],
+            onChanged: disabled
+                ? null
+                : (value) {
+                    if (value != null) _fireValue(context, actions, value);
+                  },
+          ),
+        ),
+      );
+    }
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -294,6 +441,49 @@ extension _ThemeUiInputNodes on ThemeUiNodeView {
     );
     final scheme = Theme.of(context).colorScheme;
     final disabled = _inputDisabled(props);
+    final kit = _kitForComponent(
+      context,
+      component: 'segmented',
+      nodeType: 'segmented',
+      nodeKit: props['kit'],
+    );
+
+    if (kit == ThemeUiKit.material) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Opacity(
+          opacity: disabled ? 0.5 : 1,
+          child: material.SegmentedButton<String>(
+            style: const material.ButtonStyle(
+              visualDensity: material.VisualDensity.compact,
+              tapTargetSize: material.MaterialTapTargetSize.shrinkWrap,
+              padding: material.WidgetStatePropertyAll(
+                EdgeInsets.symmetric(horizontal: 8),
+              ),
+            ),
+            segments: [
+              for (final option in options)
+                material.ButtonSegment<String>(
+                  value: option.value,
+                  label: Text(option.label),
+                  icon: option.icon == null
+                      ? null
+                      : Icon(_fallbackIcon(option.icon!), size: 16),
+                ),
+            ],
+            selected: current == null ? const {} : {current},
+            emptySelectionAllowed: true,
+            onSelectionChanged: disabled
+                ? null
+                : (selection) {
+                    if (selection.isNotEmpty) {
+                      _fireValue(context, actions, selection.first);
+                    }
+                  },
+          ),
+        ),
+      );
+    }
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -369,9 +559,16 @@ extension _ThemeUiInputNodes on ThemeUiNodeView {
       if (index >= 0) boundIndex = index;
     }
 
+    final kit = _kitForComponent(
+      context,
+      component: 'tabs',
+      nodeType: 'tabs',
+      nodeKit: props['kit'],
+    );
     return _ThemeUiNodeViewAccess(
       nodeView: this,
       child: _ThemeUiTabs(
+        kit: kit,
         items: items,
         panels: panels.isEmpty ? null : panels,
         boundIndex: boundIndex,
@@ -569,6 +766,7 @@ class _ThemeUiSliderState extends State<_ThemeUiSlider> {
 /// controller synchronously and only the trailing action is debounced. Submit
 /// and clear flush immediately because both are deliberate ends of an edit.
 class _ThemeUiTextInput extends StatefulWidget {
+  final ThemeUiKit kit;
   final String initial;
   final String? placeholder;
   final int debounceMs;
@@ -582,6 +780,7 @@ class _ThemeUiTextInput extends StatefulWidget {
   final ValueChanged<String> onSubmitted;
 
   const _ThemeUiTextInput({
+    required this.kit,
     required this.initial,
     required this.placeholder,
     required this.debounceMs,
@@ -658,6 +857,51 @@ class _ThemeUiTextInputState extends State<_ThemeUiTextInput> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.kit == ThemeUiKit.material) {
+      return Row(
+        crossAxisAlignment:
+            widget.area ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: widget.area
+                ? material.TextFormField(
+                    controller: _controller,
+                    initialValue: null,
+                    minLines: widget.minLines,
+                    maxLines: widget.maxLines,
+                    enabled: !widget.disabled,
+                    decoration: material.InputDecoration(
+                      hintText: widget.placeholder,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      border: const material.OutlineInputBorder(),
+                    ),
+                    onChanged: (_) => _schedule(),
+                  )
+                : material.TextFormField(
+                    controller: _controller,
+                    enabled: !widget.disabled,
+                    decoration: material.InputDecoration(
+                      hintText: widget.placeholder,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      border: const material.OutlineInputBorder(),
+                    ),
+                    onChanged: (_) => _schedule(),
+                    onFieldSubmitted: (_) => _flush(),
+                  ),
+          ),
+          if (widget.clearable && _controller.text.isNotEmpty)
+            material.IconButton(
+              onPressed: _clear,
+              icon: const Icon(Icons.close, size: 16),
+              visualDensity: material.VisualDensity.compact,
+            ),
+        ],
+      );
+    }
     final field = widget.area
         ? TextArea(
             controller: _controller,
@@ -704,12 +948,14 @@ class _ThemeUiTextInputState extends State<_ThemeUiTextInput> {
 /// `bind` may hold an index or an item id; without a usable binding the strip
 /// keeps its own selection so a panel-only theme still works.
 class _ThemeUiTabs extends StatefulWidget {
+  final ThemeUiKit kit;
   final List<_ThemeUiOption> items;
   final List<List<Map<String, dynamic>>>? panels;
   final int? boundIndex;
   final ValueChanged<int> onSelected;
 
   const _ThemeUiTabs({
+    required this.kit,
     required this.items,
     required this.panels,
     required this.boundIndex,
@@ -746,6 +992,45 @@ class _ThemeUiTabsState extends State<_ThemeUiTabs> {
     final nodeView = _ThemeUiNodeViewAccess.of(context).nodeView;
     final selected = _index.clamp(0, widget.items.length - 1);
     final panels = widget.panels;
+    final panel = panels != null && selected < panels.length
+        ? Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: nodeView._columnOf(context, panels[selected]),
+          )
+        : null;
+
+    if (widget.kit == ThemeUiKit.material) {
+      return material.DefaultTabController(
+        key: ValueKey(widget.boundIndex),
+        length: widget.items.length,
+        initialIndex: selected,
+        child: Builder(
+          builder: (context) {
+            final controller = material.DefaultTabController.of(context);
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                material.TabBar(
+                  controller: controller,
+                  isScrollable: true,
+                  onTap: (index) {
+                    setState(() => _index = index);
+                    widget.onSelected(index);
+                  },
+                  tabs: [
+                    for (final item in widget.items)
+                      material.Tab(child: nodeView._tabChild(item)),
+                  ],
+                ),
+                if (panel != null) panel,
+              ],
+            );
+          },
+        ),
+      );
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -761,11 +1046,7 @@ class _ThemeUiTabsState extends State<_ThemeUiTabs> {
               TabItem(child: nodeView._tabChild(item)),
           ],
         ),
-        if (panels != null && selected < panels.length)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: nodeView._columnOf(context, panels[selected]),
-          ),
+        if (panel != null) panel,
       ],
     );
   }

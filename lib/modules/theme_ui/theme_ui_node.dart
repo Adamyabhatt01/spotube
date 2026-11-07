@@ -243,7 +243,18 @@ class ThemeUiNodeView extends StatelessWidget {
         );
       }
     }
-    return result;
+    // `Expanded` and `Spacer` carry parent data for their Flex; inserting a
+    // Material between them and that Flex is a layout error. Their children
+    // are separate nodes and get their own Material ancestor.
+    if (type == 'expanded' || type == 'spacer') return result;
+
+    // Material kit widgets (Switch, TextField, buttons…) need a Material
+    // ancestor for ink and semantics; the bridged Theme alone is not enough.
+    // A transparency Material paints nothing, so shadcn nodes are unaffected.
+    return material.Material(
+      type: material.MaterialType.transparency,
+      child: result,
+    );
   }
 
   /// Reads both the flat shape and the original `props` object. The build

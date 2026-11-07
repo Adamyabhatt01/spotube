@@ -13,7 +13,7 @@ import 'package:spotube/services/logger/logger.dart';
 /// after this returns, while a card menu must not navigate anywhere.
 Future<bool> deletePlaylistWithConfirmation(
   BuildContext context,
-  WidgetRef ref,
+  T Function<T>(ProviderListenable<T> provider) read,
   String playlistId,
 ) async {
   final accepted = await showPromptDialog(
@@ -25,15 +25,12 @@ Future<bool> deletePlaylistWithConfirmation(
   if (!accepted || !context.mounted) return false;
 
   try {
-    await ref
-        .read(metadataPluginSavedPlaylistsProvider.notifier)
+    await read(metadataPluginSavedPlaylistsProvider.notifier)
         .delete(playlistId);
     // The playlist is gone: drop its mirror metadata and both order entries,
     // but never the audio files it shares with other collections.
-    await ref.read(playlistMirrorServiceProvider).forget(playlistId);
-    ref
-        .read(userPreferencesProvider.notifier)
-        .removePlaylistFromOrders(playlistId);
+    await read(playlistMirrorServiceProvider).forget(playlistId);
+    read(userPreferencesProvider.notifier).removePlaylistFromOrders(playlistId);
     return true;
   } catch (e, stack) {
     AppLogger.reportError(e, stack);

@@ -399,23 +399,43 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
       size: size,
     );
 
+    const compact = material.ButtonStyle(
+      visualDensity: material.VisualDensity.compact,
+      tapTargetSize: material.MaterialTapTargetSize.shrinkWrap,
+      padding: material.WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+    );
+
     if (style == 'ghost') {
-      return material.TextButton(onPressed: onPressed, child: child);
+      return material.TextButton(
+        onPressed: onPressed,
+        style: compact,
+        child: child,
+      );
     }
     if (style == 'outline') {
-      return material.OutlinedButton(onPressed: onPressed, child: child);
+      return material.OutlinedButton(
+        onPressed: onPressed,
+        style: compact,
+        child: child,
+      );
     }
     if (tonal) {
-      return material.FilledButton.tonal(onPressed: onPressed, child: child);
+      return material.FilledButton.tonal(
+        onPressed: onPressed,
+        style: compact,
+        child: child,
+      );
     }
     return material.FilledButton(
       onPressed: onPressed,
       style: destructive
-          ? material.FilledButton.styleFrom(
+          ? compact.merge(material.FilledButton.styleFrom(
               backgroundColor: scheme.error,
               foregroundColor: scheme.onError,
-            )
-          : null,
+            ))
+          : compact,
       child: child,
     );
   }

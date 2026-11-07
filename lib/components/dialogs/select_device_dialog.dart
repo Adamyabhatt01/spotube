@@ -4,6 +4,10 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/extensions/context.dart';
 import 'package:spotube/provider/connect/clients.dart';
 
+/// A `read` tear-off (`WidgetRef.read` in widgets, `ProviderContainer.read`
+/// in providers and context-menu callbacks) — the dialog only ever reads.
+typedef ProviderRead = T Function<T>(ProviderListenable<T> provider);
+
 class SelectDeviceDialog extends HookConsumerWidget {
   const SelectDeviceDialog({super.key});
 
@@ -52,8 +56,8 @@ class SelectDeviceDialog extends HookConsumerWidget {
 }
 
 Future<bool?> showSelectDeviceDialog(
-    BuildContext context, WidgetRef ref) async {
-  final connectClients = ref.read(connectClientsProvider);
+    BuildContext context, ProviderRead read) async {
+  final connectClients = read(connectClientsProvider);
 
   if (connectClients.asData?.value.resolvedService == null) {
     return false;

@@ -53,6 +53,11 @@ class ContextMenuRegion extends StatefulWidget {
 }
 
 class _ContextMenuRegionState extends State<ContextMenuRegion> {
+  /// The one context menu allowed to be open at a time. Each region only
+  /// knows its own overlay, so without this a right-click on item B leaves
+  /// item A's menu floating next to it.
+  static OverlayCompleter<dynamic>? _openMenu;
+
   final FocusNode _focusNode = FocusNode(debugLabel: 'context-menu-item');
   OverlayCompleter<dynamic>? _overlay;
   final Map<String, ContextMenuAction> _byId = {};
@@ -114,6 +119,10 @@ class _ContextMenuRegionState extends State<ContextMenuRegion> {
     final actions = _build();
     if (actions.isEmpty) return;
     _dismissOverlay();
+    final previous = _openMenu;
+    if (previous != null && previous != _overlay && !previous.isCompleted) {
+      previous.remove();
+    }
 
     final size = MediaQuery.sizeOf(context);
     final clamped = Offset(
@@ -129,8 +138,10 @@ class _ContextMenuRegionState extends State<ContextMenuRegion> {
       follow: false,
       alignment: Alignment.topLeft,
     );
+    _openMenu = _overlay;
     unawaited(
       _overlay!.future.whenComplete(() {
+        if (_openMenu == _overlay) _openMenu = null;
         _overlay = null;
         if (mounted) _focusNode.requestFocus();
       }),

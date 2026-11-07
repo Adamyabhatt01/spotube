@@ -5,9 +5,16 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/collections/side_bar_tiles.dart';
 import 'package:spotube/components/play_pause_icon.dart';
 import 'package:spotube/extensions/context.dart';
+import 'package:spotube/modules/playlist/playlist_context_menu.dart';
+import 'package:spotube/modules/playlist/playlist_delete.dart';
 import 'package:spotube/modules/playlist/use_playlist_play.dart';
 import 'package:spotube/modules/root/sidebar/sidebar_pin_cover.dart';
 import 'package:spotube/modules/theme_shell/theme_navigation.dart';
+import 'package:spotube/provider/audio_player/audio_player.dart';
+import 'package:spotube/provider/history/history.dart';
+import 'package:spotube/provider/metadata_plugin/core/user.dart';
+import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
+import 'package:spotube/services/logger/logger.dart';
 
 /// One pinned playlist row: the label navigates, the cover plays.
 ///
@@ -41,13 +48,78 @@ class SidebarPinTile extends HookConsumerWidget {
     // The hook already excludes audible playback from `isLoading`; keep the
     // glyph correct even if a caller's preparation future outlives startup.
     final showSpinner = play.isLoading && !play.isPlaying;
+    final queueUpdating = useState(false);
+    final playlistNotifier = ref.watch(audioPlayerProvider.notifier);
+    final historyNotifier = ref.read(playbackHistoryActionsProvider);
+    final me = ref.watch(metadataPluginUserProvider);
+    final isOwner = playlist.owner.id == me.asData?.value?.id &&
+        me.asData?.value?.id != null;
+
+    // Same add-to-queue path as PlaylistCard: page 1 + streamed tail behind
+    // it, with an undo toast.
+    final onAddToQueuePressed = useCallback(() async {
+      queueUpdating.value = true;
+      try {
+        if (play.isPlaylistPlaying) return;
+        final fetched = await play.fetchAllTracks();
+        if (fetched.isEmpty) return;
+        await playlistNotifier.addTracks(fetched);
+        await playlistNotifier.addCollection(playlist.id);
+        await historyNotifier.addPlaylists([playlist]);
+        if (context.mounted) {
+          showToast(
+            context: context,
+            builder: (context, overlay) => SurfaceCard(
+              child: Basic(
+                content: Text(
+                  context.l10n.added_num_tracks_to_queue(fetched.length),
+                ),
+                trailing: Button.outline(
+                  child: Text(context.l10n.undo),
+                  onPressed: () {
+                    playlistNotifier.removeTracks(fetched.map((e) => e.id));
+                  },
+                ),
+              ),
+            ),
+          );
+        }
+      } catch (e, stack) {
+        AppLogger.reportError(e, stack);
+      } finally {
+        queueUpdating.value = false;
+      }
+    }, [
+      play.isPlaylistPlaying,
+      play.fetchAllTracks,
+      playlistNotifier,
+      playlist.id,
+      playlist,
+      historyNotifier,
+      context,
+      queueUpdating,
+    ]);
 
     final router = context.watchRouter;
     final selected = router.currentPath.startsWith(tile.pathPrefix);
 
     final scaling = Theme.of(context).scaling;
 
-    return NavigationButton(
+    return PlaylistContextMenu(
+      playlist: playlist,
+      isOwner: isOwner,
+      isPinned: true,
+      isPlaying: play.isPlaying,
+      isLoading: play.isLoading,
+      isQueueLoading: queueUpdating.value,
+      onOpen: () => openSideBarTile(context, ref, tile),
+      onPlayPause: play.onPlaybuttonPressed,
+      onAddToQueue: onAddToQueuePressed,
+      onTogglePin: () => ref
+          .read(userPreferencesProvider.notifier)
+          .togglePinnedPlaylist(playlist.id),
+      onDelete: () => deletePlaylistWithConfirmation(context, ref.read, playlist.id),
+      child: NavigationButton(
       // Same explicit style/alignment contract as the other sidebar rows:
       // the reorderable wrapper re-scopes sidebar container data (see
       // SidebarReorderableItem). In the rail the real container data still
@@ -114,6 +186,7 @@ class SidebarPinTile extends HookConsumerWidget {
             ),
           ),
         ),
+      ),
       ),
     );
   }

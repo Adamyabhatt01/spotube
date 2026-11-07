@@ -26,6 +26,7 @@ import 'package:spotube/modules/playlist/playlist_card.dart';
 import 'package:spotube/modules/playlist/playlist_create_dialog.dart';
 import 'package:spotube/modules/theme_ui/host_widgets/theme_ui_settings_body.dart';
 import 'package:spotube/modules/playlist/liked_playlist_synthetic.dart';
+import 'package:spotube/modules/theme_ui/host_item_context_menu.dart';
 import 'package:spotube/modules/theme_ui/theme_pins.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_runtime.dart';
@@ -463,6 +464,7 @@ class _ThemeUiPlaylists extends HookConsumerWidget {
     }.values.toList();
 
     final query = useState('');
+    final searchController = useTextEditingController();
     final items = themeUiSelectPlaylists(
       all: all,
       pinnedIds: pinnedIds,
@@ -486,8 +488,42 @@ class _ThemeUiPlaylists extends HookConsumerWidget {
                 if (showSearch)
                   Expanded(
                     child: TextField(
+                      controller: searchController,
                       placeholder: Text(context.l10n.search),
                       onChanged: (value) => query.value = value,
+                      features: [
+                        InputFeature.leading(
+                          Icon(
+                            SpotubeIcons.search,
+                            size: 16,
+                            color: context
+                                .theme.colorScheme.mutedForeground,
+                          ),
+                        ),
+                        InputFeature.trailing(
+                          ListenableBuilder(
+                            listenable: searchController,
+                            builder: (context, _) {
+                              if (searchController.text.isEmpty) {
+                                return const SizedBox.square(
+                                  dimension: 20,
+                                );
+                              }
+                              return IconButton.ghost(
+                                size: const ButtonSize(.6),
+                                icon: const Icon(
+                                  SpotubeIcons.close,
+                                  size: 16,
+                                ),
+                                onPressed: () {
+                                  searchController.clear();
+                                  query.value = '';
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 else
@@ -505,6 +541,8 @@ class _ThemeUiPlaylists extends HookConsumerWidget {
             listStyle: listStyle,
             builder: (context, item) {
               final playlist = item as SpotubeSimplePlaylistObject;
+              // PlaylistCard wraps itself in PlaylistContextMenu — no
+              // HostItemContextMenu here or the richer card menu is shadowed.
               return compact
                   ? PlaylistCard.tile(playlist, rowPolicy: rowPolicy)
                   : PlaylistCard(playlist, rowPolicy: rowPolicy);
@@ -538,6 +576,8 @@ class _ThemeUiAlbums extends ConsumerWidget {
       listStyle: listStyle,
       builder: (context, item) {
         final album = item as SpotubeSimpleAlbumObject;
+        // AlbumCard self-wraps in HostItemContextMenu — no wrap here or the
+        // menu would be nested twice.
         return compact
             ? AlbumCard.tile(album, rowPolicy: rowPolicy)
             : AlbumCard(album, rowPolicy: rowPolicy);
@@ -568,7 +608,8 @@ class _ThemeUiArtists extends ConsumerWidget {
         horizontal: false,
         hasArtist: true,
         listStyle: listStyle,
-        builder: (context, item) => ArtistCard(item as SpotubeFullArtistObject),
+        builder: (context, item) =>
+            ArtistCard(item as SpotubeFullArtistObject),
       );
     }
 
@@ -584,15 +625,20 @@ class _ThemeUiArtists extends ConsumerWidget {
       listStyle: listStyle,
       builder: (context, item) {
         final artist = item as SpotubeFullArtistObject;
-        return PlaybuttonTile(
-          title: artist.name,
-          description: artist.genres?.join(', '),
-          imageUrl:
-              artist.images.asUrlString(placeholder: ImagePlaceholder.artist),
-          isPlaying: false,
-          isLoading: false,
-          rowPolicy: rowPolicy,
-          onTap: () => context.navigateTo(ArtistRoute(artistId: artist.id)),
+        // Compact rows bypass ArtistCard, so the menu is attached here.
+        return HostItemContextMenu(
+          item: artist,
+          child: PlaybuttonTile(
+            title: artist.name,
+            description: artist.genres?.join(', '),
+            imageUrl: artist.images
+                .asUrlString(placeholder: ImagePlaceholder.artist),
+            isPlaying: false,
+            isLoading: false,
+            rowPolicy: rowPolicy,
+            onTap: () =>
+                context.navigateTo(ArtistRoute(artistId: artist.id)),
+          ),
         );
       },
     );
@@ -967,14 +1013,22 @@ class _ThemeUiSearchField extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final placeholder = ThemeUiHostWidgets.stringProp(props['placeholder']);
     final scope = ThemeUiHostWidgets.stringProp(props['scope'], maxLength: 32);
-    if (scope == null || !_queryScopePattern.hasMatch(scope)) {
-      return HomeSearchBar(
-        compact: true,
-        placeholder: placeholder,
-        runtime: runtime,
-      );
-    }
-    return _ThemeUiScopedSearch(scope: scope, placeholder: placeholder);
+    final field = scope == null || !_queryScopePattern.hasMatch(scope)
+        ? HomeSearchBar(
+            compact: true,
+            placeholder: placeholder,
+            runtime: runtime,
+          )
+        : _ThemeUiScopedSearch(scope: scope, placeholder: placeholder);
+    // Both fields are a Row+Expanded: inside a theme `row` they can receive
+    // unbounded width, which leaves the Row unlaid-out. Pin a compact default
+    // only when the parent hands over none — a bounded host is untouched.
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.hasBoundedWidth) return field;
+        return SizedBox(width: 160, child: field);
+      },
+    );
   }
 }
 

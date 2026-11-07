@@ -37,7 +37,7 @@ Future<void> Function(SpotubeTrackObject track) useTrackTilePlayCallback(
       return;
     }
 
-    final isRemoteDevice = await showSelectDeviceDialog(context, ref);
+    final isRemoteDevice = await showSelectDeviceDialog(context, ref.read);
     if (isRemoteDevice == null) return;
 
     if (isRemoteDevice) {
