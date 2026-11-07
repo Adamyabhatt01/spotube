@@ -174,6 +174,68 @@ class ThemeUiBindingRegistry {
     ThemeUiBindingDefinition(
         'setting.<key>', ThemeUiBindingKind.dynamic, 'settings'),
     ThemeUiBindingDefinition(
+        'state.<key>', ThemeUiBindingKind.dynamic, 'localState'),
+    ThemeUiBindingDefinition(
+        'player.buffering', ThemeUiBindingKind.boolean, 'audioPlayer',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'player.completed', ThemeUiBindingKind.boolean, 'audioPlayer',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'player.error', ThemeUiBindingKind.string, 'audioPlayer',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'downloads.active', ThemeUiBindingKind.integer, 'downloads',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'downloads.queued', ThemeUiBindingKind.integer, 'downloads',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'downloads.failed', ThemeUiBindingKind.integer, 'downloads',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'downloads.completed', ThemeUiBindingKind.integer, 'downloads',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'downloads.progress', ThemeUiBindingKind.map, 'downloads',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'lyrics.available', ThemeUiBindingKind.boolean, 'lyrics',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'lyrics.synced', ThemeUiBindingKind.boolean, 'lyrics',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'lyrics.line', ThemeUiBindingKind.string, 'lyrics',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'radio.active', ThemeUiBindingKind.boolean, 'radio',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'radio.playing', ThemeUiBindingKind.boolean, 'radio',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'radio.buffering', ThemeUiBindingKind.boolean, 'radio',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'radio.station', ThemeUiBindingKind.string, 'radio',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'radio.liveTitle', ThemeUiBindingKind.string, 'radio',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'radio.error', ThemeUiBindingKind.string, 'radio',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'connect.available', ThemeUiBindingKind.boolean, 'connect',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'connect.clients', ThemeUiBindingKind.list, 'connect',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'connect.clientCount', ThemeUiBindingKind.integer, 'connect',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
         'search.query', ThemeUiBindingKind.string, 'query'),
     ThemeUiBindingDefinition(
         'search.hasQuery', ThemeUiBindingKind.boolean, 'query'),
@@ -214,6 +276,9 @@ class ThemeUiBindingRegistry {
     'setting': ThemeUiBindingDefinition(
         'setting.*', ThemeUiBindingKind.dynamic, 'settings',
         scope: 'setting'),
+    'state': ThemeUiBindingDefinition(
+        'state.*', ThemeUiBindingKind.dynamic, 'localState',
+        scope: 'state'),
   };
 
   static ThemeUiBindingDefinition? lookup(String name) {

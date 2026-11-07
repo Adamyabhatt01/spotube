@@ -102,6 +102,12 @@ Future<void> dispatchThemeUiAction(
         await _setSetting(ref, action.args);
       case 'toggleSetting':
         await _toggleSetting(ref, action.args);
+      case 'setLocal':
+        _setLocal(ref, action.args);
+      case 'toggleLocal':
+        _toggleLocal(ref, action.args);
+      case 'clearLocal':
+        _clearLocal(ref, action.args);
       case 'copy':
         await _copy(ref, action.args);
       case 'refresh':
@@ -712,6 +718,39 @@ Future<void> _toggleSetting(
   final key = args['key'];
   if (key is! String || !_settingKeyPattern.hasMatch(key)) return;
   ref.read(themeUiSettingsProvider.notifier).toggle(key);
+}
+
+/// Writes one ephemeral theme-local value (`state.<key>`).
+///
+/// Unlike `setSetting` this never persists and needs no capability: it is
+/// dialog/expanded-section/whatever-local state, so a theme can close its own
+/// overlay (`openBind: "state.dialogOpen"` + `setLocal{key: dialogOpen,
+/// value: false}`) without routing through the user's preferences. Scalars
+/// only, like `setSetting` — a nested object cannot be smuggled in.
+void _setLocal(ProviderContainer ref, Map<String, dynamic> args) {
+  final key = args['key'];
+  if (key is! String || !_settingKeyPattern.hasMatch(key)) return;
+  final value = args['value'];
+  final notifier = ref.read(themeUiLocalStateProvider.notifier);
+  if (value is String) {
+    notifier.set(key, value.length > 1024 ? value.substring(0, 1024) : value);
+  } else if (value is num || value is bool || value == null) {
+    notifier.set(key, value);
+  }
+}
+
+void _toggleLocal(ProviderContainer ref, Map<String, dynamic> args) {
+  final key = args['key'];
+  if (key is! String || !_settingKeyPattern.hasMatch(key)) return;
+  ref.read(themeUiLocalStateProvider.notifier).toggle(key);
+}
+
+void _clearLocal(ProviderContainer ref, Map<String, dynamic> args) {
+  final key = args['key'];
+  if (key != null && (key is! String || !_settingKeyPattern.hasMatch(key))) {
+    return;
+  }
+  ref.read(themeUiLocalStateProvider.notifier).clear(key as String?);
 }
 
 void _toggleSidebar(ProviderContainer ref) {

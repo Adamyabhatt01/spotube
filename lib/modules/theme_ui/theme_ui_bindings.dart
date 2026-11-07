@@ -6,13 +6,19 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:spotube/models/equalizer/equalizer.dart';
+import 'package:spotube/models/lyrics.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/models/radio/radio_station.dart';
 import 'package:spotube/modules/theme_ui/theme_pins.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_binding_demand.dart';
 import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/audio_player/audio_player_port.dart';
+import 'package:spotube/provider/connect/clients.dart';
 import 'package:spotube/provider/crossfade_duration_provider.dart';
+import 'package:spotube/provider/download_manager/download_tasks.dart';
+import 'package:spotube/provider/download_manager_provider.dart';
+import 'package:spotube/provider/lyrics/synced.dart';
+import 'package:spotube/provider/radio/radio_playback.dart';
 import 'package:spotube/provider/sleep_timer_provider.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/metadata_plugin/library/albums.dart';
@@ -174,6 +180,95 @@ final themeAppVersionProvider = FutureProvider<String>((ref) async {
   }
 });
 
+/// Whether the backend is buffering the current source, seeded with the port's
+/// current state so the first frame has the truth. A theme with no buffering
+/// display does not keep this listener.
+final themePlayerBufferingProvider = StreamProvider.autoDispose<bool>(
+  (ref) async* {
+    final port = ref.read(audioPlayerPortProvider);
+    yield port.isBuffering;
+    yield* port.bufferingStream;
+  },
+);
+
+/// Whether the current source reached the end. Seeded from the port;
+/// `completedStream` flips it true and a fresh `playingStream` event clears
+/// it, so a theme that shows "replay" after completion tracks the transport.
+final themePlayerCompletedProvider = StreamProvider.autoDispose<bool>(
+  (ref) async* {
+    final port = ref.read(audioPlayerPortProvider);
+    yield await port.isCompleted;
+    yield* port.completedStream.asyncMap((_) async => true);
+  },
+);
+
+/// The most recent backend playback error, or empty string when no error has
+/// been reported in this session.
+final themePlayerErrorProvider = StreamProvider.autoDispose<String>(
+  (ref) async* {
+    final port = ref.read(audioPlayerPortProvider);
+    yield '';
+    yield* port.errorStream;
+  },
+);
+
+/// Live per-track download progress as a fraction (0.0–1.0), keyed by track
+/// id. Only downloading tasks appear. The bytes arrive on each task's
+/// `downloadedBytesStream`, so this provider subscribes per downloading task
+/// and drops out when the task finishes.
+final downloadProgressProvider =
+    AutoDisposeNotifierProvider<DownloadProgressTracker, Map<String, double>>(
+  DownloadProgressTracker.new,
+);
+
+class DownloadProgressTracker extends AutoDisposeNotifier<Map<String, double>> {
+  final _subscriptions = <String, StreamSubscription<int>>{};
+  bool _disposed = false;
+
+  @override
+  Map<String, double> build() {
+    final tasks = ref.watch(downloadManagerProvider);
+    ref.onDispose(() {
+      _disposed = true;
+      _cancelAll();
+    });
+    final downloading = {
+      for (final task in tasks)
+        if (task.status == DownloadStatus.downloading) task.track.id: task,
+    };
+    for (final id in _subscriptions.keys
+        .where((id) => !downloading.containsKey(id))
+        .toList()) {
+      _subscriptions.remove(id)?.cancel();
+    }
+    for (final entry in downloading.entries) {
+      if (_subscriptions.containsKey(entry.key)) continue;
+      final task = entry.value;
+      final total = task.totalSizeBytes ?? 0;
+      _subscriptions[entry.key] = task.downloadedBytesStream.listen(
+        (bytes) {
+          if (_disposed) return;
+          state = {
+            ...state,
+            if (total > 0) entry.key: (bytes / total).clamp(0.0, 1.0).toDouble(),
+          };
+        },
+      );
+      if (total > 0) {
+        state = {...state, entry.key: 0.0};
+      }
+    }
+    return state;
+  }
+
+  void _cancelAll() {
+    for (final subscription in _subscriptions.values) {
+      subscription.cancel();
+    }
+    _subscriptions.clear();
+  }
+}
+
 /// Demand for the current document, memoized by Riverpod.
 ///
 /// Recomputes on a theme switch and on a `plugin` action that replaces the
@@ -211,6 +306,61 @@ final themeUiQueryProvider =
     NotifierProvider<ThemeUiQueryState, Map<String, String>>(
   ThemeUiQueryState.new,
 );
+
+/// Ephemeral theme UI state written by `setLocal`/`toggleLocal`/`clearLocal`.
+/// Values are published as `state.<key>`. Session-scoped (never persisted),
+/// namespaced per selected theme plugin like `setting.*` so one theme's
+/// toggles do not leak into another's UI.
+final themeUiLocalStateProvider =
+    NotifierProvider<ThemeUiLocalState, Map<String, Object?>>(
+  ThemeUiLocalState.new,
+);
+
+/// Like [themeUiQueryProvider], but open-ended values rather than search
+/// text: a dialog can bind `openBind: "state.dialogOpen"` and close it with a
+/// `setLocal` action the same way a `setting.*`-backed control does today,
+/// without the value surviving the session.
+class ThemeUiLocalState extends Notifier<Map<String, Object?>> {
+  ThemeSettingsNamespace? _namespace;
+
+  @override
+  Map<String, Object?> build() {
+    _namespace = ref.watch(themeSettingsNamespaceProvider);
+    return const <String, Object?>{};
+  }
+
+  /// Scoped to the active theme so a state key from a previous theme cannot
+  /// be mistaken for one of the current theme's keys.
+  String _scopeKey(String key) {
+    final namespace = _namespace;
+    return namespace == null ? 'none.$key' : '${namespace.author}.${namespace.name}.$key';
+  }
+
+  void set(String key, Object? value) {
+    final scoped = _scopeKey(key);
+    if (value == null) {
+      if (!state.containsKey(scoped)) return;
+      state = {...state}..remove(scoped);
+      return;
+    }
+    state = {...state, scoped: value};
+  }
+
+  void toggle(String key) {
+    final current = state[_scopeKey(key)];
+    set(key, !_valueIsTruthy(current));
+  }
+
+  void clear(String? key) {
+    if (key == null) {
+      state = const <String, Object?>{};
+      return;
+    }
+    final scoped = _scopeKey(key);
+    if (!state.containsKey(scoped)) return;
+    state = {...state}..remove(scoped);
+  }
+}
 
 /// Theme-owned settings toggled through `setSetting`/`toggleSetting`.
 ///
@@ -451,6 +601,18 @@ ThemeUiBindings buildThemeUiBindings(
     }
   }
 
+  // -------------------------------------------------------- ephemeral
+  if (wants.wantsNamespace('state')) {
+    final namespace = ref.watch(themeSettingsNamespaceProvider);
+    final prefix = namespace == null
+        ? 'none.'
+        : '${namespace.author}.${namespace.name}.';
+    for (final entry in ref.watch(themeUiLocalStateProvider).entries) {
+      if (!entry.key.startsWith(prefix)) continue;
+      values['state.${entry.key.substring(prefix.length)}'] = entry.value;
+    }
+  }
+
   // ------------------------------------------------------------- query
   if (wants.wantsNamespace('search')) {
     final queries = ref.watch(themeUiQueryProvider);
@@ -461,6 +623,85 @@ ThemeUiBindings buildThemeUiBindings(
       if (entry.key == themeUiDefaultQueryScope) continue;
       values['search.${entry.key}.query'] = entry.value;
     }
+  }
+
+  // --------------------------------------------------- player transport
+  if (wants.wants('player.buffering')) {
+    values['player.buffering'] =
+        ref.watch(themePlayerBufferingProvider).asData?.value ??
+            ref.read(audioPlayerPortProvider).isBuffering;
+  }
+  if (wants.wants('player.completed')) {
+    values['player.completed'] =
+        ref.watch(themePlayerCompletedProvider).asData?.value ?? false;
+  }
+  if (wants.wants('player.error')) {
+    values['player.error'] =
+        ref.watch(themePlayerErrorProvider).asData?.value ?? '';
+  }
+
+  // ---------------------------------------------------------- downloads
+  if (wants.wantsNamespace('downloads')) {
+    final tasks = ref.watch(downloadManagerProvider);
+    values['downloads.active'] = tasks
+        .where((task) => task.status == DownloadStatus.downloading)
+        .length;
+    values['downloads.queued'] = tasks
+        .where((task) => task.status == DownloadStatus.queued)
+        .length;
+    values['downloads.failed'] = tasks
+        .where(
+          (task) =>
+              task.status == DownloadStatus.failed ||
+              task.status == DownloadStatus.canceled,
+        )
+        .length;
+    values['downloads.completed'] = tasks
+        .where((task) => task.status == DownloadStatus.completed)
+        .length;
+    if (wants.wants('downloads.progress')) {
+      values['downloads.progress'] = ref.watch(downloadProgressProvider);
+    }
+  }
+
+  // ------------------------------------------------------------ lyrics
+  if (wants.wantsNamespace('lyrics')) {
+    final track = player?.activeTrack;
+    values['lyrics.available'] = false;
+    values['lyrics.synced'] = false;
+    values['lyrics.line'] = '';
+    if (track is SpotubeFullTrackObject) {
+      final lyrics = ref.watch(syncedLyricsProvider(track)).asData?.value;
+      final position = ref.watch(themePlayerPositionProvider).asData?.value ??
+          ref.read(audioPlayerPortProvider).position;
+      if (lyrics != null) {
+        values['lyrics.available'] = lyrics.hasContent;
+        values['lyrics.synced'] = lyrics.isSynced;
+        values['lyrics.line'] = _currentLyricLine(lyrics, position);
+      }
+    }
+  }
+
+  // ------------------------------------------------------------- radio
+  if (wants.wantsNamespace('radio')) {
+    final radio = ref.watch(radioPlaybackControllerProvider);
+    values['radio.active'] = radio.isRadio;
+    values['radio.playing'] = radio.playing;
+    values['radio.buffering'] = radio.buffering;
+    values['radio.station'] = radio.activeStation?.name ?? '';
+    values['radio.liveTitle'] = radio.liveTitle ?? '';
+    values['radio.error'] = radio.error?.toString() ?? '';
+  }
+
+  // ----------------------------------------------------------- connect
+  if (wants.wantsNamespace('connect')) {
+    final services = ref.watch(connectClientsProvider).asData?.value.services;
+    final clients = services == null
+        ? const <String>[]
+        : [for (final service in services) service.name];
+    values['connect.clients'] = clients;
+    values['connect.clientCount'] = clients.length;
+    values['connect.available'] = clients.isNotEmpty;
   }
 
   // ----------------------------------------------------------- library
@@ -842,4 +1083,17 @@ String greetingFor(DateTime now) {
   if (now.hour < 12) return 'Good morning';
   if (now.hour < 18) return 'Good afternoon';
   return 'Good evening';
+}
+
+/// The text of the lyric line active at [position], or '' when none is.
+///
+/// The line is the last slice stamped at or before the position; nothing
+/// matches before the first stamp.
+String _currentLyricLine(SubtitleSimple lyrics, Duration position) {
+  var current = '';
+  for (final slice in lyrics.lyrics) {
+    if (slice.time > position) break;
+    current = slice.text;
+  }
+  return current;
 }
