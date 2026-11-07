@@ -40,8 +40,7 @@ extension _ThemeUiInputNodes on ThemeUiNodeView {
   }
 
   bool _inputDisabled(Map<String, dynamic> props) {
-    final condition = props['disabledWhen'];
-    return condition is String && runtime.bindings.isTruthy(condition);
+    return evaluateThemeUiCondition(runtime.bindings, props['disabledWhen']);
   }
 
   String? _boundString(Object? raw) {

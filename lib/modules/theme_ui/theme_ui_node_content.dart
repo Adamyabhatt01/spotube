@@ -200,8 +200,10 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
       'lg' => 1.2,
       _ => 1.0,
     };
-    final disabled = props['disabledWhen'] is String &&
-        runtime.bindings.isTruthy(props['disabledWhen'] as String?);
+    final disabled = evaluateThemeUiCondition(
+      runtime.bindings,
+      props['disabledWhen'],
+    );
     final actions = ThemeUiAction.fromNode(node);
     final label = props['label'] is String ? props['label'] as String : null;
     var iconName = props['icon'] is String ? props['icon'] as String : null;
@@ -648,9 +650,16 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
     Map<String, dynamic> props,
     List<Map<String, dynamic>> children,
   ) {
-    final bind = props['bind'] is String ? props['bind'] as String : null;
-    var pass = runtime.bindings.matches(bind, props['equals']);
-    if (props['invert'] == true) pass = !pass;
+    // `allOf`/`anyOf` compose nested conditions; the plain bind/equals/invert
+    // shape stays what it always was.
+    final condition = <String, dynamic>{
+      if (props['bind'] is String) 'bind': props['bind'],
+      if (props.containsKey('equals')) 'equals': props['equals'],
+      if (props['invert'] == true) 'invert': true,
+      if (props['allOf'] is List) 'allOf': props['allOf'],
+      if (props['anyOf'] is List) 'anyOf': props['anyOf'],
+    };
+    final pass = evaluateThemeUiCondition(runtime.bindings, condition);
     final chosen = pass
         ? (children.isNotEmpty ? children.first : null)
         : (children.length > 1 ? children[1] : null);

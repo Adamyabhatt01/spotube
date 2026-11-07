@@ -19,6 +19,7 @@ import 'package:spotube/modules/theme_ui/host_widgets/theme_ui_host_widgets.dart
 import 'package:spotube/modules/theme_ui/theme_ui_action.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_anchors.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
+import 'package:spotube/modules/theme_ui/theme_ui_condition.dart';
 import 'package:spotube/modules/theme_ui/host_item_context_menu.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_runtime.dart';
 import 'package:spotube/modules/home/home_search_bar.dart';
@@ -157,6 +158,20 @@ class ThemeUiNodeView extends StatelessWidget {
     final children = _children(node);
     final actions = ThemeUiAction.fromNode(node);
 
+    // `hiddenWhen` is the envelope guard: when it holds, the node does not
+    // exist — uniformly, for every node type, including list rows with their
+    // item-scoped bindings. (It used to be schema surface only.)
+    if (evaluateThemeUiCondition(runtime.bindings, props['hiddenWhen'])) {
+      return const SizedBox.shrink();
+    }
+    // `disabledWhen` is enforced for every node as pointer inertness. Control
+    // nodes (button, inputs) also read it for their own visuals, so this
+    // wrapper is the floor, not the only read.
+    final disabled = evaluateThemeUiCondition(
+      runtime.bindings,
+      props['disabledWhen'],
+    );
+
     Widget result = switch (type) {
       'row' => _row(context, props, children),
       'column' => _column(context, props, children),
@@ -221,13 +236,19 @@ class ThemeUiNodeView extends StatelessWidget {
 
     if (actions.isNotEmpty && !_selfActionTypes.contains(type)) {
       result = MouseRegion(
-        cursor: SystemMouseCursors.click,
+        cursor: disabled
+            ? SystemMouseCursors.basic
+            : SystemMouseCursors.click,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () => _fire(context, actions),
+          onTap: disabled ? null : () => _fire(context, actions),
           child: result,
         ),
       );
+    }
+
+    if (disabled && type != 'expanded' && type != 'spacer') {
+      result = IgnorePointer(ignoring: true, child: result);
     }
 
     // `anchor` names a spot a `scrollTo` action can reach. The keyed wrapper
@@ -246,14 +267,51 @@ class ThemeUiNodeView extends StatelessWidget {
     // `Expanded` and `Spacer` carry parent data for their Flex; inserting a
     // Material between them and that Flex is a layout error. Their children
     // are separate nodes and get their own Material ancestor.
-    if (type == 'expanded' || type == 'spacer') return result;
+    if (type == 'expanded' || type == 'spacer') {
+      return _applySemantics(props, result);
+    }
 
     // Material kit widgets (Switch, TextField, buttons…) need a Material
     // ancestor for ink and semantics; the bridged Theme alone is not enough.
     // A transparency Material paints nothing, so shadcn nodes are unaffected.
-    return material.Material(
-      type: material.MaterialType.transparency,
-      child: result,
+    return _applySemantics(
+      props,
+      material.Material(
+        type: material.MaterialType.transparency,
+        child: result,
+      ),
+    );
+  }
+
+  /// Wraps the node in the `semantics` object the author declared.
+  ///
+  /// `excludeSemantics: true` hides the whole subtree from the semantic tree;
+  /// otherwise `label`/`hint`/`value` become a single [Semantics] unit
+  /// (`container: true`) so a screen reader speaks the authored text instead
+  /// of the visual one.
+  Widget _applySemantics(Map<String, dynamic> props, Widget child) {
+    final raw = props['semantics'];
+    if (raw is! Map) return child;
+    final semantics = raw.cast<String, dynamic>();
+    if (semantics['excludeSemantics'] == true) {
+      return ExcludeSemantics(child: child);
+    }
+    final label = semantics['label'] is String
+        ? (semantics['label'] as String)
+        : null;
+    final hint = semantics['hint'] is String
+        ? (semantics['hint'] as String)
+        : null;
+    final value = semantics['value'] is String
+        ? (semantics['value'] as String)
+        : null;
+    if (label == null && hint == null && value == null) return child;
+    return Semantics(
+      label: label,
+      hint: hint,
+      value: value,
+      container: true,
+      child: child,
     );
   }
 
@@ -283,6 +341,9 @@ class ThemeUiNodeView extends StatelessWidget {
 
     if (type == 'list') {
       return _listSliver(context, props, children);
+    }
+    if (type == 'virtualList') {
+      return _virtualListSliver(context, props, children);
     }
     if (type == 'padding' && children.length == 1) {
       final inner = ThemeUiNodeView(
