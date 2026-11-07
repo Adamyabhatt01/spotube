@@ -5,6 +5,9 @@
 # or widget tests with local fakes, and they run in the Lint workflow after
 # build_runner has generated the Drift/l10n/env outputs.
 #
+# test/support/common_fakes.dart is tracked as a helper for these tests; it is
+# not a test entry point and must not be listed below.
+#
 # Run exactly this subset locally with:
 #   make test-ci
 # Run the full local suite (including the unpublished tests) with:
