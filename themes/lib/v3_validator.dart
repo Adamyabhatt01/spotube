@@ -670,6 +670,7 @@ List<Issue> validateV3Blocks(
   UiVocabulary vocabulary = v3UiVocabulary,
   bool allowComponentStates = false,
   bool allowKits = false,
+  bool allowProgressStyle = false,
 }) {
   final issues = <Issue>[];
 
@@ -697,6 +698,7 @@ List<Issue> validateV3Blocks(
     issues,
     allowComponentStates,
     allowKits: allowKits,
+    allowProgressStyle: allowProgressStyle,
     vocabulary: vocabulary,
   );
   _shellLayout(payload['layout'], issues);
@@ -981,6 +983,7 @@ void _components(
   List<Issue> issues,
   bool allowStates, {
   bool allowKits = false,
+  bool allowProgressStyle = false,
   UiVocabulary vocabulary = v3UiVocabulary,
 }) {
   if (raw == null) return;
@@ -1043,6 +1046,7 @@ void _components(
           component.value,
           issues,
           allowStates: allowStates,
+          allowStyle: allowProgressStyle && component.key == 'progress',
         );
       }
       continue;
@@ -1097,6 +1101,9 @@ void _components(
       entry.value,
       issues,
       allowStates: allowStates,
+      // `progress.style` is a v4-only addition to the frozen v3 vocabulary;
+      // v4 passes this flag, and its own sweep validates the value.
+      allowStyle: allowProgressStyle && entry.key == 'progress',
     );
   }
 }
@@ -1107,6 +1114,7 @@ void _componentStyle(
   Object? raw,
   List<Issue> issues, {
   bool allowStates = false,
+  bool allowStyle = false,
 }) {
   if (raw is! Map) {
     issues.add(Issue(Severity.error, path, 'must be an object'));
@@ -1129,11 +1137,18 @@ void _componentStyle(
       );
       continue;
     }
-    _componentStyle('$path.$state', value, issues, allowStates: true);
+    _componentStyle(
+      '$path.$state',
+      value,
+      issues,
+      allowStates: true,
+      allowStyle: allowStyle,
+    );
   }
 
   for (final key in style.keys) {
     if (componentStates.contains(key)) continue;
+    if (key == 'style' && allowStyle) continue;
     if (!componentStyleKeys.contains(key)) {
       issues.add(
         Issue(

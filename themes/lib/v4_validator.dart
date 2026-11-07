@@ -898,6 +898,7 @@ List<Issue> validateV4Blocks(Map<String, dynamic> payload) {
       vocabulary: v4UiVocabularyFor(_shellSlotNames(payload['layout'])),
       allowComponentStates: false,
       allowKits: true,
+      allowProgressStyle: true,
     ),
   );
 
@@ -1112,7 +1113,31 @@ void _sweepComponents(Object? raw, List<Issue> issues) {
 
 void _sweepComponentStyle(Object? raw, String path, List<Issue> issues) {
   if (raw is! Map) return;
+  // `progress` is the one component group whose shape is a style: `linear`
+  // (default) or `wavy`, the animated ribbon the seek line can draw. The
+  // same key is valid on a kit override (`components.material.progress`).
+  final isProgress = path.split('.').contains('progress');
   for (final key in raw.keys) {
+    if (key == 'style') {
+      if (!isProgress) {
+        issues.add(
+          Issue(
+            Severity.error,
+            '$path.style',
+            'only progress supports a style',
+          ),
+        );
+      } else if (raw[key] != 'linear' && raw[key] != 'wavy') {
+        issues.add(
+          Issue(
+            Severity.error,
+            '$path.style',
+            'must be "linear" or "wavy"',
+          ),
+        );
+      }
+      continue;
+    }
     if (!componentStyleKeys.contains(key)) {
       issues.add(
         Issue(

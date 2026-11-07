@@ -231,6 +231,41 @@ void main() {
       expect(errors, contains('components.shadcn.slider.bogus'));
     });
 
+    test('progress.style is the one component shape v4 reads', () {
+      final payload = validPayload()
+        ..['components'] = {
+          'progress': {'style': 'wavy'},
+          'material': {
+            'progress': {'style': 'linear'},
+          },
+        };
+      final report = validateThemePayload(payload);
+      expect(report.hasErrors, isFalse, reason: report.issues.join('\n'));
+      expect(report.warningCount, 0, reason: report.issues.join('\n'));
+    });
+
+    test('style on another component is rejected', () {
+      final payload = validPayload()
+        ..['components'] = {
+          'card': {'style': 'wavy'},
+        };
+      expect(
+        pathsOf(validateThemePayload(payload), Severity.error),
+        contains('components.card.style'),
+      );
+    });
+
+    test('progress.style only accepts linear or wavy', () {
+      final payload = validPayload()
+        ..['components'] = {
+          'progress': {'style': 'zigzag'},
+        };
+      expect(
+        pathsOf(validateThemePayload(payload), Severity.error),
+        contains('components.progress.style'),
+      );
+    });
+
     test('assets and their entries', () {
       final payload = validPayload()
         ..['assets'] = {

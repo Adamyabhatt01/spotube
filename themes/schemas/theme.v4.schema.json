@@ -5170,6 +5170,13 @@
             "solid",
             "pixel"
           ]
+        },
+        "style": {
+          "description": "Only the progress component reads this: linear (default) or wavy.",
+          "enum": [
+            "linear",
+            "wavy"
+          ]
         }
       }
     },
