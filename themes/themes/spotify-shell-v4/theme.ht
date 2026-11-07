@@ -507,58 +507,6 @@ class SpotifyThemeApi {
                             ],
                           },
                           {
-                            'type': 'card',
-                            'padding': 8,
-                            'radius': 6,
-                            'background': '#00000000',
-                            'hoverBackground': '@sidebarAccent',
-                            'borderWidth': 0,
-                            'action': {
-                              'type': 'navigate',
-                              'args': {'target': 'home'},
-                            },
-                            'children': [
-                              {
-                                'type': 'align',
-                                'align': 'center',
-                                'children': [
-                                  {
-                                    'type': 'icon',
-                                    'icon': 'home',
-                                    'size': 20,
-                                    'color': '@foreground',
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                          {
-                            'type': 'card',
-                            'padding': 8,
-                            'radius': 6,
-                            'background': '#00000000',
-                            'hoverBackground': '@sidebarAccent',
-                            'borderWidth': 0,
-                            'action': {
-                              'type': 'navigate',
-                              'args': {'target': 'search'},
-                            },
-                            'children': [
-                              {
-                                'type': 'align',
-                                'align': 'center',
-                                'children': [
-                                  {
-                                    'type': 'icon',
-                                    'icon': 'search',
-                                    'size': 20,
-                                    'color': '@mutedForeground',
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                          {
                             'type': 'expanded',
                             'flex': 1,
                             'children': [
@@ -574,7 +522,7 @@ class SpotifyThemeApi {
                                         'id': 'library.playlists',
                                         'props': {
                                           'compact': true,
-                                          'showSearch': false,
+                                          'showSearch': true,
                                           'showCreate': false,
                                           'limit': 40,
                                           'showTitle': false,
@@ -613,79 +561,6 @@ class SpotifyThemeApi {
                     'padding': 8,
                     'animate': 200,
                     'children': [
-                      {
-                        'type': 'column',
-                        'gap': 2,
-                        'children': [
-                          {
-                            'type': 'card',
-                            'padding': 8,
-                            'radius': 6,
-                            'background': '#00000000',
-                            'hoverBackground': '@sidebarAccent',
-                            'borderWidth': 0,
-                            'action': {
-                              'type': 'navigate',
-                              'args': {'target': 'home'},
-                            },
-                            'children': [
-                              {
-                                'type': 'row',
-                                'gap': 10,
-                                'align': 'center',
-                                'children': [
-                                  {
-                                    'type': 'icon',
-                                    'icon': 'home',
-                                    'size': 20,
-                                    'color': '@foreground',
-                                  },
-                                  {
-                                    'type': 'text',
-                                    'text': 'Home',
-                                    'size': 'md',
-                                    'weight': 700,
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                          {
-                            'type': 'card',
-                            'padding': 8,
-                            'radius': 6,
-                            'background': '#00000000',
-                            'hoverBackground': '@sidebarAccent',
-                            'borderWidth': 0,
-                            'action': {
-                              'type': 'navigate',
-                              'args': {'target': 'search'},
-                            },
-                            'children': [
-                              {
-                                'type': 'row',
-                                'gap': 10,
-                                'align': 'center',
-                                'children': [
-                                  {
-                                    'type': 'icon',
-                                    'icon': 'search',
-                                    'size': 20,
-                                    'color': '@mutedForeground',
-                                  },
-                                  {
-                                    'type': 'text',
-                                    'text': 'Search',
-                                    'size': 'md',
-                                    'weight': 700,
-                                    'color': '@mutedForeground',
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
                       {'type': 'gap', 'size': 8},
                       // Spotify keeps the library on its own rounded #121212
                       // surface. The black rail around it is the window frame; the
@@ -970,7 +845,7 @@ class SpotifyThemeApi {
                                                 'id': 'library.playlists',
                                                 'props': {
                                                   'compact': true,
-                                                  'showSearch': false,
+                                                  'showSearch': true,
                                                   'showCreate': false,
                                                   'limit': 40,
                                                   'showPin': false,
@@ -1016,60 +891,6 @@ class SpotifyThemeApi {
                                             'radius': 999,
                                             'shape': 'circle',
                                             'fit': 'cover',
-                                          },
-                                          {
-                                            'type': 'expanded',
-                                            'flex': 1,
-                                            'children': [
-                                              {
-                                                'type': 'column',
-                                                'gap': 1,
-                                                'children': [
-                                                  {
-                                                    'type': 'conditional',
-                                                    'bind': 'user.name',
-                                                    'children': [
-                                                      {
-                                                        'type': 'text',
-                                                        'bind': 'user.name',
-                                                        'size': 'sm',
-                                                        'weight': 700,
-                                                        'maxLines': 1,
-                                                        'overflow': 'ellipsis',
-                                                      },
-                                                    ],
-                                                  },
-                                                  {
-                                                    'type': 'conditional',
-                                                    'bind': 'user.name',
-                                                    'invert': true,
-                                                    'children': [
-                                                      {
-                                                        'type': 'text',
-                                                        'text': 'Sign in',
-                                                        'size': 'sm',
-                                                        'weight': 700,
-                                                        'maxLines': 1,
-                                                        'overflow': 'ellipsis',
-                                                      },
-                                                    ],
-                                                  },
-                                                  {
-                                                    'type': 'text',
-                                                    'text': 'Free',
-                                                    'size': 'xs',
-                                                    'color': '@mutedForeground',
-                                                  },
-                                                ],
-                                              },
-                                            ],
-                                          },
-                                          {
-                                            'type': 'button',
-                                            'icon': 'download',
-                                            'variant': 'ghost',
-                                            'size': 'small',
-                                            'action': {'type': 'openDownloads'},
                                           },
                                           {
                                             'type': 'button',
@@ -1760,6 +1581,16 @@ class SpotifyThemeApi {
                             'args': {'target': 'home'},
                           },
                         },
+                        {
+                          'type': 'button',
+                          'icon': 'radio',
+                          'variant': 'ghost',
+                          'size': 'md',
+                          'action': {
+                            'type': 'navigate',
+                            'args': {'target': 'radio'},
+                          },
+                        },
                         // Keep the search field reference-sized instead of
                         // letting it eat the whole top bar.
                         {'type': 'spacer', 'flex': 2},
@@ -1791,6 +1622,13 @@ class SpotifyThemeApi {
                           'variant': 'ghost',
                           'size': 'md',
                           'action': {'type': 'openSettings'},
+                        },
+                        {
+                          'type': 'button',
+                          'icon': 'download',
+                          'variant': 'ghost',
+                          'size': 'md',
+                          'action': {'type': 'openDownloads'},
                         },
                         {
                           'type': 'image',

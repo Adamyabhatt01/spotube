@@ -44,6 +44,12 @@ Uint8List compileThemeSource(String source, {required String sourceName}) {
   // build's own output, not the compiler's.
   final hetu = Hetu(config: HetuConfig(printPerformanceStatistics: false));
   hetu.init();
+  // Hetu names loop iterators from a process-wide counter. Compiling theme A
+  // before theme B would otherwise rename B's `__iterN` variables, so the
+  // same source produced different bytes depending on the selected theme set.
+  // The counter only has to be unique within one module, so reset it per
+  // compilation to make each artifact independent of build order.
+  HTCompiler.iterIndex = 0;
   final compiled = Uint8List.fromList(
     hetu.compile(source, sourceName: sourceName),
   );
