@@ -1,5 +1,6 @@
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'package:spotube/services/kv_store/kv_store.dart';
+import 'package:spotube/services/wm_tools/close_guard.dart';
 import 'package:spotube/utils/platform.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -37,6 +38,12 @@ class WindowManagerTools with WidgetsBindingObserver {
     await windowManager.ensureInitialized();
     _instance = WindowManagerTools._();
     WidgetsBinding.instance.addObserver(instance);
+
+    // Install close interception before the window can be shown. The call is
+    // part of the unawaited startup step (no first-frame cost), but it must
+    // finish before `show()`: otherwise a close landing in the gap destroys
+    // the window without ever calling `useCloseBehavior`.
+    await CloseGuard.instance.ready;
 
     await windowManager.waitUntilReadyToShow(
       const WindowOptions(

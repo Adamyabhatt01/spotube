@@ -13,6 +13,7 @@
 # Run the full local suite (including the unpublished tests) with:
 #   make check
 test/architecture_boundaries_test.dart
+test/close_guard_test.dart
 test/string_list_converter_test.dart
 test/list_unique_test.dart
 test/rate_limit_test.dart

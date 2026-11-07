@@ -406,12 +406,10 @@ Future<void> main(List<String> rawArgs) async {
     // Best-effort desktop integrations: failures degrade the feature
     // (tray/close-behavior/media keys), never abort launch — and none of
     // them block first frame either.
-    if (kIsDesktop) {
-      unawaited(guardedStartupInit('windowManager.setPreventClose', () async {
-        await windowManager.setPreventClose(true);
-      }));
-    }
-
+    //
+    // Close interception lives inside `WindowManagerTools.initialize` (it
+    // must precede the window being shown), so there is no separate
+    // `setPreventClose` step here.
     if (kIsWindows) {
       unawaited(guardedStartupInit('SMTCWindows.initialize', () async {
         await SMTCWindows.initialize();
