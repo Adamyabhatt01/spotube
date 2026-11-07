@@ -261,6 +261,57 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
         .write(companion);
   }
 
+  /// Serializes [rebindQueueMedia] runs: rapid port flips each schedule a
+  /// rebuild, and every rebuild reads the *current* port when it executes,
+  /// so the last one in the chain always produces the freshest URIs.
+  Future<void> _mediaRebindChain = Future.value();
+
+  /// Re-opens the backend playlist with URIs rebuilt against the current
+  /// playback-server port, preserving order, index and play state. Called
+  /// by [playbackServerPortRebindProvider] when the bound port moves, and
+  /// by tests. Position is restored best-effort: mpv may not have the new
+  /// file open yet, in which case the track simply restarts — strictly
+  /// better than every remote URI pointing at a dead socket.
+  Future<void> rebindQueueMedia() {
+    _mediaRebindChain = _mediaRebindChain
+        .then((_) => _rebuildQueueMedia())
+        .catchError((Object error, StackTrace stack) {
+      // A rebuild that throws must not poison the chain: every later port
+      // change would otherwise be skipped, leaving the queue on dead URIs.
+      AppLogger.reportError(error, stack);
+    });
+    return _mediaRebindChain;
+  }
+
+  Future<void> _rebuildQueueMedia() async {
+    if (_bulkMutationDepth > 0) return;
+    if (state.tracks.isEmpty ||
+        state.tracks.every((track) => track is SpotubeLocalTrackObject)) {
+      return;
+    }
+
+    // Rebuild the queue one media per entry. `addTracks` allows the same
+    // track twice, and deduping here would drop those entries and remap the
+    // current index onto a different track.
+    final medias = state.tracks.asMediaList();
+    if (medias.isEmpty) return;
+
+    final index = state.currentIndex.clamp(0, medias.length - 1);
+    try {
+      final position = _player.position;
+      await openPlaylistOnBackend(
+        medias,
+        initialIndex: index,
+        autoPlay: state.playing,
+      );
+      if (position > Duration.zero) {
+        await _player.seek(position);
+      }
+    } catch (e, stack) {
+      AppLogger.reportError(e, stack);
+    }
+  }
+
   /// Response to one native playlist event: publish the queue and persist it.
   ///
   /// A seam (like the mutation seams above) because media_kit's stream cannot
@@ -857,6 +908,30 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     ref.read(discordProvider.notifier).clear();
   }
 }
+
+/// Rebuilds the backend playlist when the playback server rebinds on a
+/// different port. Queue URIs embed the port at [SpotubeMedia] construction,
+/// so a `connectPort` edit — or the remembered random port losing to another
+/// process — would otherwise leave every remote track pointing at a dead
+/// socket until the user reloads the queue.
+///
+/// This lives outside [audioPlayerProvider] on purpose: subscribing inside
+/// the notifier's `build` made the player depend on
+/// `playbackServerPortProvider → serverProvider → serverRouterProvider`,
+/// and the playback routes' `ref.read(audioPlayerProvider)` then closed a
+/// provider cycle (`CircularDependencyError` on every `/stream` request).
+/// Kept alive by a `listenManual` in `main.dart`.
+final playbackServerPortRebindProvider = Provider<void>((ref) {
+  var lastPort = 0;
+  ref.listen(playbackServerPortProvider, (_, next) {
+    final port = next.asData?.value;
+    if (port == null) return;
+    final stale = lastPort != 0 && port != lastPort;
+    lastPort = port;
+    if (!stale) return;
+    unawaited(ref.read(audioPlayerProvider.notifier).rebindQueueMedia());
+  });
+});
 
 final audioPlayerProvider =
     NotifierProvider<AudioPlayerNotifier, AudioPlayerState>(

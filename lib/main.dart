@@ -44,6 +44,7 @@ import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 import 'package:spotube/modules/splash/splash_prefs.dart';
 import 'package:spotube/modules/theme_surfaces/theme_surfaces_scope.dart';
 import 'package:spotube/provider/audio_player/audio_effects.dart';
+import 'package:spotube/provider/audio_player/audio_player.dart';
 import 'package:spotube/provider/audio_player/audio_player_streams.dart';
 import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/glance/glance.dart';
@@ -591,6 +592,10 @@ class Spotube extends HookConsumerWidget {
           (_, __) {},
           onError: logAsyncError,
         ),
+        // Rebuilds queue URIs when the playback server rebinds on a new
+        // port; must stay outside audioPlayerProvider's build graph (see
+        // the provider's doc comment for the cycle it would close).
+        ref.listenManual(playbackServerPortRebindProvider, (_, __) {}),
         ref.listenManual(trayManagerProvider, (_, __) {}),
         ref.listenManual(
           metadataPluginsProvider,
