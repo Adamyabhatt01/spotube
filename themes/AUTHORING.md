@@ -712,7 +712,7 @@ theme `uiKit` → `shadcn`. The theme's `uiKit` only sets the default: a
 `kitScope` or a node can override it, and an unknown name falls through to the
 enclosing choice. A kit that does not implement a component falls back to the
 theme kit and then `shadcn`; in a debug build `ThemeUiDiagnostics` logs each
-fallback once per node/variant/kit. Material implements `button`, `progress`, `slider`, the form controls and `divider`/`badge`/`chip`/`avatar`; Cupertino implements `button`, `progress` and `slider`. Everything else draws the shadcn node. Material/Cupertino colours and type come from the
+fallback once per node/variant/kit. Material implements `button`, `progress`, `slider`, the form controls and `divider`/`badge`/`chip`/`avatar`; Cupertino implements `button`, `progress`, `slider` and the same form controls (`switch`, `checkbox`, `radioGroup`, `textField`, `textArea`, `select`, `segmented`, `tabs`). Everything else draws the shadcn node. Material/Cupertino colours and type come from the
 plugin palette and typography, not from a separate theme block.
 
 **Forms.** Inputs read their current value from `bind` and never write it:

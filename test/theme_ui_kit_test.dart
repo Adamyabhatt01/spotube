@@ -412,6 +412,193 @@ void main() {
     });
   });
 
+  group('cupertino inputs', () {
+    testWidgets('a Cupertino switch renders natively and reports its value',
+        (tester) async {
+      final fired = <ThemeUiAction>[];
+      await tester.pumpWidget(_app(_node(
+        _runtime(uiKit: 'cupertino', onAction: fired.add),
+        const {
+          'type': 'switch',
+          'label': 'shuffle',
+          'bind': 'player.shuffle',
+          'action': {
+            'type': 'setSetting',
+            'args': {'key': 'shuffle', 'value': r'$value'},
+          },
+        },
+      )));
+
+      expect(find.byType(cupertino.CupertinoSwitch), findsOneWidget);
+      await tester.tap(find.byType(cupertino.CupertinoSwitch));
+      await tester.pump();
+
+      expect(fired.single.args['value'], isTrue);
+    });
+
+    testWidgets('a Cupertino checkbox renders natively and reports its value',
+        (tester) async {
+      final fired = <ThemeUiAction>[];
+      await tester.pumpWidget(_app(_node(
+        _runtime(uiKit: 'cupertino', onAction: fired.add),
+        const {
+          'type': 'checkbox',
+          'label': 'explicit',
+          'bind': 'track.explicit',
+          'action': {
+            'type': 'setSetting',
+            'args': {'key': 'explicit', 'value': r'$value'},
+          },
+        },
+      )));
+
+      expect(find.byType(cupertino.CupertinoCheckbox), findsOneWidget);
+      await tester.tap(find.byType(cupertino.CupertinoCheckbox));
+      await tester.pump();
+
+      expect(fired.single.args['value'], isTrue);
+    });
+
+    testWidgets('a Cupertino radio group renders natively and reports the pick',
+        (tester) async {
+      final fired = <ThemeUiAction>[];
+      await tester.pumpWidget(_app(_node(
+        _runtime(
+          uiKit: 'cupertino',
+          bindings: {'form.choice': 'a'},
+          onAction: fired.add,
+        ),
+        const {
+          'type': 'radioGroup',
+          'bind': 'form.choice',
+          'options': ['a', 'b'],
+          'action': {
+            'type': 'setSetting',
+            'args': {'key': 'choice', 'value': r'$value'},
+          },
+        },
+      )));
+
+      expect(find.byType(cupertino.CupertinoRadio<String>), findsNWidgets(2));
+      await tester.tap(find.byType(cupertino.CupertinoRadio<String>).last);
+      await tester.pump();
+
+      expect(fired.single.args['value'], 'b');
+    });
+
+    testWidgets('a Cupertino text field renders natively and debounces changes',
+        (tester) async {
+      final fired = <ThemeUiAction>[];
+      await tester.pumpWidget(_app(_node(
+        _runtime(uiKit: 'cupertino', onAction: fired.add),
+        const {
+          'type': 'textField',
+          'placeholder': 'Search',
+          'debounceMs': 0,
+          'action': {
+            'type': 'setQuery',
+            'args': {'query': r'$value'},
+          },
+        },
+      )));
+
+      expect(find.byType(cupertino.CupertinoTextField), findsOneWidget);
+      await tester.enterText(
+        find.byType(cupertino.CupertinoTextField),
+        'daft punk',
+      );
+      await tester.pump();
+
+      expect(fired.last.args['query'], 'daft punk');
+    });
+
+    testWidgets('a Cupertino select opens an action sheet and reports the pick',
+        (tester) async {
+      final fired = <ThemeUiAction>[];
+      await tester.pumpWidget(_app(_node(
+        _runtime(
+          uiKit: 'cupertino',
+          bindings: {'form.choice': 'a'},
+          onAction: fired.add,
+        ),
+        const {
+          'type': 'select',
+          'bind': 'form.choice',
+          'options': ['a', 'b'],
+          'action': {
+            'type': 'setSetting',
+            'args': {'key': 'choice', 'value': r'$value'},
+          },
+        },
+      )));
+
+      await tester.tap(find.text('a'));
+      await tester.pumpAndSettle();
+      expect(find.byType(cupertino.CupertinoActionSheet), findsOneWidget);
+
+      await tester.tap(find.text('b').last);
+      await tester.pumpAndSettle();
+
+      expect(fired.single.args['value'], 'b');
+    });
+
+    testWidgets('a Cupertino segmented control reports the picked segment',
+        (tester) async {
+      final fired = <ThemeUiAction>[];
+      await tester.pumpWidget(_app(_node(
+        _runtime(
+          uiKit: 'cupertino',
+          bindings: {'form.choice': 'a'},
+          onAction: fired.add,
+        ),
+        const {
+          'type': 'segmented',
+          'bind': 'form.choice',
+          'options': ['a', 'b'],
+          'action': {
+            'type': 'setSetting',
+            'args': {'key': 'choice', 'value': r'$value'},
+          },
+        },
+      )));
+
+      expect(
+        find.byType(cupertino.CupertinoSlidingSegmentedControl<String>),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('b'));
+      await tester.pumpAndSettle();
+
+      expect(fired.single.args['value'], 'b');
+    });
+
+    testWidgets('a Cupertino tab bar reports the picked tab', (tester) async {
+      final fired = <ThemeUiAction>[];
+      await tester.pumpWidget(_app(_node(
+        _runtime(
+          uiKit: 'cupertino',
+          bindings: {'form.tab': 'one'},
+          onAction: fired.add,
+        ),
+        const {
+          'type': 'tabs',
+          'bind': 'form.tab',
+          'items': ['one', 'two'],
+          'action': {
+            'type': 'setSetting',
+            'args': {'key': 'tab', 'value': r'$value'},
+          },
+        },
+      )));
+
+      expect(find.byType(cupertino.CupertinoTabBar), findsOneWidget);
+      await tester.tap(find.text('two'));
+      await tester.pump();
+
+      expect(fired.single.args['value'], 'two');
+    });
+  });
+
   group('kit progress', () {
     testWidgets(
         'a Material theme renders a Material slider and seeks on release',

@@ -147,6 +147,27 @@ extension _ThemeUiInputNodes on ThemeUiNodeView {
         ),
       );
     }
+    if (kit == ThemeUiKit.cupertino) {
+      final disabled = _inputDisabled(props);
+      return Opacity(
+        opacity: disabled ? 0.5 : 1,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (label != null) ...[
+              Text(label),
+              const SizedBox(width: 8),
+            ],
+            cupertino.CupertinoSwitch(
+              value: value,
+              onChanged: disabled
+                  ? null
+                  : (next) => _fireValue(context, actions, next),
+            ),
+          ],
+        ),
+      );
+    }
     return Opacity(
       opacity: _inputDisabled(props) ? 0.5 : 1,
       child: Switch(
@@ -187,9 +208,26 @@ extension _ThemeUiInputNodes on ThemeUiNodeView {
                 value: value,
                 onChanged: disabled
                     ? null
-                    : (next) =>
-                        _fireValue(context, actions, next ?? false),
+                    : (next) => _fireValue(context, actions, next ?? false),
               ),
+            ),
+            if (label != null) Text(label),
+          ],
+        ),
+      );
+    }
+    if (kit == ThemeUiKit.cupertino) {
+      final disabled = _inputDisabled(props);
+      return Opacity(
+        opacity: disabled ? 0.5 : 1,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            cupertino.CupertinoCheckbox(
+              value: value,
+              onChanged: disabled
+                  ? null
+                  : (next) => _fireValue(context, actions, next ?? false),
             ),
             if (label != null) Text(label),
           ],
@@ -250,7 +288,40 @@ extension _ThemeUiInputNodes on ThemeUiNodeView {
                   controlAffinity: material.ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
                   visualDensity: material.VisualDensity.compact,
-                  materialTapTargetSize: material.MaterialTapTargetSize.shrinkWrap,
+                  materialTapTargetSize:
+                      material.MaterialTapTargetSize.shrinkWrap,
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (kit == ThemeUiKit.cupertino) {
+      final disabled = _inputDisabled(props);
+      return Opacity(
+        opacity: disabled ? 0.5 : 1,
+        child: material.RadioGroup<String>(
+          groupValue:
+              current != null && values.contains(current) ? current : null,
+          onChanged: (next) {
+            if (!disabled) _fireValue(context, actions, next);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final option in options)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    cupertino.CupertinoRadio<String>(value: option.value),
+                    GestureDetector(
+                      onTap: disabled
+                          ? null
+                          : () => _fireValue(context, actions, option.value),
+                      child: Text(option.label),
+                    ),
+                  ],
                 ),
             ],
           ),
@@ -385,6 +456,66 @@ extension _ThemeUiInputNodes on ThemeUiNodeView {
       );
     }
 
+    if (kit == ThemeUiKit.cupertino) {
+      final disabled = _inputDisabled(props);
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Opacity(
+          opacity: disabled ? 0.5 : 1,
+          child: cupertino.CupertinoButton(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            color: cupertino.CupertinoColors.tertiarySystemFill
+                .resolveFrom(context),
+            onPressed: disabled
+                ? null
+                : () {
+                    cupertino.showCupertinoModalPopup<void>(
+                      context: context,
+                      builder: (popupContext) {
+                        return cupertino.CupertinoActionSheet(
+                          actions: [
+                            for (final option in options)
+                              cupertino.CupertinoActionSheetAction(
+                                onPressed: () {
+                                  _fireValue(context, actions, option.value);
+                                  Navigator.of(popupContext).pop();
+                                },
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (option.icon != null) ...[
+                                      Icon(
+                                        _fallbackIcon(option.icon!),
+                                        size: 16,
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                    Text(option.label),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (selected?.icon != null) ...[
+                  Icon(_fallbackIcon(selected!.icon!), size: 16),
+                  const SizedBox(width: 8),
+                ],
+                Text(selected?.label ?? placeholder),
+                const SizedBox(width: 8),
+                const Icon(SpotubeIcons.angleDown, size: 16),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Align(
       alignment: Alignment.centerLeft,
       child: Button.outline(
@@ -480,6 +611,44 @@ extension _ThemeUiInputNodes on ThemeUiNodeView {
                       _fireValue(context, actions, selection.first);
                     }
                   },
+          ),
+        ),
+      );
+    }
+
+    if (kit == ThemeUiKit.cupertino) {
+      final hasSelection =
+          current != null && options.any((option) => option.value == current);
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Opacity(
+          opacity: disabled ? 0.5 : 1,
+          child: cupertino.CupertinoSlidingSegmentedControl<String>(
+            groupValue: hasSelection ? current : null,
+            children: {
+              for (final option in options)
+                option.value: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (option.icon != null) ...[
+                        Icon(_fallbackIcon(option.icon!), size: 16),
+                        const SizedBox(width: 4),
+                      ],
+                      Text(option.label),
+                    ],
+                  ),
+                ),
+            },
+            disabledChildren: disabled
+                ? options.map((option) => option.value).toSet()
+                : const <String>{},
+            onValueChanged: (value) {
+              if (disabled || value == null) return;
+              _fireValue(context, actions, value);
+            },
           ),
         ),
       );
@@ -902,6 +1071,37 @@ class _ThemeUiTextInputState extends State<_ThemeUiTextInput> {
         ],
       );
     }
+    if (widget.kit == ThemeUiKit.cupertino) {
+      return Row(
+        crossAxisAlignment:
+            widget.area ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+        children: [
+          if (widget.icon != null) ...[
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Icon(widget.icon!, size: 16),
+            ),
+          ],
+          Expanded(
+            child: cupertino.CupertinoTextField(
+              controller: _controller,
+              placeholder: widget.placeholder,
+              minLines: widget.minLines,
+              maxLines: widget.maxLines,
+              enabled: !widget.disabled,
+              onChanged: (_) => _schedule(),
+              onSubmitted: (_) => _flush(),
+            ),
+          ),
+          if (widget.clearable && _controller.text.isNotEmpty)
+            cupertino.CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: _clear,
+              child: const Icon(Icons.close, size: 16),
+            ),
+        ],
+      );
+    }
     final field = widget.area
         ? TextArea(
             controller: _controller,
@@ -1028,6 +1228,28 @@ class _ThemeUiTabsState extends State<_ThemeUiTabs> {
             );
           },
         ),
+      );
+    }
+    if (widget.kit == ThemeUiKit.cupertino && widget.items.length >= 2) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          cupertino.CupertinoTabBar(
+            currentIndex: selected,
+            onTap: (index) {
+              setState(() => _index = index);
+              widget.onSelected(index);
+            },
+            items: [
+              for (final item in widget.items)
+                material.BottomNavigationBarItem(
+                  icon: nodeView._tabChild(item),
+                ),
+            ],
+          ),
+          if (panel != null) panel,
+        ],
       );
     }
 

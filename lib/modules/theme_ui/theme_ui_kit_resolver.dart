@@ -6,9 +6,10 @@ import 'package:spotube/modules/theme_ui/theme_ui_kit.dart';
 /// The node components each kit can render natively.
 ///
 /// Shadcn is the app's own kit and implements the whole vocabulary. Material
-/// and Cupertino start with the controls that make the kit switch visible
-/// (buttons and sliders); a semantic node outside this set keeps the default
-/// kit's rendering instead of disappearing.
+/// and Cupertino implement the input vocabulary natively (buttons, progress,
+/// sliders, switches, checkboxes, radios, text fields, selects, segmented
+/// controls and tabs); a semantic node outside the set keeps the default kit's
+/// rendering instead of disappearing.
 const kitComponents = <ThemeUiKit, Set<String>>{
   ThemeUiKit.shadcn: {
     'button',
@@ -66,7 +67,19 @@ const kitComponents = <ThemeUiKit, Set<String>>{
     'chip',
     'avatar',
   },
-  ThemeUiKit.cupertino: {'button', 'progress', 'slider'},
+  ThemeUiKit.cupertino: {
+    'button',
+    'progress',
+    'slider',
+    'switch',
+    'checkbox',
+    'radioGroup',
+    'textField',
+    'textArea',
+    'select',
+    'segmented',
+    'tabs',
+  },
 };
 
 /// Puts a kit in scope for a subtree.
