@@ -1,12 +1,36 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spotube/models/metadata/metadata.dart';
-import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/utils/common.dart';
 import 'package:spotube/provider/metadata_plugin/utils/paginated.dart';
+import 'package:spotube/services/metadata/library_snapshot.dart';
 
 class MetadataPluginBrowseSectionsNotifier
     extends AutoDisposePaginatedAsyncNotifier<
-        SpotubeBrowseSectionObject<Object>> {
+        SpotubeBrowseSectionObject<Object>>
+    with SavedListCacheMixin<SpotubeBrowseSectionObject<Object>> {
+  @override
+  String? get snapshotKey => librarySnapshotKeyBrowseSections;
+
+  /// Each section holds playlists, albums and artists by shape, not by a
+  /// single type; the shared helper decodes the same way the live endpoint
+  /// does.
+  @override
+  SpotubeBrowseSectionObject<Object> Function(Map<String, dynamic>)?
+      get snapshotDecoder =>
+          (json) => SpotubeBrowseSectionObject<Object>.fromJson(
+                json,
+                spotubeBrowseItemFromJson,
+              );
+
+  @override
+  Object? Function(SpotubeBrowseSectionObject<Object>)? get snapshotEncoder =>
+      spotubeBrowseSectionToJson;
+
+  // A snapshot is already on screen; a 429 should stop at the session gate
+  // instead of spending its cooldown on retries.
+  @override
+  bool get retryRateLimits => false;
+
   @override
   Future<SpotubePaginationResponseObject<SpotubeBrowseSectionObject<Object>>>
       fetch(
@@ -21,14 +45,14 @@ class MetadataPluginBrowseSectionsNotifier
 
   @override
   build() async {
-    // Retained briefly after last use (not forever): home remounts and
-    // auth flaps used to be free only because this never disposed.
+    // Retained briefly after last use (not forever): home remounts used to
+    // be free only because this never disposed.
     ref.cacheFor();
 
-    // The future, not the AsyncValue: same loading-echo rule as the plugin
-    // providers above. Auth flaps still rebuild (new future per emission).
-    await ref.watch(metadataPluginAuthenticatedProvider.future);
-    return await fetchGated(() => fetch(0, 20));
+    // The snapshot paints the shelves immediately. No auth watch: waiting
+    // for the auth future's 3 s credential ceiling was the empty-home delay,
+    // and an auth flap would spend an extra request per settle.
+    return await buildSavedList();
   }
 }
 

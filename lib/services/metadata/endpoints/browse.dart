@@ -28,23 +28,7 @@ class MetadataPluginBrowseEndpoint {
       raw.cast<String, dynamic>(),
       (Map json) => SpotubeBrowseSectionObject<Object>.fromJson(
         json.cast<String, dynamic>(),
-        (json) {
-          final isPlaylist = json["owner"] != null;
-          final isAlbum = json["artists"] != null;
-          if (isPlaylist) {
-            return SpotubeSimplePlaylistObject.fromJson(
-              json.cast<String, dynamic>(),
-            );
-          } else if (isAlbum) {
-            return SpotubeSimpleAlbumObject.fromJson(
-              json.cast<String, dynamic>(),
-            );
-          } else {
-            return SpotubeFullArtistObject.fromJson(
-              json.cast<String, dynamic>(),
-            );
-          }
-        },
+        spotubeBrowseItemFromJson,
       ),
     );
   }
@@ -65,23 +49,7 @@ class MetadataPluginBrowseEndpoint {
 
     return SpotubePaginationResponseObject<Object>.fromJson(
       raw.cast<String, dynamic>(),
-      (json) {
-        final isPlaylist = json["owner"] != null;
-        final isAlbum = json["artists"] != null;
-        if (isPlaylist) {
-          return SpotubeSimplePlaylistObject.fromJson(
-            json.cast<String, dynamic>(),
-          );
-        } else if (isAlbum) {
-          return SpotubeSimpleAlbumObject.fromJson(
-            json.cast<String, dynamic>(),
-          );
-        } else {
-          return SpotubeFullArtistObject.fromJson(
-            json.cast<String, dynamic>(),
-          );
-        }
-      },
+      spotubeBrowseItemFromJson,
     );
   }
 }

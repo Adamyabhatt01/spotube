@@ -5,9 +5,12 @@
 // with RateLimitedUntilException until the cooldown expires.
 import 'dart:async';
 
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/metadata_plugin/album/releases.dart';
 import 'package:spotube/provider/metadata_plugin/artist/albums.dart';
 import 'package:spotube/provider/metadata_plugin/artist/artist.dart';
@@ -159,15 +162,20 @@ void main() {
   setUpAll(() => AppLogger.initialize(false));
 
   ProviderContainer containerWith(MetadataPlugin plugin) {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
     final container = ProviderContainer(
       overrides: [
+        databaseProvider.overrideWithValue(database),
         metadataPluginProvider.overrideWith((ref) async => plugin),
         metadataPluginAuthenticatedProvider.overrideWith(
           () => _AlwaysAuthenticated(),
         ),
       ],
     );
-    addTearDown(container.dispose);
+    addTearDown(() async {
+      container.dispose();
+      await database.close();
+    });
     return container;
   }
 
@@ -247,7 +255,8 @@ void main() {
         ),
         throwsA(isA<TimeoutException>()),
       );
-      expect(calls, 1, reason: 'a stall is not a throttle, so no cooldown wait');
+      expect(calls, 1,
+          reason: 'a stall is not a throttle, so no cooldown wait');
     });
 
     test('a timeout leaves unrelated reads alone', () async {

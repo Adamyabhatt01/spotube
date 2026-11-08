@@ -23,17 +23,44 @@ SpotubeFullArtistObject _artist(String id) => SpotubeFullArtistObject(
       externalUri: 'https://example.test/artist/$id',
     );
 
+SpotubeSimpleAlbumObject _album(String id) => SpotubeSimpleAlbumObject(
+      id: id,
+      name: 'Album $id',
+      externalUri: 'https://example.test/album/$id',
+      artists: [
+        SpotubeSimpleArtistObject(
+          id: 'ar-$id',
+          name: 'Artist ar-$id',
+          externalUri: 'https://example.test/artist/ar-$id',
+        ),
+      ],
+      albumType: SpotubeAlbumType.album,
+    );
+
+SpotubeSimplePlaylistObject _playlist(String id) => SpotubeSimplePlaylistObject(
+      id: id,
+      name: 'Playlist $id',
+      description: '',
+      externalUri: 'https://example.test/playlist/$id',
+      owner: SpotubeUserObject(
+        id: 'owner-$id',
+        name: 'Owner $id',
+        externalUri: 'https://example.test/user/owner-$id',
+      ),
+    );
+
 /// Saved-artists notifier whose network calls always look rate-limited.
-class _Always429SavedArtists extends PaginatedAsyncNotifier<
-    SpotubeFullArtistObject> with SavedListCacheMixin<SpotubeFullArtistObject> {
+class _Always429SavedArtists
+    extends PaginatedAsyncNotifier<SpotubeFullArtistObject>
+    with SavedListCacheMixin<SpotubeFullArtistObject> {
   final seenOffsets = <int>[];
 
   @override
   String? get snapshotKey => librarySnapshotKeySavedArtists;
 
   @override
-  SpotubeFullArtistObject Function(Map<String, dynamic>)?
-      get snapshotDecoder => SpotubeFullArtistObject.fromJson;
+  SpotubeFullArtistObject Function(Map<String, dynamic>)? get snapshotDecoder =>
+      SpotubeFullArtistObject.fromJson;
 
   @override
   Future<SpotubePaginationResponseObject<SpotubeFullArtistObject>> fetch(
@@ -49,8 +76,7 @@ class _Always429SavedArtists extends PaginatedAsyncNotifier<
       buildSavedList(cooldown: Duration.zero);
 }
 
-final _savedArtistsProvider = AsyncNotifierProvider<
-    _Always429SavedArtists,
+final _savedArtistsProvider = AsyncNotifierProvider<_Always429SavedArtists,
     SpotubePaginationResponseObject<SpotubeFullArtistObject>>(
   () => _Always429SavedArtists(),
 );
@@ -140,6 +166,45 @@ void main() {
       );
     });
 
+    test('an explicit encoder round-trips polymorphic browse sections',
+        () async {
+      final section = SpotubeBrowseSectionObject<Object>(
+        id: 'section-1',
+        title: 'Shelf',
+        externalUri: 'https://example.test/browse/section-1',
+        browseMore: false,
+        items: [
+          _playlist('p1'),
+          _album('a1'),
+          _artist('ar1'),
+        ],
+      );
+      await writeLibrarySnapshot(
+        database,
+        librarySnapshotKeyBrowseSections,
+        [section],
+        encode: spotubeBrowseSectionToJson,
+      );
+
+      final cached = await readLibrarySnapshot(
+        database,
+        librarySnapshotKeyBrowseSections,
+        (json) => SpotubeBrowseSectionObject<Object>.fromJson(
+          json,
+          spotubeBrowseItemFromJson,
+        ),
+      );
+      expect(cached?.items.single.id, 'section-1');
+      expect(
+        cached?.items.single.items,
+        [
+          isA<SpotubeSimplePlaylistObject>(),
+          isA<SpotubeSimpleAlbumObject>(),
+          isA<SpotubeFullArtistObject>(),
+        ],
+      );
+    });
+
     test('clearLibrarySnapshots drops every row', () async {
       await writeLibrarySnapshot(database, 'a', [_artist('1')]);
       await writeLibrarySnapshot(database, 'b', [_artist('2')]);
@@ -191,9 +256,7 @@ void main() {
       // Settle the initial build before driving fetchAll.
       await container.read(_scriptedProvider.future);
 
-      final items = await container
-          .read(_scriptedProvider.notifier)
-          .fetchAll();
+      final items = await container.read(_scriptedProvider.notifier).fetchAll();
       expect(items.map((e) => e.id), ['p1', 'p2', 'p3']);
 
       // fetchAll awaits persistSnapshot, so the row is already on disk.
@@ -283,7 +346,9 @@ void main() {
       notifier = _HeldProbeSavedArtists();
       // Never leave the probe open: its 15s budget would outlive the test.
       addTearDown(() {
-        if (!notifier.probe.isCompleted) notifier.probe.complete(_page(const []));
+        if (!notifier.probe.isCompleted) {
+          notifier.probe.complete(_page(const []));
+        }
       });
     });
 
@@ -351,11 +416,19 @@ void main() {
       await writeLibrarySnapshot(
         database,
         librarySnapshotKeySavedArtists,
-        [_artist('a1'), _artist('a2'), _artist('a3'), _artist('a4'), _artist('a5')],
+        [
+          _artist('a1'),
+          _artist('a2'),
+          _artist('a3'),
+          _artist('a4'),
+          _artist('a5')
+        ],
       );
       notifier = _HeldProbeSavedArtists();
       addTearDown(() {
-        if (!notifier.probe.isCompleted) notifier.probe.complete(_page(const []));
+        if (!notifier.probe.isCompleted) {
+          notifier.probe.complete(_page(const []));
+        }
       });
     });
 
@@ -418,7 +491,9 @@ void main() {
     test('a burst of toggles persists once, with the final list', () async {
       await clearLibrarySnapshots(database);
       final container = containerWith(
-        extra: [_schedulableProvider.overrideWith(() => _SchedulableSavedArtists())],
+        extra: [
+          _schedulableProvider.overrideWith(() => _SchedulableSavedArtists())
+        ],
       );
       // The provider is auto-dispose; a subscription keeps the notifier (and
       // its pending timer) alive for the test.
@@ -462,8 +537,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           databaseProvider.overrideWithValue(database),
-          _schedulableProvider
-              .overrideWith(() => _SchedulableSavedArtists()),
+          _schedulableProvider.overrideWith(() => _SchedulableSavedArtists()),
         ],
       );
       final sub = container.listen(_schedulableProvider, (_, __) {});
@@ -523,8 +597,8 @@ class _HeldProbeSavedArtists
   String? get snapshotKey => librarySnapshotKeySavedArtists;
 
   @override
-  SpotubeFullArtistObject Function(Map<String, dynamic>)?
-      get snapshotDecoder => SpotubeFullArtistObject.fromJson;
+  SpotubeFullArtistObject Function(Map<String, dynamic>)? get snapshotDecoder =>
+      SpotubeFullArtistObject.fromJson;
 
   @override
   Future<SpotubePaginationResponseObject<SpotubeFullArtistObject>> fetch(
@@ -544,8 +618,7 @@ class _HeldProbeSavedArtists
   }
 }
 
-final _heldProbeProvider = AsyncNotifierProvider<
-    _HeldProbeSavedArtists,
+final _heldProbeProvider = AsyncNotifierProvider<_HeldProbeSavedArtists,
     SpotubePaginationResponseObject<SpotubeFullArtistObject>>(
   () => throw UnimplementedError(),
 );
@@ -563,8 +636,8 @@ class _Scripted429AfterSeed
   String? get snapshotKey => librarySnapshotKeySavedArtists;
 
   @override
-  SpotubeFullArtistObject Function(Map<String, dynamic>)?
-      get snapshotDecoder => SpotubeFullArtistObject.fromJson;
+  SpotubeFullArtistObject Function(Map<String, dynamic>)? get snapshotDecoder =>
+      SpotubeFullArtistObject.fromJson;
 
   @override
   Future<SpotubePaginationResponseObject<SpotubeFullArtistObject>> build() =>
@@ -579,8 +652,7 @@ class _Scripted429AfterSeed
   }
 }
 
-final _scriptedProvider = AsyncNotifierProvider<
-    _Scripted429AfterSeed,
+final _scriptedProvider = AsyncNotifierProvider<_Scripted429AfterSeed,
     SpotubePaginationResponseObject<SpotubeFullArtistObject>>(
   () => throw UnimplementedError(),
 );
@@ -594,8 +666,8 @@ class _SchedulableSavedArtists
   String? get snapshotKey => librarySnapshotKeySavedArtists;
 
   @override
-  SpotubeFullArtistObject Function(Map<String, dynamic>)?
-      get snapshotDecoder => SpotubeFullArtistObject.fromJson;
+  SpotubeFullArtistObject Function(Map<String, dynamic>)? get snapshotDecoder =>
+      SpotubeFullArtistObject.fromJson;
 
   @override
   Future<SpotubePaginationResponseObject<SpotubeFullArtistObject>> fetch(
@@ -614,8 +686,7 @@ class _SchedulableSavedArtists
   }
 }
 
-final _schedulableProvider = AsyncNotifierProvider<
-    _SchedulableSavedArtists,
+final _schedulableProvider = AsyncNotifierProvider<_SchedulableSavedArtists,
     SpotubePaginationResponseObject<SpotubeFullArtistObject>>(
   () => throw UnimplementedError(),
 );
@@ -625,6 +696,7 @@ final _schedulableProvider = AsyncNotifierProvider<
 Future<int> _rowCount(AppDatabase database, String key) async {
   final rows = await (database.select(
     database.librarySnapshotTable,
-  )..where((t) => t.key.equals(key))).get();
+  )..where((t) => t.key.equals(key)))
+      .get();
   return rows.length;
 }

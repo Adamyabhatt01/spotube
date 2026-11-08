@@ -2,13 +2,19 @@ import 'dart:convert';
 
 import 'package:spotube/models/database/database.dart';
 
-/// Keys of the persisted last-known-good library lists in
+/// Keys of the persisted last-known-good lists in
 /// [LibrarySnapshotTable]. Values are the fully-materialized item arrays
-/// of the corresponding saved-list providers.
+/// of the corresponding providers.
 const librarySnapshotKeySavedArtists = 'savedArtists';
 const librarySnapshotKeySavedAlbums = 'savedAlbums';
 const librarySnapshotKeySavedTracks = 'savedTracks';
 const librarySnapshotKeySavedPlaylists = 'savedPlaylists';
+
+/// Homepage feeds. They are not "the library", but the same table and
+/// stale-while-revalidate shape apply: show the last successful answer at
+/// first paint, then replace it with the network's.
+const librarySnapshotKeyNewReleases = 'newReleases';
+const librarySnapshotKeyBrowseSections = 'browseSections';
 
 /// The version of the stored payload.
 ///
@@ -38,7 +44,9 @@ class LibrarySnapshot<K> {
 
 /// Overwrites the snapshot for [key] with the JSON of [items].
 ///
-/// Items are freezed metadata objects; `toJson` is dynamic-dispatched.
+/// Items are freezed metadata objects; `toJson` is dynamic-dispatched by
+/// default. A generic object whose `toJson` needs a type argument (a browse
+/// section with polymorphic items, for example) passes [encode] instead.
 ///
 /// [complete] says whether [items] is the whole list. A partial list is
 /// still worth persisting: it is what the device actually knows, and it
@@ -49,6 +57,7 @@ Future<void> writeLibrarySnapshot<K>(
   String key,
   List<K> items, {
   bool complete = true,
+  Object? Function(K item)? encode,
 }) async {
   await database.transaction(() async {
     await (database.delete(database.librarySnapshotTable)
@@ -60,7 +69,11 @@ Future<void> writeLibrarySnapshot<K>(
             data: jsonEncode({
               'v': librarySnapshotFormatVersion,
               'complete': complete,
-              'items': items.map((e) => (e as dynamic).toJson()).toList(),
+              'items': items
+                  .map(
+                    (e) => encode != null ? encode(e) : (e as dynamic).toJson(),
+                  )
+                  .toList(),
             }),
             updatedAtMs: DateTime.now().millisecondsSinceEpoch,
           ),

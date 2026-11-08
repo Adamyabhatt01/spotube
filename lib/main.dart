@@ -51,6 +51,8 @@ import 'package:spotube/provider/glance/glance.dart';
 import 'package:spotube/provider/server/sourced_track_provider.dart';
 import 'package:spotube/provider/server/control_server_provider.dart';
 import 'package:spotube/provider/server/control_command_delivery.dart';
+import 'package:spotube/provider/metadata_plugin/album/releases.dart';
+import 'package:spotube/provider/metadata_plugin/browse/sections.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/server/bonsoir.dart';
 import 'package:spotube/provider/server/server.dart';
@@ -539,6 +541,27 @@ class Spotube extends HookConsumerWidget {
       );
       return null;
     }, [splashReady]);
+
+    // Home's two network feeds are the first content behind the splash.
+    // Start them while the splash still covers the window so their SQLite
+    // snapshot read overlaps it; each provider serves last-known-good data
+    // first and revalidates behind it, so this is not a network wait. The
+    // providers keep themselves alive for five minutes, which is what lets
+    // home's own watch join the build instead of starting a second one.
+    useEffect(() {
+      for (final future in [
+        ref.read(metadataPluginAlbumReleasesProvider.future),
+        ref.read(metadataPluginBrowseSectionsProvider.future),
+      ]) {
+        unawaited(future.then<void>(
+          (_) {},
+          onError: (Object error, StackTrace stack) {
+            AppLogger.reportError(error, stack, 'homeFeedWarmup');
+          },
+        ));
+      }
+      return null;
+    }, []);
 
     // Eagerly initialize background services and keep them alive for the app
     // lifetime. The listener bodies are intentionally empty.

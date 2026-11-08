@@ -26,6 +26,13 @@ mixin PaginatedAsyncNotifierMixin<K>
 
   K Function(Map<String, dynamic>)? get snapshotDecoder => null;
 
+  /// Serializes an item whose `toJson` needs a type argument.
+  ///
+  /// Freezed's `genericArgumentFactories` objects (browse sections) expose
+  /// `toJson(toJsonT)` instead of a no-arg `toJson`, so the snapshot writer
+  /// cannot dynamic-dispatch them. Null means the default dynamic call.
+  Object? Function(K item)? get snapshotEncoder => null;
+
   /// Persists the current state as the last-known-good list.
   ///
   /// A list that is still paging is persisted too, marked incomplete. It used
@@ -47,6 +54,7 @@ mixin PaginatedAsyncNotifierMixin<K>
         key,
         value.items,
         complete: !value.hasMore,
+        encode: snapshotEncoder,
       );
     } catch (e, stack) {
       AppLogger.reportError(e, stack);
@@ -277,6 +285,28 @@ mixin SavedListCacheMixin<K>
   /// see it — which is exactly the row a second device is missing.
   bool get refreshAllPages => false;
 
+  /// Whether a rate-limited read is retried across the bounded cooldown.
+  ///
+  /// Saved lists opt in: a retry is what eventually brings the library back
+  /// after Spotify's throttle window. The homepage feeds opt out: they already
+  /// have a last-known-good snapshot on screen, so re-probing a 429 only burns
+  /// the cooldown; the error surfaces to the session gate instead.
+  bool get retryRateLimits => true;
+
+  Future<SpotubePaginationResponseObject<K>> _fetchPage(
+    int offset,
+    int limit, {
+    required Duration cooldown,
+  }) {
+    if (!retryRateLimits) {
+      return fetchGated(() => fetch(offset, limit));
+    }
+    return fetchWithRateLimitRetry(
+      () => fetch(offset, limit),
+      cooldown: cooldown,
+    );
+  }
+
   /// Set while a manual [refresh] is in flight. Separate from [_isFetching]
   /// (which guards the page walk) so the two cannot starve each other.
   bool _refreshing = false;
@@ -365,10 +395,7 @@ mixin SavedListCacheMixin<K>
     while (true) {
       if (pages >= PaginatedAsyncNotifierMixin.fetchAllMaxPages) break;
       pages++;
-      final page = await fetchWithRateLimitRetry(
-        () => fetch(offset, limit),
-        cooldown: cooldown,
-      );
+      final page = await _fetchPage(offset, limit, cooldown: cooldown);
       _reportedTotal = page.total;
       for (final item in page.items) {
         if (seen.add(_itemKey(item))) walked.add(item);
@@ -601,10 +628,7 @@ mixin SavedListCacheMixin<K>
       return cached;
     }
 
-    final page = await fetchWithRateLimitRetry(
-      () => fetch(0, 20),
-      cooldown: cooldown,
-    );
+    final page = await _fetchPage(0, 20, cooldown: cooldown);
     _reportedTotal = page.total;
     // Cache the page once the burst window closes. A list that is still
     // paging is cached too, marked incomplete: it is what this device
@@ -628,10 +652,7 @@ mixin SavedListCacheMixin<K>
   ) async {
     final SpotubePaginationResponseObject<K> fresh;
     try {
-      fresh = await fetchWithRateLimitRetry(
-        () => fetch(0, 20),
-        cooldown: cooldown,
-      );
+      fresh = await _fetchPage(0, 20, cooldown: cooldown);
     } catch (e, stack) {
       AppLogger.reportError(e, stack);
       return;

@@ -7,9 +7,12 @@
 
 import 'dart:async';
 
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:spotube/models/database/database.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/provider/database/database.dart';
 import 'package:spotube/provider/metadata_plugin/album/releases.dart';
 import 'package:spotube/provider/metadata_plugin/artist/albums.dart';
 import 'package:spotube/provider/metadata_plugin/artist/related.dart';
@@ -276,6 +279,7 @@ void main() {
   late _CountingSearch search;
   late _CountingPlaylistTracks playlistTracks;
   late ProviderContainer container;
+  late AppDatabase database;
 
   setUp(() {
     browse = _CountingBrowse();
@@ -292,8 +296,10 @@ void main() {
       search: search,
       playlist: playlistTracks,
     );
+    database = AppDatabase.forTesting(NativeDatabase.memory());
     container = ProviderContainer(
       overrides: [
+        databaseProvider.overrideWithValue(database),
         metadataPluginProvider.overrideWith((ref) async => plugin),
         metadataPluginAuthenticatedProvider.overrideWith(
           () => _AlwaysAuthenticated(),
@@ -302,7 +308,10 @@ void main() {
     );
   });
 
-  tearDown(() => container.dispose());
+  tearDown(() async {
+    container.dispose();
+    await database.close();
+  });
 
   /// Visits [provider] twice with no listener in between (a navigation away
   /// and back) and returns the endpoint call count afterwards.
@@ -367,22 +376,19 @@ void main() {
         reason: 'the loading emission must not trigger a second page-1 fetch');
   });
 
-  test('album tracks fetch once per mount, not per plugin emission',
-      () async {
+  test('album tracks fetch once per mount, not per plugin emission', () async {
     await visitTwice(metadataPluginAlbumTracksProvider('al1'));
     expect(album.tracksCalls, 1,
         reason: 'the loading emission must not trigger a second page-1 fetch');
   });
 
-  test('search tracks fetch once per mount, not per plugin emission',
-      () async {
+  test('search tracks fetch once per mount, not per plugin emission', () async {
     await visitTwice(metadataPluginSearchTracksProvider('query'));
     expect(search.tracksCalls, 1,
         reason: 'the loading emission must not trigger a second page-1 fetch');
   });
 
-  test('search albums fetch once per mount, not per plugin emission',
-      () async {
+  test('search albums fetch once per mount, not per plugin emission', () async {
     await visitTwice(metadataPluginSearchAlbumsProvider('query'));
     expect(search.albumsCalls, 1,
         reason: 'the loading emission must not trigger a second page-1 fetch');
