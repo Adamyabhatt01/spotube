@@ -4892,7 +4892,7 @@ class SpotifyThemeApi {
           // The host's popular station page, drawn as a themed rail above the
           // station grid. `radio.stations` is the popular default page; each
           // card plays and favorites through the radio actions.
-          'radio.content': {
+          'radio.before_sections': {
             'children': [
               {
                 'type': 'padding',
@@ -4979,105 +4979,19 @@ class SpotifyThemeApi {
                   },
                 ],
               },
+            ],
+          },
+          'radio.after_sections': {
+            'children': [
               {
-                'type': 'padding',
-                'horizontal': 24,
-                'top': 20,
-                'bottom': 4,
+                'type': 'conditional',
+                'bind': 'radio.active',
                 'children': [
                   {
-                    'type': 'text',
-                    'text': 'Stations',
-                    'size': 'xl',
-                    'weight': 800,
-                    'letterSpacing': -0.4,
-                  },
-                ],
-              },
-              {
-                'type': 'list',
-                'bind': 'radio.stations',
-                'direction': 'horizontal',
-                'gap': 20,
-                'limit': 20,
-                'align': 'start',
-                'children': [
-                  {
-                    'type': 'card',
-                    'width': 180,
-                    'padding': 12,
-                    'radius': 999,
-                    'background': '#00000000',
-                    'hoverBackground': '@secondary',
-                    'borderWidth': 0,
-                    'action': {'type': 'playStation'},
-                    'children': [
-                      {
-                        'type': 'image',
-                        'src': 'item.artwork',
-                        'width': 156,
-                        'height': 156,
-                        'radius': 999,
-                        'shape': 'circle',
-                        'fit': 'cover',
-                      },
-                      {'type': 'gap', 'size': 10},
-                      {
-                        'type': 'text',
-                        'bind': 'item.name',
-                        'size': 'md',
-                        'weight': 700,
-                        'maxLines': 1,
-                        'overflow': 'ellipsis',
-                      },
-                      {'type': 'gap', 'size': 2},
-                      {
-                        'type': 'text',
-                        'bind': 'item.subtitle',
-                        'size': 'xs',
-                        'color': '@mutedForeground',
-                        'maxLines': 1,
-                        'overflow': 'ellipsis',
-                      },
-                      {'type': 'gap', 'size': 8},
-                      {
-                        'type': 'row',
-                        'children': [
-                          {
-                            'type': 'conditional',
-                            'bind': 'item.isFavorite',
-                            'children': [
-                              {
-                                'type': 'button',
-                                'icon': 'liked',
-                                'variant': 'ghost',
-                                'size': 'small',
-                                'action': {'type': 'toggleStationFavorite'},
-                              },
-                              {
-                                'type': 'button',
-                                'icon': 'like',
-                                'variant': 'ghost',
-                                'size': 'small',
-                                'action': {'type': 'toggleStationFavorite'},
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              },
-              {
-                'type': 'padding',
-                'horizontal': 24,
-                'top': 20,
-                'bottom': 28,
-                'children': [
-                  {
-                    'type': 'conditional',
-                    'bind': 'radio.active',
+                    'type': 'padding',
+                    'horizontal': 24,
+                    'top': 16,
+                    'bottom': 8,
                     'children': [
                       {
                         'type': 'card',

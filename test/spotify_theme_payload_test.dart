@@ -231,7 +231,8 @@ void main() {
         'queue.content',
         'downloads.content',
         'stats.content',
-        'radio.content',
+        'radio.before_sections',
+        'radio.after_sections',
         'page.audio',
       });
       expect(theme.ui!.screens, isEmpty);
