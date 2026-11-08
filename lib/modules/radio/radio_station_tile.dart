@@ -85,11 +85,11 @@ class RadioStationPinButton extends ConsumerWidget {
   }
 }
 
-/// Square cover: the station favicon when it has one, a radio glyph otherwise.
+/// Circular cover: the station favicon when it has one, a radio glyph otherwise.
 ///
-/// The corner radius defaults to the list-tile artwork radius; grid cards
-/// pass the shared card radius so both layouts match their Playbutton
-/// counterparts instead of carrying their own geometry.
+/// The radius defaults to fully round so station artwork reads like the
+/// small circular artwork used elsewhere in the theme. Grid cards can still
+/// pass their shared card radius when they want a browser-style cover.
 class RadioStationCover extends StatelessWidget {
   const RadioStationCover({
     super.key,
@@ -104,7 +104,7 @@ class RadioStationCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = this.radius ?? context.theme.borderRadiusMd;
+    final radius = this.radius ?? BorderRadius.circular(999);
     final faviconUrl = station.faviconUrl;
     // The station API occasionally returns an empty or non-remote string.
     // Passing that to [UniversalImage] reads it as an asset/memory path and
@@ -164,7 +164,7 @@ class RadioStationTile extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Row(
           children: [
-            RadioStationCover(station: station, size: 50 * scale),
+            RadioStationCover(station: station, size: 44 * scale),
             const Gap(12),
             Expanded(
               child: Column(

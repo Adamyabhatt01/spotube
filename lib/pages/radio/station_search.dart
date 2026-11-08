@@ -655,11 +655,11 @@ class _RadioTileBone extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 50 * scale,
-            height: 50 * scale,
+            width: 44 * scale,
+            height: 44 * scale,
             decoration: BoxDecoration(
               color: bone,
-              borderRadius: BorderRadius.circular(context.cardCornerRadius),
+              borderRadius: BorderRadius.circular(999),
             ),
           ),
           const Gap(12),
