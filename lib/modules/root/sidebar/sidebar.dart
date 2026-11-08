@@ -31,6 +31,7 @@ import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/modules/playlist/liked_playlist_synthetic.dart';
 import 'package:spotube/modules/theme_shell/theme_branding.dart';
+import 'package:spotube/modules/theme_shell/theme_identity.dart';
 import 'package:spotube/modules/theme_shell/theme_navigation.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/radio/favorites.dart';
@@ -82,7 +83,7 @@ class Sidebar extends HookConsumerWidget {
     final themeDefinition = ref.watch(effectiveThemeDefinitionProvider);
     final branding = useMemoized(
       () => ThemeBranding.from(themeDefinition),
-      [themeDefinition],
+      [IdentityKey(themeDefinition)],
     );
 
     final layoutMode =
@@ -118,7 +119,7 @@ class Sidebar extends HookConsumerWidget {
             tile.id: tile,
         },
       },
-      [themeUi],
+      [IdentityKey(themeUi)],
     );
 
     final sidebarLibraryTileList = useMemoized(
@@ -167,7 +168,7 @@ class Sidebar extends HookConsumerWidget {
           screens: screens,
         );
       },
-      [context.l10n, layout, screens],
+      [context.l10n, IdentityKey(layout), IdentityKey(screens)],
     );
 
     // Library group as the theme asked for it, or in the user's own order.
@@ -191,11 +192,11 @@ class Sidebar extends HookConsumerWidget {
         ];
       },
       [
-        sidebarLibraryTileList,
-        orderedLibraryTiles,
-        layout,
-        screens,
-        themeUi,
+        IdentityKey(sidebarLibraryTileList),
+        IdentityKey(orderedLibraryTiles),
+        IdentityKey(layout),
+        IdentityKey(screens),
+        IdentityKey(themeUi),
       ],
     );
 
@@ -229,7 +230,11 @@ class Sidebar extends HookConsumerWidget {
         }
         return tiles;
       },
-      [pinnedIds, playlistIndex, likedTracksPlaylist],
+      [
+        IdentityKey(pinnedIds),
+        IdentityKey(playlistIndex),
+        IdentityKey(likedTracksPlaylist)
+      ],
     );
 
     // Every row in render order, feeding [selectedIndex]. Selection is

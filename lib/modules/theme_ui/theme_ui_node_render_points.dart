@@ -32,10 +32,12 @@ class ThemeUiRuntimeScope extends InheritedWidget {
   bool updateShouldNotify(ThemeUiRuntimeScope oldWidget) {
     final before = oldWidget.runtime;
     final after = runtime;
-    return before.theme != after.theme ||
-        before.templates != after.templates ||
-        before.renderPoints != after.renderPoints ||
-        before.assets != after.assets ||
+    // Payloads are immutable and replaced by identity when the theme
+    // changes; value equality would walk the whole inline tree here.
+    return !identical(before.theme, after.theme) ||
+        !identical(before.templates, after.templates) ||
+        !identical(before.renderPoints, after.renderPoints) ||
+        !identical(before.assets, after.assets) ||
         !mapEquals(before.bindings.values, after.bindings.values);
   }
 }

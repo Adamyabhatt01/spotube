@@ -35,6 +35,7 @@ import 'package:spotube/modules/theme_background/theme_background_scope.dart';
 import 'package:spotube/services/theme_definition_cache.dart';
 import 'package:spotube/modules/settings/color_scheme_picker_dialog.dart';
 import 'package:spotube/modules/theme_shell/theme_branding.dart';
+import 'package:spotube/modules/theme_shell/theme_identity.dart';
 import 'package:spotube/modules/theme_shell/theme_presentation.dart';
 import 'package:spotube/modules/theme_shell/resolved_layout.dart';
 import 'package:spotube/modules/splash/splash_screen.dart';
@@ -503,6 +504,9 @@ class Spotube extends HookConsumerWidget {
     // and is silently replaced when live resolves. Built-in otherwise.
     final pluginTheme =
         themeDefinition.asData?.value ?? cachedThemeDefinition.asData?.value;
+    // Compare theme instances by identity in memo keys; value equality on
+    // the full payload is the expensive path.
+    final pluginThemeKey = IdentityKey(pluginTheme);
 
     // A resolved `null` (no theme plugin configured, or the plugin answered
     // without one) is a valid first-paint answer. Waiting for `pluginTheme !=
@@ -727,7 +731,7 @@ class Spotube extends HookConsumerWidget {
               brightness: Brightness.light,
               fallback: builtInLightScheme,
             ),
-      [pluginTheme, builtInLightScheme],
+      [pluginThemeKey, builtInLightScheme],
     );
 
     final darkColorScheme = useMemoized(
@@ -738,7 +742,7 @@ class Spotube extends HookConsumerWidget {
               brightness: Brightness.dark,
               fallback: builtInDarkScheme,
             ),
-      [pluginTheme, builtInDarkScheme],
+      [pluginThemeKey, builtInDarkScheme],
     );
 
     // The status colours and the sixth chart colour: shadcn's ColorScheme
@@ -751,7 +755,7 @@ class Spotube extends HookConsumerWidget {
               pluginTheme.light,
               fallback: builtInLightSemanticColors,
             ),
-      [pluginTheme],
+      [pluginThemeKey],
     );
 
     final darkSemanticColors = useMemoized(
@@ -761,7 +765,7 @@ class Spotube extends HookConsumerWidget {
               pluginTheme.dark,
               fallback: builtInDarkSemanticColors,
             ),
-      [pluginTheme],
+      [pluginThemeKey],
     );
 
     // v2 contract wiring: surfaces carry translucency into ThemeData,
@@ -777,11 +781,11 @@ class Spotube extends HookConsumerWidget {
     // name a colour role; the two presentations differ only in those colours.
     final lightPresentation = useMemoized(
       () => resolveThemePresentation(pluginTheme, scheme: lightColorScheme),
-      [pluginTheme, lightColorScheme],
+      [pluginThemeKey, lightColorScheme],
     );
     final darkPresentation = useMemoized(
       () => resolveThemePresentation(pluginTheme, scheme: darkColorScheme),
-      [pluginTheme, darkColorScheme],
+      [pluginThemeKey, darkColorScheme],
     );
     final pluginRadius =
         (pluginTheme?.radius.medium ?? 10) / 20 * lightPresentation.radiusScale;
@@ -804,7 +808,7 @@ class Spotube extends HookConsumerWidget {
         surfaceOpacity: pluginTheme?.surfaces.opacity ?? .8,
         surfaceBlur: pluginTheme?.surfaces.blur ?? 10,
       ),
-      [pluginTheme, pluginRadius, lightPresentation, lightColorScheme],
+      [pluginThemeKey, pluginRadius, lightPresentation, lightColorScheme],
     );
 
     final appDarkTheme = useMemoized(
@@ -816,7 +820,7 @@ class Spotube extends HookConsumerWidget {
         surfaceOpacity: pluginTheme?.surfaces.opacity ?? .8,
         surfaceBlur: pluginTheme?.surfaces.blur ?? 10,
       ),
-      [pluginTheme, pluginRadius, darkPresentation, darkColorScheme],
+      [pluginThemeKey, pluginRadius, darkPresentation, darkColorScheme],
     );
 
     final materialBrightness = switch (themeMode) {

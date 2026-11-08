@@ -19,6 +19,7 @@ import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/search/search_term.dart';
 import 'package:spotube/modules/theme_shell/theme_branding.dart';
+import 'package:spotube/modules/theme_shell/theme_identity.dart';
 import 'package:spotube/modules/theme_shell/theme_shell.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_bindings.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
@@ -54,7 +55,7 @@ class HomePage extends HookConsumerWidget {
     final hasHomeAfter = themeUiSlotExists(ref, 'home.after_sections');
     final branding = useMemoized(
       () => ThemeBranding.from(themeDefinition),
-      [themeDefinition],
+      [IdentityKey(themeDefinition)],
     );
 
     // A non-empty section list is the theme's surface; otherwise the host
@@ -65,7 +66,7 @@ class HomePage extends HookConsumerWidget {
         defaults: const ['recent', 'featured', 'new_releases', 'browse'],
         block: layout.home,
       ),
-      [layout],
+      [IdentityKey(layout)],
     );
 
     // The whole body can belong to the theme. The host still supplies the

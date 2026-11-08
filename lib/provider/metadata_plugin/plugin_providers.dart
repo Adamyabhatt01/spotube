@@ -246,7 +246,12 @@ final themeUiProvider = FutureProvider<ThemeUiDocument?>((ref) async {
 /// resolution to finish. The cache is already plugin-identity checked
 /// (`cachedThemeDefinitionProvider`), so a stale entry can only describe
 /// the selected theme, and it is overwritten silently when live resolves.
-final effectiveThemeDefinitionProvider = Provider<ThemeDefinition?>((ref) {
+///
+/// This is a StateProvider for its identity-based change detection: a normal
+/// Provider compares ThemeDefinition values, and each comparison walks the
+/// payload's nested maps. Theme payloads are replaced by identity when the
+/// selected theme changes, so identity is the correct change signal.
+final effectiveThemeDefinitionProvider = StateProvider<ThemeDefinition?>((ref) {
   return ref.watch(themeDefinitionProvider).asData?.value ??
       ref.watch(cachedThemeDefinitionProvider).asData?.value;
 });
@@ -258,7 +263,10 @@ final effectiveThemeDefinitionProvider = Provider<ThemeDefinition?>((ref) {
 /// definitions carry no UI and this is simply the live document — they
 /// still wait for the VM, by design. A `specVersion: 3` cache never
 /// contributes (sanitizer already strips its tree, and live rejects it).
-final effectiveThemeUiProvider = Provider<ThemeUiDocument?>((ref) {
+///
+/// StateProvider for the same identity-based change detection reason as
+/// the effective theme definition provider.
+final effectiveThemeUiProvider = StateProvider<ThemeUiDocument?>((ref) {
   final live = ref.watch(themeUiProvider).asData?.value;
   if (live != null) return live;
   final cached = ref.watch(cachedThemeDefinitionProvider).asData?.value;

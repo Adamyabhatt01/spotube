@@ -10,6 +10,7 @@ import 'package:shadcn_flutter/shadcn_flutter_extension.dart';
 import 'package:spotube/collections/side_bar_tiles.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/theme_background/real_transparency.dart';
+import 'package:spotube/modules/theme_shell/theme_identity.dart';
 import 'package:spotube/modules/theme_shell/theme_navigation.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
@@ -82,7 +83,7 @@ class SpotubeNavigationBar extends HookConsumerWidget {
 
     final screens = useMemoized(
       () => themeScreenTiles(themeUi),
-      [themeUi],
+      [IdentityKey(themeUi)],
     );
 
     // A non-empty theme list replaces the bar's entries, in its order, and
@@ -97,7 +98,7 @@ class SpotubeNavigationBar extends HookConsumerWidget {
           screens: screens,
         );
       },
-      [context.l10n, layout, screens],
+      [context.l10n, IdentityKey(layout), IdentityKey(screens)],
     );
 
     final coveredByPanel = ref.watch(navigationPanelCoversBar);
