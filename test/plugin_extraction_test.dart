@@ -83,7 +83,13 @@ void main() {
       const MethodChannel('plugins.flutter.io/path_provider'),
       null,
     );
-    if (await supportDir.exists()) await supportDir.delete(recursive: true);
+    // A swap/removal test can have already removed the support tree by the
+    // time teardown runs; missing it is not a failure.
+    try {
+      if (await supportDir.exists()) await supportDir.delete(recursive: true);
+    } on PathNotFoundException {
+      // Already gone.
+    }
   });
 
   group('isSafePluginEntryPath', () {
