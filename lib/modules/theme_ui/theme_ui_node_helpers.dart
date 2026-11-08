@@ -474,16 +474,19 @@ ThemeUiRuntime _itemRuntime(
     requestPalette: runtime.requestPalette,
     templateDepth: runtime.templateDepth,
     templateStack: runtime.templateStack,
+    // The nearest row wins: call the host callback, not the outer row's
+    // wrapper, so a `list` inside a `list` carries the entry it draws.
+    baseOnAction: runtime.baseOnAction,
     onAction: (action) {
       if (itemActionTypes.contains(action.type)) {
-        runtime.onAction(ThemeUiAction(action.type, {
+        runtime.baseOnAction(ThemeUiAction(action.type, {
           ...action.args,
           'item': item,
           'index': index,
           'items': items,
         }));
       } else {
-        runtime.onAction(action);
+        runtime.baseOnAction(action);
       }
     },
   );

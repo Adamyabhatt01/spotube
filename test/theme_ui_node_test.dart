@@ -747,6 +747,67 @@ void main() {
       expect(fired.single.args['items'], equals(tracks));
     });
 
+    testWidgets('a nested list carries the inner entry, not the outer section',
+        (tester) async {
+      final fired = <ThemeUiAction>[];
+      final first = _track('t1', 'First', 'Ada');
+      final second = _track('t2', 'Second', 'Grace');
+      final sections = [
+        {
+          'id': 's1',
+          'items': [first, second]
+        },
+      ];
+      final runtime = _runtime(
+        onAction: fired.add,
+        bindings: {'home.browse': sections},
+      );
+      await tester.pumpWidget(_app(ThemeUiNodeView(
+        runtime: runtime,
+        node: const {
+          'type': 'list',
+          'bind': 'home.browse',
+          'children': [
+            {
+              'type': 'column',
+              'children': [
+                {
+                  'type': 'button',
+                  'label': 'Section',
+                  'action': {'type': 'openItem'},
+                },
+                {
+                  'type': 'list',
+                  'bind': 'item.items',
+                  'children': [
+                    {
+                      'type': 'button',
+                      'label': 'Open',
+                      'action': {'type': 'openItem'},
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      )));
+
+      await tester.tap(find.text('Section'));
+      await tester.pump();
+      await tester.tap(find.text('Open').last);
+      await tester.pump();
+
+      expect(fired, hasLength(2));
+      // The outer row still acts on its own section.
+      expect(fired.first.args['item'], same(sections.first));
+      expect(fired.first.args['items'], equals(sections));
+      // The inner row acts on the entry it draws, not the section above it.
+      expect(fired.last.args['item'], same(second));
+      expect(fired.last.args['index'], 1);
+      expect(fired.last.args['items'], equals([first, second]));
+    });
+
     testWidgets('theme icon overrides fall back safely when the file is absent',
         (tester) async {
       final runtime = _runtime(

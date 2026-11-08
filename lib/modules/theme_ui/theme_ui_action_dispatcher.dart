@@ -335,7 +335,8 @@ Future<void> _playCollection(
 }
 
 void _openItem(BuildContext context, Map<String, dynamic> args) {
-  switch (args['item']) {
+  final raw = args['item'];
+  switch (raw) {
     case SpotubeTrackObject track:
       context.navigateTo(TrackRoute(trackId: track.id));
     case SpotubeFullAlbumObject album:
@@ -358,6 +359,13 @@ void _openItem(BuildContext context, Map<String, dynamic> args) {
       );
     case DownloadTask task:
       context.navigateTo(TrackRoute(trackId: task.track.id));
+    default:
+      // A row that carried no typed entry (a malformed theme action or an
+      // item the host does not know) used to fail silently; log it so the
+      // next dead row is diagnosable from the app log.
+      AppLogger.logEvent(
+        '[themeUi] openItem: unsupported item ${raw.runtimeType}',
+      );
   }
 }
 
@@ -801,8 +809,7 @@ void _toggleRegion(
   }
 }
 
-Future<void> _copy(
-    ProviderContainer ref, Map<String, dynamic> args) async {
+Future<void> _copy(ProviderContainer ref, Map<String, dynamic> args) async {
   if (!await _grants(ref, 'clipboard.write')) return;
   final text = args['text'];
   if (text is! String || text.isEmpty) return;

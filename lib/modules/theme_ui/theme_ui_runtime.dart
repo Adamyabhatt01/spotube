@@ -25,6 +25,15 @@ class ThemeUiRuntime {
   final int specVersion;
   final ThemeUiActionCallback onAction;
 
+  /// The host callback underneath any list-row argument injection.
+  ///
+  /// A `list` nested inside another `list` scopes each row to the nearest
+  /// entry. Its wrapper must call this callback rather than [onAction]:
+  /// calling [onAction] would reach the outer row's wrapper, which injects
+  /// the outer entry over the inner one and makes the inner row act on the
+  /// section instead of the album/playlist/artist it draws.
+  final ThemeUiActionCallback baseOnAction;
+
   /// The typed collection entry a list row is drawing, if any.
   ///
   /// The host keeps the object so a row can offer the same verbs the host's
@@ -61,13 +70,14 @@ class ThemeUiRuntime {
     this.renderPoints = const {},
     required this.specVersion,
     required this.onAction,
+    ThemeUiActionCallback? baseOnAction,
     this.item,
     this.capabilities = const {},
     this.paletteFor,
     this.requestPalette,
     this.templateDepth = 0,
     this.templateStack = const {},
-  });
+  }) : baseOnAction = baseOnAction ?? onAction;
 
   /// The kit semantic nodes use when neither the node nor a `kitScope`
   /// ancestor chooses one.
@@ -97,6 +107,7 @@ class ThemeUiRuntime {
       renderPoints: renderPoints,
       specVersion: specVersion,
       onAction: onAction,
+      baseOnAction: baseOnAction,
       item: item,
       capabilities: capabilities,
       paletteFor: paletteFor,
@@ -119,6 +130,7 @@ class ThemeUiRuntime {
       renderPoints: renderPoints,
       specVersion: specVersion,
       onAction: onAction,
+      baseOnAction: baseOnAction,
       item: item,
       capabilities: capabilities,
       paletteFor: paletteFor,
