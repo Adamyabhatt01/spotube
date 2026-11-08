@@ -68,9 +68,19 @@ class MetadataPluginSavedTracksNotifier
   Future<void> toggleFavorite(SpotubeTrackObject track) async {
     if (!_toggling.add(track.id)) return;
     try {
-      final liked = await ref.read(
-        metadataPluginIsSavedTrackProvider(track.id).future,
-      );
+      bool liked;
+      try {
+        liked = await ref.read(
+          metadataPluginIsSavedTrackProvider(track.id).future,
+        );
+      } catch (_) {
+        // The per-track contains query can fail while a usable saved-tracks
+        // snapshot is already available. Use that snapshot as the toggle
+        // decision instead of leaving the heart dead on a transient
+        // plugin/auth error.
+        liked =
+            state.value?.items.any((saved) => saved.id == track.id) ?? false;
+      }
       if (liked) {
         await removeFavorite([track]);
       } else {
