@@ -24,6 +24,7 @@ import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/metadata_plugin/library/albums.dart';
 import 'package:spotube/provider/metadata_plugin/library/artists.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
+import 'package:spotube/provider/metadata_plugin/library/saved_track_likes.dart';
 import 'package:spotube/provider/metadata_plugin/library/tracks.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/radio/favorites.dart';
@@ -501,6 +502,19 @@ ThemeUiBindings buildThemeUiBindings(
   }
   if (wants.wants('clock.now')) values['clock.now'] = now;
 
+  if (wants.wants('item.liked')) {
+    final likes = ref.watch(savedTrackLikesProvider);
+    final savedTracks =
+        ref.watch(metadataPluginSavedTracksProvider).asData?.value.items ??
+            const <SpotubeTrackObject>[];
+    final savedTrackIds = <String>{
+      for (final track in savedTracks) track.id,
+      for (final entry in likes.entries)
+        if (entry.value) entry.key,
+    };
+    values['library.savedTrackIds'] = savedTrackIds;
+  }
+
   // ------------------------------------------------------------- player
   final wantsPlayer = wants.wantsNamespace('player');
   final wantsQueue = wants.wantsNamespace('queue');
@@ -524,6 +538,15 @@ ThemeUiBindings buildThemeUiBindings(
     values['player.album'] = track?.album.name ?? '';
     values['player.artwork'] = artwork;
     values['player.playing'] = player.playing;
+    if (wants.wants('player.liked')) {
+      values['player.liked'] = track != null &&
+          (ref.watch(savedTrackLikesProvider)[track.id] ??
+              ref
+                  .watch(metadataPluginIsSavedTrackProvider(track.id))
+                  .asData
+                  ?.value ??
+              false);
+    }
     values['player.loop'] = player.loopMode.name;
     values['player.shuffled'] = player.shuffled;
     if (wants.wants('player.speed')) {

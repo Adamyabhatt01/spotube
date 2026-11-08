@@ -129,6 +129,7 @@ void main() {
       expect(values['item.number'], 3);
       expect(values['item.kind'], 'track');
       expect(values['item.playing'], isTrue);
+      expect(values['item.liked'], isFalse);
     });
 
     test('a map entry publishes its keys under item.*', () {
@@ -989,6 +990,31 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.text('Album'), findsOneWidget);
+  });
+
+  testWidgets('the host fills and colors a liked heart', (tester) async {
+    final runtime = _runtime(
+      bindings: const {'player.liked': true},
+    );
+
+    await tester.pumpWidget(_app(
+      ThemeUiNodeView(
+        runtime: runtime,
+        node: const {
+          'type': 'button',
+          'icon': 'like',
+          'variant': 'ghost',
+          'size': 'small',
+          'action': {'type': 'like'},
+        },
+      ),
+    ));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    final icon = tester.widget<Icon>(find.byType(Icon).first);
+    expect(icon.icon, SpotubeIcons.heartFilled);
+    expect(icon.color, isNotNull);
   });
 
   testWidgets('action and semantics wrappers stay inside expanded content',

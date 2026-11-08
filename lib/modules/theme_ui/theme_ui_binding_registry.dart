@@ -66,6 +66,9 @@ class ThemeUiBindingRegistry {
         'player.playing', ThemeUiBindingKind.boolean, 'audioPlayer',
         phase: 'existing'),
     ThemeUiBindingDefinition(
+        'player.liked', ThemeUiBindingKind.boolean, 'savedTracks',
+        phase: 'existing'),
+    ThemeUiBindingDefinition(
         'player.loop', ThemeUiBindingKind.string, 'audioPlayer',
         phase: 'existing'),
     ThemeUiBindingDefinition(
@@ -103,14 +106,10 @@ class ThemeUiBindingRegistry {
     ThemeUiBindingDefinition(
         'app.asideOpen', ThemeUiBindingKind.boolean, 'layoutPrefs'),
     ThemeUiBindingDefinition(
-        'app.pinnedPlaylistIds',
-        ThemeUiBindingKind.list,
-        'layoutPrefs',
+        'app.pinnedPlaylistIds', ThemeUiBindingKind.list, 'layoutPrefs',
         phase: 'existing'),
     ThemeUiBindingDefinition(
-        'app.pinnedStationIds',
-        ThemeUiBindingKind.list,
-        'layoutPrefs',
+        'app.pinnedStationIds', ThemeUiBindingKind.list, 'layoutPrefs',
         phase: 'existing'),
     ThemeUiBindingDefinition('app.greeting', ThemeUiBindingKind.string, 'clock',
         phase: 'existing'),
@@ -205,8 +204,7 @@ class ThemeUiBindingRegistry {
     ThemeUiBindingDefinition(
         'lyrics.synced', ThemeUiBindingKind.boolean, 'lyrics',
         phase: 'system'),
-    ThemeUiBindingDefinition(
-        'lyrics.line', ThemeUiBindingKind.string, 'lyrics',
+    ThemeUiBindingDefinition('lyrics.line', ThemeUiBindingKind.string, 'lyrics',
         phase: 'system'),
     ThemeUiBindingDefinition(
         'radio.active', ThemeUiBindingKind.boolean, 'radio',
@@ -223,8 +221,7 @@ class ThemeUiBindingRegistry {
     ThemeUiBindingDefinition(
         'radio.liveTitle', ThemeUiBindingKind.string, 'radio',
         phase: 'system'),
-    ThemeUiBindingDefinition(
-        'radio.error', ThemeUiBindingKind.string, 'radio',
+    ThemeUiBindingDefinition('radio.error', ThemeUiBindingKind.string, 'radio',
         phase: 'system'),
     ThemeUiBindingDefinition(
         'connect.available', ThemeUiBindingKind.boolean, 'connect',

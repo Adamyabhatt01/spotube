@@ -216,6 +216,15 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
         runtime.bindings.isTruthy('player.playing')) {
       iconName = 'pause';
     }
+    final hasLikeAction = actions.any(
+      (action) => action.type == 'like' || action.type == 'likeItem',
+    );
+    final isLiked = runtime.bindings.isTruthy('player.liked') ||
+        runtime.bindings.isTruthy('item.liked');
+    final likedIcon = iconName == 'liked' || (iconName == 'like' && isLiked);
+    if (iconName == 'like' && hasLikeAction && isLiked) {
+      iconName = 'liked';
+    }
 
     final variant =
         props['variant'] is String ? props['variant'] as String : null;
@@ -278,6 +287,11 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
     final fontFamily = _family(style['fontFamily']) ??
         _family(runtime.theme.typography['family']);
 
+    final explicitColor = props['color'] is String
+        ? _color(context, props['color'], fallback: foreground)
+        : null;
+    final iconForeground = explicitColor ??
+        (likedIcon ? Theme.of(context).colorScheme.primary : foreground);
     final iconSize = _px(
           context,
           style['iconSize'],
@@ -291,7 +305,7 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
 
     final content = <Widget>[];
     if (iconName != null && iconName.isNotEmpty) {
-      content.add(_buttonIcon(context, iconName, iconSize, foreground));
+      content.add(_buttonIcon(context, iconName, iconSize, iconForeground));
     }
     if (iconName != null && label != null && label.isNotEmpty) {
       content.add(SizedBox(width: gap));
@@ -544,7 +558,21 @@ extension _ThemeUiContentNodes on ThemeUiNodeView {
         );
       }
     }
-    return Icon(_fallbackIcon(name), size: size, color: foreground);
+    return material.AnimatedSwitcher(
+      duration: const Duration(milliseconds: 180),
+      switchInCurve: Curves.fastOutSlowIn,
+      switchOutCurve: Curves.fastOutSlowIn,
+      transitionBuilder: (child, animation) => material.ScaleTransition(
+        scale: animation,
+        child: child,
+      ),
+      child: Icon(
+        _fallbackIcon(name),
+        key: ValueKey(name),
+        size: size,
+        color: foreground,
+      ),
+    );
   }
 
   Widget _card(

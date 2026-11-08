@@ -115,6 +115,7 @@ Map<String, Object?> themeItemBindings(
 void _track(Map<String, Object?> values, SpotubeTrackObject track) {
   final artists = track.artists.map((artist) => artist.name).join(', ');
   values['item.id'] = track.id;
+  values['item.liked'] = false;
   values['item.title'] = track.name;
   values['item.name'] = track.name;
   values['item.artist'] = artists;

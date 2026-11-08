@@ -499,13 +499,24 @@ ThemeUiRuntime _itemRuntime(
   bool palette = true,
 }) {
   final activeTrackId = runtime.bindings.raw('player.trackId');
+  final itemValues = themeItemBindings(
+    item,
+    index: index,
+    activeTrackId: activeTrackId is String ? activeTrackId : null,
+  );
+  if (item is SpotubeTrackObject) {
+    final savedTrackIds = runtime.bindings.raw('library.savedTrackIds');
+    if (savedTrackIds != null) {
+      itemValues['item.liked'] = savedTrackIds is Set<String>
+          ? savedTrackIds.contains(item.id)
+          : savedTrackIds is List
+              ? savedTrackIds.contains(item.id)
+              : runtime.bindings.isTruthy('item.liked');
+    }
+  }
   final merged = ThemeUiBindings({
     ...runtime.bindings.values,
-    ...themeItemBindings(
-      item,
-      index: index,
-      activeTrackId: activeTrackId is String ? activeTrackId : null,
-    ),
+    ...itemValues,
   });
   // Nearest artwork scope: the row's own `item.palette` (or its artwork)
   // overrides the page's and the player's palette. Only wired when the
