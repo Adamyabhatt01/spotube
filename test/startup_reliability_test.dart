@@ -81,32 +81,11 @@ void main() {
   setUpAll(() => AppLogger.initialize(false));
 
   group('startupGateAllowsApp', () {
-    const minVisible = Duration(milliseconds: 900);
-
-    test('themed frame waits out the minimum splash duration', () {
-      // Regression: themeReady alone used to release the splash in the same
-      // frame the theme arrived, so the branded splash never rendered.
+    test('themed frame releases immediately', () {
       expect(
         startupGateAllowsApp(
           themeReady: true,
-          minVisible: minVisible,
           elapsed: Duration.zero,
-        ),
-        isFalse,
-      );
-      expect(
-        startupGateAllowsApp(
-          themeReady: true,
-          minVisible: minVisible,
-          elapsed: minVisible - const Duration(milliseconds: 1),
-        ),
-        isFalse,
-      );
-      expect(
-        startupGateAllowsApp(
-          themeReady: true,
-          minVisible: minVisible,
-          elapsed: minVisible,
         ),
         isTrue,
       );
@@ -116,7 +95,6 @@ void main() {
       expect(
         startupGateAllowsApp(
           themeReady: false,
-          minVisible: minVisible,
           elapsed: startupSplashGateCap - const Duration(milliseconds: 1),
         ),
         isFalse,
@@ -127,7 +105,6 @@ void main() {
       expect(
         startupGateAllowsApp(
           themeReady: false,
-          minVisible: minVisible,
           elapsed: startupSplashGateCap,
         ),
         isTrue,
@@ -135,20 +112,7 @@ void main() {
       expect(
         startupGateAllowsApp(
           themeReady: false,
-          minVisible: minVisible,
           elapsed: const Duration(minutes: 10),
-        ),
-        isTrue,
-      );
-    });
-
-    test('a theme arriving after the minimum still releases on sight', () {
-      // Once the floor has passed, a late themeReady needs no extra wait.
-      expect(
-        startupGateAllowsApp(
-          themeReady: true,
-          minVisible: minVisible,
-          elapsed: startupSplashGateCap,
         ),
         isTrue,
       );

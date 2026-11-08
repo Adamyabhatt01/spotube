@@ -116,31 +116,23 @@ Future<void> guardedStartupInit(
   }
 }
 
-/// Pure startup-gate rule behind the splash below.
+/// Pure startup-gate rule behind the splash poll below: the in-app splash
+/// hides as soon as a themed frame can paint, or when [cap] elapses —
+/// whichever comes first. Even a total theme failure resolves to the
+/// built-in fallback after the cap instead of hanging on black.
 ///
-/// Two independent waits:
-/// - the theme providers must settle — `themeDefinition` resolving to null
-///   is a valid answer, not something to wait out — or [cap] elapses, so a
-///   stuck plugin cannot hold the splash forever (the cap used to be 6 s,
-///   which is what users without a working theme saw on every cold start);
-/// - once the theme is ready, the splash stays up for [minVisible] so the
-///   branded splash (`splashSpec`, `brandText`, theme logo) actually renders.
-///   Without that floor `themeReady` dismissed the splash in the same frame
-///   the theme arrived and themed splash content never got a frame.
-///
-/// [minVisible] is clamped to [cap] by the caller, so the gate never holds
-/// the app longer than the existing ceiling even if a stored duration is
-/// larger (the settings picker offers up to 2.5 s).
+/// The cap used to be 6 s, which is what a user without a themed plugin (or
+/// with a plugin whose theme lookup failed) saw on every cold start. A
+/// settled theme provider is enough to paint: `themeDefinition` resolving to
+/// null is a valid answer, not something to wait out.
 const startupSplashGateCap = Duration(seconds: 2);
 
 bool startupGateAllowsApp({
   required bool themeReady,
-  required Duration minVisible,
   required Duration elapsed,
   Duration cap = startupSplashGateCap,
 }) {
-  if (!themeReady) return elapsed >= cap;
-  return elapsed >= minVisible;
+  return themeReady || elapsed >= cap;
 }
 
 /// Fallback painted when a widget subtree throws during build. Plain
@@ -543,35 +535,10 @@ class Spotube extends HookConsumerWidget {
       );
       return timer.cancel;
     }, [splashCapTick.value]);
-    final splashPrefs = ref.watch(splashPrefsProvider).asData?.value;
-    // The splash must stay up for the user's configured animation once the
-    // theme has settled, or `themeReady` would dismiss it in the same frame
-    // the theme arrived and the branded splash never rendered. Clamped to
-    // the cap so a corrupt stored duration cannot hold the app indefinitely.
-    final configuredSplashDuration =
-        splashPrefs?.duration ?? const Duration(milliseconds: 900);
-    final splashMinVisible = configuredSplashDuration > startupSplashGateCap
-        ? startupSplashGateCap
-        : configuredSplashDuration;
     final splashReady = startupGateAllowsApp(
       themeReady: pluginTheme != null || themeResolutionSettled,
-      minVisible: splashMinVisible,
       elapsed: gateStart.elapsed,
     );
-    // The theme providers rebuild on their own, but nothing rebuilds when
-    // the minimum-visible boundary passes — without this tick a splash whose
-    // theme resolved early would wait for the cap timer instead of leaving
-    // on time.
-    final splashMinTick = useState(0);
-    useEffect(() {
-      if (splashReady) return null;
-      final remaining = splashMinVisible - gateStart.elapsed;
-      final timer = Timer(
-        remaining.isNegative ? Duration.zero : remaining,
-        () => splashMinTick.value++,
-      );
-      return timer.cancel;
-    }, [splashReady, splashMinVisible]);
     useEffect(() {
       if (!splashReady) return null;
       _logStartupPhase(
@@ -952,13 +919,14 @@ class Spotube extends HookConsumerWidget {
     );
 
     if (!splashReady) {
+      final prefs = ref.watch(splashPrefsProvider).asData?.value;
       return SplashScreen(
         theme: pluginTheme,
-        animation: splashPrefs?.animation ?? SplashAnimation.fade,
-        duration: splashPrefs?.duration ?? const Duration(milliseconds: 900),
-        useThemedBackground: splashPrefs?.useThemedBackground ?? true,
-        logoPath: splashPrefs?.logoPath ?? themeSplashLogo?.path,
-        backgroundPath: splashPrefs?.backgroundPath,
+        animation: prefs?.animation ?? SplashAnimation.fade,
+        duration: prefs?.duration ?? const Duration(milliseconds: 900),
+        useThemedBackground: prefs?.useThemedBackground ?? true,
+        logoPath: prefs?.logoPath ?? themeSplashLogo?.path,
+        backgroundPath: prefs?.backgroundPath,
         brandText: splashText,
       );
     }
