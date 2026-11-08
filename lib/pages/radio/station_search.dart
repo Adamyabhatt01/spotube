@@ -43,7 +43,7 @@ List<Widget> useStationSearchSlivers(
   WidgetRef ref, {
   required ScrollController controller,
   bool showSearchRow = true,
-  bool showHomeShortcut = false,
+  bool showMusicShortcut = true,
   bool showRecentRail = true,
   String? selectedTag,
   String? selectedCountry,
@@ -95,12 +95,11 @@ List<Widget> useStationSearchSlivers(
 
   // Same ceiling as the Browse bar: a fixed cap so the field stops reading
   // as a full-width band on wide windows, clamped to the viewport so a narrow
-  // one shrinks it instead of overflowing. The Search page drops the Radio
-  // page's Home shortcut, so it gets the same 16px phone gutters as
-  // HomeSearchBar.
+  // one shrinks it instead of overflowing. Search drops the leading Music
+  // shortcut, so it gets the same 16px phone gutters as HomeSearchBar.
   final viewportWidth = MediaQuery.sizeOf(context).width;
   final isNarrow = viewportWidth < 640;
-  final compactField = !showHomeShortcut && isNarrow;
+  final compactField = !showMusicShortcut && isNarrow;
   final horizontalGutter = compactField ? 16.0 : 20.0;
   final searchBarWidth = min(
     520.0,
@@ -130,27 +129,20 @@ List<Widget> useStationSearchSlivers(
       // SliverToBoxAdapter, 20x12 padding, 520 cap): the field scrolls
       // with the page instead of floating above it.
       SliverToBoxAdapter(
-        child: Stack(
-          alignment: Alignment.center,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            if (showHomeShortcut)
-              Positioned(
-                left: 0,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Gap(8),
-                    Button.outline(
-                      key: const ValueKey('radioHomeShortcut'),
-                      leading: const Icon(SpotubeIcons.home),
-                      onPressed: () => context.navigateTo(const HomeRoute()),
-                      child: const Text('Home'),
-                    ),
-                  ],
-                ),
+            if (showMusicShortcut) ...[
+              const Gap(8),
+              Button.outline(
+                key: const ValueKey('radioMusicShortcut'),
+                leading: const Icon(SpotubeIcons.music),
+                onPressed: () => context.navigateTo(const HomeRoute()),
+                child: const Text('Music'),
               ),
-            Align(
-              alignment: Alignment.center,
+              const Gap(8),
+            ],
+            Expanded(
               child: Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: horizontalGutter,
@@ -160,7 +152,7 @@ List<Widget> useStationSearchSlivers(
                 // tight width and only loosening it lets the field stop
                 // at searchBarWidth (same as HomeSearchBar).
                 child: Align(
-                  alignment: Alignment.center,
+                  alignment: Alignment.centerLeft,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: searchBarWidth),
                     child: Focus(
@@ -265,8 +257,7 @@ List<Widget> useStationSearchSlivers(
               stations: favorites.asData?.value ?? const [],
               // The rail is a peek; the library page is where the list can be
               // reviewed and pruned.
-              onSeeAll: () =>
-                  context.navigateTo(const UserRadioStationsRoute()),
+              onSeeAll: () => context.navigateTo(const UserRadioStationsRoute()),
             ),
           ),
         if (showRecentRail && (recent.asData?.value ?? const []).isNotEmpty)
@@ -655,11 +646,11 @@ class _RadioTileBone extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 44 * scale,
-            height: 44 * scale,
+            width: 50 * scale,
+            height: 50 * scale,
             decoration: BoxDecoration(
               color: bone,
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(context.cardCornerRadius),
             ),
           ),
           const Gap(12),

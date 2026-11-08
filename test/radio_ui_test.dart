@@ -301,10 +301,8 @@ void main() {
 
     final field = find.widgetWithText(TextField, 'Search stations');
     expect(field, findsOneWidget);
-    // Search drops this Home shortcut, but the actual Radio page keeps it.
-    expect(find.byKey(const ValueKey('radioHomeShortcut')), findsOneWidget);
-    expect(find.text('Home'), findsOneWidget);
-    expect(tester.getCenter(field).dx, closeTo(600, 8));
+    // Search drops this shortcut, but the actual Radio page keeps it.
+    expect(find.byKey(const ValueKey('radioMusicShortcut')), findsOneWidget);
 
     final theme = tester.element(find.byType(RadioScreen)).theme;
     final textField = tester.widget<TextField>(field);
