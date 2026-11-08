@@ -221,7 +221,6 @@ void main() {
         // header, filter chips, Liked Songs and the profile footer.
         'sidebar.content',
         'aside.content',
-        'library.content',
         'player.leading',
         'player.controls',
         'player.trailing',

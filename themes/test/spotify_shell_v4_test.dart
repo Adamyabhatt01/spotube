@@ -129,7 +129,6 @@ void main() {
     expect(slots.keys.toSet(), {
       'sidebar.content',
       'aside.content',
-      'library.content',
       'player.leading',
       'player.controls',
       'player.trailing',
@@ -196,7 +195,7 @@ void main() {
 
     expect(
       widgets.map((widget) => widget['id']).toSet(),
-      {'library.playlists', 'library.artists', 'library.albums'},
+      {'library.playlists'},
     );
     for (final widget in widgets) {
       final allowedProps = v4HostWidgetProps[widget['id']]!;
