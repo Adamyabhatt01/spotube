@@ -196,44 +196,46 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
                         icon: const Icon(SpotubeIcons.upload),
                         onPressed: () async {
                           try {
-                          Uint8List bytes;
+                            Uint8List bytes;
 
-                          if (kIsFlatpak) {
-                            final result = await openFile(
-                              acceptedTypeGroups: [
-                                const XTypeGroup(
-                                  label: 'Spotube Metadata Plugin',
-                                  extensions: ['smplug'],
-                                ),
-                              ],
-                            );
-                            if (result == null) return;
-                            bytes = await result.readAsBytes();
-                          } else {
-                            final result = await FilePicker.platform.pickFiles(
-                              type: kIsAndroid ? FileType.any : FileType.custom,
-                              allowedExtensions: kIsAndroid ? [] : ["smplug"],
-                              withData: true,
-                            );
+                            if (kIsFlatpak) {
+                              final result = await openFile(
+                                acceptedTypeGroups: [
+                                  const XTypeGroup(
+                                    label: 'Spotube Metadata Plugin',
+                                    extensions: ['smplug'],
+                                  ),
+                                ],
+                              );
+                              if (result == null) return;
+                              bytes = await result.readAsBytes();
+                            } else {
+                              final result =
+                                  await FilePicker.platform.pickFiles(
+                                type:
+                                    kIsAndroid ? FileType.any : FileType.custom,
+                                allowedExtensions: kIsAndroid ? [] : ["smplug"],
+                                withData: true,
+                              );
 
-                            if (result == null) return;
+                              if (result == null) return;
 
-                            final file = result.files.first;
-                            if (file.bytes == null) return;
-                            bytes = file.bytes!;
-                          }
+                              final file = result.files.first;
+                              if (file.bytes == null) return;
+                              bytes = file.bytes!;
+                            }
 
-                          final pluginConfig =
-                              await PluginStorage().extractArchive(bytes);
-                          await pluginsNotifier.addPlugin(pluginConfig);
-                        } catch (e, stackTrace) {
-                          // An archive the extractor refuses says why in the
-                          // exception, and that reason is the only thing an
-                          // author can act on.
-                          AppLogger.reportError(e, stackTrace);
-                          if (context.mounted) {
-                            reportInstallFailure(context, e);
-                          }
+                            final pluginConfig =
+                                await PluginStorage().extractArchive(bytes);
+                            await pluginsNotifier.addPlugin(pluginConfig);
+                          } catch (e, stackTrace) {
+                            // An archive the extractor refuses says why in the
+                            // exception, and that reason is the only thing an
+                            // author can act on.
+                            AppLogger.reportError(e, stackTrace);
+                            if (context.mounted) {
+                              reportInstallFailure(context, e);
+                            }
                           }
                         },
                       ),
@@ -297,8 +299,7 @@ class SettingsMetadataProviderPage extends HookConsumerWidget {
                           .asData!.value.defaultAudioSourcePluginConfig?.slug ==
                       plugin.slug;
                   final isDefaultTheme =
-                      plugins.asData!.value.defaultThemePluginConfig?.slug ==
-                          plugin.slug;
+                      plugins.asData!.value.defaultThemePluginConfig == plugin;
                   final isDefaultRadio =
                       plugins.asData!.value.defaultRadioPluginConfig?.slug ==
                           plugin.slug;

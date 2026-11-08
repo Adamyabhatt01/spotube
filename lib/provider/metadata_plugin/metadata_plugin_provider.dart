@@ -647,14 +647,12 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
         );
 
     await (database.pluginsTable.update()
-          ..where(
-            (tbl) =>
-                tbl.name.equals(plugin.name) & tbl.author.equals(plugin.author),
-          ))
+          ..where((tbl) =>
+              tbl.name.equals(plugin.name) &
+              tbl.author.equals(plugin.author) &
+              tbl.version.equals(plugin.version)))
         .write(
-      const PluginsTableCompanion(
-        selectedForTheme: Value(true),
-      ),
+      const PluginsTableCompanion(selectedForTheme: Value(true)),
     );
 
     // Identity for the startup theme cache (DB-free validation).
@@ -702,6 +700,14 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
   void _resetThemeUiForIdentityChange() {
     ref.read(themeUiOverrideProvider.notifier).state = null;
     clearThemeUiScreensState(ref);
+
+    // The stored identity lives outside the database watch. Invalidating only
+    // themeDefinitionProvider left the static payload (and therefore the
+    // visible UI) pinned to the old plugin until restart.
+    ref.invalidate(storedThemePluginKeyProvider);
+    ref.invalidate(themeStaticPayloadProvider);
+    ref.invalidate(themeDefinitionProvider);
+    ref.invalidate(themeUiProvider);
 
     // Assets and fonts are resolved through the plugin's versioned extraction
     // directory, so the new identity loads its own; the artwork palette cache
