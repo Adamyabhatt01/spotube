@@ -36,8 +36,10 @@ jobs:
           dart run build_runner build --delete-conflicting-outputs
 
       - name: Lint Dart files
+        # themes/ is a nested Dart package with its own pubspec and CI; the
+        # root analyzer must not try to resolve it under the app package.
         run: |
-          dart analyze --no-fatal-warnings
+          dart analyze --no-fatal-warnings lib test packages
 
       - name: Verify generated l10n is current
         run: |
