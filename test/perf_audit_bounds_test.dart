@@ -141,7 +141,8 @@ void main() {
     expect(page.items.map((s) => s.id), ['good']);
     expect(hit.calls, 1);
     expect(sw.elapsed, greaterThanOrEqualTo(radioProviderBudget));
-    expect(sw.elapsed, lessThan(radioProviderBudget + const Duration(seconds: 10)));
+    expect(sw.elapsed,
+        lessThan(radioProviderBudget + const Duration(seconds: 10)));
   }, timeout: const Timeout(Duration(seconds: 30)));
 
   test('plugin index cache never exceeds 32 entries', () async {

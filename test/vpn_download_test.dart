@@ -534,7 +534,8 @@ void main() {
     await _waitFor(
       () => container!.read(vpnManagerProvider).activeLeaseCount == 0,
       'lease to drain after recovery',
-      describe: () => 'leases: ${container!.read(vpnManagerProvider).activeLeaseCount}',
+      describe: () =>
+          'leases: ${container!.read(vpnManagerProvider).activeLeaseCount}',
     );
   });
 

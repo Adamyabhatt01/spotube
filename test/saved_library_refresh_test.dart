@@ -113,8 +113,7 @@ class _FakeSavedPlaylists
 
   @override
   Future<SpotubePaginationResponseObject<SpotubeSimplePlaylistObject>>
-      build() =>
-      buildSavedList(cooldown: Duration.zero);
+      build() => buildSavedList(cooldown: Duration.zero);
 }
 
 final _playlistsProvider = AsyncNotifierProvider<_FakeSavedPlaylists,
@@ -169,8 +168,7 @@ void main() {
       );
 
       // The re-read is what makes the two devices agree.
-      final ids =
-          await deviceB.read(_playlistsProvider.notifier).refreshIds();
+      final ids = await deviceB.read(_playlistsProvider.notifier).refreshIds();
 
       expect(ids, contains('p4'));
       expect(
@@ -260,7 +258,8 @@ void main() {
           container.read(_playlistsProvider).value?.items.map((p) => p.id);
 
       account.offline = true;
-      final ids = await container.read(_playlistsProvider.notifier).refreshIds();
+      final ids =
+          await container.read(_playlistsProvider.notifier).refreshIds();
 
       expect(
         ids,

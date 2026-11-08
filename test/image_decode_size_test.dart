@@ -56,8 +56,8 @@ void main() {
   });
 
   test('requests without sizes remain unrestricted (background/hero)', () {
-    final provider = UniversalImage.imageProvider(httpUrl)
-        as CachedNetworkImageProvider;
+    final provider =
+        UniversalImage.imageProvider(httpUrl) as CachedNetworkImageProvider;
 
     expect(provider.maxHeight, isNull);
     expect(provider.maxWidth, isNull);
@@ -75,8 +75,8 @@ void main() {
   test('different dims shard memory entries but share URL identity', () {
     final tile = UniversalImage.imageProvider(httpUrl, height: 80, width: 80)
         as CachedNetworkImageProvider;
-    final uncapped = UniversalImage.imageProvider(httpUrl)
-        as CachedNetworkImageProvider;
+    final uncapped =
+        UniversalImage.imageProvider(httpUrl) as CachedNetworkImageProvider;
 
     expect(tile, isNot(uncapped));
     expect(tile.url, uncapped.url);

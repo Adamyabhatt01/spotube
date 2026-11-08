@@ -51,8 +51,9 @@ SpotubePaginationResponseObject<T> _emptyPage<T>() {
 
 class _EmptySearchTracks extends MetadataPluginSearchTracksNotifier {
   @override
-  Future<SpotubePaginationResponseObject<SpotubeFullTrackObject>>
-      build(String arg) async => _emptyPage();
+  Future<SpotubePaginationResponseObject<SpotubeFullTrackObject>> build(
+          String arg) async =>
+      _emptyPage();
   @override
   Future<SpotubePaginationResponseObject<SpotubeFullTrackObject>> fetch(
           int offset, int limit) =>
@@ -61,8 +62,9 @@ class _EmptySearchTracks extends MetadataPluginSearchTracksNotifier {
 
 class _EmptySearchAlbums extends MetadataPluginSearchAlbumsNotifier {
   @override
-  Future<SpotubePaginationResponseObject<SpotubeSimpleAlbumObject>>
-      build(String arg) async => _emptyPage();
+  Future<SpotubePaginationResponseObject<SpotubeSimpleAlbumObject>> build(
+          String arg) async =>
+      _emptyPage();
   @override
   Future<SpotubePaginationResponseObject<SpotubeSimpleAlbumObject>> fetch(
           int offset, int limit) =>
@@ -71,8 +73,9 @@ class _EmptySearchAlbums extends MetadataPluginSearchAlbumsNotifier {
 
 class _EmptySearchArtists extends MetadataPluginSearchArtistsNotifier {
   @override
-  Future<SpotubePaginationResponseObject<SpotubeFullArtistObject>>
-      build(String arg) async => _emptyPage();
+  Future<SpotubePaginationResponseObject<SpotubeFullArtistObject>> build(
+          String arg) async =>
+      _emptyPage();
   @override
   Future<SpotubePaginationResponseObject<SpotubeFullArtistObject>> fetch(
           int offset, int limit) =>
@@ -81,8 +84,9 @@ class _EmptySearchArtists extends MetadataPluginSearchArtistsNotifier {
 
 class _EmptySearchPlaylists extends MetadataPluginSearchPlaylistsNotifier {
   @override
-  Future<SpotubePaginationResponseObject<SpotubeSimplePlaylistObject>>
-      build(String arg) async => _emptyPage();
+  Future<SpotubePaginationResponseObject<SpotubeSimplePlaylistObject>> build(
+          String arg) async =>
+      _emptyPage();
   @override
   Future<SpotubePaginationResponseObject<SpotubeSimplePlaylistObject>> fetch(
           int offset, int limit) =>

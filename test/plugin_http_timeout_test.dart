@@ -154,8 +154,7 @@ void main() {
       );
     }, timeout: const Timeout(Duration(seconds: 30)));
 
-    test('an explicit receiveTimeout is honored over the default',
-        () async {
+    test('an explicit receiveTimeout is honored over the default', () async {
       final hetu = await _bootHetu(const PluginHttpTimeouts(
         connectSeconds: 5,
         receiveSeconds: 1,

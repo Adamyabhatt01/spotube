@@ -696,7 +696,8 @@ void main() {
   String digestOf(List<int> bytes) => sha256.convert(bytes).toString();
 
   Future<List<int>> archiveBytes({String version = '1.0.0'}) async =>
-      _buildArchive(_validPluginFiles(name: 'checksum-plugin', version: version));
+      _buildArchive(
+          _validPluginFiles(name: 'checksum-plugin', version: version));
 
   Future<ProviderContainer> downloadContainer(List<int> bytes) async {
     final db = newMemoryDatabase();
@@ -704,8 +705,7 @@ void main() {
     final container = ProviderContainer(overrides: [
       databaseProvider.overrideWithValue(db),
       appDioProvider.overrideWithValue(
-        Dio()
-          ..httpClientAdapter = _BytesAdapter(bytes),
+        Dio()..httpClientAdapter = _BytesAdapter(bytes),
       ),
     ]);
     addTearDown(container.dispose);
@@ -716,7 +716,8 @@ void main() {
     test('verifyPluginBytesIntegrity accepts a matching checksum', () async {
       final bytes = await archiveBytes();
       final expected = digestOf(bytes);
-      expect(() => verifyPluginBytesIntegrity(bytes, expected), returnsNormally);
+      expect(
+          () => verifyPluginBytesIntegrity(bytes, expected), returnsNormally);
       expect(
         () => verifyPluginBytesIntegrity(bytes, ' ${expected.toUpperCase()} '),
         returnsNormally,
@@ -770,11 +771,10 @@ void main() {
     test('a tampered download throws and extracts nothing', () async {
       final bytes = await archiveBytes(version: '2.0.0');
       final container = await downloadContainer(bytes);
-      const declared = '0000000000000000000000000000000000000000000000000000000000000000';
+      const declared =
+          '0000000000000000000000000000000000000000000000000000000000000000';
       await expectLater(
-        container
-            .read(metadataPluginsProvider.notifier)
-            .downloadAndCachePlugin(
+        container.read(metadataPluginsProvider.notifier).downloadAndCachePlugin(
               'https://example.test/plugins/checksum-plugin.smplug',
               expectedSha256: declared,
             ),
@@ -805,7 +805,8 @@ void main() {
       final parsed = PluginUpdateAvailable.fromJson(const {
         'downloadUrl': 'https://example.test/plugins/checksum-plugin.smplug',
         'version': '2.0.0',
-        'sha256': '0000000000000000000000000000000000000000000000000000000000000000',
+        'sha256':
+            '0000000000000000000000000000000000000000000000000000000000000000',
       });
       expect(parsed.expectedSha256, '0' * 64);
       final without = PluginUpdateAvailable.fromJson(const {

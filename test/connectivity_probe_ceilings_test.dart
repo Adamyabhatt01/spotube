@@ -44,8 +44,8 @@ void main() {
 
   test('concurrent isConnected calls share one in-flight probe', () async {
     final adapter = _CountingAdapter(const Duration(milliseconds: 80));
-    final service =
-        ConnectionCheckerService.forTesting(dio: Dio()..httpClientAdapter = adapter);
+    final service = ConnectionCheckerService.forTesting(
+        dio: Dio()..httpClientAdapter = adapter);
     // Force the dio.head fallback for every address; the first 200 short-
     // circuits the google||baidu||vpn chain, so a full probe is exactly
     // one head.

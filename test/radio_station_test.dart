@@ -57,7 +57,8 @@ void main() {
       expect(RadioTag(name: 'jazz').stationCount, 0);
     });
     test('RadioCountry round-trips', () {
-      final c = RadioCountry(code: 'us', name: 'United States', stationCount: 12);
+      final c =
+          RadioCountry(code: 'us', name: 'United States', stationCount: 12);
       expect(RadioCountry.fromJson(c.toJson()), c);
     });
   });

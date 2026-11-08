@@ -43,8 +43,7 @@ void main() {
     expect(await second, isNull);
   });
 
-  test('failed fetches are not retained, so outages stay retryable',
-      () async {
+  test('failed fetches are not retained, so outages stay retryable', () async {
     expect(
       await ServiceUtils.artworkBytes('https://example.test/missing.jpg'),
       isNull,

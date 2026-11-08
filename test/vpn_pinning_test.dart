@@ -56,7 +56,6 @@ class _FakeIface implements NetworkInterface {
   final List<InternetAddress> addresses;
 }
 
-
 Dio _dioWithPin(
   InternetAddress? Function() readPin, {
   bool Function(X509Certificate, String, int)? certificateRule,
@@ -100,10 +99,21 @@ void main() {
     final key = File('${tempRoot.path}/key.pem');
     final cert = File('${tempRoot.path}/cert.pem');
     final keyResult = await Process.run('openssl', [
-      'req', '-x509', '-newkey', 'rsa:2048', '-nodes',
-      '-keyout', key.path, '-out', cert.path, '-days', '1',
-      '-subj', '/CN=127.0.0.1',
-      '-addext', 'subjectAltName=IP:127.0.0.1',
+      'req',
+      '-x509',
+      '-newkey',
+      'rsa:2048',
+      '-nodes',
+      '-keyout',
+      key.path,
+      '-out',
+      cert.path,
+      '-days',
+      '1',
+      '-subj',
+      '/CN=127.0.0.1',
+      '-addext',
+      'subjectAltName=IP:127.0.0.1',
     ]);
     expect(keyResult.exitCode, 0, reason: 'openssl must mint test certs');
 
@@ -125,10 +135,10 @@ void main() {
   });
 
   String url() => 'http://${server.address.host}:${server.port}/';
-  String tlsUrl() =>
-      'https://${tlsServer.address.host}:${tlsServer.port}/';
+  String tlsUrl() => 'https://${tlsServer.address.host}:${tlsServer.port}/';
 
-  test('cert rule matches the global overrides', () {    final dummyCert = X509CertificatePlaceholder._();
+  test('cert rule matches the global overrides', () {
+    final dummyCert = X509CertificatePlaceholder._();
     expect(
       allowsBadCertificateForHost(dummyCert, 'open.spotify.com', 443),
       isTrue,
@@ -205,17 +215,18 @@ void main() {
     test('exact device wins over other tunnel interfaces', () async {
       final backend = _RecordingBackend();
       final endpoint = await resolveVpnEndpoint(
-        backend: backend,
-        deviceName: 'nordlynx',
-        listInterfaces: ({
-          bool includeLoopback = false,
-          bool includeLinkLocal = false,
-          InternetAddressType type = InternetAddressType.any,
-        }) async => <NetworkInterface>[
-          _FakeIface('wlan0', ['192.168.1.5']),
-          _FakeIface('tun0', ['10.8.0.2']),
-          _FakeIface('nordlynx', ['10.9.0.2']),
-        ]);
+          backend: backend,
+          deviceName: 'nordlynx',
+          listInterfaces: ({
+            bool includeLoopback = false,
+            bool includeLinkLocal = false,
+            InternetAddressType type = InternetAddressType.any,
+          }) async =>
+              <NetworkInterface>[
+                _FakeIface('wlan0', ['192.168.1.5']),
+                _FakeIface('tun0', ['10.8.0.2']),
+                _FakeIface('nordlynx', ['10.9.0.2']),
+              ]);
       expect(endpoint.ifname, 'nordlynx');
       expect(endpoint.address.address, '10.9.0.2');
       expect(backend.deviceQueries, 0,
@@ -226,14 +237,16 @@ void main() {
       final backend = _RecordingBackend();
       await expectLater(
         resolveVpnEndpoint(
-          backend: backend,
-          deviceName: 'tun9',
-          listInterfaces: ({
-            bool includeLoopback = false,
-            bool includeLinkLocal = false,
-            InternetAddressType type = InternetAddressType.any,
-          }) async =>
-              <NetworkInterface>[_FakeIface('tun0', ['10.8.0.2'])]),
+            backend: backend,
+            deviceName: 'tun9',
+            listInterfaces: ({
+              bool includeLoopback = false,
+              bool includeLinkLocal = false,
+              InternetAddressType type = InternetAddressType.any,
+            }) async =>
+                <NetworkInterface>[
+                  _FakeIface('tun0', ['10.8.0.2'])
+                ]),
         throwsA(
           isA<VpnNoRouteException>().having(
             (e) => e.message,
@@ -248,14 +261,14 @@ void main() {
       final backend = _RecordingBackend();
       await expectLater(
         resolveVpnEndpoint(
-          backend: backend,
-          deviceName: 'tun0',
-          listInterfaces: ({
-            bool includeLoopback = false,
-            bool includeLinkLocal = false,
-            InternetAddressType type = InternetAddressType.any,
-          }) async =>
-              <NetworkInterface>[_FakeIface('tun0', [])]),
+            backend: backend,
+            deviceName: 'tun0',
+            listInterfaces: ({
+              bool includeLoopback = false,
+              bool includeLinkLocal = false,
+              InternetAddressType type = InternetAddressType.any,
+            }) async =>
+                <NetworkInterface>[_FakeIface('tun0', [])]),
         throwsA(isA<VpnNoRouteException>()),
       );
     });
@@ -263,15 +276,16 @@ void main() {
     test('uuid flow still prefers backend devices, then hints', () async {
       final backend = _RecordingBackend();
       final endpoint = await resolveVpnEndpoint(
-        backend: backend,
-        listInterfaces: ({
-          bool includeLoopback = false,
-          bool includeLinkLocal = false,
-          InternetAddressType type = InternetAddressType.any,
-        }) async => <NetworkInterface>[
-          _FakeIface('wlan0', ['192.168.1.5']),
-          _FakeIface('tun0', ['10.8.0.2']),
-        ]);
+          backend: backend,
+          listInterfaces: ({
+            bool includeLoopback = false,
+            bool includeLinkLocal = false,
+            InternetAddressType type = InternetAddressType.any,
+          }) async =>
+              <NetworkInterface>[
+                _FakeIface('wlan0', ['192.168.1.5']),
+                _FakeIface('tun0', ['10.8.0.2']),
+              ]);
       expect(endpoint.ifname, 'tun0');
       expect(backend.deviceQueries, 1);
     });

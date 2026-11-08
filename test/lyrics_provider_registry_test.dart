@@ -200,7 +200,8 @@ void main() {
     expect(state.provider, 'ok');
     expect(ok.calls, 1, reason: 'an empty cache entry must not be trusted');
     final rows = await database.select(database.lyricsTable).get();
-    expect(rows, hasLength(1), reason: 'the stale row is replaced, not added to');
+    expect(rows, hasLength(1),
+        reason: 'the stale row is replaced, not added to');
   });
 
   test('empty provider does not win over a later non-empty one', () async {
@@ -243,8 +244,7 @@ void main() {
     );
   });
 
-  test('resolved lyrics are cached; a cache hit skips all providers',
-      () async {
+  test('resolved lyrics are cached; a cache hit skips all providers', () async {
     final ok = _RecordingProvider('ok', _hit);
     testProviders.add(ok);
 

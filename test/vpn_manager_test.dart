@@ -40,7 +40,8 @@ class FakeVpnBackend implements VpnSystemBackend {
   @override
   Future<List<VpnConnection>> listConnections() async => const [
         VpnConnection(uuid: 'uuid-a', name: 'Office VPN', type: 'vpn'),
-        VpnConnection(uuid: 'uuid-b', name: 'Home WireGuard', type: 'wireguard'),
+        VpnConnection(
+            uuid: 'uuid-b', name: 'Home WireGuard', type: 'wireguard'),
       ];
 
   @override
@@ -64,8 +65,7 @@ class FakeVpnBackend implements VpnSystemBackend {
 /// Fake tunnel interface for pin-resolution tests.
 class FakeNetworkInterface implements NetworkInterface {
   FakeNetworkInterface(this.name, List<String> addresses)
-      : addresses =
-            addresses.map((a) => InternetAddress(a)).toList();
+      : addresses = addresses.map((a) => InternetAddress(a)).toList();
 
   @override
   final String name;
@@ -82,7 +82,9 @@ Future<List<NetworkInterface>> fakeListInterfaces({
   bool includeLinkLocal = false,
   InternetAddressType type = InternetAddressType.any,
 }) async =>
-    [FakeNetworkInterface('tun0', ['10.8.0.2'])];
+    [
+      FakeNetworkInterface('tun0', ['10.8.0.2'])
+    ];
 
 Future<List<NetworkInterface>> emptyListInterfaces({
   bool includeLoopback = false,
@@ -252,7 +254,8 @@ void main() {
       manager.dispose();
     });
 
-    test('a won activation releases its cancel signal instead of polling '
+    test(
+        'a won activation releases its cancel signal instead of polling '
         'forever', () async {
       // The leak: `_cancelSignal` was the `Future.any` loser whenever
       // `bringUp` won — i.e. on every successful VPN-gated download — and its
@@ -646,8 +649,11 @@ void main() {
         InternetAddressType type = InternetAddressType.any,
       }) async {
         if (fail) throw const SocketException('interfaces gone');
-        return [FakeNetworkInterface('tun0', ['10.8.0.2'])];
+        return [
+          FakeNetworkInterface('tun0', ['10.8.0.2'])
+        ];
       }
+
       final backend = FakeVpnBackend();
       final manager = RefCountVpnManager(
         backend: backend,
@@ -692,7 +698,9 @@ void main() {
         InternetAddressType type = InternetAddressType.any,
       }) async =>
           present
-              ? [FakeNetworkInterface('tun0', ['10.8.0.2'])]
+              ? [
+                  FakeNetworkInterface('tun0', ['10.8.0.2'])
+                ]
               : <NetworkInterface>[];
       final backend = FakeVpnBackend();
       final manager = RefCountVpnManager(
@@ -815,8 +823,7 @@ class _NeverActiveBackend implements VpnSystemBackend {
   Future<Set<String>> activeUuids() async => const {};
 
   @override
-  Future<List<VpnConnection>> listConnections() =>
-      inner.listConnections();
+  Future<List<VpnConnection>> listConnections() => inner.listConnections();
 
   @override
   Future<void> bringUp(String uuid) async {

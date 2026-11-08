@@ -227,8 +227,7 @@ void main() {
       expect(warnings, isEmpty);
     });
 
-    test('a library that refuses the repair is reported to the user',
-        () async {
+    test('a library that refuses the repair is reported to the user', () async {
       final library = _FakeLibrary();
       final endpoint = _FakePlaylistEndpoint(library, saveFails: true);
       final container = containerFor(library: library, endpoint: endpoint);

@@ -254,8 +254,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('a theme switch takes its pages down with it',
-        (tester) async {
+    testWidgets('a theme switch takes its pages down with it', (tester) async {
       // Resolved through the real provider path (definition.ui + override)
       // so the override swap re-emits themeUiProvider like in the app.
       final container = _container(viaDefinition: true);

@@ -20,7 +20,8 @@ void main() {
     expect(gate.claim('tail-1'), isTrue);
     gate.release('tail-1');
     expect(gate.claim('tail-1'), isTrue,
-        reason: 'empty or failed fetches must not suppress the next tail event');
+        reason:
+            'empty or failed fetches must not suppress the next tail event');
   });
 
   test('a served tail is never refetched', () {

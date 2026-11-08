@@ -213,10 +213,8 @@ void main() {
             scaling: scaling,
             dock: PlayerDock.docked,
           );
-          expect(docked.clearance, 12 * scaling,
-              reason: '$width at $scaling');
-          expect(tester.takeException(), isNull,
-              reason: '$width at $scaling');
+          expect(docked.clearance, 12 * scaling, reason: '$width at $scaling');
+          expect(tester.takeException(), isNull, reason: '$width at $scaling');
         }
       }
       final withSeekLine = await _measureShell(

@@ -97,8 +97,7 @@ void main() {
         try {
           await _withDownloadLocation(dir, ['$base.$ext']);
           final found = await findDownloadedFile(dir.path, track);
-          expect(found, isNotNull,
-              reason: 'should match extension $ext');
+          expect(found, isNotNull, reason: 'should match extension $ext');
         } finally {
           await dir.delete(recursive: true);
         }
@@ -145,8 +144,7 @@ void main() {
         () async {
       final track = _testTrack();
       final base = _sanitizedBase(track);
-      final nested =
-          Directory('${temp.path}${Platform.pathSeparator}Artist');
+      final nested = Directory('${temp.path}${Platform.pathSeparator}Artist');
       await _withDownloadLocation(nested, ['$base.mp3']);
       final found = await findDownloadedFile(temp.path, track);
       expect(found, isNull);
@@ -196,8 +194,7 @@ void main() {
       final index = DownloadedFileIndex();
       expect(await index.find(temp.path, track), isNotNull);
 
-      await File('${temp.path}${Platform.pathSeparator}$base.mp3')
-          .delete();
+      await File('${temp.path}${Platform.pathSeparator}$base.mp3').delete();
       expect(await index.find(temp.path, track), isNull);
     });
 
@@ -276,8 +273,8 @@ void main() {
       // byte of the file. Declaring length - 1 makes strict HTTP clients
       // abort with "content size exceeds contentLength".
       expect(res.headers.value('content-length'), '$length');
-      expect(res.headers.value('content-range'),
-          'bytes 0-${length - 1}/$length');
+      expect(
+          res.headers.value('content-range'), 'bytes 0-${length - 1}/$length');
     });
 
     test('cachedFileStreamResponse HEAD and GET content-length agree',
@@ -365,7 +362,7 @@ void main() {
       expect(pastEnd.statusCode, 200);
       expect(pastEnd.headers.value('content-length'), '10');
 
-final malformed = cachedFileStreamResponse(
+      final malformed = cachedFileStreamResponse(
         file: f,
         fileLength: 10,
         contentType: 'audio/mpeg',

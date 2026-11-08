@@ -108,8 +108,7 @@ void main() {
       () async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    final notifier =
-        _RogueList([]); // fetch ignores pages; always hasMore:true
+    final notifier = _RogueList([]); // fetch ignores pages; always hasMore:true
     // Drive fetchAll logic manually with a cap probe: count 50 fetches.
     // Old code has no cap, so 50 pages = 50 fetch calls and still hasMore.
     var calls = 0;

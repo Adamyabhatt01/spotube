@@ -47,9 +47,8 @@ Future<HttpServer> _startServer({
     if (range != null && !ignoreRange) {
       final m = RegExp(r'bytes=(\d+)-(\d*)').firstMatch(range);
       final start = int.parse(m!.group(1)!);
-      final end = m.group(2)!.isEmpty
-          ? payload.length - 1
-          : int.parse(m.group(2)!);
+      final end =
+          m.group(2)!.isEmpty ? payload.length - 1 : int.parse(m.group(2)!);
       final slice = payload.sublist(start, end + 1);
       req.response
         ..statusCode = HttpStatus.partialContent
@@ -139,8 +138,7 @@ void main() {
     return (file: file, dio: dio, server: server);
   }
 
-  test('range-honoring server gets a chunked, byte-exact transfer',
-      () async {
+  test('range-honoring server gets a chunked, byte-exact transfer', () async {
     final data = payload();
     final server = await _startServer(payload: data);
     final ctx = await setup(server);
@@ -172,8 +170,7 @@ void main() {
     expect(await ctx.file.readAsBytes(), data);
   });
 
-  test('HEAD failure falls back through the discovery GET safely',
-      () async {
+  test('HEAD failure falls back through the discovery GET safely', () async {
     final data = payload();
     final server = await _startServer(payload: data, failHead: true);
     final ctx = await setup(server);
@@ -269,7 +266,8 @@ void main() {
     expect(response.statusCode, 200);
     expect(await ctx.file.readAsBytes(), data);
     // Progress sums must never exceed the file: each byte counted once.
-    expect(progress.reduce((a, b) => a > b ? a : b), lessThanOrEqualTo(data.length));
+    expect(progress.reduce((a, b) => a > b ? a : b),
+        lessThanOrEqualTo(data.length));
     // The staging file is not left behind next to the target.
     expect(File('${ctx.file.path}.part').existsSync(), false);
   });
@@ -356,7 +354,8 @@ void main() {
 
     /// Serves a distinct payload per path, holding every ranged GET until
     /// [onRelease] is invoked, and reports how many are in flight.
-    Future<({HttpServer server, void Function() release})> startGatedMultiServer({
+    Future<({HttpServer server, void Function() release})>
+        startGatedMultiServer({
       required Map<String, List<int>> payloads,
       required void Function(int inFlight) onInFlight,
     }) async {
@@ -393,9 +392,8 @@ void main() {
 
         final m = RegExp(r'bytes=(\d+)-(\d*)').firstMatch(range)!;
         final start = int.parse(m.group(1)!);
-        final end = m.group(2)!.isEmpty
-            ? data.length - 1
-            : int.parse(m.group(2)!);
+        final end =
+            m.group(2)!.isEmpty ? data.length - 1 : int.parse(m.group(2)!);
         final slice = data.sublist(start, end + 1);
 
         inFlight++;
@@ -603,8 +601,8 @@ void main() {
         }
       });
 
-      final future =
-          dio.chunkDownload('http://127.0.0.1:${gated.server.port}/a', target.path);
+      final future = dio.chunkDownload(
+          'http://127.0.0.1:${gated.server.port}/a', target.path);
       await reached.future;
 
       final parts = outDir
@@ -638,8 +636,7 @@ void main() {
       }
     });
 
-    test('a mid-body failure on the fallback keeps an existing file',
-        () async {
+    test('a mid-body failure on the fallback keeps an existing file', () async {
       final data = List<int>.generate(32 * 1024, (i) => i % 251);
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       server.listen((req) async {

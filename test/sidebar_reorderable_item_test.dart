@@ -99,9 +99,12 @@ void main() {
       (tester) async {
     var pressed = 0;
     await pumpRows(tester, [
-      reorderRow(id: 'a', group: SidebarReorderGroup.library, onPressed: () {
-        pressed++;
-      }),
+      reorderRow(
+          id: 'a',
+          group: SidebarReorderGroup.library,
+          onPressed: () {
+            pressed++;
+          }),
     ]);
 
     // No visible handle anywhere and no drag layer before hover.

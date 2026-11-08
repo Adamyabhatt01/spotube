@@ -66,7 +66,8 @@ void main() {
     expect(result.audioOnly.single.url.toString(), 'a');
   });
 
-  test('tries the fallback when the selected engine returns no audio', () async {
+  test('tries the fallback when the selected engine returns no audio',
+      () async {
     final empty = _FakeEngine('explode', manifest: StreamManifest(const []));
     final fallback = _FakeEngine('yt-dlp', manifest: _manifest('b'));
 

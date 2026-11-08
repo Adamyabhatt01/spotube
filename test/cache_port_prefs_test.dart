@@ -157,8 +157,7 @@ void main() {
 
   group('retainedSourcedTracks', () {
     test('empty and out-of-range queues retain nothing', () {
-      expect(retainedSourcedTracks(tracks: const [], currentIndex: 0),
-          isEmpty);
+      expect(retainedSourcedTracks(tracks: const [], currentIndex: 0), isEmpty);
       expect(
         retainedSourcedTracks(
           tracks: [_testTrack('a')],
@@ -171,8 +170,7 @@ void main() {
     test('middle keeps previous, active and next two', () {
       final tracks = [_testTrack('a'), _testTrack('b'), _testTrack('c')];
       expect(
-        retainedSourcedTracks(tracks: tracks, currentIndex: 1)
-            .map((t) => t.id),
+        retainedSourcedTracks(tracks: tracks, currentIndex: 1).map((t) => t.id),
         ['a', 'b', 'c'],
       );
     });
@@ -180,8 +178,7 @@ void main() {
     test('last track keeps itself and its predecessor', () {
       final tracks = [_testTrack('a'), _testTrack('b')];
       expect(
-        retainedSourcedTracks(tracks: tracks, currentIndex: 1)
-            .map((t) => t.id),
+        retainedSourcedTracks(tracks: tracks, currentIndex: 1).map((t) => t.id),
         ['a', 'b'],
       );
     });
@@ -194,14 +191,12 @@ void main() {
       ];
       // Active is local, next is full: only the full one is retained.
       expect(
-        retainedSourcedTracks(tracks: tracks, currentIndex: 0)
-            .map((t) => t.id),
+        retainedSourcedTracks(tracks: tracks, currentIndex: 0).map((t) => t.id),
         ['a'],
       );
       // Active full at end: only itself.
       expect(
-        retainedSourcedTracks(tracks: tracks, currentIndex: 1)
-            .map((t) => t.id),
+        retainedSourcedTracks(tracks: tracks, currentIndex: 1).map((t) => t.id),
         ['a'],
       );
     });

@@ -169,11 +169,15 @@ void main() {
       );
       expect(options.recents.first, isA<RecentSearchSuggestion>());
       expect(
-        options.library.whereType<PlaylistSearchSuggestion>().map((s) => s.playlist.id),
+        options.library
+            .whereType<PlaylistSearchSuggestion>()
+            .map((s) => s.playlist.id),
         ['a'],
       );
       expect(
-        options.library.whereType<ArtistSearchSuggestion>().map((s) => s.artist.id),
+        options.library
+            .whereType<ArtistSearchSuggestion>()
+            .map((s) => s.artist.id),
         ['c'],
       );
     });
@@ -224,12 +228,15 @@ void main() {
       expect(options.live, hasLength(1));
       expect(options.live.single, isA<LiveTrackSearchSuggestion>());
       expect(
-        options.library.whereType<TrackSearchSuggestion>().map((s) => s.track.id),
+        options.library
+            .whereType<TrackSearchSuggestion>()
+            .map((s) => s.track.id),
         ['t'],
       );
     });
 
-    test('live tracks never leak into library despite the subtype relation', () {
+    test('live tracks never leak into library despite the subtype relation',
+        () {
       // LiveTrackSearchSuggestion extends TrackSearchSuggestion, so a
       // post-hoc `is Track` split would misfile them; the grouped record is
       // built per loop site instead. This pins that contract.
@@ -247,7 +254,8 @@ void main() {
       expect(options.library, isEmpty);
     });
 
-    test('cleared text force-clears library and live despite stale debounce', () {
+    test('cleared text force-clears library and live despite stale debounce',
+        () {
       // After a fast clear the debounced term still holds the old query for
       // a beat; rows must not linger.
       final options = buildSearchSuggestions(
@@ -278,7 +286,9 @@ void main() {
         artists: const [],
       );
       expect(
-        options.library.whereType<TrackSearchSuggestion>().map((s) => s.track.id),
+        options.library
+            .whereType<TrackSearchSuggestion>()
+            .map((s) => s.track.id),
         ['t'],
       );
     });
@@ -311,7 +321,9 @@ void main() {
       );
       expect(options.live, isEmpty);
       expect(
-        options.library.whereType<TrackSearchSuggestion>().map((s) => s.track.id),
+        options.library
+            .whereType<TrackSearchSuggestion>()
+            .map((s) => s.track.id),
         ['t'],
       );
     });

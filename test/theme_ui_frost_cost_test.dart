@@ -123,8 +123,10 @@ void main() {
       final plain = <int>[];
       final frozen = <int>[];
       for (var round = 0; round < 3; round++) {
-        frosted.add(await _time(tester, _shelf(n, frosted: true), frozen: false));
-        plain.add(await _time(tester, _shelf(n, frosted: false), frozen: false));
+        frosted
+            .add(await _time(tester, _shelf(n, frosted: true), frozen: false));
+        plain
+            .add(await _time(tester, _shelf(n, frosted: false), frozen: false));
         frozen.add(await _time(tester, _shelf(n, frosted: true), frozen: true));
       }
 

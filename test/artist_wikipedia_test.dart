@@ -35,7 +35,8 @@ void main() {
       'Sim',
       pageSummary: (query) async {
         queries.add(query);
-        return _summary(query.endsWith('_(singer)') ? 'standard' : 'disambiguation');
+        return _summary(
+            query.endsWith('_(singer)') ? 'standard' : 'disambiguation');
       },
     );
 

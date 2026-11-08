@@ -129,15 +129,18 @@ void main() {
       addTearDown(container.dispose);
 
       expect(
-        await container.read(metadataPluginIsSavedPlaylistProvider('pl-a').future),
+        await container
+            .read(metadataPluginIsSavedPlaylistProvider('pl-a').future),
         isTrue,
       );
       expect(
-        await container.read(metadataPluginIsSavedPlaylistProvider('pl-b').future),
+        await container
+            .read(metadataPluginIsSavedPlaylistProvider('pl-b').future),
         isFalse,
       );
       expect(
-        await container.read(metadataPluginIsSavedPlaylistProvider('pl-c').future),
+        await container
+            .read(metadataPluginIsSavedPlaylistProvider('pl-c').future),
         isTrue,
       );
 

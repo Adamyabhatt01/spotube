@@ -34,7 +34,8 @@ Future<({int raw, int covers})> _driveDrag(
   container.read(navigationPanelCoversBar);
 
   final rawSub = container.listen(navigationPanelHeight, (_, __) => raw++);
-  final coversSub = container.listen(navigationPanelCoversBar, (_, __) => covers++);
+  final coversSub =
+      container.listen(navigationPanelCoversBar, (_, __) => covers++);
 
   for (final height in heights) {
     container.read(navigationPanelHeight.notifier).state = height;

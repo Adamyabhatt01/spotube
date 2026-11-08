@@ -38,10 +38,23 @@ final _config = PluginConfiguration(
 
 Map<String, dynamic> _colors(String fill) => {
       for (final key in const [
-        'background', 'foreground', 'card', 'cardForeground',
-        'primary', 'primaryForeground', 'secondary', 'secondaryForeground',
-        'muted', 'mutedForeground', 'accent', 'accentForeground',
-        'destructive', 'destructiveForeground', 'border', 'input', 'ring',
+        'background',
+        'foreground',
+        'card',
+        'cardForeground',
+        'primary',
+        'primaryForeground',
+        'secondary',
+        'secondaryForeground',
+        'muted',
+        'mutedForeground',
+        'accent',
+        'accentForeground',
+        'destructive',
+        'destructiveForeground',
+        'border',
+        'input',
+        'ring',
       ])
         key: fill,
     };
@@ -125,8 +138,7 @@ void main() {
   }
 
   group('parseStaticThemeJson', () {
-    test('decodes a valid envelope and merges capabilities onto the ui',
-        () {
+    test('decodes a valid envelope and merges capabilities onto the ui', () {
       final parsed = parseStaticThemeJson(_envelope());
       expect(parsed, isNotNull);
       expect(parsed!.definition.specVersion, 4);
@@ -156,8 +168,7 @@ void main() {
       );
     });
 
-    test('needsVmForUi is false for a palette-only theme without getUi',
-        () {
+    test('needsVmForUi is false for a palette-only theme without getUi', () {
       final parsed = parseStaticThemeJson(_envelope(
         theme: _theme(withUi: false),
         methods: const [],

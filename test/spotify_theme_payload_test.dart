@@ -159,7 +159,8 @@ void main() {
       expect(theme.light.primaryForeground, '#000000');
     });
 
-    test('defines every colour role so the sidebar and status colours are its own',
+    test(
+        'defines every colour role so the sidebar and status colours are its own',
         () {
       expect(_decode(payload).light, spotifyLight);
       expect(_decode(payload).dark, spotifyDark);

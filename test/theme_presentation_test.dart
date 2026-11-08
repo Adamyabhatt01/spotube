@@ -27,8 +27,7 @@ Map<String, dynamic> _palette() => {
       'ring': '#00ff00',
     };
 
-ThemeDefinition _theme(Map<String, dynamic> extra) =>
-    sanitizeThemeDefinition(
+ThemeDefinition _theme(Map<String, dynamic> extra) => sanitizeThemeDefinition(
       ThemeDefinition.fromJson({
         'specVersion': 3,
         'light': _palette(),
@@ -59,7 +58,9 @@ void main() {
 
     test('card gap uses spacing, falling back to the v2 gutter', () {
       final legacy = resolveThemePresentation(
-        _theme({'tokens': {'gutter': 18}}),
+        _theme({
+          'tokens': {'gutter': 18}
+        }),
         scheme: scheme,
       );
       final v3 = resolveThemePresentation(
@@ -104,12 +105,12 @@ void main() {
     });
 
     test('applies the motion scale', () {
-      expect(presentation.motion.fastDuration,
-          const Duration(milliseconds: 120));
+      expect(
+          presentation.motion.fastDuration, const Duration(milliseconds: 120));
       expect(presentation.motion.normalDuration,
           const Duration(milliseconds: 200));
-      expect(presentation.motion.slowDuration,
-          const Duration(milliseconds: 320));
+      expect(
+          presentation.motion.slowDuration, const Duration(milliseconds: 320));
       expect(presentation.motion.curve, Curves.easeOutCubic);
     });
   });
@@ -199,8 +200,8 @@ void main() {
       expect(presentation.spacing.page, 96);
       expect(presentation.spacing.sm, 0);
       expect(presentation.spacing.cardGap, 12);
-      expect(presentation.motion.fastDuration,
-          const Duration(milliseconds: 1000));
+      expect(
+          presentation.motion.fastDuration, const Duration(milliseconds: 1000));
       expect(presentation.motion.normalDuration, Duration.zero);
       expect(presentation.motion.curve, Curves.easeOutCubic);
     });

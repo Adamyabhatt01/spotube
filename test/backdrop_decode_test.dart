@@ -18,7 +18,6 @@ import 'package:spotube/modules/theme_background/theme_shell_source.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/services/theme_definition_cache.dart';
 
-
 void main() {
   test('non-positive sides fall back to one step', () {
     expect(quantizeBackdropSide(0), 256);

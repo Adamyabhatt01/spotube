@@ -283,7 +283,8 @@ void main() {
     expect(
       rows,
       lessThanOrEqualTo(visible),
-      reason: 'this list is neither scrollable nor height-bounded, so every row '
+      reason:
+          'this list is neither scrollable nor height-bounded, so every row '
           'it is given is laid out and painted - behind the page-wide backdrop '
           'blur, for the whole duration of the fetch cascade',
     );

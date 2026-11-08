@@ -23,7 +23,8 @@ void main() {
       );
     });
 
-    test('collapses a whole foreground playback session into nothing', () async {
+    test('collapses a whole foreground playback session into nothing',
+        () async {
       // The 1 Hz position tick is the storm this exists for: sixty requests a
       // minute, none of them visible.
       for (var i = 0; i < 60; i++) {

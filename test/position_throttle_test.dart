@@ -173,8 +173,7 @@ void main() {
       await source.close();
     });
 
-    test('drops events while nobody listens instead of queuing them',
-        () async {
+    test('drops events while nobody listens instead of queuing them', () async {
       final source = _raw();
       final ticker = PositionTicker(source.stream);
       final first = <Duration>[];
@@ -377,7 +376,8 @@ void main() {
 
     test('a replaced collection list is sent', () {
       final tracks = [_testTrack('a')];
-      final sent = queueState(tracks: tracks, collections: const ['playlist-0']);
+      final sent =
+          queueState(tracks: tracks, collections: const ['playlist-0']);
 
       expect(
         isSameQueuePayload(

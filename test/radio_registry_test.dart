@@ -61,8 +61,7 @@ void main() {
   setUp(() => radioProviders.clear());
   tearDown(() => radioProviders.clear());
 
-  test('first non-empty provider wins and later ones are not called',
-      () async {
+  test('first non-empty provider wins and later ones are not called', () async {
     final first = _FakeProvider('first', items: [_station('a')]);
     final second = _FakeProvider('second', items: [_station('b')]);
     radioProviders.addAll([first, second]);

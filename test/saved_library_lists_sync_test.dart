@@ -53,8 +53,7 @@ class _StubPlaylists extends MetadataPluginSavedPlaylistsNotifier {
 
   @override
   Future<SpotubePaginationResponseObject<SpotubeSimplePlaylistObject>>
-      build() async =>
-      _page(const []);
+      build() async => _page(const []);
 
   @override
   Future<List<SpotubeSimplePlaylistObject>?> refresh({
@@ -73,8 +72,7 @@ class _StubTracks extends MetadataPluginSavedTracksNotifier {
 
   @override
   Future<SpotubePaginationResponseObject<SpotubeFullTrackObject>>
-      build() async =>
-      _page(const []);
+      build() async => _page(const []);
 
   @override
   Future<List<SpotubeFullTrackObject>?> refresh({
@@ -93,8 +91,7 @@ class _StubAlbums extends MetadataPluginSavedAlbumNotifier {
 
   @override
   Future<SpotubePaginationResponseObject<SpotubeSimpleAlbumObject>>
-      build() async =>
-      _page(const []);
+      build() async => _page(const []);
 
   @override
   Future<List<SpotubeSimpleAlbumObject>?> refresh({
@@ -113,8 +110,7 @@ class _StubArtists extends MetadataPluginSavedArtistNotifier {
 
   @override
   Future<SpotubePaginationResponseObject<SpotubeFullArtistObject>>
-      build() async =>
-      _page(const []);
+      build() async => _page(const []);
 
   @override
   Future<List<SpotubeFullArtistObject>?> refresh({

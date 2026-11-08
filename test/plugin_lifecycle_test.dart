@@ -19,7 +19,7 @@ PluginConfiguration config(String version) => PluginConfiguration(
       author: 'tester',
       entryPoint: 'plugin.out',
       pluginApiVersion: '2.0.0',
-);
+    );
 
 void main() {
   group('PluginVmCache', () {
@@ -87,8 +87,7 @@ void main() {
           reason: 'version must be part of cache identity');
 
       await cache.getOrCreate(oldKey, () async => 'old-vm');
-      final afterUpdate =
-          await cache.getOrCreate(newKey, () async => 'new-vm');
+      final afterUpdate = await cache.getOrCreate(newKey, () async => 'new-vm');
 
       expect(afterUpdate, 'new-vm',
           reason: 'next resolution executes the new plugin code');

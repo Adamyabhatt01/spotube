@@ -144,8 +144,7 @@ void main() {
     notifier = container.read(radioPlaybackControllerProvider.notifier);
   });
 
-  RadioPlaybackState st() =>
-      container.read(radioPlaybackControllerProvider);
+  RadioPlaybackState st() => container.read(radioPlaybackControllerProvider);
 
   test('play pauses music, opens the URL and enters radio mode', () async {
     await notifier.play(station('A'));
@@ -295,8 +294,8 @@ void main() {
     await _flush();
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
-    final radio =
-        (await database.select(database.historyTable).get()).where((r) => r.type == HistoryEntryType.radio);
+    final radio = (await database.select(database.historyTable).get())
+        .where((r) => r.type == HistoryEntryType.radio);
     expect(radio, isEmpty);
   });
 
@@ -319,7 +318,8 @@ void main() {
         .where((r) => r.type == HistoryEntryType.radio)
         .toList();
 
-    expect(radio, hasLength(1), reason: 'one row per station, not one per play');
+    expect(radio, hasLength(1),
+        reason: 'one row per station, not one per play');
     expect(radio.single.data['streamUrl'], 'https://live/a-rotated',
         reason: 'the surviving row must be the latest listen');
   });
@@ -400,8 +400,7 @@ void main() {
 
     expect(st().error, isNotNull);
     expect(st().buffering, isFalse,
-        reason:
-            'buffering drives isLoading, which disables the station play '
+        reason: 'buffering drives isLoading, which disables the station play '
             'button; leaving it true pins the user to a disabled spinner');
     expect(st().playing, isFalse);
   });

@@ -500,7 +500,8 @@ void main() {
     test('shell glass is re-clamped on the way in, like the palette', () {
       final merged = mergeShellPalette(
         plugin: _themeDefinition(
-          background: const ThemeBackground(source: ThemeBackgroundSource.shell),
+          background:
+              const ThemeBackground(source: ThemeBackgroundSource.shell),
         ),
         shell: _themeDefinition(lightFill: '#101010'),
         glass: (

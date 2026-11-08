@@ -84,8 +84,8 @@ class _StubSavedTracks extends MetadataPluginSavedTracksNotifier {
   final SpotubePaginationResponseObject<SpotubeFullTrackObject> page;
 
   @override
-  Future<SpotubePaginationResponseObject<SpotubeFullTrackObject>> build() async =>
-      page;
+  Future<SpotubePaginationResponseObject<SpotubeFullTrackObject>>
+      build() async => page;
 
   @override
   Future<SpotubePaginationResponseObject<SpotubeFullTrackObject>> fetch(
@@ -215,8 +215,7 @@ void main() {
       expect(
         [for (final track in initial) track.id],
         ['net-1', 'net-2'],
-        reason:
-            'a reachable network must not be shadowed by stale mirror rows',
+        reason: 'a reachable network must not be shadowed by stale mirror rows',
       );
     });
 

@@ -326,8 +326,8 @@ void main() {
           sourcedTrackProvider
               .overrideWith(() => _HangingSourcedTrackNotifier()),
           playbackServerPortProvider.overrideWith((ref) async => 21999),
-          presentationStateProvider
-              .overrideWith(() => _StubPresentationNotifier(displayed, SortBy.none)),
+          presentationStateProvider.overrideWith(
+              () => _StubPresentationNotifier(displayed, SortBy.none)),
         ],
         // `showSelectDeviceDialog` reads (does not watch) the clients
         // provider, so something has to build it before the tap or the first
@@ -396,7 +396,8 @@ void main() {
         reason: 'the local queue is not the selected playback target');
   });
 
-  testWidgets('a remote tap whose row is missing from the remote queue loads it',
+  testWidgets(
+      'a remote tap whose row is missing from the remote queue loads it',
       (tester) async {
     // `collections` saying the playlist is loaded on the remote device is not
     // proof that this row is in its queue. The row must be loaded and made the
@@ -456,8 +457,7 @@ void main() {
     expect(player.state.tracks[player.state.currentIndex].id, 'charlie');
   });
 
-  testWidgets(
-      'an active collection whose queue lacks the row still plays it',
+  testWidgets('an active collection whose queue lacks the row still plays it',
       (tester) async {
     // The collection is listed as active, but the queue only holds its first
     // track — the background tail append failed, or only part of a paginated
@@ -471,8 +471,7 @@ void main() {
       queueCollections: const ['pl-1'],
     );
 
-    expect(player.state.tracks.map((t) => t.id),
-        ['alpha', 'bravo', 'charlie']);
+    expect(player.state.tracks.map((t) => t.id), ['alpha', 'bravo', 'charlie']);
     expect(player.state.tracks[player.state.currentIndex].id, 'charlie');
   });
 }

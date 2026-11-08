@@ -59,7 +59,8 @@ void main() {
       expect(container.read(scrollInFlightProvider), isTrue);
       expect(changes, 1, reason: 'the surfaces rebuild once at the start');
 
-      await Future<void>.delayed(ScrollInFlight.settle + const Duration(milliseconds: 5));
+      await Future<void>.delayed(
+          ScrollInFlight.settle + const Duration(milliseconds: 5));
       expect(container.read(scrollInFlightProvider), isFalse);
       expect(changes, 2, reason: '...and once when the content settles');
     });
@@ -74,7 +75,8 @@ void main() {
       container.read(scrollInFlightProvider.notifier).markActive();
       expect(container.read(scrollInFlightProvider), isTrue);
 
-      await Future<void>.delayed(ScrollInFlight.settle + const Duration(milliseconds: 5));
+      await Future<void>.delayed(
+          ScrollInFlight.settle + const Duration(milliseconds: 5));
       expect(container.read(scrollInFlightProvider), isFalse);
     });
 
@@ -92,7 +94,8 @@ void main() {
       );
       expect(container.read(scrollInFlightProvider), isTrue);
 
-      await Future<void>.delayed(ScrollInFlight.settle + const Duration(milliseconds: 5));
+      await Future<void>.delayed(
+          ScrollInFlight.settle + const Duration(milliseconds: 5));
       expect(container.read(scrollInFlightProvider), isFalse);
     });
   });

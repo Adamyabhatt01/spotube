@@ -265,7 +265,8 @@ void main() {
   });
 
   Future<List<String>> persistedIds() async {
-    final row = await database.select(database.audioPlayerStateTable).getSingle();
+    final row =
+        await database.select(database.audioPlayerStateTable).getSingle();
     return [for (final t in row.tracks) t.id];
   }
 
@@ -442,8 +443,8 @@ void main() {
 
     test('addTracks mid-failure rolls back backend, state and persistence',
         () async {
-      final flaky = await withNotifier(_FailingBackendNotifier()
-        ..failOnCall = 'add:c');
+      final flaky =
+          await withNotifier(_FailingBackendNotifier()..failOnCall = 'add:c');
 
       await expectLater(
         flaky.addTracks([_testTrack('a'), _testTrack('b'), _testTrack('c')]),

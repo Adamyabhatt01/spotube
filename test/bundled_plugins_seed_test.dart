@@ -105,7 +105,8 @@ void main() {
       expect(
         readConfig('spotube-plugin-spotify').version,
         '0.2.11',
-        reason: 'assets/plugins/spotube-plugin-spotify/plugin.smplug is stale — '
+        reason:
+            'assets/plugins/spotube-plugin-spotify/plugin.smplug is stale — '
             'rebuild in the plugin repo and copy build/plugin.smplug over it',
       );
     });
@@ -134,7 +135,8 @@ void main() {
       expect(
         source,
         isNot(contains('api.github.com/repos/sonic-liberation/')),
-        reason: 'self-update would recommend the upstream plugin over this fork',
+        reason:
+            'self-update would recommend the upstream plugin over this fork',
       );
     });
   });

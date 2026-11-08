@@ -93,7 +93,8 @@ void main() {
 
     test('hits through one of the artists, as the table scan did', () {
       expect(
-        BlackListNotifier.matches({'a2'}, _track('t1', artistIds: ['a1', 'a2'])),
+        BlackListNotifier.matches(
+            {'a2'}, _track('t1', artistIds: ['a1', 'a2'])),
         isTrue,
       );
     });

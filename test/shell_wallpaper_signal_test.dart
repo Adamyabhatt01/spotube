@@ -109,15 +109,16 @@ void main() {
         .createSync('${wallpapers.first}.thumb');
     await Future<void>.delayed(const Duration(milliseconds: 500));
 
-    expect(emissions, 0, reason: 'equality, not timing, is what collapses them');
+    expect(emissions, 0,
+        reason: 'equality, not timing, is what collapses them');
   });
 
   test('the unlink gap does not blank the backdrop, a real removal does',
       () async {
     final emissions = <void>[];
     final subscription = source.watchBackground().listen(
-      (_) => emissions.add(null),
-    );
+          (_) => emissions.add(null),
+        );
     addTearDown(subscription.cancel);
     await settle();
 

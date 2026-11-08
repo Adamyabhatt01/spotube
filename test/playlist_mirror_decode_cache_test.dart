@@ -87,7 +87,8 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 5));
     }
     if (emissions.isEmpty || emissions.last.length != length) {
-      fail('expected an emission with $length tracks; got ${emissions.map((e) => e.length).toList()}');
+      fail(
+          'expected an emission with $length tracks; got ${emissions.map((e) => e.length).toList()}');
     }
   }
 
@@ -100,7 +101,8 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 5));
     }
     if (emissions.length <= previousCount) {
-      fail('no new emission arrived (had $previousCount, now ${emissions.length})');
+      fail(
+          'no new emission arrived (had $previousCount, now ${emissions.length})');
     }
   }
 

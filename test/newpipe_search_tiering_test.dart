@@ -138,10 +138,12 @@ void main() {
   group('NewPipeEngine.searchVideos category choice', () {
     test('queries the songs category and stops there when it answered',
         () async {
-      final search = _FakeSearch({songsKey: _songsPage, videosKey: _videosPage});
+      final search =
+          _FakeSearch({songsKey: _songsPage, videosKey: _videosPage});
 
-      final results = await NewPipeEngine(search: search.call, init: () async {})
-          .searchVideos('Tum Hi Ho Arijit Singh');
+      final results =
+          await NewPipeEngine(search: search.call, init: () async {})
+              .searchVideos('Tum Hi Ho Arijit Singh');
 
       // One query, not two: the songs page matched the query's own words.
       expect(search.calls, [songsKey]);
@@ -154,11 +156,18 @@ void main() {
       // no video title, so demanding two matches here would fall back on every
       // short query.
       final search = _FakeSearch({
-        songsKey: [_songRow(id: 'sKHv6S1y_j0', name: 'Wassup', uploader: 'Flawed', duration: 221)],
+        songsKey: [
+          _songRow(
+              id: 'sKHv6S1y_j0',
+              name: 'Wassup',
+              uploader: 'Flawed',
+              duration: 221)
+        ],
       });
 
       final results =
-          await NewPipeEngine(search: search.call, init: () async {}).searchVideos('Wassup Flawed');
+          await NewPipeEngine(search: search.call, init: () async {})
+              .searchVideos('Wassup Flawed');
 
       expect(search.calls, [songsKey]);
       expect(results.single.id, 'sKHv6S1y_j0');
@@ -175,8 +184,9 @@ void main() {
         videosKey: _videosPage,
       });
 
-      final results = await NewPipeEngine(search: search.call, init: () async {})
-          .searchVideos('Tum Hi Ho Arijit Singh');
+      final results =
+          await NewPipeEngine(search: search.call, init: () async {})
+              .searchVideos('Tum Hi Ho Arijit Singh');
 
       expect(search.calls, [songsKey, videosKey]);
       // The unrelated songs page is the weaker tier and is placed as such: its
@@ -190,8 +200,9 @@ void main() {
     test('an empty songs page still gets the videos page', () async {
       final search = _FakeSearch({songsKey: [], videosKey: _videosPage});
 
-      final results = await NewPipeEngine(search: search.call, init: () async {})
-          .searchVideos('Tum Hi Ho Arijit Singh');
+      final results =
+          await NewPipeEngine(search: search.call, init: () async {})
+              .searchVideos('Tum Hi Ho Arijit Singh');
 
       expect(search.calls, [songsKey, videosKey]);
       expect(results, isNotEmpty);
@@ -205,7 +216,8 @@ void main() {
       final search = _FakeSearch({videosKey: []});
 
       final results =
-          await NewPipeEngine(search: search.call, init: () async {}).searchVideos('USR631305109');
+          await NewPipeEngine(search: search.call, init: () async {})
+              .searchVideos('USR631305109');
 
       expect(search.calls, [videosKey]);
       expect(results, isEmpty);
@@ -214,7 +226,8 @@ void main() {
     test('a hyphenated code is not treated as an ISRC', () async {
       final search = _FakeSearch({videosKey: []});
 
-      await NewPipeEngine(search: search.call, init: () async {}).searchVideos('IN-UMO-13-00720');
+      await NewPipeEngine(search: search.call, init: () async {})
+          .searchVideos('IN-UMO-13-00720');
 
       // 12 alphanumeric characters is the shape the plugin sends; punctuation
       // is not an ISRC, so this stays a text query and keeps its songs tier.
@@ -229,8 +242,9 @@ void main() {
         videosKey: _videosPage,
       });
 
-      final results = await NewPipeEngine(search: search.call, init: () async {})
-          .searchVideos('Tum Hi Ho Arijit Singh');
+      final results =
+          await NewPipeEngine(search: search.call, init: () async {})
+              .searchVideos('Tum Hi Ho Arijit Singh');
 
       expect(search.calls, [songsKey, videosKey]);
       expect(results, isNotEmpty);
@@ -256,8 +270,10 @@ void main() {
     test('a row carried by both tiers appears once, in songs position', () {
       final ordered = NewPipeEngine.orderTiers(
         query: 'Tum Hi Ho Arijit Singh',
-        songs: _songsPage.map(NewPipeEngine.parseSearchResult).nonNulls.toList(),
-        videos: _videosPage.map(NewPipeEngine.parseSearchResult).nonNulls.toList(),
+        songs:
+            _songsPage.map(NewPipeEngine.parseSearchResult).nonNulls.toList(),
+        videos:
+            _videosPage.map(NewPipeEngine.parseSearchResult).nonNulls.toList(),
       );
 
       expect(ordered.map((row) => row.id).toSet(), hasLength(ordered.length));
@@ -297,7 +313,8 @@ void main() {
         videos: videos,
       );
 
-      expect(ordered.map((row) => row.id), ['normal', 'nodoc', 'live', 'short']);
+      expect(
+          ordered.map((row) => row.id), ['normal', 'nodoc', 'live', 'short']);
     });
 
     test('an unparseable row is dropped without costing the page', () {

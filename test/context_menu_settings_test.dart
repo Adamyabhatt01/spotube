@@ -1,8 +1,7 @@
 // Settings → Appearance → Context menu contracts: the preview is the same
 // builder the live menus use, every edit persists immediately, and reset
 // clears one target or all of them without touching the other surface.
-import 'package:flutter/material.dart'
-    show ListTile, ReorderableListView;
+import 'package:flutter/material.dart' show ListTile, ReorderableListView;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';

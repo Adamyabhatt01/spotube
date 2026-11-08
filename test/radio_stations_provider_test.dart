@@ -370,8 +370,8 @@ void main() {
 
     await notifier.fetchMore();
     page = container.read(radioStationsProvider(_popular)).requireValue;
-    expect(page.items.map((s) => s.id).toList(),
-        ['s0', 's1', 's2', 's3', 's4']);
+    expect(
+        page.items.map((s) => s.id).toList(), ['s0', 's1', 's2', 's3', 's4']);
     expect(page.hasMore, isFalse);
 
     // A completed list is not extended by a redundant fetchMore call.
@@ -451,7 +451,8 @@ void main() {
     const bySearchQuery = (tag: null, country: null, search: 'jazz');
 
     final t = container.listen(radioStationsProvider(byTagQuery), (_, __) {});
-    final s = container.listen(radioStationsProvider(bySearchQuery), (_, __) {});
+    final s =
+        container.listen(radioStationsProvider(bySearchQuery), (_, __) {});
     addTearDown(t.close);
     addTearDown(s.close);
 
@@ -523,7 +524,11 @@ void main() {
 
       expect(flaky.topUpAttempts, 2);
       expect(
-        container.read(radioStationsProvider(_popular)).requireValue.items.length,
+        container
+            .read(radioStationsProvider(_popular))
+            .requireValue
+            .items
+            .length,
         2,
       );
     });

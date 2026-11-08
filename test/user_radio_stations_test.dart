@@ -42,7 +42,8 @@ Future<void> _pumpPage(WidgetTester tester, AppDatabase db) async {
     ProviderScope(
       overrides: [
         databaseProvider.overrideWithValue(db),
-        radioBackendFactoryProvider.overrideWithValue(() => throw UnimplementedError()),
+        radioBackendFactoryProvider
+            .overrideWithValue(() => throw UnimplementedError()),
         musicPlaybackDelegateProvider.overrideWithValue(_NoopMusicDelegate()),
       ],
       child: const ShadcnApp(
@@ -78,8 +79,10 @@ void main() {
       (tester) async {
     await _pumpPage(tester, db);
 
-    expect(find.text('Save a station with the heart on the Radio page and it '
-        'shows up here.'), findsOneWidget);
+    expect(
+        find.text('Save a station with the heart on the Radio page and it '
+            'shows up here.'),
+        findsOneWidget);
     expect(find.byType(RadioStationTile, skipOffstage: false), findsNothing);
 
     await _drainPendingTimers(tester);

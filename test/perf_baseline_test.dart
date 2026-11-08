@@ -91,9 +91,9 @@ void main() {
         // The exact query `historyTopTracksProvider(allTime)` watches: unbounded,
         // type-filtered, and every returned row is parsed through `HistoryTableData.track`.
         final query = (db.select(db.historyTable)
-              ..where((t) =>
-                  t.type.equalsValue(HistoryEntryType.track) &
-                  t.createdAt.isBiggerOrEqualValue(DateTime(1970))));
+          ..where((t) =>
+              t.type.equalsValue(HistoryEntryType.track) &
+              t.createdAt.isBiggerOrEqualValue(DateTime(1970))));
 
         final fetchSw = Stopwatch()..start();
         final rows = await query.get();

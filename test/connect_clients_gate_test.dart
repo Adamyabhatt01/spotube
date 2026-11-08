@@ -131,7 +131,8 @@ void main() {
     final disabled = await readState();
     expect(disabled.discovery, isNull);
     expect(platform.actions.single.stopCount, 1);
-    expect(platform.actions, hasLength(1), reason: 'nothing new is constructed');
+    expect(platform.actions, hasLength(1),
+        reason: 'nothing new is constructed');
 
     prefs.state = prefs.stub.copyWith(enableConnect: true);
     await readState();

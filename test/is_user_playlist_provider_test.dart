@@ -32,8 +32,8 @@ class _FakeSavedPlaylists extends MetadataPluginSavedPlaylistsNotifier {
   final List<SpotubeSimplePlaylistObject> items;
 
   @override
-  Future<SpotubePaginationResponseObject<SpotubeSimplePlaylistObject>> build()
-      async {
+  Future<SpotubePaginationResponseObject<SpotubeSimplePlaylistObject>>
+      build() async {
     return SpotubePaginationResponseObject(
       limit: items.length,
       nextOffset: null,

@@ -91,8 +91,7 @@ void main() {
           databaseProvider.overrideWithValue(db),
           userPreferencesProvider.overrideWith(
             () => StubPrefsNotifier(
-              PreferencesTable.defaults()
-                  .copyWith(transparentWindow: allow),
+              PreferencesTable.defaults().copyWith(transparentWindow: allow),
             ),
           ),
           themeDefinitionProvider.overrideWith(

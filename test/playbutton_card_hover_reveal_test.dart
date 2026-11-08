@@ -140,15 +140,18 @@ void main() {
       // jump while the card loads.
       expect(find.byKey(const Key('gone')), findsOneWidget);
       expect(
-        tester.widget<Opacity>(
-          find.ancestor(
-            of: find.byKey(const Key('gone')),
-            matching: find.byType(Opacity),
-          ),
-        ).opacity,
+        tester
+            .widget<Opacity>(
+              find.ancestor(
+                of: find.byKey(const Key('gone')),
+                matching: find.byType(Opacity),
+              ),
+            )
+            .opacity,
         0,
       );
-      expect(tester.getSize(find.byKey(const Key('shown'))), const Size(50, 34));
+      expect(
+          tester.getSize(find.byKey(const Key('shown'))), const Size(50, 34));
       expect(tester.getSize(find.byKey(const Key('gone'))), const Size(50, 34));
     });
 

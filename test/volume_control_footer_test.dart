@@ -54,7 +54,8 @@ Future<void> pumpInFooter(
 }
 
 void main() {
-  testWidgets('always mode measures its footer without throwing', (tester) async {
+  testWidgets('always mode measures its footer without throwing',
+      (tester) async {
     await pumpInFooter(tester, revealOnHover: false);
     expect(tester.takeException(), isNull);
     // Full-width always mode keeps the slider visible via its Expanded branch.

@@ -47,8 +47,8 @@ void main() {
     // historical failure mode: the Future hanging forever.
     await expectLater(
       IsolatedYoutubeExplode.instance.video('').timeout(
-        const Duration(seconds: 30),
-      ),
+            const Duration(seconds: 30),
+          ),
       throwsStateError,
     );
   }, timeout: const Timeout(Duration(minutes: 2)));

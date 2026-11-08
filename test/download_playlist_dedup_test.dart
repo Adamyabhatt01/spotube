@@ -145,7 +145,8 @@ void main() {
         audioSourcePresetsProvider.overrideWith(
           () => FixedPresetsNotifier(presets),
         ),
-        sourcedTrackProvider.overrideWith(() => NeverResolvesSourcedTrackNotifier()),
+        sourcedTrackProvider
+            .overrideWith(() => NeverResolvesSourcedTrackNotifier()),
       ],
     );
     notifier = container.read(downloadManagerProvider.notifier);

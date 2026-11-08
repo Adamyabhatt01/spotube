@@ -19,8 +19,7 @@ void main() {
 
     final stored = KVStoreService.recentSearches;
     expect(stored, hasLength(KVStoreService.maxRecentSearches));
-    expect(stored.first, 'query 0',
-        reason: 'prepend order survives the cap');
+    expect(stored.first, 'query 0', reason: 'prepend order survives the cap');
     expect(stored.last, 'query 19');
   });
 

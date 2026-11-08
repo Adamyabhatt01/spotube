@@ -128,8 +128,7 @@ void main() {
     });
 
     test('never upscales a smaller source', () async {
-      final small = File('${dir.path}/small.png')
-        ..writeAsBytesSync(_tinyPng);
+      final small = File('${dir.path}/small.png')..writeAsBytesSync(_tinyPng);
       final image = await _decode(
         UniversalImage.imageProvider(small.path, width: 300, height: 300),
       );

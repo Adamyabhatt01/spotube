@@ -63,7 +63,8 @@ void main() {
           () async => 1,
           () async => throw StateError('bad file'),
           () async => 3,
-        ], waveSize: 2).then<void>(
+        ], waveSize: 2)
+            .then<void>(
           (_) {},
           onError: (Object e) {
             caught = e;

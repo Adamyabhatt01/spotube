@@ -8,14 +8,12 @@ String _urlWithExpire(Object expire) =>
 
 void main() {
   test('past expire is expired', () {
-    final pastSeconds =
-        DateTime.now().millisecondsSinceEpoch ~/ 1000 - 3600;
+    final pastSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000 - 3600;
     expect(isStreamUrlExpired(_urlWithExpire(pastSeconds)), isTrue);
   });
 
   test('future expire is not expired', () {
-    final futureSeconds =
-        DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600;
+    final futureSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000 + 3600;
     expect(isStreamUrlExpired(_urlWithExpire(futureSeconds)), isFalse);
   });
 
@@ -48,14 +46,12 @@ void main() {
     expect(isStreamUrlExpired(''), isFalse);
   });
   test('multiple query parameters and encoding handled deterministically', () {
-    final futureSeconds =
-        DateTime.now().millisecondsSinceEpoch ~/ 1000 + 7200;
+    final futureSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000 + 7200;
     final url =
         '$_baseUrl?ei=a%2Fb&id=abc123&expire=$futureSeconds&itag=251&sig=AB%2BCD';
     expect(isStreamUrlExpired(url), isFalse);
 
-    final pastSeconds =
-        DateTime.now().millisecondsSinceEpoch ~/ 1000 - 10;
+    final pastSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000 - 10;
     final multiExpire =
         '$_baseUrl?expire=$pastSeconds&expire=$futureSeconds&id=abc';
     // Must not throw; result follows deterministic query-parameter parsing.

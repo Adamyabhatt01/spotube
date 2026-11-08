@@ -95,7 +95,8 @@ class _Dataset {
     // group's count or representative.
     play('d', windowStart.add(const Duration(minutes: 5)));
     play('d', windowStart.add(const Duration(minutes: 6)), play: 1);
-    play('d', windowStart.add(const Duration(minutes: 7)), legacyUnresolved: true);
+    play('d', windowStart.add(const Duration(minutes: 7)),
+        legacyUnresolved: true);
     // Plays that are outside the window for every duration, including
     // [HistoryDuration.allTime].
     for (var i = 0; i < 2; i++) {
@@ -185,5 +186,6 @@ void main() {
   }
 }
 
-int _byPlaylistId(SpotubeSimplePlaylistObject a, SpotubeSimplePlaylistObject b) =>
+int _byPlaylistId(
+        SpotubeSimplePlaylistObject a, SpotubeSimplePlaylistObject b) =>
     a.id.compareTo(b.id);

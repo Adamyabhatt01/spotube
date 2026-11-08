@@ -124,7 +124,8 @@ void main() {
       final match = LocalLibraryLookup.find(
         _track(name: 'One More Time'),
         [
-          _local(name: 'One More Time (Live)', id: 'a', path: '/music/live.m4a'),
+          _local(
+              name: 'One More Time (Live)', id: 'a', path: '/music/live.m4a'),
           _local(name: 'One More Time', id: 'b', path: '/music/studio.m4a'),
         ],
       );
@@ -148,7 +149,9 @@ void main() {
       // The same title by a different artist is a different recording.
       final match = LocalLibraryLookup.find(
         _track(artists: const ['Daft Punk']),
-        [_local(name: 'One More Time', artists: const ['Kanye West'])],
+        [
+          _local(name: 'One More Time', artists: const ['Kanye West'])
+        ],
       );
 
       // The title still matches, so the file is found — but it scores

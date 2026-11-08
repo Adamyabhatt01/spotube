@@ -43,31 +43,34 @@ final _light = _appTheme(Brightness.light);
 final _dark = _appTheme(Brightness.dark);
 
 Widget _harness(Brightness brightness, Duration duration) => ShadcnApp(
-  theme: _light,
-  darkTheme: _dark,
-  themeMode: brightness == Brightness.dark ? ThemeMode.dark : ThemeMode.light,
-  builder: (context, child) => PaletteTransitionScope(
-    theme: _light,
-    darkTheme: _dark,
-    scaling: const AdaptiveScaling.only(),
-    brightness: brightness,
-    duration: duration,
-    child: Navigator(
-      onGenerateRoute: (settings) => MaterialPageRoute(
-        builder: (_) => const Scaffold(child: SizedBox.shrink()),
+      theme: _light,
+      darkTheme: _dark,
+      themeMode:
+          brightness == Brightness.dark ? ThemeMode.dark : ThemeMode.light,
+      builder: (context, child) => PaletteTransitionScope(
+        theme: _light,
+        darkTheme: _dark,
+        scaling: const AdaptiveScaling.only(),
+        brightness: brightness,
+        duration: duration,
+        child: Navigator(
+          onGenerateRoute: (settings) => MaterialPageRoute(
+            builder: (_) => const Scaffold(child: SizedBox.shrink()),
+          ),
+        ),
       ),
-    ),
-  ),
-  home: const SizedBox.shrink(),
-);
+      home: const SizedBox.shrink(),
+    );
 
 /// Find the Scaffold's ground [Container] color by walking the render tree.
 Color? _scaffoldGroundColor(WidgetTester tester) {
   Color? found;
   for (final element in find.byType(Container).evaluate()) {
     final w = element.widget as Container;
-    final Color? c =
-        w.color ?? (w.decoration is BoxDecoration ? (w.decoration as BoxDecoration).color : null);
+    final Color? c = w.color ??
+        (w.decoration is BoxDecoration
+            ? (w.decoration as BoxDecoration).color
+            : null);
     if (c != null && c.a > 0.9) found = c;
   }
   return found;
@@ -75,12 +78,14 @@ Color? _scaffoldGroundColor(WidgetTester tester) {
 
 void main() {
   testWidgets('real Scaffold ground interpolates mid-fade', (tester) async {
-    await tester.pumpWidget(_harness(Brightness.light, const Duration(seconds: 1)));
+    await tester
+        .pumpWidget(_harness(Brightness.light, const Duration(seconds: 1)));
     await tester.pump();
     final start = _scaffoldGroundColor(tester);
     debugPrint('start ground = $start');
 
-    await tester.pumpWidget(_harness(Brightness.dark, const Duration(seconds: 1)));
+    await tester
+        .pumpWidget(_harness(Brightness.dark, const Duration(seconds: 1)));
     await tester.pump(const Duration(milliseconds: 100));
 
     final mid = _scaffoldGroundColor(tester);

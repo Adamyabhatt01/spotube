@@ -93,8 +93,7 @@ void main() {
       await KVStoreService.initialize();
     });
 
-    test('a stored custom path that exists wins over an empty env',
-        () async {
+    test('a stored custom path that exists wins over an empty env', () async {
       final dir = await Directory.systemTemp.createTemp('ytdlp-custom');
       addTearDown(() => dir.delete(recursive: true));
       final binary = File('${dir.path}/yt-dlp');

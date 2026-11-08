@@ -96,9 +96,8 @@ void main() {
   test('hung candidate is dropped at the timeout ceiling', () async {
     final result = await filterValidBounded(
       ['hung', 'fine'],
-      (candidate) => candidate == 'hung'
-          ? Completer<int?>().future
-          : Future.value(200),
+      (candidate) =>
+          candidate == 'hung' ? Completer<int?>().future : Future.value(200),
       timeout: const Duration(milliseconds: 100),
     );
 

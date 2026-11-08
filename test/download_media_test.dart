@@ -49,7 +49,8 @@ SpotubeAudioSourceMatchObject _match(String id) {
   );
 }
 
-class _ScriptedPages extends AsyncNotifier<SpotubePaginationResponseObject<String>>
+class _ScriptedPages
+    extends AsyncNotifier<SpotubePaginationResponseObject<String>>
     with PaginatedAsyncNotifierMixin<String> {
   final SpotubePaginationResponseObject<String> initial;
   final List<SpotubePaginationResponseObject<String>> pages;
@@ -103,8 +104,8 @@ void main() {
             reason: '$type must retry');
       }
       expect(
-        isRetryableDownloadError(_dioError(DioExceptionType.badResponse,
-            statusCode: 500)),
+        isRetryableDownloadError(
+            _dioError(DioExceptionType.badResponse, statusCode: 500)),
         isTrue,
         reason: '5xx must retry',
       );
@@ -119,16 +120,15 @@ void main() {
       expect(isRetryableDownloadError(_dioError(DioExceptionType.cancel)),
           isFalse);
       expect(
-          isRetryableDownloadError(_dioError(DioExceptionType.badResponse,
-              statusCode: 404)),
-          isFalse);
-      expect(
-          isRetryableDownloadError(_dioError(DioExceptionType.badResponse,
-              statusCode: 403)),
+          isRetryableDownloadError(
+              _dioError(DioExceptionType.badResponse, statusCode: 404)),
           isFalse);
       expect(
           isRetryableDownloadError(
-              _dioError(DioExceptionType.badCertificate)),
+              _dioError(DioExceptionType.badResponse, statusCode: 403)),
+          isFalse);
+      expect(
+          isRetryableDownloadError(_dioError(DioExceptionType.badCertificate)),
           isFalse);
       // Missing-URL / config errors are plain Exceptions: never retried.
       expect(isRetryableDownloadError(Exception('No download URL')), isFalse);
@@ -224,8 +224,8 @@ void main() {
         isTrue,
       );
       expect(
-        isNoSpaceError(
-            const FileSystemException('No space left on device, write aborted')),
+        isNoSpaceError(const FileSystemException(
+            'No space left on device, write aborted')),
         isTrue,
       );
       expect(
@@ -355,7 +355,9 @@ void main() {
     test('unrecoverable page error rethrows, state untouched', () async {
       final (notifier, container) = await setupPages(
         _page(const ['a'], hasMore: true, nextOffset: 1),
-        [_page(const ['b'], hasMore: false)],
+        [
+          _page(const ['b'], hasMore: false)
+        ],
         failFirstNCalls: 10,
       );
       addTearDown(container.dispose);
@@ -368,10 +370,9 @@ void main() {
       );
     });
   });
-
 }
 
-final _scriptedProvider =
-    AsyncNotifierProvider<_ScriptedPages, SpotubePaginationResponseObject<String>>(
+final _scriptedProvider = AsyncNotifierProvider<_ScriptedPages,
+    SpotubePaginationResponseObject<String>>(
   () => throw UnimplementedError('override with a scripted instance'),
 );

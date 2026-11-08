@@ -30,10 +30,8 @@ void main() {
     expect(isUpdateCheckDue(almostDue, now), isFalse);
   });
 
-  test('clock skew into the future reads as due, not suppressed forever',
-      () {
-    final future =
-        now.add(const Duration(hours: 1)).millisecondsSinceEpoch;
+  test('clock skew into the future reads as due, not suppressed forever', () {
+    final future = now.add(const Duration(hours: 1)).millisecondsSinceEpoch;
     expect(isUpdateCheckDue(future, now), isTrue);
   });
 }

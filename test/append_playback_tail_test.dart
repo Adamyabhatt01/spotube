@@ -61,7 +61,8 @@ void main() {
       expect(appendCalled, 0);
     });
 
-    test('walk errors are swallowed and never rethrown to the fire-and-forget caller',
+    test(
+        'walk errors are swallowed and never rethrown to the fire-and-forget caller',
         () async {
       var appendCalled = 0;
 
