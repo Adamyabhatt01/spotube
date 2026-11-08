@@ -968,6 +968,9 @@ Map<String, Object?> themeQueueTrack(SpotubeTrackObject track) {
     'duration': Duration(milliseconds: track.durationMs),
     'uri': track.externalUri,
     'type': 'track',
+    // The typed row travels inside the display map so item actions
+    // (`openItem`, `playItem`, …) can act on the object, not the map.
+    'object': track,
   };
 }
 
@@ -998,6 +1001,7 @@ List<Map<String, Object?>> themeLibraryPlaylists(
         'palette': const <String, String>{},
         'uri': playlist.externalUri,
         'type': 'playlist',
+        'object': playlist,
       },
   ];
 }
@@ -1021,6 +1025,7 @@ List<Map<String, Object?>> themeLibraryAlbums(
         'trackCount': _unknownTrackCount,
         'uri': album.externalUri,
         'type': 'album',
+        'object': album,
       },
   ];
 }
@@ -1040,6 +1045,7 @@ List<Map<String, Object?>> themeLibraryArtists(
         'genres': (artist.genres ?? const []).join(', '),
         'uri': artist.externalUri,
         'type': 'artist',
+        'object': artist,
       },
   ];
 }
@@ -1103,6 +1109,7 @@ List<Map<String, Object?>> themeRadioStations(
         'isFavorite': favoriteKeys.contains(station.favoriteKey),
         'isPlaying': station.favoriteKey == activeFavoriteKey,
         'type': 'station',
+        'object': station,
       },
   ];
 }
@@ -1155,6 +1162,7 @@ List<Map<String, Object?>> themeLibraryPins(
         'palette': const <String, String>{},
         'uri': playlist.externalUri,
         'type': 'playlist',
+        'object': playlist,
       };
 
   return [
@@ -1175,6 +1183,7 @@ List<Map<String, Object?>> themeLibraryPins(
           'target': 'sidebar',
           'uri': station.homepageUrl ?? '',
           'type': 'station',
+          'object': station,
         },
   ];
 }

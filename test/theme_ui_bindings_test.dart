@@ -271,8 +271,9 @@ void main() {
 
   group('binding values', () {
     test('playlists carry identity, pinned state and the contract shape', () {
+      final playlists = [_playlist('a'), _playlist('b')];
       final maps = themeLibraryPlaylists(
-        [_playlist('a'), _playlist('b')],
+        playlists,
         {'a'},
       );
 
@@ -281,7 +282,9 @@ void main() {
       expect(maps.first['pinned'], isTrue);
       expect(maps.first['artwork'], contains('example.test'));
       expect(maps.first['palette'], isA<Map>());
+      expect(maps.first['object'], same(playlists.first));
       expect(maps.last['pinned'], isFalse);
+      expect(maps.last['object'], same(playlists.last));
     });
 
     test('a count the host does not have is null, not an invented zero', () {

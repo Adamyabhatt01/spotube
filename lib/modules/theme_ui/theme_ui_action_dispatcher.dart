@@ -288,7 +288,7 @@ void _download(ProviderContainer ref) {
 /// row click starts the surrounding list — not a one-track queue that ends
 /// after the song the user picked.
 Future<void> _playItem(ProviderContainer ref, Map<String, dynamic> args) async {
-  final raw = args['item'];
+  final raw = _typedItem(args['item']);
   if (raw is! SpotubeTrackObject) return;
 
   final notifier = ref.read(audioPlayerProvider.notifier);
@@ -346,7 +346,7 @@ Future<void> _playCollection(
 }
 
 void _openItem(BuildContext context, Map<String, dynamic> args) {
-  final raw = args['item'];
+  final raw = _typedItem(args['item']);
   switch (raw) {
     case SpotubeTrackObject track:
       context.navigateTo(TrackRoute(trackId: track.id));
@@ -381,7 +381,7 @@ void _openItem(BuildContext context, Map<String, dynamic> args) {
 }
 
 Future<void> _likeItem(ProviderContainer ref, Map<String, dynamic> args) async {
-  final raw = args['item'];
+  final raw = _typedItem(args['item']);
   if (raw is! SpotubeTrackObject) return;
   await ref
       .read(metadataPluginSavedTracksProvider.notifier)
@@ -389,14 +389,26 @@ Future<void> _likeItem(ProviderContainer ref, Map<String, dynamic> args) async {
 }
 
 void _downloadItem(ProviderContainer ref, Map<String, dynamic> args) {
-  final raw = args['item'];
+  final raw = _typedItem(args['item']);
   final track = raw is DownloadTask ? raw.track : raw;
   if (track is! SpotubeFullTrackObject) return;
   ref.read(downloadManagerProvider.notifier).addToQueue(track);
 }
 
+/// The typed object an `item` argument names.
+///
+// Collection bindings (`library.*`, `library.pins`, `radio.stations`,
+/// `queue.*`) publish display maps; the row's typed object rides inside the
+/// map under `object` so actions act on the entity, not the map. Rows from
+// `list` nodes already arrive typed — this is a pass-through for them.
+Object? _typedItem(Object? raw) {
+  if (raw is Map) return raw['object'] ?? raw;
+  return raw;
+}
+
 /// The id of the playlist an `item` argument names, if it names one.
 String? _playlistId(Object? raw) {
+  raw = _typedItem(raw);
   if (raw is SpotubeSimplePlaylistObject) return raw.id;
   if (raw is SpotubeFullPlaylistObject) return raw.id;
   if (raw is Map && raw['id'] is String) return raw['id'] as String;
@@ -543,7 +555,7 @@ List<String> _trackIdsFromArgs(Map<String, dynamic> args) {
   final ids = <String>{};
   void add(Object? raw) {
     if (ids.length >= _playlistAddTracksMax) return;
-    final id = switch (raw) {
+    final id = switch (_typedItem(raw)) {
       final String value when value.isNotEmpty => value,
       final DownloadTask task => task.track.id,
       final SpotubeTrackObject track => track.id,
