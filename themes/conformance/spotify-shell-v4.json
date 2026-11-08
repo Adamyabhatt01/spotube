@@ -1735,6 +1735,15 @@
               },
               {
                 "type": "button",
+                "icon": "sidebar",
+                "variant": "ghost",
+                "size": "small",
+                "action": {
+                  "type": "toggleAside"
+                }
+              },
+              {
+                "type": "button",
                 "icon": "volume",
                 "variant": "ghost",
                 "size": "small",
