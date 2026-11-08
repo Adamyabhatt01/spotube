@@ -4925,29 +4925,7 @@ class SpotifyThemeApi {
                           'args': {'target': 'radio'},
                         },
                       },
-                      {'type': 'spacer', 'flex': 2},
-                      {
-                        'type': 'expanded',
-                        'flex': 3,
-                        'children': [
-                          {
-                            'type': 'card',
-                            'height': 40,
-                            'padding': 0,
-                            'radius': 999,
-                            'background': '@secondary',
-                            'hoverBackground': '@accent',
-                            'borderWidth': 0,
-                            'children': [
-                              {
-                                'type': 'search',
-                                'placeholder': 'Search stations',
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                      {'type': 'spacer', 'flex': 2},
+                      {'type': 'spacer', 'flex': 1},
                       {
                         'type': 'button',
                         'icon': 'settings',
@@ -4981,6 +4959,7 @@ class SpotifyThemeApi {
               },
             ],
           },
+
           'radio.after_sections': {
             'children': [
               {
