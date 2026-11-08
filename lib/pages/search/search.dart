@@ -112,7 +112,7 @@ class _SearchRadioScope extends HookConsumerWidget {
           // Radio page's Home shortcut is redundant here. History is replaced
           // by the station recommendation rails below; both stay untouched on
           // the actual Radio page.
-          showMusicShortcut: false,
+          showHomeShortcut: false,
           showRecentRail: false,
           selectedTag: selectedTag.value,
           selectedCountry: selectedCountry.value,

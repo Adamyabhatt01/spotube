@@ -99,6 +99,7 @@ class RadioScreen extends HookConsumerWidget {
                 ref,
                 controller: controller,
                 showSearchRow: showSearchRow,
+                showHomeShortcut: true,
                 selectedTag: selectedTag.value,
                 selectedCountry: selectedCountry.value,
                 onTag: (tag) {
