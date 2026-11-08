@@ -3083,6 +3083,9 @@
             },
             "selectedBind": {
               "$ref": "#/definitions/uiBinding"
+            },
+            "selectedEquals": {
+              "type": "string"
             }
           }
         },
@@ -5513,6 +5516,8 @@
             "renamePlaylist",
             "deletePlaylist",
             "addToPlaylist",
+            "playStation",
+            "toggleStationFavorite",
             "setQuery",
             "clearQuery",
             "setSetting",

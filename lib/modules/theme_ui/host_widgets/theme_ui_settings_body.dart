@@ -57,6 +57,7 @@ class ThemeSettingsBody extends ConsumerWidget {
         ),
         demand: demand,
         layout: context.layout,
+        currentPath: themeCurrentPathOf(context),
       ),
       assets: assets,
       templates: ui.templates,

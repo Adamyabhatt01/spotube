@@ -8,9 +8,12 @@ import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 import 'package:spotube/collections/routes.gr.dart';
 import 'package:spotube/components/dialogs/prompt_dialog.dart';
+import 'package:spotube/extensions/context.dart';
 import 'package:spotube/models/equalizer/equalizer.dart';
 import 'package:spotube/models/metadata/metadata.dart';
+import 'package:spotube/models/radio/radio_station.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
+import 'package:spotube/modules/playlist/liked_playlist_synthetic.dart';
 import 'package:spotube/modules/root/region_scope.dart';
 import 'package:spotube/modules/theme_ui/theme_pins.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_action.dart';
@@ -25,8 +28,12 @@ import 'package:spotube/provider/download_manager/download_tasks.dart';
 import 'package:spotube/provider/metadata_plugin/library/library_refresh.dart';
 import 'package:spotube/provider/metadata_plugin/library/playlists.dart';
 import 'package:spotube/provider/metadata_plugin/library/tracks.dart';
+import 'package:spotube/provider/metadata_plugin/core/user.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/playlist/playlist.dart';
+import 'package:spotube/provider/radio/favorites.dart';
+import 'package:spotube/provider/radio/radio_playback.dart';
+import 'package:spotube/provider/radio/stations.dart';
 import 'package:spotube/provider/player/player_actions_service.dart';
 import 'package:spotube/provider/sleep_timer_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
@@ -140,6 +147,10 @@ Future<void> dispatchThemeUiAction(
         await _deletePlaylist(context, ref, action.args);
       case 'addToPlaylist':
         await _addToPlaylist(ref, action.args);
+      case 'playStation':
+        await _playStation(ref, action.args);
+      case 'toggleStationFavorite':
+        await _toggleStationFavorite(ref, action.args);
     }
   } catch (e, stack) {
     AppLogger.reportError(e, stack, 'themeUiAction:${action.type}');
@@ -551,6 +562,55 @@ List<String> _trackIdsFromArgs(Map<String, dynamic> args) {
   return ids.toList();
 }
 
+/// The station a radio action names, by `favoriteKey` (`provider:id`) or bare
+/// id. The browse family is keyed by query and a theme has no query of its
+/// own, so the popular default page is the resolution set — the same page the
+/// `radio.stations` binding publishes. `.future` waits for the fetch, so a
+/// tap before the Radio page ever opened still resolves.
+Future<RadioStation?> _stationFromArgs(
+  ProviderContainer ref,
+  Map<String, dynamic> args,
+) async {
+  final raw = args['id'] ?? args['favoriteKey'] ?? args['item'];
+  final key = raw is String
+      ? raw
+      : raw is Map
+          ? (raw['favoriteKey'] ?? raw['id']) as String?
+          : raw is RadioStation
+              ? raw.favoriteKey
+              : null;
+  if (key == null || key.isEmpty) return null;
+  final page = await ref.read(
+    radioStationsProvider((tag: null, country: null, search: null)).future,
+  );
+  for (final station in page.items) {
+    if (station.favoriteKey == key || station.id == key) return station;
+  }
+  return null;
+}
+
+Future<void> _playStation(
+  ProviderContainer ref,
+  Map<String, dynamic> args,
+) async {
+  final station = await _stationFromArgs(ref, args);
+  if (station == null) return;
+  await ref.read(radioPlaybackControllerProvider.notifier).play(station);
+}
+
+/// A favorite is a local database bookmark, not an account mutation on a
+/// metadata plugin, so — like `playItem` — this verb is ungated by
+/// capabilities. The controller owns the stream; the favorites notifier owns
+/// the bookmark.
+Future<void> _toggleStationFavorite(
+  ProviderContainer ref,
+  Map<String, dynamic> args,
+) async {
+  final station = await _stationFromArgs(ref, args);
+  if (station == null) return;
+  await ref.read(radioFavoritesProvider.notifier).toggle(station);
+}
+
 SpotubeSimpleAlbumObject _simpleAlbum(SpotubeFullAlbumObject album) {
   return SpotubeSimpleAlbumObject(
     id: album.id,
@@ -592,6 +652,25 @@ Future<void> _navigate(
 
   if (target.startsWith('page:')) {
     await _openPage(context, ref, {'id': target.substring('page:'.length)});
+    return;
+  }
+
+  if (target == 'library/liked') {
+    // The synthetic Liked Songs entry needs a playlist object the route
+    // requires, resolved the same way the playlists host widget does. The
+    // display strings are read before the await so the context is not held
+    // across the async gap.
+    final name = context.l10n.liked_tracks;
+    final description = context.l10n.liked_tracks_description;
+    final me = await ref.read(metadataPluginUserProvider.future);
+    final liked = resolveLikedTracksPlaylist(
+      name: name,
+      description: description,
+      me: me,
+      authenticated: me != null,
+    );
+    if (liked == null || !context.mounted) return;
+    context.navigateTo(LikedPlaylistRoute(playlist: liked));
     return;
   }
 

@@ -57,6 +57,8 @@ class ThemeUiAction {
     'renamePlaylist',
     'deletePlaylist',
     'addToPlaylist',
+    'playStation',
+    'toggleStationFavorite',
     'scrollTo',
   };
 

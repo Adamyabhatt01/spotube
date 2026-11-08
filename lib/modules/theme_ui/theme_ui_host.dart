@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:auto_route/auto_route.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
@@ -19,6 +20,21 @@ import 'package:spotube/modules/root/region_scope.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/services/theme_ui/artwork_palette_provider.dart';
+
+/// The router's current path for the `app.currentRoute` /
+/// `library.activeSection` bindings, or null outside a routed tree.
+///
+/// Slots render under the root router in production, but widget tests pump
+/// them bare — `AutoRouter.of` asserts without a router ancestor, and there
+/// is no current route then, so the bindings read as empty instead of
+/// crashing the host. (auto_route has no `maybeOf` in this version.)
+String? themeCurrentPathOf(BuildContext context) {
+  try {
+    return AutoRouter.of(context, watch: true).currentPath;
+  } catch (_) {
+    return null;
+  }
+}
 
 /// The live tree and the contract document, assembled once per build.
 typedef _LiveUi = ({ThemeUiRuntime runtime, ThemeUiDocument ui});
@@ -48,6 +64,7 @@ _LiveUi? _liveUi(
         themeMode: ref.watch(userPreferencesProvider).themeMode.name,
         demand: demand,
         layout: context.layout,
+        currentPath: themeCurrentPathOf(context),
       );
   final page = ThemeUiPageBindings.of(context);
   final region = RegionScope.maybeOf(context);
@@ -136,6 +153,7 @@ class ThemeUiRuntimeScopeHost extends ConsumerWidget {
           const ['app.version', 'app.brightness', 'app.themeMode'],
         ),
         layout: context.layout,
+        currentPath: themeCurrentPathOf(context),
       ),
       assets: assets,
       templates: ui.templates,

@@ -149,7 +149,7 @@ const _v4NodeProps = <String, List<String>>{
   'aspectRatio': ['ratio'],
   'kitScope': [],
   'badge': ['text', 'variant'],
-  'chip': ['label', 'selectedBind'],
+  'chip': ['label', 'selectedBind', 'selectedEquals'],
   'avatar': ['src', 'fallback', 'size'],
   'skeleton': ['width', 'height', 'radius', 'count'],
   'spinner': ['size', 'color'],
@@ -290,6 +290,9 @@ const v4UiBindings = <String>[
   'radio.station',
   'radio.liveTitle',
   'radio.error',
+  'radio.stations',
+  'app.currentRoute',
+  'library.activeSection',
   'connect.available',
   'connect.clients',
   'connect.clientCount',
@@ -353,6 +356,8 @@ const v4UiActionTypes = <String>[
   'renamePlaylist',
   'deletePlaylist',
   'addToPlaylist',
+  'playStation',
+  'toggleStationFavorite',
   'setQuery',
   'clearQuery',
   'setSetting',
@@ -924,6 +929,8 @@ const v4ActionVerbs = <String>{
   'renamePlaylist',
   'deletePlaylist',
   'addToPlaylist',
+  'playStation',
+  'toggleStationFavorite',
 };
 
 /// Validates the v4 half of a payload.

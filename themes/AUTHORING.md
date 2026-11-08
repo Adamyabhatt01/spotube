@@ -667,7 +667,7 @@ into the flat one, but every theme in this repository writes the flat form.)
 | `collapsible` | `title`, `openBind`, plus `children` |
 | `carousel` | `bind`, `itemTemplate` (or `children`), `height` (40..800), `autoplay` |
 | `badge` | `text`, `variant` |
-| `chip` | `label`, `selectedBind` |
+| `chip` | `label`, `selectedBind`, `selectedEquals` |
 | `avatar` | `src`, `fallback`, `size` (8..256) |
 | `skeleton` | `width`, `height`, `radius`, `count` (1..50) |
 | `spinner` | `size` (8..256), `color` |
@@ -967,9 +967,13 @@ item actions as `list`.
 
 **Small displays (v4).** `badge` is a compact label whose `variant` picks
 primary, secondary, outline or destructive; `chip` is a selectable pill filled
-while `selectedBind` is truthy; `avatar` shows `src` or a `fallback` initial
-at `size`. `skeleton` pulses `count` placeholder blocks, `spinner` turns a
-ring, and both hold still when the platform asks for reduced motion.
+while `selectedBind` is truthy — or while it equals `selectedEquals` when
+that prop is present, which is how a chip highlights against a string binding
+like `library.activeSection` (`playlists`/`artists`/`albums`/`stations`) or
+`app.currentRoute` (`home`/`search`/`library`/`radio`/…); `avatar` shows `src`
+or a `fallback` initial at `size`. `skeleton` pulses `count` placeholder blocks,
+`spinner` turns a ring, and both hold still when the platform asks for reduced
+motion.
 `breadcrumb` draws `label` items separated by chevrons and fires each item's
 `action`; `pagination` renders prev/next and nearby numbers around `pageBind`,
 firing the node's actions with `$value` replaced by the chosen page.
@@ -1009,9 +1013,14 @@ image URL (`item.artwork`, `collection.artwork`, `artist.artwork`, …).
 `openLyrics`, `openQueue`, `openDownloads`, `toast`, `plugin`, `playItem`,
 `playCollection`, `openItem`, `likeItem`, `downloadItem`, `setQuery`,
 `clearQuery`, `setSetting`, `toggleSetting`, `copy`, `refresh`,
-`pinItem`, `unpinItem`,
+`pinItem`, `unpinItem`, `playStation`, `toggleStationFavorite`,
 `toggleSidebar`, `toggleAside`, `toggleRegion`, `scrollTo`, and the UI-local
 `dismiss`.
+`navigate` takes `{target}`; besides the whole-page targets (`home`, `search`,
+`radio`, `stats`, `library`, `lyrics`, `queue`, `downloads`, `settings`,
+`profile`), the library sections are named targets — `library/playlists`,
+`library/artists`, `library/albums`, `library/stations`, `library/local`,
+`library/downloads`, and `library/liked` (the synthetic Liked Songs page).
 `scrollTo` takes `{target}` (also `anchor`/`id`/`value`) and scrolls the
 nearest scrollable ancestor of the node carrying `anchor: '<target>'` into
 view; anchor names must be unique per document, and a missing target is a
@@ -1065,7 +1074,13 @@ control pairs them: `openBind: "state.dialogOpen"` plus a close action
 track-id → 0..1 fraction map for downloading tasks), `lyrics.available`,
 `lyrics.synced`, `lyrics.line` (the synced line at the playhead — pair with
 `player.position`), `radio.active`, `radio.playing`, `radio.buffering`,
-`radio.station`, `radio.liveTitle`, `radio.error`, and `connect.available`,
+`radio.station`, `radio.liveTitle`, `radio.error`, `radio.stations` (the
+popular default page: `{id, name, streamUrl, artwork, subtitle, tags,
+country, favoriteKey, isFavorite, isPlaying, type}` — play one with
+`playStation`, favorite one with `toggleStationFavorite`, both carrying the
+row's item), `app.currentRoute` (first router segment, e.g. `library`),
+`library.activeSection` (`playlists`/`artists`/`albums`/`stations`/`local`/
+`downloads`, empty outside the library), and `connect.available`,
 `connect.clients` (names), `connect.clientCount`. All are read-only demand-
 scoped subscriptions — nothing is watched unless the document names it.
 

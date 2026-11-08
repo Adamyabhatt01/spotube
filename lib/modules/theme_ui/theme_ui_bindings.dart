@@ -29,6 +29,7 @@ import 'package:spotube/provider/metadata_plugin/library/tracks.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/radio/favorites.dart';
 import 'package:spotube/provider/radio/history.dart';
+import 'package:spotube/provider/radio/stations.dart';
 import 'package:spotube/provider/user_preferences/user_preferences_provider.dart';
 import 'package:spotube/provider/volume_provider.dart';
 import 'package:spotube/services/kv_store/kv_store.dart';
@@ -450,17 +451,19 @@ final themeUiSettingsProvider =
 
 /// Builds the binding snapshot for the current frame.
 ///
-/// `brightness` and `themeMode` come from the widget tree because they are
-/// presentation state, not provider state. `demand` is the document scan:
-/// a provider is watched only when the theme references one of its bindings,
-/// so a theme that never draws the library does not open the saved lists,
-/// and a theme with no position display does not subscribe to the ticker.
+/// `brightness`, `themeMode` and `currentPath` come from the widget tree
+/// because they are presentation state, not provider state. `demand` is the
+/// document scan: a provider is watched only when the theme references one of
+/// its bindings, so a theme that never draws the library does not open the
+/// saved lists, and a theme with no position display does not subscribe to
+/// the ticker.
 ThemeUiBindings buildThemeUiBindings(
   WidgetRef ref, {
   required Brightness brightness,
   required String themeMode,
   ThemeUiBindingDemand? demand,
   ThemeLayout? layout,
+  String? currentPath,
 }) {
   final wants = demand ?? ThemeUiBindingDemand.all;
   final values = <String, Object?>{};
@@ -488,6 +491,12 @@ ThemeUiBindings buildThemeUiBindings(
   }
   if (wants.wants('app.greeting')) {
     values['app.greeting'] = greetingFor(now);
+  }
+  if (wants.wants('app.currentRoute')) {
+    values['app.currentRoute'] = themeCurrentRoute(currentPath);
+  }
+  if (wants.wants('library.activeSection')) {
+    values['library.activeSection'] = themeLibrarySection(currentPath);
   }
   final wantsAppPins = wants.wants('app.pinnedPlaylistIds') ||
       wants.wants('app.pinnedStationIds');
@@ -712,6 +721,27 @@ ThemeUiBindings buildThemeUiBindings(
     values['radio.station'] = radio.activeStation?.name ?? '';
     values['radio.liveTitle'] = radio.liveTitle ?? '';
     values['radio.error'] = radio.error?.toString() ?? '';
+    if (wants.wants('radio.stations')) {
+      // The popular default page only: the browse family is keyed by query,
+      // and a theme has no query of its own. Pagination stays on the host
+      // page; this gives a theme a playable, favorite-able station rail.
+      final stations = ref
+              .watch(
+                radioStationsProvider(
+                  (tag: null, country: null, search: null),
+                ),
+              )
+              .asData
+              ?.value
+              .items ??
+          const <RadioStation>[];
+      final favoriteKeys = ref.watch(radioFavoriteKeysProvider);
+      values['radio.stations'] = themeRadioStations(
+        stations,
+        favoriteKeys: favoriteKeys,
+        activeFavoriteKey: radio.activeStation?.favoriteKey,
+      );
+    }
   }
 
   // ----------------------------------------------------------- connect
@@ -1021,6 +1051,58 @@ List<Map<String, Object?>> themeLibraryFolders(Iterable<String> locations) {
         'path': location,
         'name': p.basename(location),
         'type': 'folder',
+      },
+  ];
+}
+
+/// The router section a theme draws against: the first path segment, so
+/// `/library/artists` reads as `library` and `/home` as `home`. Null or an
+/// unparseable path names nothing, which a conditional reads as false.
+String themeCurrentRoute(String? path) {
+  final segment = _pathSegments(path).firstOrNull;
+  return segment ?? '';
+}
+
+/// The library tab the router is on (`playlists`, `artists`, `albums`,
+/// `stations`, `local`, `downloads`), or empty outside the library. A bare
+/// `/library` names no tab — the host page has no initial child — so it reads
+/// as empty rather than picking one.
+String themeLibrarySection(String? path) {
+  final segments = _pathSegments(path);
+  if (segments.length < 2 || segments.first != 'library') return '';
+  return segments[1];
+}
+
+List<String> _pathSegments(String? path) {
+  if (path == null || path.isEmpty) return const [];
+  return [
+    for (final segment in path.split('/'))
+      if (segment.isNotEmpty) segment,
+  ];
+}
+
+/// Theme rows for the popular radio page: identity plus the display fields a
+/// rail needs, favorite state for the heart, and whether the row is the live
+/// station so a theme can mark the one that is playing.
+List<Map<String, Object?>> themeRadioStations(
+  Iterable<RadioStation> stations, {
+  required Set<String> favoriteKeys,
+  String? activeFavoriteKey,
+}) {
+  return [
+    for (final station in stations)
+      {
+        'id': station.id,
+        'name': station.name,
+        'streamUrl': station.streamUrl,
+        'artwork': station.faviconUrl ?? '',
+        'subtitle': station.subtitle ?? '',
+        'tags': station.tags.join(', '),
+        'country': station.country ?? '',
+        'favoriteKey': station.favoriteKey,
+        'isFavorite': favoriteKeys.contains(station.favoriteKey),
+        'isPlaying': station.favoriteKey == activeFavoriteKey,
+        'type': 'station',
       },
   ];
 }

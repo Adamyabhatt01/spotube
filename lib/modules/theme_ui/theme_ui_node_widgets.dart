@@ -721,7 +721,11 @@ extension _ThemeUiDisplayNodes on ThemeUiNodeView {
     final bind = props['selectedBind'] is String
         ? props['selectedBind'] as String
         : null;
-    final selected = bind != null && runtime.bindings.isTruthy(bind);
+    final equals = props['selectedEquals'];
+    final selected = bind != null &&
+        (equals != null
+            ? runtime.bindings.matches(bind, equals)
+            : runtime.bindings.isTruthy(bind));
     final scheme = Theme.of(context).colorScheme;
     final foreground = selected ? scheme.primaryForeground : scheme.foreground;
     final kit = _kitForComponent(

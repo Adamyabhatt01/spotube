@@ -11,6 +11,7 @@ import 'package:spotube/provider/metadata_plugin/core/auth.dart';
 import 'package:spotube/provider/metadata_plugin/core/support.dart';
 import 'package:spotube/provider/metadata_plugin/metadata_plugin_provider.dart';
 import 'package:spotube/provider/metadata_plugin/updater/update_checker.dart';
+import 'package:spotube/services/metadata/theme_sanitizer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 final validAbilities = {
@@ -341,6 +342,23 @@ class MetadataInstalledPluginItem extends HookConsumerWidget {
                       enabled: !isDefaultTheme,
                       onPressed: () async {
                         await pluginsNotifier.setDefaultThemePlugin(plugin);
+                        // A v3 theme keeps its colours and loses its UI
+                        // document: the user just asked for a theme and would
+                        // otherwise see nothing change. Say so once, in the
+                        // same words the app log uses. (Literal string, like
+                        // the radio buttons below: no l10n keys.)
+                        final definition =
+                            await ref.read(themeDefinitionProvider.future);
+                        if (definition?.specVersion == 3 && context.mounted) {
+                          showToast(
+                            context: context,
+                            builder: (context, overlay) => const SurfaceCard(
+                              child: Text(
+                                'This theme uses $themeV3Rejection — its colours apply, but its custom layout is disabled.',
+                              ),
+                            ),
+                          );
+                        }
                       },
                       child: Text(
                         isDefaultTheme

@@ -447,6 +447,7 @@ extension _ThemeUiNodeHelpers on ThemeUiNodeView {
         'close' => SpotubeIcons.close,
         'plus' => SpotubeIcons.add,
         'home' => SpotubeIcons.home,
+        'equalizer' => SpotubeIcons.equalizer,
         'sidebar' => Icons.vertical_split_outlined,
         'radio' => SpotubeIcons.radio,
         'stats' => SpotubeIcons.chart,

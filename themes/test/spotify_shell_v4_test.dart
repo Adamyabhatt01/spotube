@@ -129,6 +129,7 @@ void main() {
     expect(slots.keys.toSet(), {
       'sidebar.content',
       'aside.content',
+      'library.content',
       'player.leading',
       'player.controls',
       'player.trailing',
@@ -139,6 +140,7 @@ void main() {
       'queue.content',
       'downloads.content',
       'stats.content',
+      'radio.before_sections',
       'radio.after_sections',
       'page.audio',
     });
@@ -191,13 +193,13 @@ void main() {
     final widgets = nodes(
       slots,
     ).where((node) => node['type'] == 'hostWidget').toList();
-    final allowedProps = v4HostWidgetProps['library.playlists']!;
 
     expect(
-      widgets.map((widget) => widget['id']),
-      everyElement('library.playlists'),
+      widgets.map((widget) => widget['id']).toSet(),
+      {'library.playlists', 'library.artists', 'library.albums'},
     );
     for (final widget in widgets) {
+      final allowedProps = v4HostWidgetProps[widget['id']]!;
       final props = (widget['props'] as Map).cast<String, dynamic>();
       expect(
         props.keys.every(allowedProps.contains),

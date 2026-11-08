@@ -480,4 +480,62 @@ void main() {
     expect(find.text('Playlist a'), findsOneWidget);
     expect(find.text('Playlist b'), findsOneWidget);
   });
+
+  group('route bindings', () {
+    test('currentRoute is the first path segment', () {
+      expect(themeCurrentRoute('/home'), 'home');
+      expect(themeCurrentRoute('/library/artists'), 'library');
+      expect(themeCurrentRoute('/search'), 'search');
+      expect(themeCurrentRoute(null), '');
+      expect(themeCurrentRoute(''), '');
+      expect(themeCurrentRoute('/'), '');
+    });
+
+    test('library section names the tab, and only inside the library', () {
+      expect(themeLibrarySection('/library/playlists'), 'playlists');
+      expect(themeLibrarySection('/library/artists'), 'artists');
+      expect(themeLibrarySection('/library/albums'), 'albums');
+      expect(themeLibrarySection('/library/stations'), 'stations');
+      expect(themeLibrarySection('/library'), '');
+      expect(themeLibrarySection('/home'), '');
+      expect(themeLibrarySection('/radio'), '');
+      expect(themeLibrarySection(null), '');
+    });
+  });
+
+  group('radio stations', () {
+    final station = RadioStation(
+      id: 'a',
+      provider: 'dir',
+      name: 'Wave',
+      streamUrl: 'https://example.com/stream',
+      tags: ['jazz'],
+      country: 'NL',
+    );
+
+    test('rows carry identity, favorite and live state', () {
+      final rows = themeRadioStations(
+        [station],
+        favoriteKeys: {'dir:a'},
+        activeFavoriteKey: 'dir:a',
+      );
+      expect(rows, hasLength(1));
+      expect(rows.first['id'], 'a');
+      expect(rows.first['favoriteKey'], 'dir:a');
+      expect(rows.first['isFavorite'], isTrue);
+      expect(rows.first['isPlaying'], isTrue);
+      expect(rows.first['subtitle'], contains('jazz'));
+      expect(rows.first['country'], 'NL');
+    });
+
+    test('a non-live station reads as not playing', () {
+      final rows = themeRadioStations(
+        [station],
+        favoriteKeys: const {},
+        activeFavoriteKey: 'dir:other',
+      );
+      expect(rows.first['isFavorite'], isFalse);
+      expect(rows.first['isPlaying'], isFalse);
+    });
+  });
 }

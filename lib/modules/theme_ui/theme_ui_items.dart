@@ -11,6 +11,8 @@ const itemActionTypes = <String>{
   'openItem',
   'likeItem',
   'downloadItem',
+  'playStation',
+  'toggleStationFavorite',
 };
 
 /// Flattens one collection entry into the `item.*` binding namespace.

@@ -62,6 +62,24 @@ Future<void> writeThemePluginKey(String? pluginKey) async {
   }
 }
 
+/// Drops the warm-start definition when the plugin behind [pluginKey]
+/// changed bytes without changing its identity (a same-version reinstall or
+/// update). Cache validation checks the plugin key alone, so it cannot tell
+/// the previous build's payload from the new one — the next start would
+/// warm-start from the old theme until live resolution re-writes the cache.
+/// No-op for any other plugin. The live provider re-resolves from the new
+/// files and re-writes the cache, so the only cost is one cold start.
+Future<void> clearThemeCacheForPlugin(Ref ref, String pluginKey) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString(_pluginKeyKey) != pluginKey) return;
+    await prefs.remove(_cacheKey);
+    ref.invalidate(cachedThemeDefinitionProvider);
+  } catch (e, stack) {
+    AppLogger.reportError(e, stack, 'clearThemeCacheForPlugin');
+  }
+}
+
 /// Persists a successfully resolved theme. Fire-and-forget from the
 /// live provider; failures are swallowed — caching is best-effort.
 ///

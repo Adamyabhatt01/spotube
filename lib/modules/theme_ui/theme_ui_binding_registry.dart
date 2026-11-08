@@ -113,6 +113,8 @@ class ThemeUiBindingRegistry {
         phase: 'existing'),
     ThemeUiBindingDefinition('app.greeting', ThemeUiBindingKind.string, 'clock',
         phase: 'existing'),
+    ThemeUiBindingDefinition(
+        'app.currentRoute', ThemeUiBindingKind.string, 'router'),
     ThemeUiBindingDefinition('clock.now', ThemeUiBindingKind.datetime, 'clock',
         phase: 'existing'),
     ThemeUiBindingDefinition(
@@ -128,6 +130,8 @@ class ThemeUiBindingRegistry {
         'library.folders', ThemeUiBindingKind.list, 'preferences'),
     ThemeUiBindingDefinition(
         'library.counts', ThemeUiBindingKind.map, 'library'),
+    ThemeUiBindingDefinition(
+        'library.activeSection', ThemeUiBindingKind.string, 'router'),
     ThemeUiBindingDefinition(
         'queue.tracks', ThemeUiBindingKind.list, 'audioPlayer'),
     ThemeUiBindingDefinition(
@@ -222,6 +226,9 @@ class ThemeUiBindingRegistry {
         'radio.liveTitle', ThemeUiBindingKind.string, 'radio',
         phase: 'system'),
     ThemeUiBindingDefinition('radio.error', ThemeUiBindingKind.string, 'radio',
+        phase: 'system'),
+    ThemeUiBindingDefinition(
+        'radio.stations', ThemeUiBindingKind.list, 'radio',
         phase: 'system'),
     ThemeUiBindingDefinition(
         'connect.available', ThemeUiBindingKind.boolean, 'connect',

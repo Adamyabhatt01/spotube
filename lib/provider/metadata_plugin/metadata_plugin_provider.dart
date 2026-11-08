@@ -405,6 +405,13 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
     ref.read(pluginCacheProvider).evictPlugin(plugin.slug);
     _storage.validatedPlugins.removeWhere(
         (key) => key.startsWith(PluginStorage.validationPrefix(plugin)));
+
+    // A same-version reinstall keeps the theme identity while changing the
+    // bytes. The warm-start cache is keyed by identity alone, so it would
+    // serve the previous build's payload until live resolution re-writes
+    // it — drop the cached definition so the next start resolves from the
+    // new files.
+    await clearThemeCacheForPlugin(ref, themePluginKey(plugin));
   }
 
   Future<void> removePlugin(PluginConfiguration plugin) async {
@@ -552,6 +559,11 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
             ? themePluginKey(newPlugin)
             : null,
       );
+      // A version bump invalidates the warm-start cache through the key
+      // change, but a same-version replacement (API-version bump only) keeps
+      // the identity — the cache is keyed by identity alone, so drop the
+      // stale payload and let the next start resolve from the new files.
+      await clearThemeCacheForPlugin(ref, themePluginKey(newPlugin));
     }
 
     // The row now points at the new directory. Only now is it safe to remove

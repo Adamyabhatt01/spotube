@@ -618,6 +618,8 @@ class SpotifyThemeApi {
                                       {
                                         'type': 'chip',
                                         'label': 'Playlists',
+                                        'selectedBind': 'library.activeSection',
+                                        'selectedEquals': 'playlists',
                                         'action': {
                                           'type': 'navigate',
                                           'args': {'target': 'library/playlists'},
@@ -626,6 +628,8 @@ class SpotifyThemeApi {
                                       {
                                         'type': 'chip',
                                         'label': 'Artists',
+                                        'selectedBind': 'library.activeSection',
+                                        'selectedEquals': 'artists',
                                         'action': {
                                           'type': 'navigate',
                                           'args': {'target': 'library/artists'},
@@ -634,6 +638,8 @@ class SpotifyThemeApi {
                                       {
                                         'type': 'chip',
                                         'label': 'Albums',
+                                        'selectedBind': 'library.activeSection',
+                                        'selectedEquals': 'albums',
                                         'action': {
                                           'type': 'navigate',
                                           'args': {'target': 'library/albums'},
@@ -642,6 +648,8 @@ class SpotifyThemeApi {
                                       {
                                         'type': 'chip',
                                         'label': 'Podcasts',
+                                        'selectedBind': 'library.activeSection',
+                                        'selectedEquals': 'stations',
                                         'action': {
                                           'type': 'navigate',
                                           'args': {'target': 'library/stations'},
@@ -1289,6 +1297,121 @@ class SpotifyThemeApi {
           },
 
 
+          // The whole library body. The host Library page hands this slot the
+          // saved lists, and the three widgets below own their rows, covers
+          // and menus — the theme only supplies the Spotify-shaped sections.
+          'library.content': {
+            'children': [
+              {
+                'type': 'padding',
+                'horizontal': 24,
+                'top': 12,
+                'bottom': 24,
+                'children': [
+                  {
+                    'type': 'column',
+                    'gap': 28,
+                    'align': 'stretch',
+                    'children': [
+                      {
+                        'type': 'column',
+                        'gap': 12,
+                        'align': 'stretch',
+                        'children': [
+                          {
+                            'type': 'text',
+                            'text': 'Playlists',
+                            'size': 'xl',
+                            'weight': 800,
+                            'letterSpacing': -0.4,
+                          },
+                          {
+                            'type': 'hostWidget',
+                            'id': 'library.playlists',
+                            'props': {
+                              'compact': false,
+                              'showSearch': false,
+                              'showCreate': true,
+                              'showPin': false,
+                              'showQueue': false,
+                              'showPlay': false,
+                              'coverPlays': true,
+                              'showTitle': true,
+                              'showSubtitle': true,
+                              'density': 'standard',
+                              'coverSize': 48,
+                              'coverRadius': 4,
+                              'showDividers': false,
+                            },
+                          },
+                        ],
+                      },
+                      {
+                        'type': 'column',
+                        'gap': 12,
+                        'align': 'stretch',
+                        'children': [
+                          {
+                            'type': 'text',
+                            'text': 'Artists',
+                            'size': 'xl',
+                            'weight': 800,
+                            'letterSpacing': -0.4,
+                          },
+                          {
+                            'type': 'hostWidget',
+                            'id': 'library.artists',
+                            'props': {
+                              'compact': false,
+                              'showPlay': false,
+                              'coverPlays': true,
+                              'showTitle': true,
+                              'showSubtitle': true,
+                              'density': 'standard',
+                              'coverSize': 48,
+                              'coverRadius': 4,
+                              'showDividers': false,
+                            },
+                          },
+                        ],
+                      },
+                      {
+                        'type': 'column',
+                        'gap': 12,
+                        'align': 'stretch',
+                        'children': [
+                          {
+                            'type': 'text',
+                            'text': 'Albums',
+                            'size': 'xl',
+                            'weight': 800,
+                            'letterSpacing': -0.4,
+                          },
+                          {
+                            'type': 'hostWidget',
+                            'id': 'library.albums',
+                            'props': {
+                              'compact': false,
+                              'showQueue': false,
+                              'showPlay': false,
+                              'coverPlays': true,
+                              'showTitle': true,
+                              'showSubtitle': true,
+                              'density': 'standard',
+                              'coverSize': 48,
+                              'coverRadius': 4,
+                              'showDividers': false,
+                            },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+
           // Spotify's now-playing strip: a 56px cover, then the two lines of
           // track metadata. The host keeps the transport and the right-side
           // actions so their live state and tooltips stay intact.
@@ -1822,7 +1945,7 @@ class SpotifyThemeApi {
                                   'size': 'small',
                                   'action': {
                                     'type': 'navigate',
-                                    'args': {'target': 'library'},
+                                    'args': {'target': 'library/albums'},
                                   },
                                 },
                               ],
@@ -2358,7 +2481,7 @@ class SpotifyThemeApi {
                               'borderWidth': 0,
                               'action': {
                                 'type': 'navigate',
-                                'args': {'target': 'library'},
+                                'args': {'target': 'library/liked'},
                               },
                               'children': [
                                 {
@@ -2410,7 +2533,7 @@ class SpotifyThemeApi {
                               'borderWidth': 0,
                               'action': {
                                 'type': 'navigate',
-                                'args': {'target': 'library'},
+                                'args': {'target': 'library/playlists'},
                               },
                               'children': [
                                 {
@@ -4863,6 +4986,109 @@ class SpotifyThemeApi {
                                   'type': 'setCrossfade',
                                   'args': {'value': '$value'},
                                 },
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          // The host's popular station page, drawn as a themed rail above the
+          // station grid. `radio.stations` is the popular default page; each
+          // card plays and favorites through the radio actions.
+          'radio.before_sections': {
+            'children': [
+              {
+                'type': 'padding',
+                'horizontal': 24,
+                'top': 20,
+                'bottom': 4,
+                'children': [
+                  {
+                    'type': 'column',
+                    'gap': 12,
+                    'align': 'stretch',
+                    'children': [
+                      {
+                        'type': 'text',
+                        'text': 'Popular stations',
+                        'size': 'xl',
+                        'weight': 800,
+                        'letterSpacing': -0.4,
+                      },
+                      {
+                        'type': 'list',
+                        'bind': 'radio.stations',
+                        'direction': 'horizontal',
+                        'gap': 20,
+                        'limit': 10,
+                        'align': 'start',
+                        'children': [
+                          {
+                            'type': 'card',
+                            'width': 180,
+                            'padding': 12,
+                            'radius': 8,
+                            'background': '#00000000',
+                            'hoverBackground': '@secondary',
+                            'borderWidth': 0,
+                            'action': {'type': 'playStation'},
+                            'children': [
+                              {
+                                'type': 'image',
+                                'src': 'item.artwork',
+                                'width': 156,
+                                'height': 156,
+                                'radius': 4,
+                                'fit': 'cover',
+                              },
+                              {'type': 'gap', 'size': 10},
+                              {
+                                'type': 'text',
+                                'bind': 'item.name',
+                                'size': 'md',
+                                'weight': 700,
+                                'maxLines': 1,
+                                'overflow': 'ellipsis',
+                              },
+                              {'type': 'gap', 'size': 2},
+                              {
+                                'type': 'text',
+                                'bind': 'item.subtitle',
+                                'size': 'xs',
+                                'color': '@mutedForeground',
+                                'maxLines': 1,
+                                'overflow': 'ellipsis',
+                              },
+                              {'type': 'gap', 'size': 8},
+                              {
+                                'type': 'row',
+                                'children': [
+                                  {
+                                    'type': 'conditional',
+                                    'bind': 'item.isFavorite',
+                                    'children': [
+                                      {
+                                        'type': 'button',
+                                        'icon': 'liked',
+                                        'variant': 'ghost',
+                                        'size': 'small',
+                                        'action': {'type': 'toggleStationFavorite'},
+                                      },
+                                      {
+                                        'type': 'button',
+                                        'icon': 'like',
+                                        'variant': 'ghost',
+                                        'size': 'small',
+                                        'action': {'type': 'toggleStationFavorite'},
+                                      },
+                                    ],
+                                  },
+                                ],
                               },
                             ],
                           },
