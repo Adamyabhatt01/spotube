@@ -187,7 +187,9 @@ void main() {
       expect(evaluateThemeUiCondition(bindings, {}), isFalse);
       expect(evaluateThemeUiCondition(bindings, {'nope': true}), isFalse);
       expect(
-        evaluateThemeUiCondition(bindings, {'allOf': [null, 42]}),
+        evaluateThemeUiCondition(bindings, {
+          'allOf': [null, 42]
+        }),
         isFalse,
       );
     });
@@ -199,7 +201,7 @@ void main() {
       await tester.pumpWidget(_app(
         ThemeUiNodeView(
           runtime: _runtime(bindings: {'player.playing': true}),
-          node: {
+          node: const {
             'type': 'column',
             'children': [
               {
@@ -238,7 +240,7 @@ void main() {
             bindings: {'player.playing': true},
             onAction: (_) => fired++,
           ),
-          node: {
+          node: const {
             'type': 'text',
             'text': 'nope',
             'disabledWhen': 'player.playing',
@@ -260,7 +262,7 @@ void main() {
             bindings: {'queue.count': 2},
             onAction: (_) => fired++,
           ),
-          node: {
+          node: const {
             'type': 'text',
             'text': 'blocked',
             'disabledWhen': {
@@ -287,7 +289,7 @@ void main() {
       await tester.pumpWidget(_app(
         ThemeUiNodeView(
           runtime: runtime,
-          node: {
+          node: const {
             'type': 'conditional',
             'allOf': [
               'player.playing',
@@ -307,7 +309,7 @@ void main() {
       await tester.pumpWidget(_app(
         ThemeUiNodeView(
           runtime: runtime,
-          node: {
+          node: const {
             'type': 'conditional',
             'anyOf': [
               {'bind': 'player.loop', 'equals': 'single'},
@@ -331,7 +333,7 @@ void main() {
       await tester.pumpWidget(_app(
         ThemeUiNodeView(
           runtime: _runtime(),
-          node: {
+          node: const {
             'type': 'text',
             'text': 'visual',
             'semantics': {
@@ -362,7 +364,7 @@ void main() {
       await tester.pumpWidget(_app(
         ThemeUiNodeView(
           runtime: _runtime(),
-          node: {
+          node: const {
             'type': 'text',
             'text': 'hidden from semantics',
             'semantics': {'excludeSemantics': true},
