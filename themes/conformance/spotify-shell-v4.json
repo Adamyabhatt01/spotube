@@ -792,7 +792,7 @@
                                     "action": {
                                       "type": "navigate",
                                       "args": {
-                                        "target": "library"
+                                        "target": "library/playlists"
                                       }
                                     }
                                   }
@@ -809,7 +809,7 @@
                                     "action": {
                                       "type": "navigate",
                                       "args": {
-                                        "target": "library"
+                                        "target": "library/playlists"
                                       }
                                     }
                                   },
@@ -819,7 +819,7 @@
                                     "action": {
                                       "type": "navigate",
                                       "args": {
-                                        "target": "library"
+                                        "target": "library/artists"
                                       }
                                     }
                                   },
@@ -829,7 +829,7 @@
                                     "action": {
                                       "type": "navigate",
                                       "args": {
-                                        "target": "library"
+                                        "target": "library/albums"
                                       }
                                     }
                                   },
@@ -839,7 +839,7 @@
                                     "action": {
                                       "type": "navigate",
                                       "args": {
-                                        "target": "library"
+                                        "target": "library/stations"
                                       }
                                     }
                                   }
@@ -872,7 +872,7 @@
                                                 "action": {
                                                   "type": "navigate",
                                                   "args": {
-                                                    "target": "library"
+                                                    "target": "library/playlists"
                                                   }
                                                 },
                                                 "children": [
@@ -914,7 +914,7 @@
                                                             "action": {
                                                               "type": "navigate",
                                                               "args": {
-                                                                "target": "library"
+                                                                "target": "library/playlists"
                                                               }
                                                             },
                                                             "children": [
@@ -947,7 +947,7 @@
                                                 "action": {
                                                   "type": "navigate",
                                                   "args": {
-                                                    "target": "library"
+                                                    "target": "library/stations"
                                                   }
                                                 },
                                                 "children": [
@@ -989,7 +989,7 @@
                                                             "action": {
                                                               "type": "navigate",
                                                               "args": {
-                                                                "target": "library"
+                                                                "target": "library/stations"
                                                               }
                                                             },
                                                             "children": [

@@ -601,6 +601,15 @@ Future<void> _navigate(
     'radio' => const RadioRoute(),
     'stats' => const StatsRoute(),
     'library' => const LibraryRoute(),
+    // Library sections: a theme's sidebar/library chips name the tab they
+    // want, e.g. `library/artists`. These are nested routes under
+    // `LibraryRoute`; navigating to them selects the matching tab.
+    'library/playlists' => const UserPlaylistsRoute(),
+    'library/artists' => const UserArtistsRoute(),
+    'library/albums' => const UserAlbumsRoute(),
+    'library/stations' => const UserRadioStationsRoute(),
+    'library/local' => const UserLocalLibraryRoute(),
+    'library/downloads' => const UserDownloadsRoute(),
     'lyrics' => const LyricsRoute(),
     'queue' => const PlayerQueueRoute(),
     'downloads' => const UserDownloadsRoute(),

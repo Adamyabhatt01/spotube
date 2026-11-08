@@ -605,7 +605,7 @@ class SpotifyThemeApi {
                                         'size': 'small',
                                         'action': {
                                           'type': 'navigate',
-                                          'args': {'target': 'library'},
+                                          'args': {'target': 'library/playlists'},
                                         },
                                       },
                                     ],
@@ -620,7 +620,7 @@ class SpotifyThemeApi {
                                         'label': 'Playlists',
                                         'action': {
                                           'type': 'navigate',
-                                          'args': {'target': 'library'},
+                                          'args': {'target': 'library/playlists'},
                                         },
                                       },
                                       {
@@ -628,7 +628,7 @@ class SpotifyThemeApi {
                                         'label': 'Artists',
                                         'action': {
                                           'type': 'navigate',
-                                          'args': {'target': 'library'},
+                                          'args': {'target': 'library/artists'},
                                         },
                                       },
                                       {
@@ -636,7 +636,7 @@ class SpotifyThemeApi {
                                         'label': 'Albums',
                                         'action': {
                                           'type': 'navigate',
-                                          'args': {'target': 'library'},
+                                          'args': {'target': 'library/albums'},
                                         },
                                       },
                                       {
@@ -644,7 +644,7 @@ class SpotifyThemeApi {
                                         'label': 'Podcasts',
                                         'action': {
                                           'type': 'navigate',
-                                          'args': {'target': 'library'},
+                                          'args': {'target': 'library/stations'},
                                         },
                                       },
                                     ],
@@ -682,7 +682,7 @@ class SpotifyThemeApi {
                                                     'borderWidth': 0,
                                                     'action': {
                                                       'type': 'navigate',
-                                                      'args': {'target': 'library'},
+                                                      'args': {'target': 'library/playlists'},
                                                     },
                                                     'children': [
                                                       {
@@ -726,7 +726,7 @@ class SpotifyThemeApi {
                                                                   'type': 'navigate',
                                                                   'args': {
                                                                     'target':
-                                                                        'library'
+                                                                        'library/playlists'
                                                                   },
                                                                 },
                                                                 'children': [
@@ -759,7 +759,7 @@ class SpotifyThemeApi {
                                                     'borderWidth': 0,
                                                     'action': {
                                                       'type': 'navigate',
-                                                      'args': {'target': 'library'},
+                                                      'args': {'target': 'library/stations'},
                                                     },
                                                     'children': [
                                                       {
@@ -803,7 +803,7 @@ class SpotifyThemeApi {
                                                                   'type': 'navigate',
                                                                   'args': {
                                                                     'target':
-                                                                        'library'
+                                                                        'library/stations'
                                                                   },
                                                                 },
                                                                 'children': [
