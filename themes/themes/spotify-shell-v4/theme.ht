@@ -1040,11 +1040,25 @@ class SpotifyThemeApi {
                                 'align': 'center',
                                 'children': [
                                   {
-                                    'type': 'button',
-                                    'icon': 'like',
-                                    'variant': 'ghost',
-                                    'size': 'small',
-                                    'action': {'type': 'like'},
+                                    'type': 'conditional',
+                                    'bind': 'player.liked',
+                                    'children': [
+                                      {
+                                        'type': 'button',
+                                        'icon': 'liked',
+                                        'color': '@primary',
+                                        'variant': 'ghost',
+                                        'size': 'small',
+                                        'action': {'type': 'like'},
+                                      },
+                                      {
+                                        'type': 'button',
+                                        'icon': 'like',
+                                        'variant': 'ghost',
+                                        'size': 'small',
+                                        'action': {'type': 'like'},
+                                      },
+                                    ],
                                   },
                                   {
                                     'type': 'button',
@@ -1514,11 +1528,25 @@ class SpotifyThemeApi {
                 'align': 'center',
                 'children': [
                   {
-                    'type': 'button',
-                    'icon': 'like',
-                    'variant': 'ghost',
-                    'size': 'small',
-                    'action': {'type': 'like'},
+                    'type': 'conditional',
+                    'bind': 'player.liked',
+                    'children': [
+                      {
+                        'type': 'button',
+                        'icon': 'liked',
+                        'color': '@primary',
+                        'variant': 'ghost',
+                        'size': 'small',
+                        'action': {'type': 'like'},
+                      },
+                      {
+                        'type': 'button',
+                        'icon': 'like',
+                        'variant': 'ghost',
+                        'size': 'small',
+                        'action': {'type': 'like'},
+                      },
+                    ],
                   },
                   {
                     'type': 'button',
@@ -3018,12 +3046,12 @@ class SpotifyThemeApi {
                                       },
                                       {
                                         'type': 'conditional',
-                                        'bind': 'collection.kind',
-                                        'equals': 'liked',
+                                        'bind': 'item.liked',
                                         'children': [
                                           {
                                             'type': 'button',
                                             'icon': 'liked',
+                                            'color': '@primary',
                                             'variant': 'ghost',
                                             'size': 'small',
                                             'action': {'type': 'likeItem'},
@@ -4865,6 +4893,106 @@ class SpotifyThemeApi {
                                   'type': 'setCrossfade',
                                   'args': {'value': '$value'},
                                 },
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          'radio.before_sections': {
+            'children': [
+              {
+                'type': 'padding',
+                'horizontal': 24,
+                'top': 20,
+                'bottom': 8,
+                'children': [
+                  {
+                    'type': 'column',
+                    'gap': 4,
+                    'align': 'start',
+                    'children': [
+                      {
+                        'type': 'text',
+                        'text': 'Radio',
+                        'size': '4xl',
+                        'weight': 800,
+                        'letterSpacing': -1,
+                      },
+                      {
+                        'type': 'text',
+                        'text': 'Stations from around the world.',
+                        'size': 'sm',
+                        'color': '@mutedForeground',
+                        'maxLines': 2,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          'radio.after_sections': {
+            'children': [
+              {
+                'type': 'conditional',
+                'bind': 'radio.active',
+                'children': [
+                  {
+                    'type': 'padding',
+                    'horizontal': 24,
+                    'top': 16,
+                    'bottom': 8,
+                    'children': [
+                      {
+                        'type': 'card',
+                        'background': '@card',
+                        'radius': 12,
+                        'padding': 16,
+                        'children': [
+                          {
+                            'type': 'row',
+                            'gap': 12,
+                            'align': 'center',
+                            'children': [
+                              {
+                                'type': 'icon',
+                                'icon': 'radio',
+                                'size': 20,
+                                'color': '@primary',
+                              },
+                              {
+                                'type': 'expanded',
+                                'flex': 1,
+                                'children': [
+                                  {
+                                    'type': 'column',
+                                    'gap': 2,
+                                    'children': [
+                                      {
+                                        'type': 'text',
+                                        'bind': 'radio.station',
+                                        'size': 'sm',
+                                        'weight': 700,
+                                        'maxLines': 1,
+                                        'overflow': 'ellipsis',
+                                      },
+                                      {
+                                        'type': 'text',
+                                        'bind': 'radio.liveTitle',
+                                        'size': 'xs',
+                                        'color': '@mutedForeground',
+                                        'maxLines': 1,
+                                        'overflow': 'ellipsis',
+                                      },
+                                    ],
+                                  },
+                                ],
                               },
                             ],
                           },

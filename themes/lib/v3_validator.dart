@@ -298,6 +298,7 @@ const uiBindings = <String>[
   'player.album',
   'player.artwork',
   'player.playing',
+  'player.liked',
   'player.loop',
   'player.shuffled',
   'player.position',
@@ -504,7 +505,7 @@ const uiNodeProps = <String, List<String>>{
     'tile',
     'opacity',
   ],
-  'button': ['label', 'icon', 'variant', 'size', 'disabledWhen'],
+  'button': ['label', 'icon', 'variant', 'size', 'color', 'disabledWhen'],
   'card': [
     'padding',
     'radius',

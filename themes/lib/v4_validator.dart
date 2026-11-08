@@ -378,6 +378,9 @@ const v4SlotNames = <String>[
   'sidebar.library',
   'aside.content',
   'library.local.content',
+  'radio.content',
+  'radio.before_sections',
+  'radio.after_sections',
 ];
 
 /// Whether [name] is a v4 slot. `page.<id>` is the routed theme-page body.

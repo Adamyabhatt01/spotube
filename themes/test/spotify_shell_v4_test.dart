@@ -139,6 +139,8 @@ void main() {
       'queue.content',
       'downloads.content',
       'stats.content',
+      'radio.before_sections',
+      'radio.after_sections',
       'page.audio',
     });
     expect(layout['sidebar'], 'theme');
