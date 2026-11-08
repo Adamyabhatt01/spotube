@@ -715,11 +715,15 @@ class MetadataPluginNotifier extends AsyncNotifier<MetadataPluginState> {
 
     // The stored identity lives outside the database watch. Invalidating only
     // themeDefinitionProvider left the static payload (and therefore the
-    // visible UI) pinned to the old plugin until restart.
+    // visible UI) pinned to the old plugin until restart. The warm-start
+    // cache follows the recorded identity through
+    // cachedThemeDefinitionProvider; the static payload, definition and UI all
+    // depend (transitively) on this key, so invalidating it alone cascades
+    // the reset without asking the notifier to invalidate providers that
+    // themselves depend on it. The on-disk payload is dropped as well so a
+    // later same-key selection cannot warm-start from the previous theme.
     ref.invalidate(storedThemePluginKeyProvider);
-    ref.invalidate(themeStaticPayloadProvider);
-    ref.invalidate(themeDefinitionProvider);
-    ref.invalidate(themeUiProvider);
+    unawaited(removeStoredThemeCache());
 
     // Assets and fonts are resolved through the plugin's versioned extraction
     // directory, so the new identity loads its own; the artwork palette cache
