@@ -267,7 +267,16 @@ class ThemeUiNodeView extends StatelessWidget {
       _ => const SizedBox.shrink(),
     };
 
-    if (!isFlexNode && actions.isNotEmpty && !_selfActionTypes.contains(type)) {
+    // A passthrough node can resolve to an `Expanded`/`Spacer` (for example,
+    // a conditional branch). Its node chrome would insert a render-object
+    // ancestor between the Flex and that widget and crash the same way, so
+    // the whole result must bypass chrome.
+    final resultIsFlexNode = isFlexNode ||
+        (result is ThemeUiNodeView && _resolvesToFlexNode(result.node));
+
+    if (!resultIsFlexNode &&
+        actions.isNotEmpty &&
+        !_selfActionTypes.contains(type)) {
       result = MouseRegion(
         cursor: disabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
         child: GestureDetector(
@@ -278,7 +287,7 @@ class ThemeUiNodeView extends StatelessWidget {
       );
     }
 
-    if (disabled && !isFlexNode) {
+    if (disabled && !resultIsFlexNode) {
       result = IgnorePointer(ignoring: true, child: result);
     }
 
@@ -298,7 +307,7 @@ class ThemeUiNodeView extends StatelessWidget {
     // `Expanded` and `Spacer` carry parent data for their Flex. Their node
     // chrome is already wrapped around the content by `wrapFlexContent`;
     // returning the flex widget directly keeps its parent data on the Flex.
-    if (isFlexNode) {
+    if (resultIsFlexNode) {
       return result;
     }
 

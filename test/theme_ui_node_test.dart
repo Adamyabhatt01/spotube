@@ -956,6 +956,41 @@ void main() {
     expect(find.byType(material.Switch), findsOneWidget);
   });
 
+  testWidgets('conditional flex keeps its Flex parent data', (tester) async {
+    final runtime = _runtime(
+      bindings: const {'collection.kind': 'playlist'},
+    );
+
+    await tester.pumpWidget(_app(
+      Row(
+        children: [
+          ThemeUiNodeView(
+            runtime: runtime,
+            node: const {
+              'type': 'conditional',
+              'bind': 'collection.kind',
+              'equals': 'album',
+              'invert': true,
+              'children': [
+                {
+                  'type': 'expanded',
+                  'flex': 3,
+                  'children': [
+                    {'type': 'text', 'text': 'Album'},
+                  ],
+                },
+              ],
+            },
+          ),
+        ],
+      ),
+    ));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Album'), findsOneWidget);
+  });
+
   testWidgets('action and semantics wrappers stay inside expanded content',
       (tester) async {
     final fired = <ThemeUiAction>[];

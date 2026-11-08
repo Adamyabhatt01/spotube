@@ -41,6 +41,67 @@ extension _ThemeUiNodeHelpers on ThemeUiNodeView {
     );
   }
 
+  /// Whether [candidate] resolves to a flex parent-data widget.
+  ///
+  /// A conditional or template can return an `expanded`/`spacer` node as its
+  /// only rendered child. Node-level chrome (Material, pointer wrappers,
+  /// semantics) must not be added around that result: any render-object
+  /// ancestor between the Flex and `Expanded` makes Flutter reject the
+  /// parent data at mount.
+  bool _resolvesToFlexNode(
+    Map<String, dynamic> candidate, {
+    ThemeUiRuntime? scopedRuntime,
+    int depthGuard = 0,
+  }) {
+    if (depthGuard > _maxDepth) return false;
+    final candidateRuntime = scopedRuntime ?? runtime;
+    final candidateType = candidate['type'];
+    if (candidateType == 'expanded' || candidateType == 'spacer') {
+      return true;
+    }
+    if (candidateType == 'conditional') {
+      final candidateProps = _props(candidate);
+      final candidateChildren = _children(candidate);
+      final condition = <String, dynamic>{
+        if (candidateProps['bind'] is String) 'bind': candidateProps['bind'],
+        if (candidateProps.containsKey('equals'))
+          'equals': candidateProps['equals'],
+        if (candidateProps['invert'] == true) 'invert': true,
+        if (candidateProps['allOf'] is List) 'allOf': candidateProps['allOf'],
+        if (candidateProps['anyOf'] is List) 'anyOf': candidateProps['anyOf'],
+      };
+      final pass =
+          evaluateThemeUiCondition(candidateRuntime.bindings, condition);
+      final chosen = pass
+          ? (candidateChildren.isNotEmpty ? candidateChildren.first : null)
+          : (candidateChildren.length > 1 ? candidateChildren[1] : null);
+      return chosen != null &&
+          _resolvesToFlexNode(
+            chosen,
+            scopedRuntime: candidateRuntime,
+            depthGuard: depthGuard + 1,
+          );
+    }
+    if (candidateType == 'template') {
+      final candidateProps = _props(candidate);
+      final name = candidateProps['name'];
+      if (name is! String || !candidateRuntime.canExpandTemplate(name)) {
+        return false;
+      }
+      final template = candidateRuntime.templates[name]!;
+      final expanded = template.children
+          .map((child) => _substitute(child, _map(candidateProps['args'])))
+          .toList();
+      if (expanded.length != 1) return false;
+      return _resolvesToFlexNode(
+        expanded.first,
+        scopedRuntime: candidateRuntime.descendTemplate(name),
+        depthGuard: depthGuard + 1,
+      );
+    }
+    return false;
+  }
+
   List<Widget> _nodes(
     BuildContext context,
     List<Map<String, dynamic>> children,
