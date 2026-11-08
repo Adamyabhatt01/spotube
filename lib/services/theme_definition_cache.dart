@@ -1,12 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spotube/models/metadata/metadata.dart';
-import 'package:spotube/provider/metadata_plugin/plugin_storage.dart';
 import 'package:spotube/services/logger/logger.dart';
 import 'package:spotube/services/metadata/theme_sanitizer.dart';
 
@@ -25,44 +22,13 @@ const _pluginKeyKey = 'spotube.theme_default_plugin_key.v1';
 String themePluginKey(PluginConfiguration plugin) =>
     '${plugin.author}::${plugin.name}::${plugin.version}';
 
-/// Fingerprint of the on-disk theme sources that produced a cached
-/// definition.
+/// Integrity hash of a cached definition.
 ///
-/// The warm cache is stored under the plugin identity alone, so a rebuilt or
-/// replaced plugin with the same version would otherwise validate as fresh
-/// while still serving the previous payload. Hashing the static theme file
-/// and the bytecode makes the cached definition valid only for the exact
-/// files that generated it.
-Future<String?> _themeSourceFingerprint(String? pluginKey) async {
-  try {
-    if (pluginKey == null) return null;
-    final parts = pluginKey.split('::');
-    if (parts.length != 3) return null;
-    final config = PluginConfiguration(
-      name: parts[1],
-      description: '',
-      version: parts[2],
-      author: parts[0],
-      entryPoint: 'Theme',
-      pluginApiVersion: '2.0.0',
-    );
-    final dir = await PluginStorage().extractionDir(config);
-    final bytes = <int>[];
-    var found = false;
-    for (final name in const ['theme.json', 'plugin.out']) {
-      final file = File(join(dir.path, name));
-      if (!await file.exists()) continue;
-      found = true;
-      bytes.addAll(utf8.encode(name));
-      bytes.add(0);
-      bytes.addAll(await file.readAsBytes());
-      bytes.add(0);
-    }
-    return found ? sha256.convert(bytes).toString() : null;
-  } catch (_) {
-    return null;
-  }
-}
+/// The warm cache is stored under the plugin identity alone, so validation
+/// also proves the entry still describes the payload it was written from
+/// instead of trusting a partially-written or schema-skewed blob.
+String _definitionHash(Object? value) =>
+    sha256.convert(utf8.encode(jsonEncode(value))).toString();
 
 /// Removes the warm-start definition without changing the recorded identity.
 ///
@@ -153,8 +119,7 @@ Future<void> writeThemeCache({
   try {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_pluginKeyKey, pluginKey);
-    final sourceFingerprint = await _themeSourceFingerprint(pluginKey);
-    if (sourceFingerprint == null) return;
+    final definitionJson = definition.toJson();
     await prefs.setString(
       _cacheKey,
       jsonEncode({
@@ -164,8 +129,8 @@ Future<void> writeThemeCache({
         'v': 3,
         'pluginKey': pluginKey,
         'shellKey': shellKey,
-        'sourceFingerprint': sourceFingerprint,
-        'definition': definition.toJson(),
+        'payloadHash': _definitionHash(definitionJson),
+        'definition': definitionJson,
       }),
     );
   } catch (e, stack) {
@@ -202,14 +167,12 @@ final cachedThemeDefinitionProvider =
     if (json is! Map<String, dynamic>) return null;
     if (json['v'] != 3) return null;
     if (json['pluginKey'] != pluginKey) return null;
-    final sourceFingerprint = json['sourceFingerprint'];
-    if (sourceFingerprint is! String) return null;
-    if (await _themeSourceFingerprint(pluginKey) != sourceFingerprint) {
-      return null;
-    }
+    final payloadHash = json['payloadHash'];
+    if (payloadHash is! String) return null;
 
     final definition = json['definition'];
     if (definition is! Map) return null;
+    if (_definitionHash(definition) != payloadHash) return null;
     // Written after sanitizing, but a cache outlives the ranges the host
     // was built with, so treat the numbers as untrusted again on read.
     return sanitizeThemeDefinition(

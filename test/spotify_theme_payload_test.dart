@@ -106,7 +106,7 @@ const spotifyDark = ThemeColors(
 /// Where the theme lives: the in-repo `themes/` package, packaged by `tools/build.dart`.
 final _pluginDir = Directory('${Directory.current.path}/themes');
 final _golden = File('${_pluginDir.path}/conformance/spotify-shell-v4.json');
-final _archive = File('${_pluginDir.path}/dist/spotify-shell-v4-1.0.0.smplug');
+final _archive = File('${_pluginDir.path}/dist/spotify-shell-v4-1.0.2.smplug');
 
 ThemeDefinition _decode(Map<String, dynamic> json) =>
     sanitizeThemeDefinition(ThemeDefinition.fromJson(json));
@@ -220,6 +220,7 @@ void main() {
         // header, filter chips, Liked Songs and the profile footer.
         'sidebar.content',
         'aside.content',
+        'library.content',
         'player.leading',
         'player.controls',
         'player.trailing',
@@ -230,11 +231,10 @@ void main() {
         'queue.content',
         'downloads.content',
         'stats.content',
+        'radio.before_sections',
+        'radio.after_sections',
         'page.audio',
       });
-      // `library.content` is deliberately absent: the host library keeps its
-      // create/reorder/pin/refresh actions, which a read-only slot cannot do.
-      expect(slots, isNot(contains('library.content')));
       expect(theme.ui!.screens, isEmpty);
       // v4 routes a theme page through the host shell instead of an overlay
       // screen, so the audio settings page is a `page.<id>` slot with a
@@ -278,7 +278,7 @@ void main() {
   // Skipped on machines without the sibling checkout — the group above pins the
   // golden, this one pins the file that has to carry the same payload.
   final built = _archive.existsSync();
-  group('built spotify-shell-v4-1.0.0.smplug', () {
+  group('built spotify-shell-v4-1.0.2.smplug', () {
     late Archive zip;
     late Uint8List byteCode;
 
@@ -311,7 +311,7 @@ void main() {
         // triple does not match it gets pruned on startup.
         expect(
           '${manifest['author']}-${manifest['name']}-${manifest['version']}',
-          'Adamya Bhatt-Spotify Shell v4-1.0.0',
+          'Adamya Bhatt-Spotify Shell v4-1.0.2',
         );
       },
       skip: !built,
