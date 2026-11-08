@@ -827,6 +827,7 @@
                       {
                         "type": "button",
                         "label": "Close",
+                        "color": "@primary",
                         "action": {
                           "type": "dismiss"
                         }
@@ -848,6 +849,7 @@
               {
                 "type": "button",
                 "label": "Copy",
+                "color": "@primary",
                 "action": {
                   "type": "copy",
                   "args": {

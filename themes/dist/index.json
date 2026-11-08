@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-08T10:23:04.411998Z",
+  "generatedAt": "2026-11-08T13:54:15.908806Z",
   "themes": [
     {
       "id": "asset-demo",
@@ -111,8 +111,8 @@
         "theme"
       ],
       "file": "kitchen-sink-2.0.0.smplug",
-      "bytes": 15335,
-      "sha256": "f1cad2cb5062ff6ebca09a9833e83b0e9d9dc90081b65fe1efef7bb9f83a382e",
+      "bytes": 15351,
+      "sha256": "8dd2b2d5f77f0bc59d1e636139c1db269fd37f13e1510c8686d20f91e9247601",
       "optionalMethods": [],
       "hasUiSpec": false,
       "hasStaticTheme": true
