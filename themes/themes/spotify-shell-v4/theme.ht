@@ -4904,39 +4904,6 @@ class SpotifyThemeApi {
               },
             ],
           },
-          'radio.before_sections': {
-            'children': [
-              {
-                'type': 'padding',
-                'horizontal': 24,
-                'top': 20,
-                'bottom': 8,
-                'children': [
-                  {
-                    'type': 'column',
-                    'gap': 4,
-                    'align': 'start',
-                    'children': [
-                      {
-                        'type': 'text',
-                        'text': 'Radio',
-                        'size': '4xl',
-                        'weight': 800,
-                        'letterSpacing': -1,
-                      },
-                      {
-                        'type': 'text',
-                        'text': 'Stations from around the world.',
-                        'size': 'sm',
-                        'color': '@mutedForeground',
-                        'maxLines': 2,
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
           'radio.after_sections': {
             'children': [
               {
