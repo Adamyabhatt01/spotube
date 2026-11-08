@@ -20,6 +20,11 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
 
+      - name: Install native test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libmpv-dev
+
       - name: Dummy Envs
         run: |
           envsubst < .env.example > .env

@@ -284,6 +284,10 @@ void main() {
     late Uint8List byteCode;
 
     setUpAll(() async {
+      // The root Lint job does not build the themes package, so the artifact
+      // may not be there on a clean checkout. The tests themselves are
+      // skipped below; just don't throw while setting up for them.
+      if (!_archive.existsSync()) return;
       zip = ZipDecoder().decodeBytes(_archive.readAsBytesSync());
       byteCode = Uint8List.fromList(
         zip
