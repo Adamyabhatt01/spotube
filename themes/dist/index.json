@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-08T08:42:38.019518Z",
+  "generatedAt": "2026-11-08T08:56:55.758635Z",
   "themes": [
     {
       "id": "asset-demo",
@@ -228,8 +228,8 @@
         "theme"
       ],
       "file": "spotify-shell-v4-1.0.2.smplug",
-      "bytes": 575874,
-      "sha256": "dec15aa79cf675f91bf9bfe1c6b41e1015877a4d5e2cb10e88eb3eb26a878ccf",
+      "bytes": 575799,
+      "sha256": "f011700a5a66c0bcc895a4a08798d1addeb797c4cb1239ecafd835e2541121a2",
       "optionalMethods": [],
       "hasUiSpec": false,
       "hasStaticTheme": true,
