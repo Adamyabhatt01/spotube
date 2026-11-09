@@ -53,12 +53,12 @@ class _FakeQueueNotifier extends AudioPlayerNotifier {
 
   @override
   Future<void> addMediaToBackend(SpotubeMedia media) async {
-    medias = [...medias, media];
+    medias = [...medias, media.toMedia];
   }
 
   @override
   Future<void> insertMediaIntoBackend(SpotubeMedia media, int index) async {
-    medias = [...medias]..insert(index.clamp(0, medias.length), media);
+    medias = [...medias]..insert(index.clamp(0, medias.length), media.toMedia);
   }
 
   @override
@@ -72,7 +72,7 @@ class _FakeQueueNotifier extends AudioPlayerNotifier {
     required int initialIndex,
     required bool autoPlay,
   }) async {
-    this.medias = List.of(medias);
+    this.medias = medias.map((m) => m.toMedia).toList();
     fakeIndex = initialIndex;
   }
 

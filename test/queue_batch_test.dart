@@ -42,13 +42,13 @@ class _RecordingBackendNotifier extends AudioPlayerNotifier {
 
   void backendAdd(SpotubeMedia media) {
     backendQueue.add(media.track);
-    medias = [...medias, media];
+    medias = [...medias, media.toMedia];
   }
 
   void backendInsert(SpotubeMedia media, int index) {
     final at = index.clamp(0, backendQueue.length);
     backendQueue.insert(at, media.track);
-    medias = [...medias]..insert(at, media);
+    medias = [...medias]..insert(at, media.toMedia);
   }
 
   void backendRemove(int index) {
@@ -60,7 +60,7 @@ class _RecordingBackendNotifier extends AudioPlayerNotifier {
     backendQueue
       ..clear()
       ..addAll(opened.map((m) => m.track));
-    medias = List<Media>.of(opened);
+    medias = opened.map((m) => m.toMedia).toList();
   }
 
   @override

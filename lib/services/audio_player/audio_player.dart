@@ -18,7 +18,7 @@ import 'package:spotube/utils/position_tick.dart';
 part 'audio_players_streams_mixin.dart';
 part 'audio_player_impl.dart';
 
-class SpotubeMedia extends mk.Media {
+class SpotubeMedia {
   static int serverPort = 0;
 
   // Windows proxy bypass lists conventionally name "localhost", not 127.0.0.1,
@@ -32,8 +32,7 @@ class SpotubeMedia extends mk.Media {
       : assert(
           track is SpotubeLocalTrackObject || track is SpotubeFullTrackObject,
           "Track must be a either a local track or a full track object with ISRC",
-        ),
-        super(uriFor(track), extras: track.toJson());
+        );
 
   /// The uri the backend holds [track] under. Also what a bare `Media` — the
   /// kind media_kit rebuilds the playlist from after `setShuffle` — can be
@@ -43,16 +42,26 @@ class SpotubeMedia extends mk.Media {
           ? track.path
           : "http://$_host:$serverPort/stream/${track.id}";
 
-  factory SpotubeMedia.media(Media media) {
-    // The backend keeps the [SpotubeMedia] instances it was given, so on an
-    // index-only playlist event `media` is already one and `track` is already
-    // parsed. Re-running `fromJson` over `extras` cost one track parse per
-    // queue slot per event.
-    if (media is SpotubeMedia) return media;
+  /// The queue URI. Matches [toMedia]'s `Media.uri` (media_kit normalises the
+  /// same string, and the normalisation is idempotent for http/file URIs).
+  String get uri => uriFor(track);
 
+  // media_kit 1.2.6 made `Media` a factory with a private generative ctor
+  // (`fix: memory leaks (#1446)`), so it can no longer be extended. This
+  // wrapper instead materialises a real `Media` — which registers in
+  // media_kit's cache and attaches its finalizer — on demand.
+  mk.Media get toMedia => mk.Media(uri, extras: track.toJson());
+
+  factory SpotubeMedia.media(Media media) {
+    // The backend holds real `Media` instances whose `extras` carry the track
+    // json; recovery is `SpotubeTrackObject.fromJson(media.extras!)`.
     assert(media.extras != null, "[Media] must have extra metadata set");
     return SpotubeMedia(SpotubeTrackObject.fromJson(media.extras!));
   }
+
+  /// The track carried by a backend [Media] (its `extras` json).
+  static SpotubeTrackObject trackOf(Media media) =>
+      SpotubeMedia.media(media).track;
 }
 
 abstract class AudioPlayerInterface {

@@ -68,7 +68,7 @@ class _RecordingPlayerNotifier extends AudioPlayerNotifier {
     required bool autoPlay,
   }) async {
     backendCalls.add('open:$initialIndex:${medias.length}');
-    this.medias = List<Media>.of(medias);
+    this.medias = medias.map((m) => m.toMedia).toList();
   }
 }
 

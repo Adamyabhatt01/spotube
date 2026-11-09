@@ -67,14 +67,14 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   /// but through these methods, which tests override with a recording
   /// fake to verify call counts, order and backend/state consistency.
   /// Production implementations delegate straight to [audioPlayer].
+  /// `SpotubeMedia` is a wrapper; the backend only ever sees real `Media`.
   Future<void> addMediaToBackend(SpotubeMedia media) =>
-      _player.addTrack(media);
+      _player.addTrack(media.toMedia);
 
   Future<void> insertMediaIntoBackend(SpotubeMedia media, int index) =>
-      _player.addTrackAt(media, index);
+      _player.addTrackAt(media.toMedia, index);
 
-  Future<void> removeMediaFromBackend(int index) =>
-      _player.removeTrack(index);
+  Future<void> removeMediaFromBackend(int index) => _player.removeTrack(index);
 
   Future<void> openPlaylistOnBackend(
     List<SpotubeMedia> medias, {
@@ -82,7 +82,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     required bool autoPlay,
   }) =>
       _player.openPlaylist(
-        medias,
+        medias.map((m) => m.toMedia).toList(),
         initialIndex: initialIndex,
         autoPlay: autoPlay,
       );
@@ -220,7 +220,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
           '$currentIndex (serverPort=${SpotubeMedia.serverPort})',
         );
         await _player.openPlaylist(
-          tracks.asMediaList(),
+          tracks.asMediaList().map((m) => m.toMedia).toList(),
           initialIndex: currentIndex,
           autoPlay: false,
         );
@@ -633,7 +633,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       await _awaitPlaybackServerPort();
     }
     try {
-      await _player.addTrack(SpotubeMedia(track));
+      await _player.addTrack(SpotubeMedia(track).toMedia);
     } catch (_) {
       state = previousState;
       rethrow;

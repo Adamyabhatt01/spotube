@@ -3,11 +3,17 @@
 // whatever upstream pushed. The cost is that those pins never move on their
 // own, so this reports how far each one has fallen behind its repository.
 //
+// Tag refs (e.g. bonsoir-v6.1.0) are version anchors, not SHAs: upstream's
+// default branch has moved to a newer major that needs a newer SDK than this
+// repo's toolchain, so comparing the tag to the branch would always fail.
+// Those pins are verified to exist as tags and then skipped.
+//
 //   dart run scripts/dep_drift.dart [--summary=<file>]
 //
-// Exit status: 0 = every pin is at or ahead of its default branch, 1 = at least
-// one has drifted, 2 = the pins could not be read. Network or rate-limit
-// failures are reported as `unknown` and do not fail the run.
+// Exit status: 0 = every pin is at or ahead of its default branch (or an
+// intentional tag anchor), 1 = at least one has drifted, 2 = the pins could
+// not be read. Network or rate-limit failures are reported as `unknown` and
+// do not fail the run.
 
 import 'dart:convert';
 import 'dart:io';
@@ -145,6 +151,28 @@ Future<DriftReport> checkPin(
   final branch = repo['default_branch'];
   if (branch is! String) return DriftReport(pin, note: 'no default branch');
 
+  // Tag refs (e.g. bonsoir-v6.1.0) anchor a release, not a moving branch.
+  // Upstream's default branch may already be a newer major needing a newer
+  // SDK, so comparing the tag to it would always report drift for a pin that
+  // is intentionally frozen. Verify the tag exists and skip it.
+  if (!pin.isSha) {
+    final tag = await _getJson(
+      client,
+      '/repos/${pin.slug}/git/refs/tags/${pin.ref}',
+      token: token,
+    );
+    if (tag is Map) {
+      final obj = tag['object'] as Map?;
+      final sha = obj?['sha']?.toString();
+      return DriftReport(
+        pin,
+        headSha: sha != null && sha.length >= 7 ? sha.substring(0, 7) : null,
+        commitsBehind: 0,
+        note: 'tag pin — intentionally anchored, skipped',
+      );
+    }
+  }
+
   // `compare` accepts a SHA or a tag/branch name on either side.
   final comparison = await _getJson(
     client,
@@ -161,6 +189,7 @@ Future<DriftReport> checkPin(
   }
 
   final commitsBehind = comparison['ahead_by'];
+  final behindBy = comparison['behind_by'];
   // /compare has no top-level `commit`: the branch tip is the last listed
   // commit, or the merge base when the pin already sits at the tip.
   final commits = comparison['commits'];
@@ -168,11 +197,18 @@ Future<DriftReport> checkPin(
       ? (commits.last as Map)['sha']
       : (comparison['merge_base_commit']?['sha']);
 
+  // `status: behind` means the pin is ahead of the default branch (a local
+  // fix upstream hasn't taken). It is not drift — the pin is newer.
+  final status = comparison['status'] as String?;
+  final note = status == 'behind' && behindBy is int && behindBy > 0
+      ? 'pin ahead of default branch ($behindBy)'
+      : status;
+
   return DriftReport(
     pin,
     headSha: head is String && head.length >= 7 ? head.substring(0, 7) : null,
     commitsBehind: commitsBehind is int ? commitsBehind : null,
-    note: comparison['status'] as String?,
+    note: note,
   );
 }
 
