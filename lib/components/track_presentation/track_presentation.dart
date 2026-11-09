@@ -10,6 +10,7 @@ import 'package:spotube/components/track_presentation/presentation_top.dart';
 import 'package:spotube/components/track_presentation/presentation_modifiers.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
+import 'package:spotube/extensions/string.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/theme_ui/theme_ui_host.dart';
 import 'package:spotube/utils/platform.dart';
@@ -62,7 +63,7 @@ class TrackPresentation extends HookConsumerWidget {
       'collection.id': options.collectionId,
       'collection.kind': options.kind,
       'collection.title': options.title,
-      'collection.description': options.description ?? '',
+      'collection.description': (options.description ?? '').strippedHtml(),
       'collection.owner': options.owner ?? '',
       'collection.ownerImage': options.ownerImage ?? '',
       'collection.artwork': options.image,

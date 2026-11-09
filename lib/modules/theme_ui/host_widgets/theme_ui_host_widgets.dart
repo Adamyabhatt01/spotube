@@ -12,6 +12,7 @@ import 'package:spotube/components/adaptive/adaptive_pop_sheet_list.dart';
 import 'package:spotube/components/playbutton_view/collection_row_policy.dart';
 import 'package:spotube/components/playbutton_view/playbutton_tile.dart';
 import 'package:spotube/extensions/context.dart';
+import 'package:spotube/extensions/string.dart';
 import 'package:spotube/models/equalizer/equalizer.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/album/album_card.dart';
@@ -311,7 +312,10 @@ List<SpotubeSimplePlaylistObject> themeUiSelectPlaylists({
           .where(
             (playlist) =>
                 playlist.name.toLowerCase().contains(needle) ||
-                playlist.description.toLowerCase().contains(needle),
+                playlist.description
+                    .strippedHtml()
+                    .toLowerCase()
+                    .contains(needle),
           )
           .toList();
 
@@ -357,8 +361,7 @@ class _ThemeUiCollection extends StatelessWidget {
           padding: EdgeInsets.zero,
           scrollDirection: Axis.horizontal,
           itemCount: items.length,
-          separatorBuilder: (_, __) =>
-              Gap(8 + listStyle.rowSpacing.toDouble()),
+          separatorBuilder: (_, __) => Gap(8 + listStyle.rowSpacing.toDouble()),
           itemBuilder: (context, index) {
             // A tile fills the width it is given; a card picks its own.
             return compact
@@ -496,8 +499,7 @@ class _ThemeUiPlaylists extends HookConsumerWidget {
                           Icon(
                             SpotubeIcons.search,
                             size: 16,
-                            color: context
-                                .theme.colorScheme.mutedForeground,
+                            color: context.theme.colorScheme.mutedForeground,
                           ),
                         ),
                         InputFeature.trailing(
@@ -608,8 +610,7 @@ class _ThemeUiArtists extends ConsumerWidget {
         horizontal: false,
         hasArtist: true,
         listStyle: listStyle,
-        builder: (context, item) =>
-            ArtistCard(item as SpotubeFullArtistObject),
+        builder: (context, item) => ArtistCard(item as SpotubeFullArtistObject),
       );
     }
 
@@ -631,13 +632,12 @@ class _ThemeUiArtists extends ConsumerWidget {
           child: PlaybuttonTile(
             title: artist.name,
             description: artist.genres?.join(', '),
-            imageUrl: artist.images
-                .asUrlString(placeholder: ImagePlaceholder.artist),
+            imageUrl:
+                artist.images.asUrlString(placeholder: ImagePlaceholder.artist),
             isPlaying: false,
             isLoading: false,
             rowPolicy: rowPolicy,
-            onTap: () =>
-                context.navigateTo(ArtistRoute(artistId: artist.id)),
+            onTap: () => context.navigateTo(ArtistRoute(artistId: artist.id)),
           ),
         );
       },

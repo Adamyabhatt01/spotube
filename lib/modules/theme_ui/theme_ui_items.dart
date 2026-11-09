@@ -1,3 +1,4 @@
+import 'package:spotube/extensions/string.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/provider/download_manager/download_tasks.dart';
 
@@ -157,7 +158,9 @@ void _playlist(
   values['item.id'] = playlist.id;
   values['item.title'] = playlist.name;
   values['item.name'] = playlist.name;
-  values['item.description'] = playlist.description;
+  // Spotify's algorithmic mixes carry artists as <a> links in the raw
+  // description; every theme display gets the plain text.
+  values['item.description'] = playlist.description.strippedHtml();
   values['item.owner'] = playlist.owner.name;
   values['item.ownerId'] = playlist.owner.id;
   values['item.artwork'] = playlist.images.asUrlString(

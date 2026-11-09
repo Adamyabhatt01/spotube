@@ -15,6 +15,7 @@ import 'package:spotube/components/track_presentation/presentation_props.dart';
 import 'package:spotube/components/track_presentation/use_action_callbacks.dart';
 import 'package:spotube/extensions/constrains.dart';
 import 'package:spotube/extensions/context.dart';
+import 'package:spotube/extensions/string.dart';
 import 'package:spotube/models/metadata/metadata.dart';
 import 'package:spotube/modules/app_layout/app_layout.dart';
 import 'package:spotube/modules/playlist/playlist_create_dialog.dart';
@@ -345,7 +346,7 @@ class TrackPresentationTopSection extends HookConsumerWidget {
                                 ),
                                 if (options.description != null)
                                   AutoSizeText(
-                                    options.description!,
+                                    options.description!.strippedHtml(),
                                     maxLines: 2,
                                     minFontSize: 14,
                                     maxFontSize: 18,

@@ -90,7 +90,8 @@ class PlaybuttonTile extends HookWidget {
     // Memoized like the card/tile siblings: building a fresh provider per
     // build re-resolves the image cache on every row rebuild while
     // scrolling. Rounded to whole px so float noise can't fragment keys.
-    final decodeSide = ((rowPolicy.coverSize ?? 50) * 2 * scale).roundToDouble();
+    final decodeSide =
+        ((rowPolicy.coverSize ?? 50) * 2 * scale).roundToDouble();
     final tileArt = useMemoized(
       () => imageUrl == null
           ? null
@@ -203,7 +204,9 @@ class PlaybuttonTile extends HookWidget {
                 ],
                 if (rowPolicy.showQueue) ...[
                   Tooltip(
-                    tooltip: TooltipContainer(child: Text(context.l10n.add_to_queue)).call,
+                    tooltip:
+                        TooltipContainer(child: Text(context.l10n.add_to_queue))
+                            .call,
                     child: IconButton.outline(
                       icon: const Icon(SpotubeIcons.queueAdd),
                       onPressed: onAddToQueuePressed,
@@ -214,7 +217,8 @@ class PlaybuttonTile extends HookWidget {
                 ],
                 if (rowPolicy.showPlay)
                   Tooltip(
-                    tooltip: TooltipContainer(child: Text(context.l10n.play)).call,
+                    tooltip:
+                        TooltipContainer(child: Text(context.l10n.play)).call,
                     child: IconButton.secondary(
                       icon: switch ((showPlaySpinner, isActuallyPlaying)) {
                         (true, _) => const CircularProgressIndicator(
@@ -242,7 +246,7 @@ class PlaybuttonTile extends HookWidget {
           Text(title),
           if (rowPolicy.showSubtitle && cleanDescription.isNotEmpty)
             Text(
-              description!,
+              cleanDescription,
               maxLines: rowPolicy.compactDensity ? 1 : 2,
               overflow: TextOverflow.ellipsis,
             ).xSmall().muted(),
